@@ -1,0 +1,20 @@
+{
+  "name": "chsc6x",
+  "version": "0.0.1",
+  "keywords": "touch",
+  "description": "Touch chip library for reading coordinates.",
+  "repository":
+  {
+    "type": "git",
+    "url": "https://github.com/Quency-D/chsc6x.git"
+  },
+  "authors":
+  [
+    {
+       "name": "heltec",
+       "maintainer": true
+    }
+  ],
+  "frameworks": "arduino",
+  "platforms": "*"
+}

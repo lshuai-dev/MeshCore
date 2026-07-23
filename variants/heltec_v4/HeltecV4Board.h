@@ -23,6 +23,8 @@ public:
   void begin();
   void onBeforeTransmit(void) override;
   void onAfterTransmit(void) override;
+  bool isLnaCanControl() const { return loRaFEMControl.isLnaCanControl(); }
+  bool setLNAEnable(bool enabled);
   void enterDeepSleep(uint32_t secs, int pin_wake_btn = -1);
   void powerOff() override;
   uint16_t getBattMilliVolts() override;

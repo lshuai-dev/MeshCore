@@ -17,6 +17,11 @@ RADIO_CLASS radio = new Module(P_LORA_NSS, P_LORA_DIO_1, P_LORA_RESET, P_LORA_BU
 
 WRAPPER_CLASS radio_driver(radio, board);
 
+namespace heltec::meshcore::board {
+bool lnaCanControl() { return ::board.isLnaCanControl(); }
+bool setLnaEnable(bool enabled) { return ::board.setLNAEnable(enabled); }
+}
+
 VolatileRTCClock fallback_clock;
 AutoDiscoverRTCClock rtc_clock(fallback_clock);
 
@@ -28,7 +33,7 @@ EnvironmentSensorManager sensors = EnvironmentSensorManager(nmea);
 EnvironmentSensorManager sensors;
 #endif
 
-#ifdef DISPLAY_CLASS
+#if defined(DISPLAY_CLASS) && !defined(HELTEC_DISPLAY_ST7735)
 DISPLAY_CLASS display(&board.periph_power);
 MomentaryButton user_btn(PIN_USER_BTN, 1000, true);
 #endif
@@ -41,6 +46,21 @@ bool radio_init() {
 #else
   return radio.std_init();
 #endif
+}
+
+uint32_t radio_get_rng_seed() {
+  return radio.random(0x7FFFFFFF);
+}
+
+void radio_set_params(float freq, float bw, uint8_t sf, uint8_t cr) {
+  radio.setFrequency(freq);
+  radio.setSpreadingFactor(sf);
+  radio.setBandwidth(bw);
+  radio.setCodingRate(cr);
+}
+
+void radio_set_tx_power(int8_t dbm) {
+  radio.setOutputPower(dbm);
 }
 
 mesh::LocalIdentity radio_new_identity() {

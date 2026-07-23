@@ -1,8 +1,15 @@
 #include "HeltecV4Board.h"
 
+#include <Wire.h>
+
+#if defined(HELTEC_MESH_UI) && HELTEC_MESH_UI
+#include <lvgl.h>
+#include "heltec/drivers/display/display_port.hpp"
+#include "heltec/drivers/input/momentary_button.hpp"
+#endif
+
 void HeltecV4Board::begin() {
     ESP32Board::begin();
-
 
     pinMode(PIN_ADC_CTRL, OUTPUT);
     digitalWrite(PIN_ADC_CTRL, LOW); // Initially inactive
@@ -10,6 +17,26 @@ void HeltecV4Board::begin() {
     loRaFEMControl.init();
 
     periph_power.begin();
+    periph_power.claim();
+
+#if defined(HELTEC_MESH_UI) && HELTEC_MESH_UI
+    (void)heltec::meshcore::dal::display_port::init();
+
+    using heltec::meshcore::dal::momentary_button::Config;
+    using heltec::meshcore::dal::momentary_button::KeyMap;
+
+    Config cnf{};
+    cnf.debounce_ms = 50;
+    cnf.multi_click_window_ms = 350;
+    cnf.long_press_ms = 1000;
+    cnf.buttons[0].pin = PIN_USER_BTN;
+    cnf.buttons[0].pin_mode = INPUT_PULLDOWN;
+    cnf.buttons[0].active_level = LOW;
+    cnf.buttons[0].map = KeyMap(LV_KEY_NEXT, LV_KEY_ESC, LV_KEY_PREV, LV_KEY_ENTER);
+    heltec::meshcore::dal::momentary_button::configure(cnf);
+    heltec::meshcore::dal::momentary_button::initialize();
+#endif
+
     esp_reset_reason_t reason = esp_reset_reason();
     if (reason == ESP_RST_DEEPSLEEP) {
       long wakeup_source = esp_sleep_get_ext1_wakeup_status();
@@ -30,6 +57,13 @@ void HeltecV4Board::begin() {
   void HeltecV4Board::onAfterTransmit(void) {
     digitalWrite(P_LORA_TX_LED, LOW);   // turn TX LED off
     loRaFEMControl.setRxModeEnable();
+  }
+
+  bool HeltecV4Board::setLNAEnable(bool enabled) {
+    if (!isLnaCanControl()) return false;
+    loRaFEMControl.setLNAEnable(enabled);
+    loRaFEMControl.setRxModeEnable();
+    return true;
   }
 
   void HeltecV4Board::enterDeepSleep(uint32_t secs, int pin_wake_btn) {

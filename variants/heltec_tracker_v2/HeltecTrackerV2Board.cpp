@@ -1,5 +1,11 @@
 #include "HeltecTrackerV2Board.h"
 
+#if defined(HELTEC_MESH_UI) && HELTEC_MESH_UI && defined(HELTEC_DISPLAY_ST7735)
+#include <lvgl.h>
+#include "heltec/drivers/display/display_port.hpp"
+#include "heltec/drivers/input/momentary_button.hpp"
+#endif
+
 void HeltecTrackerV2Board::begin() {
     ESP32Board::begin();
 
@@ -9,10 +15,6 @@ void HeltecTrackerV2Board::begin() {
     loRaFEMControl.init();
 
     esp_reset_reason_t reason = esp_reset_reason();
-    if (reason != ESP_RST_DEEPSLEEP) {
-      delay(1);  // GC1109 startup time after cold power-on
-    }
-
     periph_power.begin();
     if (reason == ESP_RST_DEEPSLEEP) {
       long wakeup_source = esp_sleep_get_ext1_wakeup_status();
@@ -23,6 +25,26 @@ void HeltecTrackerV2Board::begin() {
       rtc_gpio_hold_dis((gpio_num_t)P_LORA_NSS);
       rtc_gpio_deinit((gpio_num_t)P_LORA_DIO_1);
     }
+
+#if defined(HELTEC_MESH_UI) && HELTEC_MESH_UI && defined(HELTEC_DISPLAY_ST7735)
+    periph_power.claim();
+    delay(50);  // let TFT rail settle before SPI init
+    (void)heltec::meshcore::dal::display_port::init();
+
+    using heltec::meshcore::dal::momentary_button::Config;
+    using heltec::meshcore::dal::momentary_button::KeyMap;
+
+    Config cnf{};
+    cnf.debounce_ms = 50;
+    cnf.multi_click_window_ms = 350;
+    cnf.long_press_ms = 1000;
+    cnf.buttons[0].pin = PIN_USER_BTN;
+    cnf.buttons[0].pin_mode = INPUT;
+    cnf.buttons[0].active_level = LOW;
+    cnf.buttons[0].map = KeyMap(LV_KEY_NEXT, LV_KEY_ESC, LV_KEY_PREV, LV_KEY_ENTER);
+    heltec::meshcore::dal::momentary_button::configure(cnf);
+    heltec::meshcore::dal::momentary_button::initialize();
+#endif
   }
 
   void HeltecTrackerV2Board::onBeforeTransmit(void) {
@@ -33,6 +55,13 @@ void HeltecTrackerV2Board::begin() {
   void HeltecTrackerV2Board::onAfterTransmit(void) {
     digitalWrite(P_LORA_TX_LED, LOW);   // turn TX LED off
     loRaFEMControl.setRxModeEnable();
+  }
+
+  bool HeltecTrackerV2Board::setLNAEnable(bool enabled) {
+    if (!isLnaCanControl()) return false;
+    loRaFEMControl.setLNAEnable(enabled);
+    loRaFEMControl.setRxModeEnable();
+    return true;
   }
 
   void HeltecTrackerV2Board::enterDeepSleep(uint32_t secs, int pin_wake_btn) {

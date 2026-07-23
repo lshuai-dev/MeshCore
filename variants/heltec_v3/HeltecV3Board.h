@@ -4,6 +4,13 @@
 #include <helpers/RefCountedDigitalPin.h>
 #include <helpers/ESP32Board.h>
 
+#if defined(HELTEC_MESH_UI) && HELTEC_MESH_UI && \
+    (defined(HELTEC_DISPLAY_SSD1306) || defined(HELTEC_DISPLAY_ST7735))
+#include <lvgl.h>
+#include "heltec/drivers/display/display_port.hpp"
+#include "heltec/drivers/input/momentary_button.hpp"
+#endif
+
 // built-ins
 #ifndef PIN_VBAT_READ              // set in platformio.ini for boards like Heltec Wireless Paper (20)
   #define  PIN_VBAT_READ    1
@@ -39,6 +46,26 @@ public:
     digitalWrite(PIN_ADC_CTRL, !adc_active_state); // Initially inactive
 
     periph_power.begin();
+
+#if defined(HELTEC_MESH_UI) && HELTEC_MESH_UI && \
+    (defined(HELTEC_DISPLAY_SSD1306) || defined(HELTEC_DISPLAY_ST7735))
+    periph_power.claim();
+    (void)heltec::meshcore::dal::display_port::init();
+
+    using heltec::meshcore::dal::momentary_button::Config;
+    using heltec::meshcore::dal::momentary_button::KeyMap;
+
+    Config cnf{};
+    cnf.debounce_ms = 50;
+    cnf.multi_click_window_ms = 350;
+    cnf.long_press_ms = 1000;
+    cnf.buttons[0].pin = PIN_USER_BTN;
+    cnf.buttons[0].pin_mode = INPUT;
+    cnf.buttons[0].active_level = LOW;
+    cnf.buttons[0].map = KeyMap(LV_KEY_NEXT, LV_KEY_ESC, LV_KEY_PREV, LV_KEY_ENTER);
+    heltec::meshcore::dal::momentary_button::configure(cnf);
+    heltec::meshcore::dal::momentary_button::initialize();
+#endif
 
     esp_reset_reason_t reason = esp_reset_reason();
     if (reason == ESP_RST_DEEPSLEEP) {

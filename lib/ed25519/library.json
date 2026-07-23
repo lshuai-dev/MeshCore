@@ -1,0 +1,12 @@
+{
+  "name": "ed25519",
+  "version": "1.0.0",
+  "description": "orlp Ed25519 — MeshCore crypto (trimmed for embedded)",
+  "build": {
+    "srcFilter": [
+      "+<*.c>",
+      "-<add_scalar.c>",
+      "-<seed.c>"
+    ]
+  }
+}

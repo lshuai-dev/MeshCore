@@ -2,6 +2,9 @@
 #include "target.h"
 
 #include <helpers/sensors/MicroNMEALocationProvider.h>
+#if defined(GPS_UC6580) && defined(GPS_UC6580_CONFIGURE) && GPS_UC6580_CONFIGURE
+#include <heltec/sensors/Uc6580Config.h>
+#endif
 
 HeltecV3Board board;
 
@@ -20,7 +23,7 @@ AutoDiscoverRTCClock rtc_clock(fallback_clock);
 MicroNMEALocationProvider nmea = MicroNMEALocationProvider(Serial1, &rtc_clock, GPS_RESET, GPS_EN, &board.periph_power);
 HWTSensorManager sensors = HWTSensorManager(nmea);
 
-#ifdef DISPLAY_CLASS
+#if defined(DISPLAY_CLASS) && !defined(HELTEC_DISPLAY_ST7735)
   DISPLAY_CLASS display(&board.periph_power);   // peripheral power pin is shared
   MomentaryButton user_btn(PIN_USER_BTN, 1000, true);
 #endif
@@ -37,6 +40,21 @@ bool radio_init() {
 
 }
 
+uint32_t radio_get_rng_seed() {
+  return radio.random(0x7FFFFFFF);
+}
+
+void radio_set_params(float freq, float bw, uint8_t sf, uint8_t cr) {
+  radio.setFrequency(freq);
+  radio.setSpreadingFactor(sf);
+  radio.setBandwidth(bw);
+  radio.setCodingRate(cr);
+}
+
+void radio_set_tx_power(int8_t dbm) {
+  radio.setOutputPower(dbm);
+}
+
 mesh::LocalIdentity radio_new_identity() {
   RadioNoiseListener rng(radio);
   return mesh::LocalIdentity(&rng);  // create new random identity
@@ -45,8 +63,11 @@ mesh::LocalIdentity radio_new_identity() {
 void HWTSensorManager::start_gps() {
   if (!gps_active) {
     _location->begin();  // Claims periph_power via RefCountedDigitalPin
+    _location->reset();
     gps_active = true;
-    Serial1.println("$CFGSYS,h35155*68");  // Configure GPS for all constellations
+    #if defined(GPS_UC6580) && defined(GPS_UC6580_CONFIGURE) && GPS_UC6580_CONFIGURE
+    Uc6580Config::apply(_location);
+    #endif
   }
 }
 
@@ -59,7 +80,7 @@ void HWTSensorManager::stop_gps() {
 
 bool HWTSensorManager::begin() {
   // init GPS port
-  Serial1.begin(115200, SERIAL_8N1, PIN_GPS_RX, PIN_GPS_TX);
+  Serial1.begin(GPS_BAUD_RATE, SERIAL_8N1, PIN_GPS_RX, PIN_GPS_TX);
   return true;
 }
 
@@ -80,7 +101,6 @@ void HWTSensorManager::loop() {
       node_lat = ((double)_location->getLatitude())/1000000.;
       node_lon = ((double)_location->getLongitude())/1000000.;
       node_altitude = ((double)_location->getAltitude()) / 1000.0;
-      MESH_DEBUG_PRINTLN("lat %f lon %f", node_lat, node_lon);
     }
     next_gps_update = millis() + 1000;
   }

@@ -22,6 +22,8 @@ public:
 
   void onBeforeTransmit(void) override;
   void onAfterTransmit(void) override;
+  bool isLnaCanControl() const { return loRaFEMControl.isLnaCanControl(); }
+  bool setLNAEnable(bool enabled);
   uint16_t getBattMilliVolts() override;
   const char* getManufacturerName() const override ;
   void powerOff() override;

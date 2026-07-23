@@ -3,6 +3,12 @@
 #include <Arduino.h>
 #include <Wire.h>
 
+#if defined(HELTEC_MESH_UI) && HELTEC_MESH_UI
+#include <lvgl.h>
+#include "heltec/drivers/display/display_port.hpp"
+#include "heltec/drivers/input/momentary_button.hpp"
+#endif
+
 #ifdef NRF52_POWER_MANAGEMENT
 // Static configuration for power management
 // Values come from variant.h defines
@@ -56,4 +62,23 @@ void T114Board::begin() {
 #endif
   digitalWrite(SX126X_POWER_EN, HIGH);
   delay(10); // give sx1262 some time to power up
+
+#if defined(HELTEC_MESH_UI) && HELTEC_MESH_UI
+  delay(50);  // let TFT rail settle before SPI init
+  (void)heltec::meshcore::dal::display_port::init();
+
+  using heltec::meshcore::dal::momentary_button::Config;
+  using heltec::meshcore::dal::momentary_button::KeyMap;
+
+  Config cnf{};
+  cnf.debounce_ms = 50;
+  cnf.multi_click_window_ms = 350;
+  cnf.long_press_ms = 1000;
+  cnf.buttons[0].pin = PIN_USER_BTN;
+  cnf.buttons[0].pin_mode = INPUT;
+  cnf.buttons[0].active_level = LOW;
+  cnf.buttons[0].map = KeyMap(LV_KEY_NEXT, LV_KEY_ESC, LV_KEY_PREV, LV_KEY_ENTER);
+  heltec::meshcore::dal::momentary_button::configure(cnf);
+  heltec::meshcore::dal::momentary_button::initialize();
+#endif
 }

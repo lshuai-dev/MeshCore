@@ -50,7 +50,7 @@
 #define LED_RED                 (-1)
 #define LED_BLUE                (-1)
 #define LED_GREEN               (-1)
-#define LED_PIN                 LED_BUILTIN
+#define PIN_STATUS_LED          LED_BUILTIN
 #define LED_STATE_ON            LOW
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -60,7 +60,7 @@
 #define PIN_BUTTON2             (0 + 14)
 #define BUTTON_PIN              PIN_BUTTON1
 #define BUTTON_PIN2             PIN_BUTTON2
-#define PIN_USER_BTN            BUTTON_PIN
+#define PIN_USER_BTN            PIN_BUTTON2
 
 ////////////////////////////////////////////////////////////////////////////////
 // UART
@@ -76,6 +76,9 @@
 
 #define PIN_WIRE_SDA            (32 + 3)
 #define PIN_WIRE_SCL            (0 + 10)
+
+#define PIN_BOARD_SDA           PIN_WIRE_SDA
+#define PIN_BOARD_SCL           PIN_WIRE_SCL
 
 #define PIN_SENSOR_EN           (32 + 6)
 #define PIN_SENSOR_EN_ACTIVE    LOW
@@ -143,7 +146,9 @@
 ////////////////////////////////////////////////////////////////////////////////
 // Buzzer
 
+#ifndef PIN_BUZZER
 #define PIN_BUZZER              (0 + 9)
+#endif
 #define PIN_BUZZER_VOLTAGE_MULTIPLIER_1 (32 + 2)
 #define PIN_BUZZER_VOLTAGE_MULTIPLIER_2 (32 + 5)
 
@@ -165,5 +170,3 @@
 #define PWRMGT_VOLTAGE_BOOTLOCK 3100
 #define PWRMGT_LPCOMP_AIN       3
 #define PWRMGT_LPCOMP_REFSEL    1
-
-#define HAS_RTC                 0

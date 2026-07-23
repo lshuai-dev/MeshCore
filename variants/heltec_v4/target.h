@@ -2,6 +2,7 @@
 
 #define RADIOLIB_STATIC_ONLY 1
 #include <RadioLib.h>
+#include <SPI.h>
 #include <helpers/radiolib/RadioLibWrappers.h>
 #include <HeltecV4Board.h>
 #include <helpers/radiolib/CustomSX1262Wrapper.h>
@@ -9,6 +10,7 @@
 #include <helpers/SensorManager.h>
 #include <helpers/sensors/EnvironmentSensorManager.h>
 #ifdef DISPLAY_CLASS
+#if !(defined(HELTEC_MESH_UI) && HELTEC_MESH_UI)
 #ifdef HELTEC_LORA_V4_OLED
     #include <helpers/ui/SSD1306Display.h>
 #elif defined(HELTEC_LORA_V4_TFT)
@@ -16,17 +18,26 @@
 #endif
   #include <helpers/ui/MomentaryButton.h>
 #endif
+#endif
 
 extern HeltecV4Board board;
 extern WRAPPER_CLASS radio_driver;
 extern AutoDiscoverRTCClock rtc_clock;
 extern EnvironmentSensorManager sensors;
 
+#if defined(SPI_INTERFACES_COUNT) && (SPI_INTERFACES_COUNT >= 2)
+extern SPIClass SPI1;
+#endif
+
 #ifdef DISPLAY_CLASS
+#if !(defined(HELTEC_MESH_UI) && HELTEC_MESH_UI)
   extern DISPLAY_CLASS display;
   extern MomentaryButton user_btn;
 #endif
+#endif
 
 bool radio_init();
+uint32_t radio_get_rng_seed();
+void radio_set_params(float freq, float bw, uint8_t sf, uint8_t cr);
+void radio_set_tx_power(int8_t dbm);
 mesh::LocalIdentity radio_new_identity();
-
