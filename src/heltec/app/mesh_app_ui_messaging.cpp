@@ -122,17 +122,6 @@ void MeshAppUi::sendAdvertWithFeedback() {
   heltec::meshcore::ui::ui_task().showAlert(ok ? "Advert sent!" : "Advert failed..", 1000);
 }
 
-void MeshAppUi::requestSendMessageOverlay() {
-  heltec::meshcore::ui::UiApp::instance().openSendMessageOverlay();
-}
-
-void MeshAppUi::requestCompassCalibration() {
-  MESH_DEBUG_PRINTLN("MeshAppUi::requestCompassCalibration()");
-#if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
-  heltec::meshcore::ui::UiApp::instance().openCalibrationOverlay();
-#endif
-}
-
 int MeshAppUi::sendMessagePersonalCount() const {
   int count = 0;
   const int total = the_mesh.getNumContacts();

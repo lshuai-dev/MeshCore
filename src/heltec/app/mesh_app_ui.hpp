@@ -16,7 +16,8 @@ class MeshAppUi final : public IBizFacade {
 
   bool sendAdvert() override;
   void sendAdvertWithFeedback() override;
-  void requestRadioParamPresetPicker() override;
+  // Called by the non-UI application shell; UI surfaces use UiEvent instead.
+  void requestRadioParamPresetPicker();
   bool toggleGPS() override;
   void setGpsEnabled(bool enabled) override;
   bool buzzerEnabled() const override;
@@ -31,8 +32,6 @@ class MeshAppUi final : public IBizFacade {
   bool sendBroadcast(const char* text, int len) override;
   bool sendDirectMessage(const uint8_t pub_key_prefix[6], const char* text) override;
   bool sendGroupMessage(int channel_idx, const char* text) override;
-  void requestSendMessageOverlay() override;
-  void requestCompassCalibration() override;
   int sendMessagePersonalCount() const override;
   bool sendMessagePersonalAt(int index, uint8_t pub_key_prefix[6], char* label,
                              size_t label_len) const override;

@@ -7,7 +7,7 @@
 
 namespace heltec::meshcore::ui {
 
-using MenuHandlerFn = void (*)(biz::IBizFacade&);
+using MenuHandlerFn = void (*)(biz::IBizFacade&, _lv_obj_t* event_target);
 enum MenuKind : uint8_t { Command, Menu };
 
 class AbstractMenu;

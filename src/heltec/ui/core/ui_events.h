@@ -12,6 +12,8 @@ enum class UiEventType : uint8_t {
   TileCommit,
   ContextOpen,
   ContextClose,
+  SendMessageOpen,
+  CalibrationOpen,
   QuickPingOpen,
   QuickPingClose,
   PreviewClose,

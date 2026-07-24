@@ -363,6 +363,10 @@ void UiApp::init() {
   _quickPingOverlay.setTarget(_frame_root);
 #else
   _contextMenu.setTarget(_frame_root);
+  _ctxRadioMenu.setTarget(_frame_root);
+#if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
+  _ctxCompassMenu.setTarget(_frame_root);
+#endif
 #endif
 
   _display_auto_off_ms = 0;
@@ -424,6 +428,14 @@ void UiApp::handleFrameEvent(lv_event_t* e) {
       dismissTopContextMenu();
       break;
 #endif
+    case UiEventType::SendMessageOpen:
+      (void)openSendMessageOverlay();
+      break;
+    case UiEventType::CalibrationOpen:
+#if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
+      (void)openCalibrationOverlay();
+#endif
+      break;
 #if defined(HELTEC_V4_R8_TFT) && defined(HELTEC_HAS_TOUCH) && HELTEC_HAS_TOUCH
     case UiEventType::QuickPingOpen:
       if (!_surfaces.contains(&_quickPingOverlay) && inputOnActiveScreen()) {

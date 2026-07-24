@@ -299,7 +299,7 @@ void CompassScreen::refresh() {
   if (_pending_auto_cal && (int32_t)(now - _auto_cal_due_ms) >= 0) {
     _pending_auto_cal = false;
     _auto_cal_due_ms = 0;
-    _biz.requestCompassCalibration();
+    (void)emitEvent(UiEventType::CalibrationOpen);
     return;
   }
 

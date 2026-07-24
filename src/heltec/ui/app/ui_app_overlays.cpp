@@ -17,10 +17,14 @@
 namespace heltec::meshcore::ui {
 
 namespace {
-void cm_send_advert(biz::IBizFacade& app) { app.sendAdvertWithFeedback(); }
-void cm_open_send_message(biz::IBizFacade& app) { app.requestSendMessageOverlay(); }
+void cm_send_advert(biz::IBizFacade& app, _lv_obj_t*) { app.sendAdvertWithFeedback(); }
+void cm_open_send_message(biz::IBizFacade&, _lv_obj_t* target) {
+  (void)ui_event_send(target, UiEventType::SendMessageOpen);
+}
 #if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
-void cm_calibrate_compass(biz::IBizFacade& app) { app.requestCompassCalibration(); }
+void cm_calibrate_compass(biz::IBizFacade&, _lv_obj_t* target) {
+  (void)ui_event_send(target, UiEventType::CalibrationOpen);
+}
 #endif
 }  // namespace
 
@@ -148,6 +152,7 @@ void UiApp::closeKeyboardOverlay() {
 #if !defined(HELTEC_V4_R8_TFT) || !defined(HELTEC_HAS_TOUCH) || !HELTEC_HAS_TOUCH
 
 bool UiApp::registerRadioContextMenu() {
+  _ctxRadioMenu.setTarget(_frame_root);
   (void)_ctxRadioMenu.addCommandHandler("send message", cm_open_send_message);
   (void)_ctxRadioMenu.addCommandHandler("send advert", cm_send_advert);
   return _contextMenu.registerMenu("QuickPing", _scrRadio.icon(), _ctxRadioMenu);
@@ -155,6 +160,7 @@ bool UiApp::registerRadioContextMenu() {
 
 bool UiApp::registerCompassContextMenu() {
 #if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
+  _ctxCompassMenu.setTarget(_frame_root);
   (void)_ctxCompassMenu.addCommandHandler("calibrate", cm_calibrate_compass);
   return _contextMenu.registerMenu(
       _scrCompass.title(), _scrCompass.icon(), _ctxCompassMenu);

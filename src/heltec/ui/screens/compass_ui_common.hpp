@@ -11,7 +11,10 @@ inline void compass_style_info_label(lv_obj_t* lb, const char* text, lv_label_lo
   if (!lb) return;
   lv_obj_set_width(lb, lv_pct(100));
   lv_label_set_long_mode(lb, wrap);
-  lv_label_set_text(lb, text ? text : "");
+  // All callers pass either literals or storage owned by the screen. Keep
+  // the label pointed at that storage so refreshes do not allocate/free a
+  // new LVGL text buffer on a device that runs indefinitely.
+  lv_label_set_text_static(lb, text ? text : "");
 }
 
 inline lv_obj_t* compass_create_info_column(lv_obj_t* parent, lv_coord_t width_pct, lv_coord_t pad_left,

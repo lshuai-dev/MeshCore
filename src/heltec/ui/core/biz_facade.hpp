@@ -85,11 +85,6 @@ class IBizFacade : public ui::IFeedback {
     double alt_m = 0.0;
   };
 
-  // UI workflow requests.
-  virtual void requestRadioParamPresetPicker() = 0;
-  virtual void requestSendMessageOverlay() = 0;
-  virtual void requestCompassCalibration() = 0;
-
   // Messaging data and commands.
   /** Send-message overlay: personal contacts (pub key prefix + label). */
   virtual int sendMessagePersonalCount() const = 0;

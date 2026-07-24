@@ -205,7 +205,7 @@ bool CascadingMenu::create(lv_obj_t* menu, const char* title) {
           CascadingMenu* const menu =
               static_cast<CascadingMenu*>(ht_user_data(lv_event_get_target(e)));
           if (menu) {
-            item->cmd(menu->_biz);
+            item->cmd(menu->_biz, menu->_event_target);
           }
           lv_event_stop_bubbling(e);
           lv_event_stop_processing(e);

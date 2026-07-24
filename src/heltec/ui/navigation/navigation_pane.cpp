@@ -222,7 +222,7 @@ void NavigationPane::setLabel(uint8_t id, const char* label) {
   _lv_obj_t* bar = gridCellTitleBar(cell);
   if (!bar) return;
   _lv_obj_t* lbl = lv_obj_get_child(bar, 0);
-  if (lbl) lv_label_set_text(lbl, label ? label : "");
+  if (lbl) lv_label_set_text_static(lbl, label ? label : "");
 }
 
 void NavigationPane::setFooterSlot(uint8_t id) {
