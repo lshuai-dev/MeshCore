@@ -392,7 +392,6 @@ static void gridPaneFrameRect(_lv_obj_t* root, _lv_obj_t* tileview, lv_coord_t* 
 
   if (!root || !tileview || !lv_obj_is_valid(tileview)) return;
 
-  lv_obj_update_layout(tileview);
   lv_area_t root_coords;
   lv_area_t tile_coords;
   lv_obj_get_coords(root, &root_coords);
@@ -448,12 +447,11 @@ void NavigationPane::updateGeometry() {
                _frame_root, _tileview);
   _updating_geometry = true;
   layoutRootBelowTopPane(_root);
-  if (_frame_root && lv_obj_is_valid(_frame_root)) {
-    lv_obj_update_layout(_frame_root);
-  } else if (_tileview && lv_obj_is_valid(_tileview)) {
-    lv_obj_update_layout(_tileview);
-  }
-  lv_obj_update_layout(_root);
+  // Do not force a global LVGL layout pass here.  LVGL updates the whole
+  // screen (not just _root), which can re-enter tileview SIZE_CHANGED
+  // handlers while NavigationPane is being bound during boot.  The frame
+  // and tileview have already been laid out by UiApp::initScreens(); this
+  // method only needs to read their current geometry.
   const lv_coord_t pw = lv_obj_get_width(_root);
   const lv_coord_t ph = lv_obj_get_height(_root);
   if (pw < 8 || ph < 8) {
