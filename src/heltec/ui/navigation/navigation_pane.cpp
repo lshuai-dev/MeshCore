@@ -531,7 +531,7 @@ void NavigationPane::setIcon(uint8_t id, const lv_img_dsc_t* img) {
   _lv_obj_t* existing = findCellById(id);
   if (existing) {
     if (_lv_obj_t* icon = gridCellIcon(existing)) lv_img_set_src(icon, nav_img);
-    layoutNav(false);
+    if (panelVisible()) layoutNav(false);
     return;
   }
 
@@ -620,7 +620,7 @@ void NavigationPane::setIcon(uint8_t id, const lv_img_dsc_t* img) {
   add_cell_click_cb(cell);
 
 
-  layoutNav(false);
+  if (panelVisible()) layoutNav(false);
 }
 
 void NavigationPane::onCellTouchEvent(lv_event_t* e) {
