@@ -513,15 +513,6 @@ bool map_sd_probe_once() {
   return true;
 }
 
-bool map_sd_try_mount_once() { return map_sd_probe_once(); }
-
-bool map_sd_try_boost_speed_once() {
-  // Kept for source compatibility.  Probing now starts at the configured
-  // maximum and descends one clock per call, so there is no separate boost
-  // phase anymore.
-  return map_sd_probe_once();
-}
-
 bool map_sd_init() {
   if (!sdUsable() && s_probe_complete && !s_io_failed) {
     s_probe_hz_idx = 0;

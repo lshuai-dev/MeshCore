@@ -3,7 +3,6 @@
 #include <stdint.h>
 
 #include "app_state_event.hpp"
-#include "app_state_notifier.hpp"
 
 struct _lv_timer_t;
 
@@ -11,15 +10,18 @@ namespace heltec::meshcore::ui {
 
 class SurfaceManager;
 
-class AppStateUiDispatcher final : public AppStateObserver {
+class AppStateNotifier;
+
+class AppStateUiDispatcher final {
  public:
   using GlobalHandler = void (*)(void* user_data, const AppStateEvent& event);
 
+  void bindNotifier(AppStateNotifier& notifier);
   void bindSurfaceManager(SurfaceManager& surfaces);
   void bindGlobalHandler(GlobalHandler handler, void* user_data);
   /** Allocate the single dispatch timer during UI startup. */
   bool createTimer();
-  void onAppStateChanged(const AppStateEvent& event) override;
+  void onAppStateChanged(const AppStateEvent& event);
   bool hasPending() const { return _pending_mask != 0; }
 
  private:

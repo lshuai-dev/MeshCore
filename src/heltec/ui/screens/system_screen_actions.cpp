@@ -34,7 +34,7 @@ void SystemScreen::executeAction(SysAction action) {
       break;
     case SysAction::WpManual:
 #if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
-      _feedback.requestWaypointManualInput();
+        emitEvent(UiEventType::WaypointKeyboardOpen);
 #endif
       break;
     case SysAction::FactoryReset:

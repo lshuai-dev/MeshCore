@@ -60,10 +60,6 @@ void RadioScreen::refreshSnapshot() {
   updateRadio(_last_radio);
 }
 
-void RadioScreen::onEnter() {
-  AbstractScreen::onEnter();
-}
-
 void RadioScreen::onAppStateChanged(const AppStateEvent& event) {
   if (event.type == AppStateEventType::RadioChanged ||
       event.type == AppStateEventType::ConfigChanged) {

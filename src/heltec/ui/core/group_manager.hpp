@@ -21,11 +21,8 @@ class GroupManager {
   void bind(lv_group_t* group, lv_obj_t* default_focus = nullptr);
   void clear();
 
-  GroupBinding current() const { return _current; }
-  lv_group_t* currentGroup() const { return _current.group; }
-  void reconcile();
-
  private:
+  void reconcile();
   void leaveGroup(lv_group_t* group);
   void enterBinding(const GroupBinding& binding);
   lv_obj_t* resolveFocus(lv_group_t* group, lv_obj_t* preferred) const;

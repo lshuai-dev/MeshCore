@@ -6,24 +6,17 @@
 
 namespace heltec::meshcore::ui {
 
-class AppStateObserver {
- public:
-  virtual ~AppStateObserver() = default;
-  virtual void onAppStateChanged(const AppStateEvent& event) = 0;
-};
+using AppStateSink = void (*)(void* user_data, const AppStateEvent& event);
 
 class AppStateNotifier {
  public:
-  static constexpr uint8_t kMaxObservers = 12;
-
-  bool addObserver(AppStateObserver* observer);
-  void removeObserver(AppStateObserver* observer);
+  void bind(AppStateSink sink, void* user_data);
+  void clear();
   void notify(const AppStateEvent& event);
-  uint8_t observerCount() const { return _count; }
 
  private:
-  AppStateObserver* _observers[kMaxObservers] = {};
-  uint8_t _count = 0;
+  AppStateSink _sink = nullptr;
+  void* _user_data = nullptr;
 };
 
 AppStateNotifier& app_state_notifier();

@@ -31,15 +31,9 @@ class AbstractScreen : public UiSurface {
   void onEnter() override;
   void onExit() override;
   _lv_obj_t* focusedObject() const override;
-  virtual void onWaypointKeyboardClosed() {}
-  virtual void onWaypointKeyboardSubmit(double lat, double lon) {
-    (void)lat;
-    (void)lon;
-  }
 
+  protected:
   _lv_obj_t* create(_lv_obj_t* parent) override;
-
- protected:
   _lv_obj_t* createRoot(_lv_obj_t* parent) override;
   bool onKey(uint32_t key) override;
 

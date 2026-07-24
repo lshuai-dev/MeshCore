@@ -30,20 +30,6 @@ void MeshAppUi::showAlert(const char* text, int duration_ms) {
   heltec::meshcore::ui::ui_task().showAlert(text, duration_ms);
 }
 
-void MeshAppUi::dismissMessagePreview() {
-  heltec::meshcore::ui::UiApp::instance().closePreviewOverlay();
-}
-
-void MeshAppUi::requestWaypointManualInput() {
-  heltec::meshcore::ui::UiApp::instance().openWaypointKeyboard();
-}
-
-void MeshAppUi::notifyWaypointKeyboardClosed() {}
-
-void MeshAppUi::requestCloseSendMessageOverlay() {
-  heltec::meshcore::ui::UiApp::instance().closeSendMessageOverlay();
-}
-
 #if !defined(ENV_INCLUDE_COMPASS) || !(ENV_INCLUDE_COMPASS)
 void MeshAppUi::syncCompassCache() {}
 bool MeshAppUi::compassHasHardware() const { return false; }

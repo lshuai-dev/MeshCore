@@ -71,16 +71,6 @@ void applyMenuItemStyle(lv_obj_t* obj) {
 
 }  // namespace
 
-bool CascadingMenu::actionAt(uint8_t index, MenuActionView& out) const {
-  if (index >= _item_count) return false;
-  const MenuItem& item = _items[index];
-  out.kind = item.kind;
-  out.label = item.label;
-  out.cmd = (item.kind == MenuKind::Command) ? item.cmd : nullptr;
-  out.submenu = (item.kind == MenuKind::Menu) ? item.submenu : nullptr;
-  return true;
-}
-
 lv_group_t* CascadingMenu::group() const {
   if (_active_child && _active_child->group()) return _active_child->group();
   return _focus_group;

@@ -22,9 +22,11 @@ class PreviewOverlay : public AbstractOverlay {
  public:
   explicit PreviewOverlay(biz::IBizFacade& biz) : AbstractOverlay(biz) {}
 
-  _lv_obj_t* create(_lv_obj_t* parent) override;
   void applyContent(uint8_t unread, uint32_t age_sec, const char* origin, const char* text);
   void dismissByUser();
+
+ protected:
+  _lv_obj_t* create(_lv_obj_t* parent) override;
 
  private:
   _lv_obj_t* createRoot(_lv_obj_t* parent) override;

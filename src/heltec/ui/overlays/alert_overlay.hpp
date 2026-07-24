@@ -23,10 +23,12 @@ class AlertOverlay : public AbstractOverlay {
  public:
   explicit AlertOverlay(biz::IBizFacade& biz) : AbstractOverlay(biz) {}
 
-  _lv_obj_t* create(_lv_obj_t* parent) override;
   void onEnter() override;
   void onExit() override;
   void setText(const char* text);
+
+ protected:
+  _lv_obj_t* create(_lv_obj_t* parent) override;
 
  private:
   _lv_obj_t* createRoot(_lv_obj_t* parent) override;

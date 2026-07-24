@@ -19,8 +19,6 @@ class CascadingMenu final : public AbstractMenu {
   _lv_obj_t* focusedObject() const override;
   bool create(lv_obj_t* menu, const char* parent_title) override;
   void resetInputState(bool focus_first_item = true) override;
-  uint8_t actionCount() const override { return _item_count; }
-  bool actionAt(uint8_t index, MenuActionView& out) const override;
   bool addCommandHandler(const char* label, MenuHandlerFn action);
   bool addMenu(const char* label, AbstractMenu& submenu);
 

@@ -166,7 +166,6 @@ class UiApp final : public IUiHost, public InputHost {
   void closeNavigationImmediate();
   bool selectTile(uint8_t tile_idx);
   void scheduleNavTileCommit(uint8_t tile_idx);
-  void previewNavTile(uint8_t tile_idx);
   void onTileActiveChanged();
   bool switchAdjacentTile(int8_t dir);
 #if defined(HELTEC_TOPBAR_TOUCH_SHELL) && HELTEC_TOPBAR_TOUCH_SHELL

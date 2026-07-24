@@ -474,10 +474,6 @@ bool SurfaceManager::contains(const UiSurface* surface) const {
   return findModal(surface) >= 0;
 }
 
-bool SurfaceManager::isModalTop(const UiSurface* surface) const {
-  return surface && topModal() == surface;
-}
-
 bool SurfaceManager::dispatchEventToActive(UiEventType type, const void* payload) {
   UiSurface* surface = active();
   if (!canPresent(surface)) return false;

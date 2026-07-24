@@ -279,19 +279,27 @@ void SystemScreen::onEnter() {
   ensureKeypadFocus();
 }
 
-void SystemScreen::onWaypointKeyboardClosed() {
-  _lv_obj_t* const return_focus = _waypoint_keyboard_return_focus;
-  _waypoint_keyboard_return_focus = nullptr;
-  if (focusKeypadWidget(return_focus)) return;
-  applyGroupFocus(group() ? lv_group_get_focused(group()) : nullptr);
-}
+void SystemScreen::onUiEvent(const UiEvent& event) {
+  if (event.type == UiEventType::WaypointKeyboardClosed) {
+    _lv_obj_t* const return_focus = _waypoint_keyboard_return_focus;
+    _waypoint_keyboard_return_focus = nullptr;
+    if (focusKeypadWidget(return_focus)) return;
+    applyGroupFocus(group() ? lv_group_get_focused(group()) : nullptr);
+    return;
+  }
 
-void SystemScreen::onWaypointKeyboardSubmit(double lat, double lon) {
-  if (_biz.setFindFriendWaypoint(lat, lon)) {
+  if (event.type != UiEventType::WaypointKeyboardSubmit || !event.payload) return;
+  const auto* submit = static_cast<const UiWaypointKeyboardSubmit*>(event.payload);
+  if (_biz.setFindFriendWaypoint(submit->lat, submit->lon)) {
     _feedback.showAlert("Waypoint saved", 2000);
   } else {
     _feedback.showAlert("Save failed", 2000);
   }
 }
+
+/*
+ * Waypoint keyboard results are delivered through onUiEvent so the generic
+ * AbstractScreen contract does not need waypoint-specific callbacks.
+ */
 
 }  // namespace heltec::meshcore::ui

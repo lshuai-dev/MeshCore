@@ -25,11 +25,13 @@ class SendMessageOverlay : public AbstractOverlay {
   explicit SendMessageOverlay(biz::IBizFacade& biz) : AbstractOverlay(biz) {}
   using UiSurface::setTarget;
 
-  _lv_obj_t* create(_lv_obj_t* parent) override;
   void submitCustomMessage(const char* text);
 
   void onEnter() override;
   void onExit() override;
+
+ protected:
+  _lv_obj_t* create(_lv_obj_t* parent) override;
 
  private:
   _lv_obj_t* createRoot(_lv_obj_t* parent) override;

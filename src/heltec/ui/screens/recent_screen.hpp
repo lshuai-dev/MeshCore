@@ -16,11 +16,10 @@ class RecentScreen : public AbstractScreen {
  public:
   RecentScreen(biz::IBizFacade& biz, const char* title, const lv_img_dsc_t* icon)
       : AbstractScreen(biz, title, icon) {}
-  _lv_obj_t* create(_lv_obj_t* parent) override;
-  _lv_obj_t* root() const override { return _scroll; }
-  void onEnter() override;
-  void onExit() override;
   eScreenId screenId() const override { return eScreenId::Recent; }
+
+ protected:
+  _lv_obj_t* create(_lv_obj_t* parent) override;
 
  private:
   _lv_obj_t* createRoot(_lv_obj_t* parent) override;

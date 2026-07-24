@@ -20,13 +20,15 @@ class KeyboardOverlay : public AbstractOverlay {
  public:
   explicit KeyboardOverlay(biz::IBizFacade& biz) : AbstractOverlay(biz) {}
 
-  _lv_obj_t* create(_lv_obj_t* parent) override;
   bool prepareMessageInput(const char* title);
   bool prepareWaypointInput();
   bool isWaypointCompose() const { return _compose_mode == ComposeMode::Waypoint; }
 
   void onEnter() override;
   void onExit() override;
+
+ protected:
+  _lv_obj_t* create(_lv_obj_t* parent) override;
 
  private:
   _lv_obj_t* createRoot(_lv_obj_t* parent) override;

@@ -97,12 +97,4 @@ _lv_obj_t* HomeScreen::create(_lv_obj_t* parent) {
   return _root;
 }
 
-void HomeScreen::onEnter() {
-  AbstractScreen::onEnter();
-}
-
-void HomeScreen::onExit() {
-  AbstractScreen::onExit();
-}
-
 }  // namespace heltec::meshcore::ui

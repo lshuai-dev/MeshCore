@@ -5,12 +5,36 @@
 namespace heltec::meshcore::ui {
 
 namespace {
+class UiMotionScheduler {
+ public:
+  static constexpr uint8_t kCapacity = 16;
+
+  bool createTimer();
+  bool start(const UiMotionSpec& spec);
+  uint8_t cancel(void* target, UiMotionExec exec = nullptr);
+  bool active(void* target, UiMotionExec exec = nullptr) const;
+
+ private:
+  struct Slot {
+    UiMotionSpec spec{};
+    uint32_t started_ms = 0;
+    uint16_t generation = 0;
+    bool active = false;
+  };
+
+  static void timerCallback(lv_timer_t* timer);
+  void tick();
+  void arm();
+  static int32_t interpolate(const Slot& slot, uint32_t elapsed_ms);
+
+  Slot _slots[kCapacity]{};
+  lv_timer_t* _timer = nullptr;
+};
+
 UiMotionScheduler s_ui_motion_scheduler;
 }
 
-UiMotionScheduler& ui_motion_scheduler() {
-  return s_ui_motion_scheduler;
-}
+bool ui_motion_init() { return s_ui_motion_scheduler.createTimer(); }
 
 bool ui_motion_start(const UiMotionSpec& spec) {
   return s_ui_motion_scheduler.start(spec);

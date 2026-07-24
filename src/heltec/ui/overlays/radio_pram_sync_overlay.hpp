@@ -20,8 +20,6 @@ class RadioParamSyncOverlay : public AbstractOverlay {
  public:
   explicit RadioParamSyncOverlay(biz::IBizFacade& biz) : AbstractOverlay(biz) {}
 
-  _lv_obj_t* create(_lv_obj_t* parent) override;
-
   void onEnter() override;
   void onExit() override;
 
@@ -29,6 +27,9 @@ class RadioParamSyncOverlay : public AbstractOverlay {
 #if defined(HELTEC_V4_R8_TFT)
   bool hitRoller(int16_t x, int16_t y) const;
 #endif
+
+ protected:
+  _lv_obj_t* create(_lv_obj_t* parent) override;
 
  private:
   _lv_obj_t* createRoot(_lv_obj_t* parent) override;

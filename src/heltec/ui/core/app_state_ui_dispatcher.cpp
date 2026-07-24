@@ -1,11 +1,21 @@
 #include "app_state_ui_dispatcher.hpp"
 
+#include "app_state_notifier.hpp"
 #include "surface_manager.hpp"
 #include "ui_events.h"
 
 #include <lvgl.h>
 
 namespace heltec::meshcore::ui {
+
+void AppStateUiDispatcher::bindNotifier(AppStateNotifier& notifier) {
+  notifier.bind(
+      +[](void* user_data, const AppStateEvent& event) {
+        auto* dispatcher = static_cast<AppStateUiDispatcher*>(user_data);
+        if (dispatcher) dispatcher->onAppStateChanged(event);
+      },
+      this);
+}
 
 uint8_t AppStateUiDispatcher::eventIndex(AppStateEventType type) {
   return static_cast<uint8_t>(type);

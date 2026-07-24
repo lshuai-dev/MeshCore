@@ -82,14 +82,6 @@ void RecentScreen::refreshRecent() {
   }
 }
 
-void RecentScreen::onEnter() {
-  AbstractScreen::onEnter();
-}
-
-void RecentScreen::onExit() {
-  AbstractScreen::onExit();
-}
-
 void RecentScreen::onAppStateChanged(const AppStateEvent& event) {
   if (event.type == AppStateEventType::RecentHeardChanged) {
     refreshRecent();

@@ -114,10 +114,6 @@ class MeshAppUi final : public IBizFacade {
 #endif
 
   void showAlert(const char* text, int duration_ms) override;
-  void dismissMessagePreview() override;
-  void requestWaypointManualInput() override;
-  void notifyWaypointKeyboardClosed() override;
-  void requestCloseSendMessageOverlay() override;
 
  private:
   static void notifyAppState(heltec::meshcore::ui::AppStateEventType type);

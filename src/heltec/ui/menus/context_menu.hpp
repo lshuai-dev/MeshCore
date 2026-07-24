@@ -30,7 +30,6 @@ class ContextMenu : public UiSurface {
  public:
   explicit ContextMenu(biz::IBizFacade& biz) : UiSurface(biz) {}
 
-  _lv_obj_t* create(_lv_obj_t* parent) override;
   void beginRegister();
   void endRegister();
   bool registerMenu(const char* title, const lv_img_dsc_t* icon, AbstractMenu& menu);
@@ -43,6 +42,9 @@ class ContextMenu : public UiSurface {
 
   void onEnter() override;
   void onExit() override;
+
+ protected:
+  _lv_obj_t* create(_lv_obj_t* parent) override;
 
  private:
   _lv_obj_t* createRoot(_lv_obj_t* parent) override;

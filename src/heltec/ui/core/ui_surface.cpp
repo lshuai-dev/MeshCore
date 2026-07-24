@@ -7,6 +7,11 @@
 
 namespace heltec::meshcore::ui {
 
+bool UiSurface::init(_lv_obj_t* parent) {
+  if (_root) return true;
+  return create(parent) != nullptr;
+}
+
 _lv_obj_t* UiSurface::createRoot(_lv_obj_t* parent) {
   return ht_obj_create(parent, meta_id::None);
 }
@@ -43,6 +48,8 @@ _lv_obj_t* UiSurface::create(_lv_obj_t* parent) {
       if (state) self->onAppStateChanged(*state);
     } else if (event->type == UiEventType::SurfaceRefresh) {
       self->onRefreshRequested();
+    } else {
+      self->onUiEvent(*event);
     }
   }, ui_event_code(), this);
 

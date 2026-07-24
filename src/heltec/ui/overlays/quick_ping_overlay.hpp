@@ -32,7 +32,6 @@ class QuickPingOverlay final : public AbstractOverlay {
  public:
   explicit QuickPingOverlay(biz::IBizFacade& biz) : AbstractOverlay(biz) {}
 
-  _lv_obj_t* create(_lv_obj_t* parent) override;
   void onEnter() override;
   void onExit() override;
   _lv_obj_t* focusedObject() const override;
@@ -43,6 +42,7 @@ class QuickPingOverlay final : public AbstractOverlay {
   bool requestCloseAnimation();
 
  protected:
+  _lv_obj_t* create(_lv_obj_t* parent) override;
   _lv_obj_t* createRoot(_lv_obj_t* parent) override;
   bool onKey(uint32_t key) override;
 

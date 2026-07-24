@@ -18,10 +18,6 @@ void map_sd_on_screen_enter();
  * completed.  Use map_sd_ready() to distinguish success from exhaustion.
  */
 bool map_sd_probe_once();
-/** Compatibility alias for map_sd_probe_once(). */
-bool map_sd_try_mount_once();
-/** Compatibility alias; high-to-low probing no longer has a separate boost phase. */
-bool map_sd_try_boost_speed_once();
 /** Mount SD and register LVGL FS driver (letter S:). Returns true if tiles may load. */
 bool map_sd_init();
 bool map_sd_ready();

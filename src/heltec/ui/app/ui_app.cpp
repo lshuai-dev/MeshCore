@@ -220,7 +220,7 @@ void UiApp::init() {
         if (app) app->handleAppStateEvent(event);
       },
       this);
-  app_state_notifier().addObserver(&_app_state_dispatcher);
+  _app_state_dispatcher.bindNotifier(app_state_notifier());
 
   InputPipeline::init();
 #if HELTEC_TOUCH_INPUT
@@ -328,8 +328,7 @@ void UiApp::init() {
   lv_obj_add_flag(content, LV_OBJ_FLAG_OVERFLOW_VISIBLE);
   if (!initScreens(content)) return;
   if (!initNavigationPane(_layerOverlay)) return;
-  _navigation.setFrameRoot(_frame_root);
-  _navigation.setTileView(_tileview);
+  _navigation.bindView(_frame_root, _tileview);
   bindFrameEvents();
   if (_tileview) {
     lv_obj_add_event_cb(_tileview, [](lv_event_t* e) {
@@ -342,11 +341,6 @@ void UiApp::init() {
       const UiEvent* event = ui_event_get(e);
       if (!event) return;
       switch (event->type) {
-        case UiEventType::TilePreview: {
-          const auto* idx = static_cast<const uint8_t*>(event->payload);
-          if (idx) app->previewNavTile(*idx);
-          break;
-        }
         case UiEventType::TileCommit: {
           const auto* idx = static_cast<const uint8_t*>(event->payload);
           if (idx) app->scheduleNavTileCommit(*idx);
@@ -477,6 +471,9 @@ void UiApp::handleFrameEvent(lv_event_t* e) {
       }, this);
       break;
     }
+    case UiEventType::WaypointKeyboardOpen:
+      openWaypointKeyboard();
+      break;
     case UiEventType::MessageKeyboardSubmit: {
       auto* submit = static_cast<const UiMessageKeyboardSubmit*>(event->payload);
       if (submit && submit->text) {
@@ -488,11 +485,7 @@ void UiApp::handleFrameEvent(lv_event_t* e) {
     }
     case UiEventType::WaypointKeyboardSubmit: {
       auto* submit = static_cast<const UiWaypointKeyboardSubmit*>(event->payload);
-      if (submit) {
-        if (AbstractScreen* scr = activeScreen()) {
-          scr->onWaypointKeyboardSubmit(submit->lat, submit->lon);
-        }
-      }
+      if (submit) _surfaces.dispatchEventToActive(UiEventType::WaypointKeyboardSubmit, submit);
       break;
     }
     case UiEventType::RebindInput:
@@ -580,7 +573,8 @@ bool UiApp::initScreens(_lv_obj_t* content) {
     lv_obj_set_scrollbar_mode(tile, LV_SCROLLBAR_MODE_OFF);
     lv_obj_clear_flag(tile, LV_OBJ_FLAG_SCROLLABLE);
     scr->setTarget(_frame_root);
-    lv_obj_t* scr_root = scr->create(tile);
+    if (!scr->init(tile)) return false;
+    lv_obj_t* scr_root = scr->root();
     if (!scr_root) return false;
   }
 
@@ -599,8 +593,8 @@ bool UiApp::initScreens(_lv_obj_t* content) {
 }
 
 bool UiApp::initTimers() {
-  if (!ui_deferred_queue().createTimer()) return false;
-  if (!ui_motion_scheduler().createTimer()) return false;
+  if (!ui_deferred_init()) return false;
+  if (!ui_motion_init()) return false;
   if (!_app_state_dispatcher.createTimer()) return false;
   if (!_nav_auto_commit_timer) {
     _nav_auto_commit_timer = lv_timer_create(navigationAutoCommitTimerCb, 1U, this);

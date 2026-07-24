@@ -26,18 +26,18 @@ void cm_calibrate_compass(biz::IBizFacade& app) { app.requestCompassCalibration(
 
 bool UiApp::initOverlay() {
   if (!_layerOverlay) return false;
-  if (!_previewOvl.create(_layerOverlay)) return false;
-  if (!_alertOvl.create(_layerOverlay)) return false;
-  if (!_radioParamSyncOvl.create(_layerOverlay)) return false;
-  if (!_keyboardOvl.create(_layerOverlay)) return false;
-  if (!_sendMessageOvl.create(_layerOverlay)) return false;
+  if (!_previewOvl.init(_layerOverlay)) return false;
+  if (!_alertOvl.init(_layerOverlay)) return false;
+  if (!_radioParamSyncOvl.init(_layerOverlay)) return false;
+  if (!_keyboardOvl.init(_layerOverlay)) return false;
+  if (!_sendMessageOvl.init(_layerOverlay)) return false;
 #if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
-  if (!_calibrationOvl.create(_layerOverlay)) return false;
+  if (!_calibrationOvl.init(_layerOverlay)) return false;
 #endif
 #if defined(HELTEC_V4_R8_TFT) && defined(HELTEC_HAS_TOUCH) && HELTEC_HAS_TOUCH
-  if (!_quickPingOverlay.create(_layerOverlay)) return false;
+  if (!_quickPingOverlay.init(_layerOverlay)) return false;
 #else
-  if (!_contextMenu.create(_layerOverlay)) return false;
+  if (!_contextMenu.init(_layerOverlay)) return false;
   ensureContextMenusRegistered();
   if (!_context_menus_registered || !_contextMenu.canOpen()) return false;
 #endif
@@ -141,7 +141,7 @@ void UiApp::closeKeyboardOverlay() {
   const bool waypoint = _keyboardOvl.isWaypointCompose();
   (void)_surfaces.dismiss(&_keyboardOvl);
   if (waypoint) {
-    if (AbstractScreen* scr = activeScreen()) scr->onWaypointKeyboardClosed();
+    _surfaces.dispatchEventToActive(UiEventType::WaypointKeyboardClosed);
   }
 }
 

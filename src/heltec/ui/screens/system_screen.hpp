@@ -33,18 +33,19 @@ class SystemScreen : public AbstractScreen {
  public:
   SystemScreen(biz::IBizFacade& biz, const char* title, const lv_img_dsc_t* icon)
       : AbstractScreen(biz, title, icon, false), _feedback(biz) {}
-  _lv_obj_t* create(_lv_obj_t* parent) override;
   lv_obj_t* focusedObject() const override;
   eScreenId screenId() const override { return eScreenId::System; }
   void onEnter() override;
   void onExit() override;
-  void onWaypointKeyboardClosed() override;
-  void onWaypointKeyboardSubmit(double lat, double lon) override;
 #if defined(HELTEC_V4_R8_TFT) && defined(HELTEC_HAS_TOUCH) && HELTEC_HAS_TOUCH
   bool hitScrollableContent(lv_coord_t x, lv_coord_t y) const;
 #endif
 
+ protected:
+  _lv_obj_t* create(_lv_obj_t* parent) override;
+
  private:
+  void onUiEvent(const UiEvent& event) override;
   _lv_obj_t* createRoot(_lv_obj_t* parent) override;
   void onAppStateChanged(const AppStateEvent& event) override;
   void onRefreshRequested() override;

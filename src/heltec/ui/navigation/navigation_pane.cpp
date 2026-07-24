@@ -173,10 +173,6 @@ NavigationPane::~NavigationPane() {
   ui_motion_cancel(this);
 }
 
-_lv_obj_t* NavigationPane::navButtonHost() const {
-  return itemHost();
-}
-
 _lv_obj_t* NavigationPane::itemHost() const {
   return ui_navigator_content(_nav);
 }
@@ -344,6 +340,16 @@ uint8_t NavigationPane::focusedIndex() const {
   return 0;
 }
 
+void NavigationPane::configure(const UiNavigationItem* items, uint8_t count) {
+  if (!items) return;
+  for (uint8_t i = 0; i < count; ++i) {
+    const UiNavigationItem& item = items[i];
+    setIcon(item.screen_index, item.icon);
+    setLabel(item.screen_index, item.label);
+    if (item.footer) setFooterSlot(item.screen_index);
+  }
+}
+
 bool NavigationPane::panelVisible() const {
   return _nav && !lv_obj_has_flag(_nav, LV_OBJ_FLAG_HIDDEN);
 }
@@ -458,7 +464,8 @@ void NavigationPane::updateGeometry() {
   _updating_geometry = false;
 }
 
-void NavigationPane::setTileView(_lv_obj_t* tileview) {
+void NavigationPane::bindView(_lv_obj_t* frame, _lv_obj_t* tileview) {
+  _frame_root = frame;
   _tileview = tileview;
   updateGeometry();
 }
@@ -596,13 +603,12 @@ void NavigationPane::setIcon(uint8_t id, const lv_img_dsc_t* img) {
   layoutNav(false);
 }
 
-void NavigationPane::setSelectedIndex(uint8_t id, bool preview) {
+void NavigationPane::setSelectedIndex(uint8_t id) {
   if (id >= kMaxButtons || !_nav) return;
   if (!findCellById(id)) return;
   _ring_layout_focus = id;
   if (!panelVisible()) return;
-  layoutNav(!preview);
-  if (preview) sendTilePreview(id);
+  layoutNav(false);
 }
 
 void NavigationPane::resetPanel() {
@@ -634,11 +640,6 @@ uint16_t NavigationPane::inputRebindDelayMs() const {
   return 0;
 }
 
-void NavigationPane::sendTilePreview(uint8_t tile_idx) {
-  if (!_tileview || tile_idx >= kMaxButtons) return;
-  ui_event_send(_tileview, UiEventType::TilePreview, &tile_idx);
-}
-
 _lv_obj_t* NavigationPane::frameRoot() const {
   if (_frame_root) return _frame_root;
   return _root;
@@ -650,7 +651,6 @@ void NavigationPane::onCellClicked(_lv_obj_t* cell) {
   if (id == _ring_layout_focus) return;
   _ring_layout_focus = id;
   layoutNav(true);
-  sendTilePreview(_ring_layout_focus);
   if (_lv_obj_t* frame = frameRoot()) {
     ui_event_send(frame, UiEventType::NavActivity);
   }
@@ -690,7 +690,6 @@ void NavigationPane::stepNavFocus(int delta) {
     if (nav_count == static_cast<uint8_t>(next)) {
       _ring_layout_focus = navCellId(cell);
       layoutNav(true);
-      sendTilePreview(_ring_layout_focus);
       return;
     }
     ++nav_count;

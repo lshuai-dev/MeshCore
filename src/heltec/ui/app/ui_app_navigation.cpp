@@ -15,7 +15,7 @@ void UiApp::openNavigationPane() {
   reconcileInput();
   if (_surfaces.contains(&_navigation)) return;
 
-  _navigation.setSelectedIndex(activeTileIndex(), true);
+  _navigation.setSelectedIndex(activeTileIndex());
   notifyNavActivity(millis());
   (void)_surfaces.present(&_navigation);
 }
@@ -66,7 +66,7 @@ bool UiApp::switchAdjacentTile(int8_t dir) {
     bindScreen(scr);
     setTopPaneTitle(scr->title());
   }
-  _navigation.setSelectedIndex((uint8_t)next, true);
+  _navigation.setSelectedIndex((uint8_t)next);
   notifyDisplayActivity(millis());
   return true;
 #endif
@@ -83,57 +83,59 @@ void UiApp::closeNavigationPane() {
 }
 
 bool UiApp::initNavigationPane(_lv_obj_t* parent) {
-  if (!_navigation.create(parent)) return false;
+  if (!_navigation.init(parent)) return false;
 
   struct NavSlot {
     eScreenId id;
     AbstractScreen* scr;
+    bool footer;
   };
 #if defined(UI_NAVIGATION_GRID) && UI_NAVIGATION_GRID
   const NavSlot slots[] = {
-      {eScreenId::Home, &_scrHome},
-      {eScreenId::Radio, &_scrRadio},
-      {eScreenId::Recent, &_scrRecent},
+      {eScreenId::Home, &_scrHome, false},
+      {eScreenId::Radio, &_scrRadio, false},
+      {eScreenId::Recent, &_scrRecent, false},
 #if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
-      {eScreenId::Compass, &_scrCompass},
+      {eScreenId::Compass, &_scrCompass, false},
 #else
-      {eScreenId::GPS, &_scrGPS},
+      {eScreenId::GPS, &_scrGPS, false},
 #endif
 #if defined(ENV_INCLUDE_MAP) && ENV_INCLUDE_MAP
-      {eScreenId::Tracker, &_scrTracker},
+      {eScreenId::Tracker, &_scrTracker, false},
 #endif
-      {eScreenId::System, &_scrSystem},
+      {eScreenId::System, &_scrSystem, false},
+#if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
+      {eScreenId::FindFriend, &_scrFindFriend, true},
+#endif
   };
 #else
   const NavSlot slots[] = {
-      {eScreenId::Home, &_scrHome},
-      {eScreenId::Recent, &_scrRecent},
-      {eScreenId::Radio, &_scrRadio},
+      {eScreenId::Home, &_scrHome, false},
+      {eScreenId::Recent, &_scrRecent, false},
+      {eScreenId::Radio, &_scrRadio, false},
 #if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
-      {eScreenId::Compass, &_scrCompass},
-      {eScreenId::FindFriend, &_scrFindFriend},
+      {eScreenId::Compass, &_scrCompass, false},
+      {eScreenId::FindFriend, &_scrFindFriend, false},
 #endif
-      {eScreenId::GPS, &_scrGPS},
+      {eScreenId::GPS, &_scrGPS, false},
 #if defined(ENV_INCLUDE_MAP) && ENV_INCLUDE_MAP
-      {eScreenId::Tracker, &_scrTracker},
+      {eScreenId::Tracker, &_scrTracker, false},
 #endif
-      {eScreenId::System, &_scrSystem},
+      {eScreenId::System, &_scrSystem, false},
   };
 #endif
+  UiNavigationItem items[sizeof(slots) / sizeof(slots[0])] = {};
+  uint8_t item_count = 0;
   for (const NavSlot& slot : slots) {
-    _navigation.setIcon(static_cast<uint8_t>(slot.id), slot.scr->icon());
-#if defined(UI_NAVIGATION_GRID) && UI_NAVIGATION_GRID
-    _navigation.setLabel(static_cast<uint8_t>(slot.id), slot.scr->title());
-#endif
+    UiNavigationItem& item = items[item_count++];
+    item.screen_index = static_cast<uint8_t>(slot.id);
+    item.label = slot.scr->title();
+    item.icon = slot.scr->icon();
+    item.footer = slot.footer;
   }
-#if defined(UI_NAVIGATION_GRID) && UI_NAVIGATION_GRID && \
-    defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
-  _navigation.setIcon(static_cast<uint8_t>(eScreenId::FindFriend), _scrFindFriend.icon());
-  _navigation.setLabel(static_cast<uint8_t>(eScreenId::FindFriend), _scrFindFriend.title());
-  _navigation.setFooterSlot(static_cast<uint8_t>(eScreenId::FindFriend));
-#endif
+  _navigation.configure(items, item_count);
 
-  _navigation.setSelectedIndex(activeTileIndex(), true);
+  _navigation.setSelectedIndex(activeTileIndex());
 
   return true;
 }
@@ -161,12 +163,6 @@ void UiApp::ensureTileKeypadFocus() {
 #endif
   bindScreen(resolveActiveScreen());
   if (AbstractScreen* scr = activeScreen()) {
-    setTopPaneTitle(scr->title());
-  }
-}
-
-void UiApp::previewNavTile(uint8_t tile_idx) {
-  if (AbstractScreen* scr = screenAt(tile_idx)) {
     setTopPaneTitle(scr->title());
   }
 }

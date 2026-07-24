@@ -28,19 +28,14 @@ class SurfaceManager {
   bool present(UiSurface* surface, UiSurface* owner);
   bool raise(UiSurface* surface);
   bool dismiss(UiSurface* surface);
-  bool dismissTop();
-  bool dismissAll();
   /** Dismisses the target modal and its explicitly owned descendants. */
   bool dismissBranch(UiSurface* surface);
 
   UiSurface* root() const { return _root; }
   UiSurface* active() const;
-  UiSurface* topModal() const;
 
   bool isActive(const UiSurface* surface) const;
   bool contains(const UiSurface* surface) const;
-  bool hasModal() const { return _modal_depth > 0; }
-  bool isModalTop(const UiSurface* surface) const;
   uint8_t modalDepth() const { return _modal_depth; }
 
   bool dispatchEventToActive(UiEventType type, const void* payload = nullptr);
@@ -48,6 +43,10 @@ class SurfaceManager {
   void reconcileVisibility();
 
  private:
+  UiSurface* topModal() const;
+  bool dismissTop();
+  bool dismissAll();
+
   enum class PendingOpType : uint8_t {
     SetRootPreserve,
     SetRootDismiss,

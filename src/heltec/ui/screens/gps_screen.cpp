@@ -82,14 +82,6 @@ void GPSScreen::refreshSnapshot() {
   updateGps(_gps);
 }
 
-void GPSScreen::onEnter() {
-  AbstractScreen::onEnter();
-}
-
-void GPSScreen::onExit() {
-  AbstractScreen::onExit();
-}
-
 void GPSScreen::onAppStateChanged(const AppStateEvent& event) {
   if (event.type == AppStateEventType::GpsChanged) {
     _gps.enabled = event.gps.enabled;
