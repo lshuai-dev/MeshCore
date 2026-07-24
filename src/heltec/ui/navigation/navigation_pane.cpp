@@ -258,7 +258,7 @@ void NavigationPane::setFooterSlot(uint8_t id) {
     }
     ui_navigator_apply_footer_cell_theme(cell);
   }
-  layoutNav(false);
+  if (panelVisible()) layoutNav(false);
 }
 
 void NavigationPane::layoutGrid(bool update_emphasis) {
