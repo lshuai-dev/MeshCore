@@ -178,7 +178,16 @@ void setup() {
   #endif
 #endif
 #if defined(ESP32)
-  SPIFFS.begin(true);
+  // Do not format the filesystem during boot.  A damaged or incomplete
+  // SPIFFS volume can take long enough to format that the interrupt WDT
+  // resets the device before the application starts.  Formatting remains
+  // available through the explicit factory-reset/maintenance paths.
+  const bool fs_ok = SPIFFS.begin(false);
+  if (!fs_ok) {
+    MESH_DEBUG_PRINTLN("[fs] SPIFFS mount failed; auto-format disabled during boot");
+  } else {
+    MESH_DEBUG_PRINTLN("[fs] SPIFFS mounted");
+  }
 #endif
 #if defined(HELTEC_MESH_UI) && HELTEC_MESH_UI
 #if defined(NRF52_PLATFORM)
