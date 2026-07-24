@@ -379,7 +379,7 @@ void NavigationPane::setNavButtonsInteractive(bool interactive) {
 
 static void gridPaneFrameRect(_lv_obj_t* root, _lv_obj_t* tileview, lv_coord_t* out_x,
                               lv_coord_t* out_y, lv_coord_t* out_w,
-                              lv_coord_t* out_h) {
+                              lv_coord_t* out_h, bool update_layout = true) {
   const lv_coord_t pw = root ? lv_obj_get_width(root) : 0;
   const lv_coord_t ph = root ? lv_obj_get_height(root) : 0;
   *out_x = 0;
@@ -389,7 +389,7 @@ static void gridPaneFrameRect(_lv_obj_t* root, _lv_obj_t* tileview, lv_coord_t* 
 
   if (!root || !tileview || !lv_obj_is_valid(tileview)) return;
 
-  lv_obj_update_layout(tileview);
+  if (update_layout) lv_obj_update_layout(tileview);
   lv_area_t root_coords;
   lv_area_t tile_coords;
   lv_obj_get_coords(root, &root_coords);
@@ -462,7 +462,7 @@ void NavigationPane::updateGeometry() {
     lv_coord_t ny = 0;
     lv_coord_t nw = pw;
     lv_coord_t nh = ph;
-    gridPaneFrameRect(_root, _tileview, &nx, &ny, &nw, &nh);
+    gridPaneFrameRect(_root, _tileview, &nx, &ny, &nw, &nh, false);
     lv_obj_set_size(_nav, nw, nh);
     syncPaneRadiusToTileView(_nav, _tileview);
     lv_obj_set_pos(_nav, panelVisible() ? nx : closedPaneX(_nav, nx), ny);
@@ -874,7 +874,7 @@ void NavigationPane::openPanel() {
   lv_coord_t ny = 0;
   lv_coord_t nw = lv_obj_get_width(_nav);
   lv_coord_t nh = lv_obj_get_height(_nav);
-  gridPaneFrameRect(_root, _tileview, &nx, &ny, &nw, &nh);
+  gridPaneFrameRect(_root, _tileview, &nx, &ny, &nw, &nh, false);
   const lv_coord_t closed_x = closedPaneX(_nav, nx);
   lv_obj_set_x(_nav, closed_x);
   lv_obj_clear_flag(_nav, LV_OBJ_FLAG_HIDDEN);
