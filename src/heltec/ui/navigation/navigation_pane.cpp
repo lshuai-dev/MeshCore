@@ -156,9 +156,13 @@ static void layoutRootBelowTopPane(_lv_obj_t* root) {
   lv_coord_t parent_w = 0;
   lv_coord_t parent_h = 0;
   if (parent) {
-    lv_obj_update_layout(parent);
     parent_w = lv_obj_get_width(parent);
     parent_h = lv_obj_get_height(parent);
+    if (parent_w <= 0 || parent_h <= 0) {
+      lv_obj_update_layout(parent);
+      parent_w = lv_obj_get_width(parent);
+      parent_h = lv_obj_get_height(parent);
+    }
   }
   if (parent_w <= 0) parent_w = lv_disp_get_hor_res(nullptr);
   if (parent_h <= 0) parent_h = lv_disp_get_ver_res(nullptr);
