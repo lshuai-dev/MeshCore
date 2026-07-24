@@ -285,7 +285,11 @@ bool init(uint16_t hor_res, uint16_t ver_res) {
 
 bool isReady() { return s_ready; }
 
-bool isPressed() { return s_hw_pressed; }
+// Keep the input logically active while a consumed gesture is waiting for the
+// hardware release.  LVGL may dispatch the corresponding RELEASED/CLICKED
+// event in this window even though the controller has already reported no
+// contact; callers must not treat that event as a tap.
+bool isPressed() { return s_hw_pressed || release_barrier_active(); }
 
 void requestReleaseBarrier() { request_release_barrier(); }
 

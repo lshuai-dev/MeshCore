@@ -6,6 +6,7 @@ namespace heltec::meshcore::dal::touch_port {
 
 bool init(uint16_t hor_res, uint16_t ver_res);
 bool isReady();
+/** True while a touch is held or a consumed gesture is awaiting release. */
 bool isPressed();
 void requestReleaseBarrier();
 
