@@ -15,6 +15,7 @@ constexpr MetaId QuickPingMessageInput = ht_meta_id(MetaIdScope::Overlay, 0xB4);
 constexpr MetaId QuickPingMessageInputLabel = ht_meta_id(MetaIdScope::Overlay, 0xB5);
 constexpr MetaId QuickPingKeyboard = ht_meta_id(MetaIdScope::Overlay, 0xB6);
 constexpr MetaId QuickPingMessageDropdown = ht_meta_id(MetaIdScope::Overlay, 0xB7);
+constexpr MetaId QuickPingBackdrop = ht_meta_id(MetaIdScope::Overlay, 0xBA);
 }
 
 #if defined(HELTEC_V4_R8_TFT) && defined(HELTEC_HAS_TOUCH) && HELTEC_HAS_TOUCH
@@ -123,6 +124,7 @@ class QuickPingOverlay final : public AbstractOverlay {
   void startOpenAnimation();
 
   _lv_obj_t* _title_bar = nullptr;
+  _lv_obj_t* _backdrop = nullptr;
   _lv_obj_t* _content = nullptr;
   _lv_obj_t* _title = nullptr;
   _lv_obj_t* _row_target = nullptr;

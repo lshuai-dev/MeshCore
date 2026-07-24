@@ -134,7 +134,27 @@ _lv_obj_t* QuickPingOverlay::createRoot(_lv_obj_t* parent) {
 
 _lv_obj_t* QuickPingOverlay::create(_lv_obj_t* parent) {
   if (_root) return _root;
-  if (!AbstractOverlay::create(parent)) return nullptr;
+  if (!parent) return nullptr;
+
+  // Create the backdrop before the pane root so it stays above the existing
+  // overlay siblings while the pane itself is kept on top by SurfaceManager.
+  _backdrop = ht_obj_create(parent, meta_id::QuickPingBackdrop);
+  if (!_backdrop) return nullptr;
+  lv_obj_set_size(_backdrop, lv_pct(100), lv_pct(100));
+  lv_obj_set_pos(_backdrop, 0, 0);
+  lv_obj_set_style_bg_color(_backdrop, lv_color_hex(0x001765), LV_PART_MAIN);
+  lv_obj_set_style_bg_opa(_backdrop, LV_OPA_COVER, LV_PART_MAIN);
+  lv_obj_set_style_border_width(_backdrop, 0, LV_PART_MAIN);
+  lv_obj_set_style_pad_all(_backdrop, 0, LV_PART_MAIN);
+  lv_obj_clear_flag(_backdrop,
+                    LV_OBJ_FLAG_SCROLLABLE | LV_OBJ_FLAG_CLICKABLE);
+  lv_obj_add_flag(_backdrop, LV_OBJ_FLAG_HIDDEN);
+
+  if (!AbstractOverlay::create(parent)) {
+    lv_obj_del(_backdrop);
+    _backdrop = nullptr;
+    return nullptr;
+  }
 
   lv_obj_set_size(_root, kPaneWidth, kPaneHeight);
   lv_obj_align(_root, LV_ALIGN_TOP_LEFT, kPaneInset, kPaneInset);
@@ -185,6 +205,9 @@ _lv_obj_t* QuickPingOverlay::create(_lv_obj_t* parent) {
 
 void QuickPingOverlay::onEnter() {
   AbstractOverlay::onEnter();
+  if (_backdrop && lv_obj_is_valid(_backdrop)) {
+    lv_obj_clear_flag(_backdrop, LV_OBJ_FLAG_HIDDEN);
+  }
   _message_submit_handled = false;
   _close_animating = false;
   _close_animation_ready = false;
@@ -197,6 +220,9 @@ void QuickPingOverlay::onEnter() {
 }
 
 void QuickPingOverlay::onExit() {
+  if (_backdrop && lv_obj_is_valid(_backdrop)) {
+    lv_obj_add_flag(_backdrop, LV_OBJ_FLAG_HIDDEN);
+  }
   if (_root) {
     ui_motion_cancel(_root, slideYExec);
     lv_obj_set_y(_root, kPaneInset);
