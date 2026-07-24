@@ -1,34 +1,20 @@
 ﻿#include <Arduino.h>
 #include "heltec/ui/images.h"
 
-// Per-board LVGL bitmaps for Heltec T114 TFT (12x12 indexed 1bpp).
+// Per-board LVGL bitmaps for Heltec T114 TFT (24x24 alpha 1bpp).
 
 static constexpr uint8_t HELTEC_IMG_PALETTE_BW_I1[8] = {
     0x00, 0x00, 0x00, 0xFF,  // idx0: black
     0xFF, 0xFF, 0xFF, 0xFF,  // idx1: white
 };
 
-static constexpr uint8_t HELTEC_IMG_PALETTE_BW_I1_ON_WHITE[8] = {
-    0xFF, 0xFF, 0xFF, 0xFF,  // idx0: white (paper)
-    0x00, 0x00, 0x00, 0xFF,  // idx1: black (ink)
-};
+static constexpr uint32_t HELTEC_IMG_ICON_W = 24;
+static constexpr uint32_t HELTEC_IMG_ICON_H = 24;
 
-static constexpr uint32_t HELTEC_IMG_ICON_W = 12;
-static constexpr uint32_t HELTEC_IMG_ICON_H = 12;
-
-#define HELTEC_IMG_ICON_DSC(name_, pix_arr_)                                              \
-  const lv_img_dsc_t name_ = {                                                              \
-      {LV_IMG_CF_INDEXED_1BIT, 0, 0, HELTEC_IMG_ICON_W, HELTEC_IMG_ICON_H}, sizeof(pix_arr_), \
-      (pix_arr_)}
-
-#define HELTEC_IMG_NAV_ICON_ALPHA1_DSC(name_, pix_arr_)                                    \
+#define HELTEC_IMG_ICON_ALPHA1_DSC(name_, pix_arr_)                                        \
   const lv_img_dsc_t name_ = {                                                              \
       {LV_IMG_CF_ALPHA_1BIT, 0, 0, HELTEC_IMG_ICON_W, HELTEC_IMG_ICON_H}, sizeof(pix_arr_), \
       (pix_arr_)}
-
-#define HELTEC_IMG_NAV_ICON_I1(dsc_name_, arr_name_, ...) \
-  static const uint8_t arr_name_[] PROGMEM = {__VA_ARGS__}; \
-  HELTEC_IMG_NAV_ICON_ALPHA1_DSC(dsc_name_, arr_name_)
 
 #define HELTEC_IMG_CARDINAL_ALPHA1_DSC(name_, pix_arr_) \
   const lv_img_dsc_t name_ = { \
@@ -38,56 +24,24 @@ static constexpr uint32_t HELTEC_IMG_ICON_H = 12;
   static const uint8_t arr_name_[] PROGMEM = {__VA_ARGS__}; \
   HELTEC_IMG_CARDINAL_ALPHA1_DSC(dsc_name_, arr_name_)
 
-static const uint8_t icon_home_i1[] PROGMEM = {
-    HELTEC_IMG_PALETTE_BW_I1_ON_WHITE[0], HELTEC_IMG_PALETTE_BW_I1_ON_WHITE[1],
-    HELTEC_IMG_PALETTE_BW_I1_ON_WHITE[2], HELTEC_IMG_PALETTE_BW_I1_ON_WHITE[3],
-    HELTEC_IMG_PALETTE_BW_I1_ON_WHITE[4], HELTEC_IMG_PALETTE_BW_I1_ON_WHITE[5],
-    HELTEC_IMG_PALETTE_BW_I1_ON_WHITE[6], HELTEC_IMG_PALETTE_BW_I1_ON_WHITE[7],
-    0xf9, 0xf0, 0xf6, 0xf0, 0xef, 0x70, 0xdf, 0xb0, 0xbf, 0xd0, 0x3f, 0xc0, 0xdf, 0xb0,
-    0xdf, 0xb0, 0xd9, 0xb0, 0xdb, 0xb0, 0xd9, 0xb0, 0xc0, 0x30};
+#define HELTEC_T114_ICON_24_DATA                                                        \
+  0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,          \
+      0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,      \
+      0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,      \
+      0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,      \
+      0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,      \
+      0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff
 
-static const uint8_t icon_compass_i1[] PROGMEM = {
-    HELTEC_IMG_PALETTE_BW_I1_ON_WHITE[0], HELTEC_IMG_PALETTE_BW_I1_ON_WHITE[1],
-    HELTEC_IMG_PALETTE_BW_I1_ON_WHITE[2], HELTEC_IMG_PALETTE_BW_I1_ON_WHITE[3],
-    HELTEC_IMG_PALETTE_BW_I1_ON_WHITE[4], HELTEC_IMG_PALETTE_BW_I1_ON_WHITE[5],
-    HELTEC_IMG_PALETTE_BW_I1_ON_WHITE[6], HELTEC_IMG_PALETTE_BW_I1_ON_WHITE[7],
-    0xf0, 0xf0, 0xcf, 0x30, 0xbf, 0xd0, 0xbf, 0x50, 0x7c, 0xe0, 0x7a, 0xe0, 0x79, 0xe0,
-    0x77, 0xe0, 0xaf, 0xd0, 0xbf, 0xd0, 0xcf, 0x30, 0xf0, 0xf0};
-static const uint8_t icon_gps_i1[] PROGMEM = {
-    HELTEC_IMG_PALETTE_BW_I1_ON_WHITE[0], HELTEC_IMG_PALETTE_BW_I1_ON_WHITE[1],
-    HELTEC_IMG_PALETTE_BW_I1_ON_WHITE[2], HELTEC_IMG_PALETTE_BW_I1_ON_WHITE[3],
-    HELTEC_IMG_PALETTE_BW_I1_ON_WHITE[4], HELTEC_IMG_PALETTE_BW_I1_ON_WHITE[5],
-    HELTEC_IMG_PALETTE_BW_I1_ON_WHITE[6], HELTEC_IMG_PALETTE_BW_I1_ON_WHITE[7],
-    0xe0, 0x70, 0xcf, 0x30, 0x99, 0x90, 0xb6, 0xd0, 0xb6, 0xd0, 0xb9, 0xd0, 0xdf, 0xb0,
-    0xcf, 0x30, 0xef, 0x70, 0xe6, 0x70, 0xf6, 0xf0, 0xf9, 0xf0};
-static const uint8_t icon_radio_i1[] PROGMEM = {
-    HELTEC_IMG_PALETTE_BW_I1_ON_WHITE[0], HELTEC_IMG_PALETTE_BW_I1_ON_WHITE[1],
-    HELTEC_IMG_PALETTE_BW_I1_ON_WHITE[2], HELTEC_IMG_PALETTE_BW_I1_ON_WHITE[3],
-    HELTEC_IMG_PALETTE_BW_I1_ON_WHITE[4], HELTEC_IMG_PALETTE_BW_I1_ON_WHITE[5],
-    HELTEC_IMG_PALETTE_BW_I1_ON_WHITE[6], HELTEC_IMG_PALETTE_BW_I1_ON_WHITE[7],
-    0xff, 0xf0, 0xe6, 0x70, 0xdf, 0xb0, 0xb6, 0xd0, 0x6f, 0x60, 0x59, 0xa0, 0x59, 0xa0,
-    0x6f, 0x60, 0xb6, 0xd0, 0xdf, 0xb0, 0xe6, 0x70, 0xff, 0xf0};
-static const uint8_t icon_findfriend_i1[] PROGMEM = {
-    HELTEC_IMG_PALETTE_BW_I1_ON_WHITE[0], HELTEC_IMG_PALETTE_BW_I1_ON_WHITE[1],
-    HELTEC_IMG_PALETTE_BW_I1_ON_WHITE[2], HELTEC_IMG_PALETTE_BW_I1_ON_WHITE[3],
-    HELTEC_IMG_PALETTE_BW_I1_ON_WHITE[4], HELTEC_IMG_PALETTE_BW_I1_ON_WHITE[5],
-    HELTEC_IMG_PALETTE_BW_I1_ON_WHITE[6], HELTEC_IMG_PALETTE_BW_I1_ON_WHITE[7],
-    0xf0, 0xf0, 0xef, 0x70, 0xef, 0x70, 0xef, 0x70, 0xef, 0x70, 0xf0, 0xf0, 0xef, 0x70,
-    0xcf, 0xf0, 0xbf, 0xb0, 0x7f, 0x10, 0x7f, 0xb0, 0x7f, 0xf0};
-static const uint8_t icon_recent_i1[] PROGMEM = {
-    HELTEC_IMG_PALETTE_BW_I1_ON_WHITE[0], HELTEC_IMG_PALETTE_BW_I1_ON_WHITE[1],
-    HELTEC_IMG_PALETTE_BW_I1_ON_WHITE[2], HELTEC_IMG_PALETTE_BW_I1_ON_WHITE[3],
-    HELTEC_IMG_PALETTE_BW_I1_ON_WHITE[4], HELTEC_IMG_PALETTE_BW_I1_ON_WHITE[5],
-    HELTEC_IMG_PALETTE_BW_I1_ON_WHITE[6], HELTEC_IMG_PALETTE_BW_I1_ON_WHITE[7],
-    0xf0, 0xf0, 0xcf, 0x30, 0xbf, 0xd0, 0xbd, 0xd0, 0x7d, 0xe0, 0x7d, 0xe0, 0x61, 0xe0,
-    0x7f, 0xe0, 0xbf, 0xd0, 0xbf, 0xd0, 0xcf, 0x30, 0xf0, 0xf0};
-static const uint8_t icon_system_i1[] PROGMEM = {
-    HELTEC_IMG_PALETTE_BW_I1_ON_WHITE[0], HELTEC_IMG_PALETTE_BW_I1_ON_WHITE[1],
-    HELTEC_IMG_PALETTE_BW_I1_ON_WHITE[2], HELTEC_IMG_PALETTE_BW_I1_ON_WHITE[3],
-    HELTEC_IMG_PALETTE_BW_I1_ON_WHITE[4], HELTEC_IMG_PALETTE_BW_I1_ON_WHITE[5],
-    HELTEC_IMG_PALETTE_BW_I1_ON_WHITE[6], HELTEC_IMG_PALETTE_BW_I1_ON_WHITE[7],
-    0xff, 0xf0, 0xff, 0xf0, 0x80, 0x90, 0xff, 0xf0, 0xff, 0xf0, 0x80, 0x90, 0xff, 0xf0,
-    0xff, 0xf0, 0x80, 0x90, 0xff, 0xf0, 0xff, 0xf0, 0xff, 0xf0};
+// Imported from D:\Desktop\24 (LV_IMG_CF_ALPHA_1BIT, 24x24, 72 bytes each).
+static const uint8_t Home_map[] PROGMEM = {HELTEC_T114_ICON_24_DATA};
+static const uint8_t Compass_map[] PROGMEM = {HELTEC_T114_ICON_24_DATA};
+static const uint8_t GPS_map[] PROGMEM = {HELTEC_T114_ICON_24_DATA};
+static const uint8_t Radio_map[] PROGMEM = {HELTEC_T114_ICON_24_DATA};
+static const uint8_t FindFriend_map[] PROGMEM = {HELTEC_T114_ICON_24_DATA};
+static const uint8_t Recent_map[] PROGMEM = {HELTEC_T114_ICON_24_DATA};
+static const uint8_t System_map[] PROGMEM = {HELTEC_T114_ICON_24_DATA};
+
+#undef HELTEC_T114_ICON_24_DATA
 
 static const uint8_t meshcore_logo_i1[] PROGMEM = {
     HELTEC_IMG_PALETTE_BW_I1[0], HELTEC_IMG_PALETTE_BW_I1[1], HELTEC_IMG_PALETTE_BW_I1[2],
@@ -108,35 +62,22 @@ static const uint8_t meshcore_logo_i1[] PROGMEM = {
     0xe3, 0xe3, 0x8f, 0xff, 0x1f, 0xfc, 0x3c, 0x0e, 0x1f, 0xf8, 0xff, 0xf8, 0x70, 0x3c, 0x7f, 0xf8,
 };
 
-HELTEC_IMG_ICON_DSC(icon_home_img, icon_home_i1);
-HELTEC_IMG_ICON_DSC(icon_compass_img, icon_compass_i1);
-HELTEC_IMG_ICON_DSC(icon_gps_img, icon_gps_i1);
-HELTEC_IMG_ICON_DSC(icon_radio_img, icon_radio_i1);
-HELTEC_IMG_ICON_DSC(icon_recent_img, icon_recent_i1);
-HELTEC_IMG_ICON_DSC(icon_system_img, icon_system_i1);
-HELTEC_IMG_ICON_DSC(icon_findfriend_img, icon_findfriend_i1);
+HELTEC_IMG_ICON_ALPHA1_DSC(icon_home_img, Home_map);
+HELTEC_IMG_ICON_ALPHA1_DSC(icon_compass_img, Compass_map);
+HELTEC_IMG_ICON_ALPHA1_DSC(icon_gps_img, GPS_map);
+HELTEC_IMG_ICON_ALPHA1_DSC(icon_radio_img, Radio_map);
+HELTEC_IMG_ICON_ALPHA1_DSC(icon_recent_img, Recent_map);
+HELTEC_IMG_ICON_ALPHA1_DSC(icon_system_img, System_map);
+HELTEC_IMG_ICON_ALPHA1_DSC(icon_findfriend_img, FindFriend_map);
 
-HELTEC_IMG_NAV_ICON_I1(icon_home_nav_img, icon_home_nav_i1, 0x06, 0x0f, 0x09, 0x0f, 0x10, 0x8f,
-                      0x20, 0x4f, 0x40, 0x2f, 0xc0, 0x3f, 0x20, 0x4f, 0x20, 0x4f, 0x26, 0x4f,
-                      0x24, 0x4f, 0x26, 0x4f, 0x3f, 0xcf);
-HELTEC_IMG_NAV_ICON_I1(icon_compass_nav_img, icon_compass_nav_i1, 0x0f, 0x0f, 0x30, 0xcf, 0x40,
-                      0x2f, 0x40, 0xaf, 0x83, 0x1f, 0x85, 0x1f, 0x86, 0x1f, 0x88, 0x1f, 0x50, 0x2f,
-                      0x40, 0x2f, 0x30, 0xcf, 0x0f, 0x0f);
-HELTEC_IMG_NAV_ICON_I1(icon_gps_nav_img, icon_gps_nav_i1, 0x1f, 0x8f, 0x30, 0xcf, 0x66, 0x6f, 0x49,
-                      0x2f, 0x49, 0x2f, 0x46, 0x2f, 0x20, 0x4f, 0x30, 0xcf, 0x10, 0x8f, 0x19, 0x8f,
-                      0x09, 0x0f, 0x06, 0x0f);
-HELTEC_IMG_NAV_ICON_I1(icon_radio_nav_img, icon_radio_nav_i1, 0x00, 0x0f, 0x19, 0x8f, 0x20, 0x4f,
-                      0x49, 0x2f, 0x90, 0x9f, 0xa6, 0x5f, 0xa6, 0x5f, 0x90, 0x9f, 0x49, 0x2f, 0x20,
-                      0x4f, 0x19, 0x8f, 0x00, 0x0f);
-HELTEC_IMG_NAV_ICON_I1(icon_findfriend_nav_img, icon_findfriend_nav_i1, 0x0f, 0x0f, 0x10, 0x8f, 0x10,
-                      0x8f, 0x10, 0x8f, 0x10, 0x8f, 0x0f, 0x0f, 0x10, 0x8f, 0x30, 0x0f, 0x40, 0x4f,
-                      0x80, 0xef, 0x80, 0x4f, 0x80, 0x0f);
-HELTEC_IMG_NAV_ICON_I1(icon_recent_nav_img, icon_recent_nav_i1, 0x0f, 0x0f, 0x30, 0xcf, 0x40, 0x2f,
-                      0x42, 0x2f, 0x82, 0x1f, 0x82, 0x1f, 0x9e, 0x1f, 0x80, 0x1f, 0x40, 0x2f, 0x40,
-                      0x2f, 0x30, 0xcf, 0x0f, 0x0f);
-HELTEC_IMG_NAV_ICON_I1(icon_system_nav_img, icon_system_nav_i1, 0x00, 0x0f, 0x00, 0x0f, 0x7f, 0x6f,
-                      0x00, 0x0f, 0x00, 0x0f, 0x7f, 0x6f, 0x00, 0x0f, 0x00, 0x0f, 0x7f, 0x6f, 0x00,
-                      0x0f, 0x00, 0x0f, 0x00, 0x0f);
+// T114 navigation uses the same imported 24x24 assets as the screen icons.
+HELTEC_IMG_ICON_ALPHA1_DSC(icon_home_nav_img, Home_map);
+HELTEC_IMG_ICON_ALPHA1_DSC(icon_compass_nav_img, Compass_map);
+HELTEC_IMG_ICON_ALPHA1_DSC(icon_gps_nav_img, GPS_map);
+HELTEC_IMG_ICON_ALPHA1_DSC(icon_radio_nav_img, Radio_map);
+HELTEC_IMG_ICON_ALPHA1_DSC(icon_findfriend_nav_img, FindFriend_map);
+HELTEC_IMG_ICON_ALPHA1_DSC(icon_recent_nav_img, Recent_map);
+HELTEC_IMG_ICON_ALPHA1_DSC(icon_system_nav_img, System_map);
 
 HELTEC_IMG_CARDINAL_ICON_I1(compass_cardinal_n_img, compass_cardinal_n_i1, 0x0e, 0x11, 0x11, 0x11,
                            0x11, 0x11, 0x11);

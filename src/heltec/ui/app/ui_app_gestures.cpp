@@ -1,0 +1,304 @@
+#include "ui/app/ui_app.hpp"
+
+#include "heltec/drivers/display/display_port.hpp"
+#include "heltec/drivers/input/touch_input.hpp"
+#include <Arduino.h>
+
+#ifndef HELTEC_TOUCH_EDGE_PX
+#define HELTEC_TOUCH_EDGE_PX 24
+#endif
+#ifndef HELTEC_TOUCH_ACTION_EDGE_PX
+#if defined(HELTEC_V4_R8_TFT) && defined(HELTEC_HAS_TOUCH) && HELTEC_HAS_TOUCH
+#define HELTEC_TOUCH_ACTION_EDGE_PX 24
+#else
+#define HELTEC_TOUCH_ACTION_EDGE_PX HELTEC_TOUCH_EDGE_PX
+#endif
+#endif
+#ifndef HELTEC_TOUCH_TOP_ACTION_SIDE_MARGIN_PCT
+#if defined(HELTEC_V4_R8_TFT) && defined(HELTEC_HAS_TOUCH) && HELTEC_HAS_TOUCH
+#define HELTEC_TOUCH_TOP_ACTION_SIDE_MARGIN_PCT 10
+#else
+#define HELTEC_TOUCH_TOP_ACTION_SIDE_MARGIN_PCT 0
+#endif
+#endif
+
+namespace heltec::meshcore::ui {
+namespace {
+lv_coord_t current_display_width() {
+  lv_disp_t* disp = lv_disp_get_default();
+  return disp ? lv_disp_get_hor_res(disp) : 0;
+}
+lv_coord_t current_display_height() {
+  lv_disp_t* disp = lv_disp_get_default();
+  return disp ? lv_disp_get_ver_res(disp) : 0;
+}
+bool is_in_top_action_x_band(int16_t start_x) {
+  const lv_coord_t w = current_display_width();
+  if (w <= 0) return true;
+  const lv_coord_t margin = (w * HELTEC_TOUCH_TOP_ACTION_SIDE_MARGIN_PCT) / 100;
+  return start_x >= margin && start_x <= (w - margin);
+}
+bool is_left_edge_right_swipe(uint8_t axis, int8_t dir, int16_t start_x) {
+  return axis == static_cast<uint8_t>(heltec::meshcore::dal::touch_input::SwipeAxis::Horizontal) &&
+         dir < 0 && start_x <= HELTEC_TOUCH_ACTION_EDGE_PX;
+}
+bool is_top_edge_down_swipe(uint8_t axis, int8_t dir, int16_t start_y) {
+  return axis == static_cast<uint8_t>(heltec::meshcore::dal::touch_input::SwipeAxis::Vertical) &&
+         dir > 0 && start_y <= HELTEC_TOUCH_ACTION_EDGE_PX;
+}
+#if defined(HELTEC_V4_R8_TFT) && defined(HELTEC_HAS_TOUCH) && HELTEC_HAS_TOUCH
+bool is_right_edge_left_swipe(uint8_t axis, int8_t dir, int16_t start_x) {
+  const lv_coord_t w = current_display_width();
+  if (w <= HELTEC_TOUCH_ACTION_EDGE_PX) return false;
+  return axis == static_cast<uint8_t>(heltec::meshcore::dal::touch_input::SwipeAxis::Horizontal) &&
+         dir > 0 && start_x >= (w - HELTEC_TOUCH_ACTION_EDGE_PX);
+}
+bool is_bottom_edge_up_swipe(uint8_t axis, int8_t dir, int16_t start_y) {
+  const lv_coord_t h = current_display_height();
+  if (h <= HELTEC_TOUCH_ACTION_EDGE_PX) return false;
+  return axis == static_cast<uint8_t>(heltec::meshcore::dal::touch_input::SwipeAxis::Vertical) &&
+         dir < 0 && start_y >= (h - HELTEC_TOUCH_ACTION_EDGE_PX);
+}
+#endif
+bool is_top_action_down_swipe(uint8_t axis, int8_t dir, int16_t start_x, int16_t start_y) {
+  return is_top_edge_down_swipe(axis, dir, start_y) && is_in_top_action_x_band(start_x);
+}
+bool point_inside_obj(const _lv_obj_t* obj, int16_t x, int16_t y) {
+  if (!obj || !lv_obj_is_valid(obj) || lv_obj_has_flag(obj, LV_OBJ_FLAG_HIDDEN)) return false;
+  lv_point_t point{static_cast<lv_coord_t>(x), static_cast<lv_coord_t>(y)};
+  return lv_obj_hit_test(const_cast<_lv_obj_t*>(obj), &point);
+}
+}  // namespace
+
+#if defined(HELTEC_V4_R8_TFT) && defined(HELTEC_HAS_TOUCH) && HELTEC_HAS_TOUCH
+
+void UiApp::openNavigationPaneFromEdgeSwipe() {
+  if (!_surfaces.contains(&_navigation) && inputOnActiveScreen()) openNavigationPane();
+}
+
+void UiApp::closeNavigationPaneFromSwipe() {
+  if (!_surfaces.contains(&_navigation)) return;
+  _nav_last_activity_ms = 0;
+  stopNavigationAutoCommitTimer();
+  if (!_navigation.requestCloseAnimation()) closeNavigationPane();
+}
+
+void UiApp::openQuickPingFromTopSwipe() {
+  if (_surfaces.contains(&_quickPingOverlay)) return;
+
+  if (_surfaces.contains(&_navigation)) {
+    closeNavigationImmediate();
+  }
+  if (inputOnActiveScreen()) {
+    (void)_surfaces.present(&_quickPingOverlay, _surfaces.root());
+  }
+}
+
+void UiApp::closeQuickPingFromSwipe() {
+  if (_surfaces.contains(&_quickPingOverlay)) {
+    if (!_quickPingOverlay.requestCloseAnimation()) {
+      (void)_surfaces.dismissBranch(&_quickPingOverlay);
+    }
+  }
+}
+
+void UiApp::deferTouchAction(DeferredTouchAction action) {
+  if (action == DeferredTouchAction::None) return;
+  _deferred_touch_action = action;
+
+  if (!_deferred_touch_timer) {
+    runDeferredTouchAction();
+    return;
+  }
+
+  lv_timer_set_period(_deferred_touch_timer, 40U);
+  lv_timer_reset(_deferred_touch_timer);
+  lv_timer_resume(_deferred_touch_timer);
+}
+
+void UiApp::runDeferredTouchAction() {
+  const DeferredTouchAction action = _deferred_touch_action;
+  _deferred_touch_action = DeferredTouchAction::None;
+  if (!_inited || action == DeferredTouchAction::None) return;
+
+  switch (action) {
+    case DeferredTouchAction::OpenNavigation:
+      openNavigationPaneFromEdgeSwipe();
+      break;
+    case DeferredTouchAction::CloseNavigation:
+      closeNavigationPaneFromSwipe();
+      break;
+    case DeferredTouchAction::OpenQuickPing:
+      openQuickPingFromTopSwipe();
+      break;
+    case DeferredTouchAction::CloseQuickPing:
+      closeQuickPingFromSwipe();
+      break;
+    case DeferredTouchAction::None:
+    default:
+      break;
+  }
+}
+
+void UiApp::deferredTouchActionTimerCb(lv_timer_t* timer) {
+  auto* app = timer ? static_cast<UiApp*>(timer->user_data) : nullptr;
+  if (!app) return;
+  lv_timer_pause(timer);
+  app->runDeferredTouchAction();
+}
+
+#endif
+
+void UiApp::onTouchSwipe(uint8_t axis, int8_t dir, int16_t start_x, int16_t start_y) {
+  if (!_inited || 0 == dir) return;
+  if (!heltec::meshcore::dal::display_port::isBacklightOn()) {
+    notifyDisplayActivity(millis());
+    return;
+  }
+
+#if defined(HELTEC_V4_R8_TFT) && defined(HELTEC_HAS_TOUCH) && HELTEC_HAS_TOUCH
+  if (_surfaces.isActive(&_radioParamSyncOvl)) {
+    notifyDisplayActivity(millis());
+    return;
+  }
+
+  const bool nav_open = _surfaces.contains(&_navigation);
+  const bool quick_ping_open = _surfaces.contains(&_quickPingOverlay);
+  const lv_coord_t w = current_display_width();
+  const lv_coord_t h = current_display_height();
+
+  // Open from an edge, dismiss in the direction the pane leaves the screen.
+  // Pane dismissal owns the reverse swipe before normal page navigation does.
+  if (nav_open &&
+      axis == static_cast<uint8_t>(heltec::meshcore::dal::touch_input::SwipeAxis::Horizontal) &&
+      dir > 0 && point_inside_obj(_navigation.root(), start_x, start_y) &&
+      (w <= 0 || start_x < (w - HELTEC_TOUCH_ACTION_EDGE_PX))) {
+    notifyDisplayActivity(millis());
+    deferTouchAction(DeferredTouchAction::CloseNavigation);
+    return;
+  }
+
+  if (quick_ping_open &&
+      axis == static_cast<uint8_t>(heltec::meshcore::dal::touch_input::SwipeAxis::Vertical) &&
+      dir < 0 && _quickPingOverlay.hitSwipeDismissRegion(start_x, start_y) &&
+      (h <= 0 || start_y < (h - HELTEC_TOUCH_ACTION_EDGE_PX))) {
+    notifyDisplayActivity(millis());
+    deferTouchAction(DeferredTouchAction::CloseQuickPing);
+    return;
+  }
+
+  if (is_right_edge_left_swipe(axis, dir, start_x) ||
+      is_bottom_edge_up_swipe(axis, dir, start_y)) {
+    notifyDisplayActivity(millis());
+    return;
+  }
+#endif
+
+  if (is_left_edge_right_swipe(axis, dir, start_x)) {
+    const lv_coord_t h = current_display_height();
+    if (start_y <= HELTEC_TOUCH_ACTION_EDGE_PX ||
+        (h > 0 && start_y >= (h - HELTEC_TOUCH_ACTION_EDGE_PX))) {
+      return;
+    }
+    notifyDisplayActivity(millis());
+#if defined(HELTEC_V4_R8_TFT) && defined(HELTEC_HAS_TOUCH) && HELTEC_HAS_TOUCH
+    if (!_surfaces.contains(&_navigation)) {
+      deferTouchAction(DeferredTouchAction::OpenNavigation);
+    }
+#else
+    if (_surfaces.contains(&_contextMenu)) return;
+    const bool nav_open = _surfaces.contains(&_navigation);
+    if (nav_open) {
+      closeNavigationPane();
+    } else if (inputOnActiveScreen()) {
+      openNavigationPane();
+    }
+#endif
+    return;
+  }
+
+  if (is_top_action_down_swipe(axis, dir, start_x, start_y)) {
+    notifyDisplayActivity(millis());
+#if defined(HELTEC_V4_R8_TFT) && defined(HELTEC_HAS_TOUCH) && HELTEC_HAS_TOUCH
+    if (!_surfaces.contains(&_quickPingOverlay)) {
+      deferTouchAction(DeferredTouchAction::OpenQuickPing);
+    }
+#else
+    if (_surfaces.contains(&_navigation)) return;
+    if (_surfaces.contains(&_contextMenu)) {
+      dismissTopContextMenu();
+    } else {
+      (void)openContextMenu();
+    }
+#endif
+    return;
+  }
+
+  if (axis != static_cast<uint8_t>(heltec::meshcore::dal::touch_input::SwipeAxis::Horizontal)) {
+    return;
+  }
+  if (_surfaces.contains(&_navigation)) return;
+#if defined(HELTEC_V4_R8_TFT) && defined(HELTEC_HAS_TOUCH) && HELTEC_HAS_TOUCH
+  if (_surfaces.contains(&_quickPingOverlay)) return;
+#else
+  if (_surfaces.contains(&_contextMenu)) return;
+#endif
+  if (_surfaces.isActive(&_radioParamSyncOvl)) {
+    _radioParamSyncOvl.stepSelection(dir);
+    notifyDisplayActivity(millis());
+    return;
+  }
+  (void)switchAdjacentTile(dir);
+}
+
+bool UiApp::hitActiveTrackerViewport(lv_coord_t x, lv_coord_t y) const {
+#if defined(ENV_INCLUDE_MAP) && ENV_INCLUDE_MAP
+  if (static_cast<uint8_t>(eScreenId::Tracker) != activeTileIndex()) return false;
+  return _scrTracker.hitMapViewport(x, y);
+#else
+  (void)x;
+  (void)y;
+  return false;
+#endif
+}
+
+#if defined(HELTEC_TOUCH_GESTURE_INPUT) && HELTEC_TOUCH_GESTURE_INPUT
+
+bool UiApp::touchGestureBlockTrackerViewport(int16_t x, int16_t y) {
+  if (x <= HELTEC_TOUCH_EDGE_PX || y <= HELTEC_TOUCH_EDGE_PX) return false;
+  auto& app = UiApp::instance();
+  if (!app.inputOnActiveScreen()) return false;
+  return app.hitActiveTrackerViewport(x, y);
+}
+
+#if defined(HELTEC_V4_R8_TFT) && defined(HELTEC_HAS_TOUCH) && HELTEC_HAS_TOUCH
+
+bool UiApp::touchGestureBlockVerticalSwipe(int16_t x, int16_t y) {
+  auto& app = UiApp::instance();
+  if (app._surfaces.isActive(&app._quickPingOverlay) &&
+      app._quickPingOverlay.hitVerticalSwipeControl(x, y)) {
+    return true;
+  }
+#if defined(ENV_INCLUDE_MAP) && ENV_INCLUDE_MAP
+  if (app.inputOnActiveScreen() && app.hitActiveTrackerViewport(x, y)) return true;
+#endif
+  return app.inputOnActiveScreen() && app.activeScreen() == &app._scrSystem &&
+         app._scrSystem.hitScrollableContent(x, y);
+}
+
+bool UiApp::touchGestureRawPointerPassthrough(int16_t x, int16_t y) {
+  auto& app = UiApp::instance();
+  return app._surfaces.isActive(&app._radioParamSyncOvl) &&
+         app._radioParamSyncOvl.hitRoller(x, y);
+}
+
+bool UiApp::touchGestureBlockQuickPingDoubleTap(int16_t x, int16_t y) {
+  auto& app = UiApp::instance();
+  return app._surfaces.isActive(&app._quickPingOverlay) &&
+         point_inside_obj(app._quickPingOverlay.root(), x, y);
+}
+
+#endif
+#endif
+
+}  // namespace heltec::meshcore::ui

@@ -23,6 +23,8 @@ class NavigationPane : public UiSurface {
   uint8_t focusedIndex() const;
   _lv_obj_t* navButtonHost() const;
   _lv_obj_t* navFocusWidget() const { return _nav ? _nav : _root; }
+  /** Slide the pane left, then emit NavClose. Returns false when it should close immediately. */
+  bool requestCloseAnimation();
   void setTileView(_lv_obj_t* tileview);
   void setFrameRoot(_lv_obj_t* frame) { _frame_root = frame; }
 
@@ -43,7 +45,7 @@ class NavigationPane : public UiSurface {
   void updateGeometry();
   void setNavButtonsInteractive(bool interactive);
   void stepNavFocus(int delta);
-  void onCellPressed(_lv_obj_t* cell);
+  void onCellClicked(_lv_obj_t* cell);
   bool commitFocused();
   void sendTilePreview(uint8_t tile_idx);
   _lv_obj_t* frameRoot() const;
@@ -57,6 +59,7 @@ class NavigationPane : public UiSurface {
   uint8_t _emphasis_index = kNoEmphasis;
   uint8_t _ring_layout_focus = kNoEmphasis;
   bool _ring_fade_busy = false;
+  bool _close_animating = false;
   bool _updating_geometry = false;
   bool _layout_busy = false;
   const char* _labels[kMaxButtons] = {};

@@ -10,6 +10,7 @@
 #include "heltec/ui/core/biz_facade.hpp"
 #include "ui/core/ui_events.h"
 #include "ui/core/ht_meta_data.hpp"
+#include "ui/core/ui_deferred_queue.hpp"
 #include "keyboard_overlay.hpp"
 
 namespace heltec::meshcore::ui {
@@ -97,7 +98,7 @@ _lv_obj_t* SendMessageOverlay::create(lv_obj_t* parent) {
   if (!_title) return nullptr;
   lv_obj_set_width(_title, lv_pct(100));
   lv_label_set_long_mode(_title, LV_LABEL_LONG_CLIP);
-  lv_label_set_text(_title, "send message");
+  lv_label_set_text_static(_title, "send message");
 
   _list_mid = ht_obj_create(_root, meta_id::SendMessageList);
   if (!_list_mid) return nullptr;
@@ -126,7 +127,12 @@ _lv_obj_t* SendMessageOverlay::create(lv_obj_t* parent) {
   if (!_footer) return nullptr;
   lv_obj_set_width(_footer, lv_pct(100));
   lv_label_set_long_mode(_footer, LV_LABEL_LONG_CLIP);
-  lv_label_set_text(_footer, "Menu: select  Back: cancel");
+  lv_label_set_text_static(_footer, "Menu: select  Back: cancel");
+
+  for (uint8_t i = 0; i < kMaxListItems; ++i) {
+    if (!createTouchRow(i, "")) return nullptr;
+    lv_obj_add_flag(_row_objs[i], LV_OBJ_FLAG_HIDDEN);
+  }
 
   setTarget(_model.target());
   return _root;
@@ -167,8 +173,12 @@ const char* SendMessageOverlay::rowLabel(int index) const {
 void SendMessageOverlay::clearTouchList() {
   if (!_list) return;
   clearFocusObjects();
-  lv_obj_clean(_list);
-  for (int i = 0; i < kMaxListItems; ++i) _row_objs[i] = nullptr;
+  for (int i = 0; i < kMaxListItems; ++i) {
+    if (!_row_objs[i]) continue;
+    lv_obj_add_flag(_row_objs[i], LV_OBJ_FLAG_HIDDEN);
+    lv_obj_clear_state(_row_objs[i], LV_STATE_FOCUSED);
+    if (_row_labels[i]) lv_obj_clear_state(_row_labels[i], LV_STATE_FOCUSED);
+  }
 }
 
 _lv_obj_t* SendMessageOverlay::createTouchRow(uint8_t index, const char* text) {
@@ -217,8 +227,12 @@ _lv_obj_t* SendMessageOverlay::createTouchRow(uint8_t index, const char* text) {
     }
   }, LV_EVENT_CLICKED, this);
 
-  if (index < kMaxListItems) _row_objs[index] = row;
-  if (_focus_group) lv_group_add_obj(_focus_group, row);
+  if (index < kMaxListItems) {
+    _row_objs[index] = row;
+    _row_labels[index] = label;
+    SendMessageModel::safeCopy(_row_text[index], sizeof(_row_text[index]), text);
+    lv_label_set_text_static(label, _row_text[index]);
+  }
   return row;
 }
 
@@ -256,8 +270,12 @@ void SendMessageOverlay::renderTouchList() {
   _model.setSelectedIndex(_model.selectedIndex());
 
   for (int i = 0; i < count && i < kMaxListItems; ++i) {
-    createTouchRow(static_cast<uint8_t>(i), rowLabel(i));
+    if (!_row_objs[i] || !_row_labels[i]) continue;
+    SendMessageModel::safeCopy(_row_text[i], sizeof(_row_text[i]), rowLabel(i));
+    lv_label_set_text_static(_row_labels[i], _row_text[i]);
+    lv_obj_clear_flag(_row_objs[i], LV_OBJ_FLAG_HIDDEN);
   }
+  syncOverlayGroup();
   syncSelectionVisual();
 }
 
@@ -273,8 +291,8 @@ void SendMessageOverlay::renderRows() {
     title = (_model.listKind() == 1) ? "group" : "personal";
     footer = "Menu: select  Back: back";
   }
-  lv_label_set_text(_title, title);
-  lv_label_set_text(_footer, footer);
+  lv_label_set_text_static(_title, title);
+  lv_label_set_text_static(_footer, footer);
 
   renderTouchList();
 }
@@ -309,7 +327,7 @@ void SendMessageOverlay::scheduleSendResultAlert(bool ok) {
   _send_alert_ok = ok;
   if (_send_alert_scheduled) return;
   _send_alert_scheduled = true;
-  if (LV_RES_OK != lv_async_call(showSendResultAlertAsync, this)) {
+  if (!ui_defer(showSendResultAlertAsync, this)) {
     _send_alert_scheduled = false;
     _biz.showAlert(ok ? "Queued" : "Failed", 1600);
   }

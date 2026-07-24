@@ -31,6 +31,7 @@ class RadioScreen : public AbstractScreen {
   _lv_obj_t* _line2 = nullptr;
   _lv_obj_t* _line3 = nullptr;
   _lv_obj_t* _line4 = nullptr;
+  char _line_text[4][48] = {};
   biz::IBizFacade::RadioStatus _last_radio{};
 };
 

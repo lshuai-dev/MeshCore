@@ -46,6 +46,8 @@ constexpr uint8_t kStartupLoadPrefs = 3;
 constexpr uint8_t kStartupProbeSd = 4;
 constexpr uint8_t kStartupApplySd = 5;
 constexpr int kTilesPerPoll = 3;
+constexpr int kMarkersPerPoll = 4;
+constexpr uint32_t kPoolPrewarmIntervalMs = 10;
 
 constexpr lv_coord_t kMapToolBtnW = 38;
 constexpr lv_coord_t kMapToolBtnH = 30;
@@ -202,7 +204,6 @@ void TrackerScreen::on_map_gesture(lv_event_t* e) {
 
 void TrackerScreen::update_status_line() {
   if (!_lbl_status || !_panel_attached) return;
-  char buf[112];
   char sd_buf[20];
   const char* fs = heltec::meshcore::ui::map::map_sd_fs_label();
   const char* sd_tag = "noSD";
@@ -214,11 +215,19 @@ void TrackerScreen::update_status_line() {
       sd_tag = "SD";
     }
   }
-  lv_snprintf(buf, sizeof(buf), "z%u %s | %.2f,%.2f gps:%d vis:%d/%d", (unsigned)_panel.zoom(),
-              sd_tag, (double)_panel.center_lat(),
-              (double)_panel.center_lon(), _contact_gps_count, _panel.visibleMarkerCount(),
-              _contact_gps_count);
-  lv_label_set_text(_lbl_status, buf);
+  const int32_t lat_centi = (int32_t)(_panel.center_lat() * 100.0f +
+                                      (_panel.center_lat() >= 0.f ? 0.5f : -0.5f));
+  const int32_t lon_centi = (int32_t)(_panel.center_lon() * 100.0f +
+                                      (_panel.center_lon() >= 0.f ? 0.5f : -0.5f));
+  const int32_t lat_abs = lat_centi < 0 ? -lat_centi : lat_centi;
+  const int32_t lon_abs = lon_centi < 0 ? -lon_centi : lon_centi;
+  lv_snprintf(_status_text, sizeof(_status_text),
+              "z%u %s | %s%ld.%02ld,%s%ld.%02ld gps:%d vis:%d/%d",
+              (unsigned)_panel.zoom(), sd_tag, lat_centi < 0 ? "-" : "",
+              (long)(lat_abs / 100), (long)(lat_abs % 100), lon_centi < 0 ? "-" : "",
+              (long)(lon_abs / 100), (long)(lon_abs % 100), _contact_gps_count,
+              _panel.visibleMarkerCount(), _contact_gps_count);
+  lv_label_set_text_static(_lbl_status, _status_text);
 }
 
 void TrackerScreen::update_status_line(const biz::MapPlotUi& plot) {
@@ -327,6 +336,9 @@ void TrackerScreen::syncMapToolbarVisibility() {
     map::mapFixedTestOverrideGps(gps);
   }
   const bool gps_usable = usable_gps(gps);
+  const int8_t gps_state = gps_usable ? 1 : 0;
+  if (_toolbar_gps_usable == gps_state) return;
+  _toolbar_gps_usable = gps_state;
   if (gps_usable) {
     lv_obj_clear_flag(_btn_gps, LV_OBJ_FLAG_HIDDEN);
   } else {
@@ -345,8 +357,6 @@ void TrackerScreen::raiseMapToolbar() {
     lv_obj_add_flag(_toolbar, LV_OBJ_FLAG_HIDDEN);
     return;
   }
-  lv_obj_update_layout(_map_viewport);
-  lv_obj_update_layout(_toolbar);
   lv_obj_align(_toolbar, LV_ALIGN_BOTTOM_RIGHT, -4, -4);
   lv_obj_move_foreground(_toolbar);
   lv_obj_clear_flag(_toolbar, LV_OBJ_FLAG_HIDDEN);
@@ -381,13 +391,17 @@ void TrackerScreen::syncMapToolbarBusy() {
 
 void TrackerScreen::setMapUnavailable() {
   _map_unavailable = true;
+  _pool_prewarm_pending = false;
   _map_work = kMapWorkNone;
   _startup_phase = kStartupNone;
   if (_map_work_timer) lv_timer_pause(_map_work_timer);
   _map_work_timer_active = false;
   setMapToolbarBusy(false);
   if (_toolbar) lv_obj_add_flag(_toolbar, LV_OBJ_FLAG_HIDDEN);
-  if (_lbl_status) lv_label_set_text(_lbl_status, "Map unavailable");
+  if (_lbl_status) {
+    lv_snprintf(_status_text, sizeof(_status_text), "Map unavailable");
+    lv_label_set_text_static(_lbl_status, _status_text);
+  }
 }
 
 void TrackerScreen::runMapToolAction(void (*action)(TrackerScreen& self)) {
@@ -410,6 +424,10 @@ void TrackerScreen::onEnter() {
   AbstractScreen::onEnter();
   using namespace heltec::meshcore::ui::map;
   map_sd_on_screen_enter();
+  if (!_map_work_timer || _panel.poolBuildFailed()) {
+    setMapUnavailable();
+    return;
+  }
   _map_unavailable = false;
   _user_panned = false;
   _auto_center_on_first_fix = false;
@@ -450,11 +468,14 @@ void TrackerScreen::onExit() {
   _auto_center_on_first_fix = false;
   setMapToolbarBusy(false);
   if (_toolbar) lv_obj_add_flag(_toolbar, LV_OBJ_FLAG_HIDDEN);
-  if (_map_work_timer) lv_timer_pause(_map_work_timer);
-  _map_work_timer_active = false;
+  if (_map_work_timer && !_pool_prewarm_pending) lv_timer_pause(_map_work_timer);
+  if (!_pool_prewarm_pending) _map_work_timer_active = false;
   _map_work = kMapWorkNone;
   _startup_phase = kStartupNone;
   AbstractScreen::onExit();
+  if (_pool_prewarm_pending && !_map_work_timer_active) {
+    scheduleMapWork(kPoolPrewarmIntervalMs);
+  }
 }
 
 void TrackerScreen::mapWorkTimerCb(lv_timer_t* timer) {
@@ -462,7 +483,15 @@ void TrackerScreen::mapWorkTimerCb(lv_timer_t* timer) {
   if (!self) return;
   if (timer) lv_timer_pause(timer);
   self->_map_work_timer_active = false;
-  if (!self->_root || lv_obj_has_flag(self->_root, LV_OBJ_FLAG_HIDDEN)) return;
+  if (!self->_root) return;
+  if (self->_pool_prewarm_pending) {
+    (void)self->processPoolPrewarm();
+    if (self->_pool_prewarm_pending) {
+      self->scheduleMapWork(kPoolPrewarmIntervalMs);
+      return;
+    }
+  }
+  if (lv_obj_has_flag(self->_root, LV_OBJ_FLAG_HIDDEN)) return;
   self->processMapWork();
   if (!self->_pan_active && !self->_panel.panDragging() && self->hasMapWork()) {
     self->scheduleMapWork(self->nextMapWorkDelayMs());
@@ -478,7 +507,7 @@ void TrackerScreen::requestMapWork(uint8_t work, uint32_t delay_ms) {
 
 void TrackerScreen::scheduleMapWork(uint32_t delay_ms) {
   if (_map_unavailable) return;
-  if (!_root || lv_obj_has_flag(_root, LV_OBJ_FLAG_HIDDEN)) return;
+  if (!_root || (lv_obj_has_flag(_root, LV_OBJ_FLAG_HIDDEN) && !_pool_prewarm_pending)) return;
   if (!hasMapWork()) return;
 
   if (delay_ms == 0) delay_ms = 1;
@@ -486,19 +515,31 @@ void TrackerScreen::scheduleMapWork(uint32_t delay_ms) {
   if (_map_work_timer_active && ms_until(now_ms, _map_work_due_ms) <= delay_ms) return;
 
   if (!_map_work_timer) {
-    _map_work_timer = lv_timer_create(mapWorkTimerCb, delay_ms, this);
-    if (!_map_work_timer) {
-      setMapUnavailable();
-      return;
-    }
-    lv_timer_set_repeat_count(_map_work_timer, -1);
-  } else {
-    lv_timer_set_period(_map_work_timer, delay_ms);
+    setMapUnavailable();
+    return;
   }
+  lv_timer_set_period(_map_work_timer, delay_ms);
   _map_work_due_ms = now_ms + delay_ms;
   _map_work_timer_active = true;
   lv_timer_reset(_map_work_timer);
   lv_timer_resume(_map_work_timer);
+}
+
+bool TrackerScreen::processPoolPrewarm() {
+  if (!_pool_prewarm_pending) return true;
+  if (!_panel_attached) ensure_panel_attached();
+  if (!_panel_attached) {
+    setMapUnavailable();
+    return true;
+  }
+
+  const bool ready = _panel.prewarmPools(kTilesPerPoll, kMarkersPerPoll);
+  if (ready) {
+    _pool_prewarm_pending = false;
+  } else if (_panel.poolBuildFailed()) {
+    setMapUnavailable();
+  }
+  return !_pool_prewarm_pending;
 }
 
 bool TrackerScreen::processStartupWork() {
@@ -658,10 +699,12 @@ void TrackerScreen::refresh() {
 }
 
 bool TrackerScreen::hasMapWork() const {
-  return _map_work != kMapWorkNone || (_panel_attached && _panel.tilesLoadPending());
+  return _pool_prewarm_pending || _map_work != kMapWorkNone ||
+         (_panel_attached && _panel.tilesLoadPending());
 }
 
 uint32_t TrackerScreen::nextMapWorkDelayMs() const {
+  if (_pool_prewarm_pending) return kPoolPrewarmIntervalMs;
   if ((_map_work & kMapWorkNonTile) != 0) return 0;
   if ((_map_work & kMapWorkTiles) || (_panel_attached && _panel.tilesLoadPending())) {
     const uint32_t now_ms = millis();
@@ -694,6 +737,7 @@ _lv_obj_t* TrackerScreen::create(_lv_obj_t* parent) {
 
   _lbl_status = ht_label_create(_root, meta_id::MapStatusLabel, "Map");
   if (_lbl_status) {
+    lv_label_set_text_static(_lbl_status, _status_text);
     lv_obj_set_width(_lbl_status, lv_pct(100));
     lv_label_set_long_mode(_lbl_status, LV_LABEL_LONG_CLIP);
   }
@@ -786,6 +830,16 @@ _lv_obj_t* TrackerScreen::create(_lv_obj_t* parent) {
       syncMapToolbarVisibility();
       raiseMapToolbar();
     }
+  }
+
+  _map_work_timer = lv_timer_create(mapWorkTimerCb, 1U, this);
+  if (_map_work_timer) {
+    lv_timer_set_repeat_count(_map_work_timer, -1);
+    lv_timer_pause(_map_work_timer);
+    _pool_prewarm_pending = true;
+    scheduleMapWork(1U);
+  } else {
+    setMapUnavailable();
   }
 
   return _root;

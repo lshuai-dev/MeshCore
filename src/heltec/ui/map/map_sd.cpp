@@ -1,7 +1,6 @@
 #if defined(ENV_INCLUDE_MAP) && ENV_INCLUDE_MAP
 
 #include "map_sd.hpp"
-#include "map_debug.hpp"
 #include "map_prefs.hpp"
 #include "geo_point.hpp"
 #include "heltec/drivers/display/spi1_bus_lock.hpp"
@@ -20,16 +19,6 @@
 #include <string.h>
 #if defined(ESP_PLATFORM)
 #include <esp_task_wdt.h>
-#endif
-
-#if defined(MESH_DEBUG) && MESH_DEBUG && defined(ESP_PLATFORM)
-extern "C" void heltec_map_png_trace(const char* path, uint32_t bytes, uint32_t io_us,
-                                      uint32_t decode_us, uint32_t convert_us,
-                                      uint32_t total_us) {
-  Serial.printf("[map][png] %s bytes=%lu io=%luus decode=%luus convert=%luus total=%luus\n",
-                path ? path : "?", (unsigned long)bytes, (unsigned long)io_us,
-                (unsigned long)decode_us, (unsigned long)convert_us, (unsigned long)total_us);
-}
 #endif
 
 namespace heltec::meshcore::ui::map {
@@ -77,27 +66,6 @@ static constexpr uint32_t kSdProbeHz[] = {
 #endif
 #endif
 
-#if defined(PIN_MAP_SD_SCK)
-constexpr int kMapSdSckPin = PIN_MAP_SD_SCK;
-#else
-constexpr int kMapSdSckPin = -1;
-#endif
-#if defined(PIN_MAP_SD_MOSI)
-constexpr int kMapSdMosiPin = PIN_MAP_SD_MOSI;
-#else
-constexpr int kMapSdMosiPin = -1;
-#endif
-#if defined(PIN_MAP_SD_MISO)
-constexpr int kMapSdMisoPin = PIN_MAP_SD_MISO;
-#else
-constexpr int kMapSdMisoPin = -1;
-#endif
-#if defined(PIN_TFT_CS)
-constexpr int kMapTftCsPin = PIN_TFT_CS;
-#else
-constexpr int kMapTftCsPin = -1;
-#endif
-
 static SdFs s_sd;
 static bool s_sd_ready = false;
 static bool s_fs_registered = false;
@@ -111,24 +79,12 @@ static uint8_t s_last_sd_error_code = 0;
 static uint8_t s_last_sd_error_data = 0;
 static uint8_t s_last_root_error = 0;
 
-// Keep diagnostics useful without turning a bad card or a missing tile pack
-// into an endless Serial flood.  These counters are reset when Tracker is
-// entered, so each map attempt gets a fresh bounded trace.
-constexpr uint8_t kFsDiagLimit = 8;
-constexpr uint8_t kResolveDiagLimit = 16;
-constexpr uint8_t kResolveDetailLimit = 24;
-constexpr uint8_t kPngDiagLimit = 24;
-static uint8_t s_fs_open_fail_logs = 0;
-static uint8_t s_fs_read_fail_logs = 0;
-static uint8_t s_fs_seek_fail_logs = 0;
-static uint8_t s_fs_short_read_logs = 0;
-static uint8_t s_resolve_diag_logs = 0;
-static uint8_t s_resolve_detail_logs = 0;
-static uint8_t s_png_diag_logs = 0;
-
 constexpr int kExistCacheSize = 32;
 struct ExistCacheEntry {
-  char path[96];
+  uint32_t x_tile = 0;
+  uint32_t y_tile = 0;
+  uint8_t style_zoom_key = 0;
+  uint8_t layout = 0;
   uint8_t exists = 0;
 };
 static ExistCacheEntry s_exist_cache[kExistCacheSize];
@@ -141,19 +97,6 @@ enum class TileLayout : uint8_t {
   MapsNested,
   TilesFlat,
 };
-
-static const char* tileLayoutName(TileLayout layout) {
-  switch (layout) {
-    case TileLayout::MapsFlat:
-      return "maps-flat";
-    case TileLayout::MapsNested:
-      return "maps-nested";
-    case TileLayout::TilesFlat:
-      return "tiles-flat";
-    default:
-      return "unknown";
-  }
-}
 
 constexpr int kLayoutCacheSize = 8;
 struct LayoutCacheEntry {
@@ -180,16 +123,6 @@ static void rememberSdError() {
   s_last_sd_error_data = s_sd.sdErrorData();
 }
 
-static void resetDiagnostics() {
-  s_fs_open_fail_logs = 0;
-  s_fs_read_fail_logs = 0;
-  s_fs_seek_fail_logs = 0;
-  s_fs_short_read_logs = 0;
-  s_resolve_diag_logs = 0;
-  s_resolve_detail_logs = 0;
-  s_png_diag_logs = 0;
-}
-
 #ifndef PIN_MAP_SD_CS
 #error "PIN_MAP_SD_CS required when ENV_INCLUDE_MAP=1"
 #endif
@@ -197,8 +130,6 @@ static void resetDiagnostics() {
 struct SdLvFile {
   FsFile file;
   bool in_use = false;
-  char path[112] = {};
-  uint32_t bytes_read = 0;
 };
 
 #ifndef MAP_SD_LVGL_FILE_POOL_SIZE
@@ -269,16 +200,8 @@ static bool sdBeginAtHz(SPIClass& spi, uint32_t hz) {
   dal::spi1::prepareSdBus(spi);
   spi.setFrequency(hz);
   const SdSpiConfig cfg(PIN_MAP_SD_CS, SHARED_SPI, SD_SCK_HZ(hz), &spi);
-#if defined(MESH_DEBUG) && MESH_DEBUG
-  Serial.printf("[spi] SD.begin CS=%d @%luHz (TFT_CS idle)\n", PIN_MAP_SD_CS, (unsigned long)hz);
-#endif
   const bool ok = s_sd.begin(cfg);
   rememberSdError();
-#if defined(MESH_DEBUG) && MESH_DEBUG
-  Serial.printf("[spi] SD.begin -> %s fat=%u err=0x%02X data=0x%02X\n",
-                ok ? "OK" : "FAIL", ok ? (unsigned)s_sd.fatType() : 0U,
-                (unsigned)s_last_sd_error_code, (unsigned)s_last_sd_error_data);
-#endif
   if (!ok) {
     s_sd.end();
   }
@@ -289,8 +212,6 @@ static SdLvFile* allocLvFile() {
   for (uint8_t i = 0; i < kLvglFilePoolSize; ++i) {
     if (s_lvgl_file_pool[i].in_use) continue;
     s_lvgl_file_pool[i].in_use = true;
-    s_lvgl_file_pool[i].path[0] = '\0';
-    s_lvgl_file_pool[i].bytes_read = 0;
     return &s_lvgl_file_pool[i];
   }
   return nullptr;
@@ -299,8 +220,6 @@ static SdLvFile* allocLvFile() {
 static void releaseLvFile(SdLvFile* h) {
   if (!h) return;
   h->file.close();
-  h->path[0] = '\0';
-  h->bytes_read = 0;
   h->in_use = false;
 }
 
@@ -333,13 +252,8 @@ static void dropSdMount() {
   resetTileLookupState();
 }
 
-static void noteSdIoFailure(const char* operation) {
+static void noteSdIoFailure() {
   rememberSdError();
-  if (!s_io_failed) {
-    MAP_UI_LOG("SD %s failed at %luHz err=0x%02X data=0x%02X; probe will retry",
-               operation ? operation : "I/O", (unsigned long)s_active_hz,
-               (unsigned)s_last_sd_error_code, (unsigned)s_last_sd_error_data);
-  }
   s_io_failed = true;
   resetTileLookupState();
 }
@@ -409,28 +323,16 @@ static void* sd_fs_open(lv_fs_drv_t* drv, const char* path, lv_fs_mode_t mode) {
   if ('/' == p[0]) p++;
   SdLvFile* h = allocLvFile();
   if (!h) {
-    if (s_fs_open_fail_logs < kFsDiagLimit) {
-      MAP_UI_LOG("fs_open pool full path=%s pool=%u", p, (unsigned)kLvglFilePoolSize);
-      ++s_fs_open_fail_logs;
-    }
     afterSdTransfer(sdSpi());
     return nullptr;
   }
-  strncpy(h->path, p, sizeof(h->path) - 1);
-  h->path[sizeof(h->path) - 1] = '\0';
   const oflag_t flags = (LV_FS_MODE_WR == mode) ? (O_WRONLY | O_CREAT) : O_RDONLY;
   if (!h->file.open(p, flags)) {
     rememberSdError();
     const uint8_t card_error = s_last_sd_error_code;
-    if (s_fs_open_fail_logs < kFsDiagLimit) {
-      MAP_UI_LOG("fs_open fail path=%s mode=%u hz=%lu err=0x%02X data=0x%02X",
-                 h->path, (unsigned)mode, (unsigned long)s_active_hz,
-                 (unsigned)s_last_sd_error_code, (unsigned)s_last_sd_error_data);
-      ++s_fs_open_fail_logs;
-    }
     releaseLvFile(h);
     afterSdTransfer(sdSpi());
-    if (card_error != 0) noteSdIoFailure("open");
+    if (card_error != 0) noteSdIoFailure();
     return nullptr;
   }
   afterSdTransfer(sdSpi());
@@ -455,32 +357,16 @@ static lv_fs_res_t sd_fs_read(lv_fs_drv_t* drv, void* file_p, void* buf, uint32_
   if (!sdUsable()) return LV_FS_RES_HW_ERR;
   if (btr == 0) return LV_FS_RES_OK;
   prepareSdBus();
-  const uint32_t pos = h->file.curPosition();
   const int read_count = h->file.read(buf, btr);
   afterSdTransfer(sdSpi());
   rememberSdError();
   if (read_count < 0) {
-    if (s_fs_read_fail_logs < kFsDiagLimit) {
-      MAP_UI_LOG("fs_read fail path=%s pos=%lu req=%lu hz=%lu err=0x%02X data=0x%02X",
-                 h->path, (unsigned long)pos, (unsigned long)btr,
-                 (unsigned long)s_active_hz, (unsigned)s_last_sd_error_code,
-                 (unsigned)s_last_sd_error_data);
-      ++s_fs_read_fail_logs;
-    }
-    noteSdIoFailure("read");
+    noteSdIoFailure();
     return LV_FS_RES_FS_ERR;
   }
   *br = (uint32_t)read_count;
-  h->bytes_read += (uint32_t)read_count;
-  if ((uint32_t)read_count != btr && s_fs_short_read_logs < kFsDiagLimit) {
-    MAP_UI_LOG("fs_read short path=%s pos=%lu req=%lu got=%lu total=%lu err=0x%02X data=0x%02X",
-               h->path, (unsigned long)pos, (unsigned long)btr,
-               (unsigned long)read_count, (unsigned long)h->bytes_read,
-               (unsigned)s_last_sd_error_code, (unsigned)s_last_sd_error_data);
-    ++s_fs_short_read_logs;
-  }
   if ((uint32_t)read_count != btr && s_last_sd_error_code != 0) {
-    noteSdIoFailure("short-read");
+    noteSdIoFailure();
   }
   return LV_FS_RES_OK;
 }
@@ -500,25 +386,12 @@ static lv_fs_res_t sd_fs_seek(lv_fs_drv_t* drv, void* file_p, uint32_t pos, lv_f
     ok = h->file.seekEnd((int32_t)pos);
   } else {
     afterSdTransfer(sdSpi());
-    if (s_fs_seek_fail_logs < kFsDiagLimit) {
-      MAP_UI_LOG("fs_seek invalid path=%s pos=%lu whence=%u hz=%lu",
-                 h->path, (unsigned long)pos, (unsigned)whence,
-                 (unsigned long)s_active_hz);
-      ++s_fs_seek_fail_logs;
-    }
     return LV_FS_RES_INV_PARAM;
   }
   afterSdTransfer(sdSpi());
   rememberSdError();
   if (!ok) {
-    if (s_fs_seek_fail_logs < kFsDiagLimit) {
-      MAP_UI_LOG("fs_seek fail path=%s pos=%lu whence=%u hz=%lu err=0x%02X data=0x%02X",
-                 h->path, (unsigned long)pos, (unsigned)whence,
-                 (unsigned long)s_active_hz, (unsigned)s_last_sd_error_code,
-                 (unsigned)s_last_sd_error_data);
-      ++s_fs_seek_fail_logs;
-    }
-    noteSdIoFailure("seek");
+    noteSdIoFailure();
     return LV_FS_RES_FS_ERR;
   }
   return LV_FS_RES_OK;
@@ -533,18 +406,6 @@ static lv_fs_res_t sd_fs_tell(lv_fs_drv_t* drv, void* file_p, uint32_t* pos_p) {
 }
 
 }  // namespace
-
-#if defined(MESH_DEBUG) && MESH_DEBUG && defined(ESP_PLATFORM)
-extern "C" void heltec_map_png_diag(const char* phase, const char* path, uint32_t code,
-                                     const char* detail) {
-  if (s_png_diag_logs >= kPngDiagLimit) return;
-  ++s_png_diag_logs;
-  Serial.printf("[map][png] diag phase=%s path=%s code=%lu detail=%s\n",
-                phase ? phase : "?", path ? path : "?", (unsigned long)code,
-                detail ? detail : "?");
-  Serial.flush();
-}
-#endif
 
 static bool safeStyleComponent(const char* name);
 static bool findFirstTileUnder(const char* base, uint8_t zoom, bool allow_nested,
@@ -564,18 +425,9 @@ void map_sd_prepare_pins() {
   digitalWrite(PIN_TFT_DC, HIGH);
 #endif
   s_pins_ready = true;
-  MAP_UI_LOG("[sd] pins CS=%d SCK=%d MOSI=%d MISO=%d TFT_CS=%d",
-             PIN_MAP_SD_CS, kMapSdSckPin, kMapSdMosiPin, kMapSdMisoPin, kMapTftCsPin);
 }
 
 void map_sd_on_screen_enter() {
-  resetDiagnostics();
-  MAP_UI_LOG("[sd] enter ready=%d io_failed=%d probe_complete=%d probe_idx=%u active_hz=%lu "
-             "last_err=0x%02X data=0x%02X pins=%d/%d/%d/%d tft_cs=%d",
-             sdUsable() ? 1 : 0, s_io_failed ? 1 : 0, s_probe_complete ? 1 : 0,
-             (unsigned)s_probe_hz_idx, (unsigned long)s_active_hz,
-             (unsigned)s_last_sd_error_code, (unsigned)s_last_sd_error_data,
-             PIN_MAP_SD_CS, kMapSdSckPin, kMapSdMosiPin, kMapSdMisoPin, kMapTftCsPin);
   if (sdUsable()) {
     // Re-scan paths on each entry so an SD card updated while mounted does
     // not keep stale negative existence or layout hints indefinitely.
@@ -595,8 +447,6 @@ void map_sd_on_screen_enter() {
     s_io_failed = false;
     resetTileLookupState();
   }
-  MAP_UI_LOG("[sd] enter scheduled retry_lower=%d probe_idx=%u ready=%d",
-             retry_lower ? 1 : 0, (unsigned)s_probe_hz_idx, sdUsable() ? 1 : 0);
 }
 
 bool map_sd_probe_once() {
@@ -625,11 +475,6 @@ bool map_sd_probe_once() {
   uint32_t hz = 0;
   if (!nextProbeHz(hz)) {
     s_probe_complete = true;
-#if defined(MESH_DEBUG) && MESH_DEBUG
-    Serial.printf("[spi] SD probe exhausted CS=%d attempts=%u last_err=0x%02X data=0x%02X root=0x%02X\n",
-                  PIN_MAP_SD_CS, (unsigned)s_probe_hz_idx, (unsigned)s_last_sd_error_code,
-                  (unsigned)s_last_sd_error_data, (unsigned)s_last_root_error);
-#endif
     return true;
   }
 
@@ -645,11 +490,6 @@ bool map_sd_probe_once() {
     afterSdTransfer(sdSpi());
     if (!probeHzPending()) {
       s_probe_complete = true;
-#if defined(MESH_DEBUG) && MESH_DEBUG
-      Serial.printf("[spi] SD probe exhausted CS=%d attempts=%u last_err=0x%02X data=0x%02X root=0x%02X\n",
-                    PIN_MAP_SD_CS, (unsigned)s_probe_hz_idx, (unsigned)s_last_sd_error_code,
-                    (unsigned)s_last_sd_error_data, (unsigned)s_last_root_error);
-#endif
       return true;
     }
     return false;
@@ -660,9 +500,6 @@ bool map_sd_probe_once() {
   s_io_failed = false;
 
   if (!validateSdRoot()) {
-    MAP_UI_LOG("SD root validation failed @%luHz root=0x%02X err=0x%02X data=0x%02X",
-               (unsigned long)hz, (unsigned)s_last_root_error,
-               (unsigned)s_last_sd_error_code, (unsigned)s_last_sd_error_data);
     dropSdMount();
     if (!probeHzPending()) {
       s_probe_complete = true;
@@ -673,12 +510,6 @@ bool map_sd_probe_once() {
 
   s_probe_complete = true;
   map_sd_register_lvgl_fs();
-#if defined(MESH_DEBUG) && MESH_DEBUG
-  Serial.printf("[spi] SD ready CS=%d fs=%s @%luHz err=0x%02X data=0x%02X root=0x%02X\n",
-                PIN_MAP_SD_CS, map_sd_fs_label(), (unsigned long)s_active_hz,
-                (unsigned)s_last_sd_error_code, (unsigned)s_last_sd_error_data,
-                (unsigned)s_last_root_error);
-#endif
   return true;
 }
 
@@ -692,9 +523,6 @@ bool map_sd_try_boost_speed_once() {
 }
 
 bool map_sd_init() {
-#if defined(MESH_DEBUG) && MESH_DEBUG
-  Serial.printf("[spi] map_sd CS=%d t=%lu\n", PIN_MAP_SD_CS, (unsigned long)millis());
-#endif
   if (!sdUsable() && s_probe_complete && !s_io_failed) {
     s_probe_hz_idx = 0;
     s_probe_complete = false;
@@ -709,11 +537,6 @@ bool map_sd_init() {
 #endif
     yield();
   }
-#if defined(MESH_DEBUG) && MESH_DEBUG
-  if (!map_sd_ready()) {
-    Serial.printf("[spi] SD init failed CS=%d\n", PIN_MAP_SD_CS);
-  }
-#endif
   return map_sd_ready();
 }
 
@@ -747,7 +570,6 @@ void map_sd_register_lvgl_fs() {
   drv.tell_cb = sd_fs_tell;
   lv_fs_drv_register(&drv);
   s_fs_registered = true;
-  MAP_UI_LOG("lvgl fs S: registered");
 }
 
 bool map_sd_tile_path(char* out, size_t out_len, const char* style, uint8_t zoom, uint32_t x_tile,
@@ -829,6 +651,9 @@ static LayoutCacheEntry* layoutCacheEntry(const char* style, uint8_t zoom, bool 
   if (!entry) {
     entry = &s_layout_cache[s_layout_cache_next];
     s_layout_cache_next = (s_layout_cache_next + 1) % kLayoutCacheSize;
+    // Existence entries refer to layout-cache slots. Reusing a slot changes
+    // its style/zoom identity, so invalidate the small dependent cache.
+    clearExistCache();
   }
   *entry = LayoutCacheEntry{};
   strncpy(entry->style, style, sizeof(entry->style) - 1);
@@ -860,32 +685,42 @@ static bool formatTileRelPath(char* out, size_t out_len, TileLayout layout, cons
   return n > 0 && (size_t)n < out_len;
 }
 
-static void logTileResolve(const char* style, uint8_t zoom, uint32_t x_tile, uint32_t y_tile,
-                           TileLayout preferred, TileLayout selected, bool found,
-                           const char* path) {
-  if (s_resolve_diag_logs >= kResolveDiagLimit) return;
-  ++s_resolve_diag_logs;
-  MAP_UI_LOG("tile resolve %s style=%s z=%u xy=%lu,%lu preferred=%s layout=%s path=%s "
-             "sd=%d hz=%lu err=0x%02X data=0x%02X",
-             found ? "ok" : "miss", style ? style : "?", (unsigned)zoom,
-             (unsigned long)x_tile, (unsigned long)y_tile, tileLayoutName(preferred),
-             tileLayoutName(selected), path && path[0] ? path : "-", sdUsable() ? 1 : 0,
-             (unsigned long)s_active_hz, (unsigned)s_last_sd_error_code,
-             (unsigned)s_last_sd_error_data);
+static bool cachedTileExists(uint8_t style_zoom_key, TileLayout layout, const char* rel_path,
+                             uint32_t x_tile, uint32_t y_tile) {
+  const uint8_t layout_key = static_cast<uint8_t>(layout);
+  for (int i = 0; i < s_exist_cache_n; ++i) {
+    const ExistCacheEntry& entry = s_exist_cache[i];
+    if (entry.style_zoom_key == style_zoom_key && entry.layout == layout_key &&
+        entry.x_tile == x_tile && entry.y_tile == y_tile) {
+      return entry.exists != 0;
+    }
+  }
 
+  const bool exists = map_sd_exists(rel_path);
+  if (!sdUsable()) return false;
+  int slot = 0;
+  if (s_exist_cache_n < kExistCacheSize) {
+    slot = s_exist_cache_n++;
+  } else {
+    slot = s_exist_cache_next;
+    s_exist_cache_next = (s_exist_cache_next + 1) % kExistCacheSize;
+  }
+  ExistCacheEntry& entry = s_exist_cache[slot];
+  entry.x_tile = x_tile;
+  entry.y_tile = y_tile;
+  entry.style_zoom_key = style_zoom_key;
+  entry.layout = layout_key;
+  entry.exists = exists ? 1 : 0;
+  return exists;
 }
 
-static bool resolveWithLayout(char* out, size_t out_len, TileLayout layout, const char* style,
-                              uint8_t zoom, uint32_t x_tile, uint32_t y_tile) {
+static bool resolveWithLayout(char* out, size_t out_len, uint8_t style_zoom_key,
+                              TileLayout layout, const char* style, uint8_t zoom,
+                              uint32_t x_tile, uint32_t y_tile) {
   char rel[128] = {};
   const bool formatted = formatTileRelPath(rel, sizeof(rel), layout, style, zoom, x_tile, y_tile);
-  const bool exists = formatted && map_sd_exists(rel);
-  if (formatted && s_resolve_detail_logs < kResolveDetailLimit) {
-    MAP_UI_LOG("tile resolve attempt layout=%s rel=%s exists=%d err=0x%02X data=0x%02X",
-               tileLayoutName(layout), rel, exists ? 1 : 0,
-               (unsigned)s_last_sd_error_code, (unsigned)s_last_sd_error_data);
-    ++s_resolve_detail_logs;
-  }
+  const bool exists = formatted &&
+                      cachedTileExists(style_zoom_key, layout, rel, x_tile, y_tile);
   if (!exists) {
     return false;
   }
@@ -897,24 +732,22 @@ bool map_sd_resolve_tile_path(char* out, size_t out_len, const char* style, uint
                               uint32_t x_tile, uint32_t y_tile) {
   if (!out || out_len < 12 || !sdUsable()) return false;
   if (!tileIndexValid(x_tile, zoom) || !tileIndexValid(y_tile, zoom)) {
-    MAP_UI_LOG("tile resolve skip invalid index z=%u xy=%lu,%lu", (unsigned)zoom,
-               (unsigned long)x_tile, (unsigned long)y_tile);
     return false;
   }
   const char* st = (style && style[0]) ? style : "osm";
   if (!safeStyleComponent(st)) {
-    MAP_UI_LOG("tile resolve skip unsafe style=%s", st ? st : "(null)");
     return false;
   }
 
   // Prefer the layout that most recently succeeded for this style/zoom, but
   // always fall back to every other supported layout.  This keeps normal
   // /tiles packs fast without breaking cards that mix layouts.
-  LayoutCacheEntry* cached = layoutCacheEntry(st, zoom, false);
-  const TileLayout preferred = cached ? cached->layout : TileLayout::Unknown;
+  LayoutCacheEntry* cached = layoutCacheEntry(st, zoom, true);
+  if (!cached) return false;
+  const uint8_t style_zoom_key = static_cast<uint8_t>(cached - s_layout_cache);
+  const TileLayout preferred = cached->layout;
   if (preferred != TileLayout::Unknown &&
-      resolveWithLayout(out, out_len, preferred, st, zoom, x_tile, y_tile)) {
-    logTileResolve(st, zoom, x_tile, y_tile, preferred, preferred, true, out);
+      resolveWithLayout(out, out_len, style_zoom_key, preferred, st, zoom, x_tile, y_tile)) {
     return true;
   }
 
@@ -925,23 +758,15 @@ bool map_sd_resolve_tile_path(char* out, size_t out_len, const char* style, uint
   };
   for (TileLayout layout : kLayouts) {
     if (layout == preferred) continue;
-    if (!resolveWithLayout(out, out_len, layout, st, zoom, x_tile, y_tile)) continue;
-    if (LayoutCacheEntry* entry = layoutCacheEntry(st, zoom, true)) entry->layout = layout;
-    logTileResolve(st, zoom, x_tile, y_tile, preferred, layout, true, out);
+    if (!resolveWithLayout(out, out_len, style_zoom_key, layout, st, zoom, x_tile, y_tile)) continue;
+    cached->layout = layout;
     return true;
   }
-  logTileResolve(st, zoom, x_tile, y_tile, preferred, TileLayout::Unknown, false, nullptr);
   return false;
 }
 
 bool map_sd_exists(const char* rel_path) {
   if (!sdUsable() || !rel_path || !rel_path[0]) return false;
-
-  for (int i = 0; i < s_exist_cache_n; ++i) {
-    if (0 == strcmp(s_exist_cache[i].path, rel_path)) {
-      return s_exist_cache[i].exists != 0;
-    }
-  }
 
   prepareSdBus();
   const bool ok = s_sd.exists(rel_path);
@@ -949,23 +774,10 @@ bool map_sd_exists(const char* rel_path) {
   const uint8_t card_error = s_last_sd_error_code;
   afterSdTransfer(sdSpi());
   if (!ok && card_error != 0) {
-    MAP_UI_LOG("exists error path=%s hz=%lu err=0x%02X data=0x%02X", rel_path,
-               (unsigned long)s_active_hz, (unsigned)s_last_sd_error_code,
-               (unsigned)s_last_sd_error_data);
-    noteSdIoFailure("exists");
+    noteSdIoFailure();
     return false;
   }
 
-  int slot = 0;
-  if (s_exist_cache_n < kExistCacheSize) {
-    slot = s_exist_cache_n++;
-  } else {
-    slot = s_exist_cache_next;
-    s_exist_cache_next = (s_exist_cache_next + 1) % kExistCacheSize;
-  }
-  strncpy(s_exist_cache[slot].path, rel_path, sizeof(s_exist_cache[slot].path) - 1);
-  s_exist_cache[slot].path[sizeof(s_exist_cache[slot].path) - 1] = '\0';
-  s_exist_cache[slot].exists = ok ? 1 : 0;
   return ok;
 }
 
@@ -1061,21 +873,13 @@ void map_sd_resolve_style(char* style, size_t style_len) {
     if (!mapStyleHasAnyTile(candidates[i])) continue;
     strncpy(style, candidates[i], style_len - 1);
     style[style_len - 1] = '\0';
-    MAP_UI_LOG("style fallback -> %s", style);
     return;
   }
 
   // tiles/{z}/{x}/{y}.png has no style component.  Keep the preference value
   // intact so switching back to a maps/ card still restores the same style.
   if (tileTreeHasAnyTile("tiles", false)) {
-    MAP_UI_LOG("SD: using styleless tiles/ layout");
     return;
-  }
-
-  if (!sdIsDir("maps")) {
-    MAP_UI_LOG("SD: maps/ missing");
-  } else {
-    MAP_UI_LOG("SD: no valid map style tiles");
   }
 }
 
@@ -1107,123 +911,20 @@ uint8_t map_sd_best_zoom(const char* style, uint8_t preferred) {
   for (int delta = 1; delta <= (int)kZoomMax - (int)kZoomMin; ++delta) {
     const int lower = (int)preferred - delta;
     if (lower >= (int)kZoomMin && tileZoomDirExists(style, (uint8_t)lower)) {
-      MAP_UI_LOG("zoom %u missing on SD, use %d", (unsigned)preferred, lower);
       return (uint8_t)lower;
     }
     const int upper = (int)preferred + delta;
     if (upper <= (int)kZoomMax && tileZoomDirExists(style, (uint8_t)upper)) {
-      MAP_UI_LOG("zoom %u missing on SD, use %d", (unsigned)preferred, upper);
       return (uint8_t)upper;
     }
   }
-  MAP_UI_LOG("zoom %u: no maps/%s/{z} or tiles/{z} on SD", (unsigned)preferred, style);
   return preferred;
-}
-
-void map_sd_log_catalog(const char* style) {
-  if (!sdUsable()) return;
-  prepareSdBus();
-
-  FsFile maps;
-  if (maps.open("maps", O_RDONLY)) {
-    char styles[80] = "";
-    FsFile ent;
-    while (ent.openNext(&maps, O_RDONLY)) {
-#if defined(ESP_PLATFORM)
-      esp_task_wdt_reset();
-#endif
-      if (!ent.isDir()) {
-        ent.close();
-        continue;
-      }
-      char name[20];
-      ent.getName(name, sizeof(name));
-      if (styles[0]) strncat(styles, ",", sizeof(styles) - strlen(styles) - 1);
-      strncat(styles, name, sizeof(styles) - strlen(styles) - 1);
-      ent.close();
-    }
-    maps.close();
-    MAP_UI_LOG("SD maps styles: %s", styles[0] ? styles : "(none)");
-  } else {
-    MAP_UI_LOG("SD: maps/ missing");
-  }
-
-  if (safeStyleComponent(style)) {
-    char base[32];
-    snprintf(base, sizeof(base), "maps/%s", style);
-    FsFile zdir;
-    if (zdir.open(base, O_RDONLY)) {
-      char zooms[96] = "";
-      FsFile ent;
-      while (ent.openNext(&zdir, O_RDONLY)) {
-#if defined(ESP_PLATFORM)
-        esp_task_wdt_reset();
-#endif
-        if (!ent.isDir()) {
-          ent.close();
-          continue;
-        }
-        char name[16];
-        ent.getName(name, sizeof(name));
-        uint32_t zoom = 0;
-        if (parseUnsignedDecimal(name, zoom) && zoom <= 255U) {
-          if (zooms[0]) strncat(zooms, ",", sizeof(zooms) - strlen(zooms) - 1);
-          strncat(zooms, name, sizeof(zooms) - strlen(zooms) - 1);
-        }
-        ent.close();
-      }
-      zdir.close();
-      MAP_UI_LOG("SD %s zooms: %s", base, zooms[0] ? zooms : "(none)");
-    } else {
-      MAP_UI_LOG("SD: %s missing", base);
-    }
-  }
-
-  FsFile tiles;
-  if (tiles.open("tiles", O_RDONLY)) {
-    char zooms[96] = "";
-    FsFile ent;
-    while (ent.openNext(&tiles, O_RDONLY)) {
-#if defined(ESP_PLATFORM)
-      esp_task_wdt_reset();
-#endif
-      if (ent.isDir()) {
-        char name[16];
-        ent.getName(name, sizeof(name));
-        uint32_t zoom = 0;
-        if (parseUnsignedDecimal(name, zoom) && zoom <= 255U) {
-          if (zooms[0]) strncat(zooms, ",", sizeof(zooms) - strlen(zooms) - 1);
-          strncat(zooms, name, sizeof(zooms) - strlen(zooms) - 1);
-        }
-      }
-      ent.close();
-    }
-    tiles.close();
-    MAP_UI_LOG("SD tiles zooms: %s", zooms[0] ? zooms : "(none)");
-  } else {
-    MAP_UI_LOG("SD: tiles/ missing");
-  }
-
-  afterSdTransfer(sdSpi());
 }
 
 void map_sd_apply_tile_prefs(MapUiPrefs& prefs) {
   if (!sdUsable()) return;
-  char before_style[sizeof(prefs.tile_style)];
-  const uint8_t before_zoom = prefs.zoom;
-  strncpy(before_style, prefs.tile_style, sizeof(before_style));
-  before_style[sizeof(before_style) - 1] = '\0';
-
   map_sd_resolve_style(prefs.tile_style, sizeof(prefs.tile_style));
   prefs.zoom = map_sd_best_zoom(prefs.tile_style, prefs.zoom);
-#if defined(MESH_DEBUG) && MESH_DEBUG
-  map_sd_log_catalog(prefs.tile_style);
-#endif
-
-  if (before_zoom != prefs.zoom || 0 != strncmp(before_style, prefs.tile_style, sizeof(before_style))) {
-    MAP_UI_LOG("tile prefs adjusted style %s->%s zoom %u->%u", before_style, prefs.tile_style,
-               (unsigned)before_zoom, (unsigned)prefs.zoom);
-  }
 }
 
 static bool tileExistsAt(const char* style, uint8_t zoom, uint32_t x_tile, uint32_t y_tile) {
@@ -1309,16 +1010,14 @@ bool map_sd_find_first_tile(const char* style, uint8_t zoom, uint32_t& x_tile, u
   const char* st = (style && style[0]) ? style : "osm";
   if (!safeStyleComponent(st)) return false;
   char base[64];
-  char found[112] = "";
   prepareSdBus();
   snprintf(base, sizeof(base), "maps/%s/%u", st, (unsigned)zoom);
-  bool found_tile = findFirstTileUnder(base, zoom, true, x_tile, y_tile, found, sizeof(found));
+  bool found_tile = findFirstTileUnder(base, zoom, true, x_tile, y_tile, nullptr, 0);
   if (!found_tile) {
     snprintf(base, sizeof(base), "tiles/%u", (unsigned)zoom);
-    found_tile = findFirstTileUnder(base, zoom, false, x_tile, y_tile, found, sizeof(found));
+    found_tile = findFirstTileUnder(base, zoom, false, x_tile, y_tile, nullptr, 0);
   }
   afterSdTransfer(sdSpi());
-  if (found_tile) MAP_UI_LOG("first tile %s", found);
   return found_tile;
 }
 
@@ -1329,14 +1028,8 @@ bool map_sd_snap_center_to_tiles(const char* style, uint8_t zoom, float& lat, fl
 
   uint32_t xt = 0;
   uint32_t yt = 0;
-  if (!map_sd_find_first_tile(style, zoom, xt, yt)) {
-    MAP_UI_LOG("snap: no tiles under maps/%s/%u or tiles/%u",
-               (style && style[0]) ? style : "osm", (unsigned)zoom, (unsigned)zoom);
-    return false;
-  }
+  if (!map_sd_find_first_tile(style, zoom, xt, yt)) return false;
   tileCenterLatLon(xt, yt, zoom, lat, lon);
-  MAP_UI_LOG("snap center -> tile %lu/%lu (%.4f,%.4f)", (unsigned long)xt, (unsigned long)yt, (double)lat,
-             (double)lon);
   return true;
 }
 

@@ -1,6 +1,5 @@
 #include <lvgl.h>
 
-#if LV_USE_THEME_DEFAULT
 #include "ui_theme_pixel.hpp"
 #include "ui/app/ui_app_ids.hpp"
 #include "ui/app/ui_app_frame_metrics.hpp"
@@ -265,4 +264,3 @@ void ui_pixel_apply_switch_row_focus(lv_obj_t* row, lv_obj_t* sw) {
 }
 
 }  // namespace heltec::meshcore::ui
-#endif

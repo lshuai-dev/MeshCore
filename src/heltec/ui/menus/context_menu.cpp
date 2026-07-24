@@ -2,6 +2,7 @@
 
 #include "ui/core/ui_events.h"
 #include "ui/core/ht_meta_data.hpp"
+#include "ui/core/ui_motion_scheduler.hpp"
 #include "heltec/ui/core/abstract_menu.hpp"
 #include "heltec/ui/app/ui_theme.hpp"
 #include "ui/menus/context_menu_metrics.hpp"
@@ -251,7 +252,7 @@ void ContextMenu::leaveMenuLeaf() {
 
 void ContextMenu::onEnter() {
   if (!canOpen()) return;
-  lv_anim_del(_root, nullptr);
+  ui_motion_cancel(_root);
   leaveMenuLeaf();
   _pending_menu_bind = true;
   selectPane(0);
@@ -261,17 +262,16 @@ void ContextMenu::onEnter() {
   if (anim_ms == 0) {
     lv_obj_set_y(_root, geom.target_y);
   } else {
-    lv_obj_set_y(_root, geom.start_y);
-    lv_anim_t a;
-    lv_anim_init(&a);
-    lv_anim_set_var(&a, _root);
-    lv_anim_set_exec_cb(&a, [](void* var, int32_t v) {
-      lv_obj_set_y(static_cast<lv_obj_t*>(var), static_cast<lv_coord_t>(v));
-    });
-    lv_anim_set_values(&a, geom.start_y, geom.target_y);
-    lv_anim_set_time(&a, anim_ms);
-    lv_anim_set_path_cb(&a, lv_anim_path_ease_out);
-    lv_anim_start(&a);
+    UiMotionSpec motion;
+    motion.target = _root;
+    motion.exec = [](void* var, int32_t value) {
+      lv_obj_set_y(static_cast<lv_obj_t*>(var), static_cast<lv_coord_t>(value));
+    };
+    motion.start_value = geom.start_y;
+    motion.end_value = geom.target_y;
+    motion.duration_ms = anim_ms;
+    motion.path = UiMotionPath::EaseOut;
+    if (!ui_motion_start(motion)) lv_obj_set_y(_root, geom.target_y);
   }
   schedulePendingBind();
 }
@@ -281,7 +281,7 @@ void ContextMenu::onExit() {
   _pending_leaf_bind = false;
   cancelPendingBind();
   leaveMenuLeaf();
-  if (_root) lv_anim_del(_root, nullptr);
+  if (_root) ui_motion_cancel(_root);
 }
 
 _lv_obj_t* ContextMenu::create(_lv_obj_t* parent) {
@@ -310,7 +310,7 @@ _lv_obj_t* ContextMenu::create(_lv_obj_t* parent) {
     self->emitEvent(UiEventType::RebindInput);
     lv_event_stop_bubbling(e);
     lv_event_stop_processing(e);
-  }, LV_EVENT_ALL, this);
+  }, ui_event_code(), this);
 
   lv_obj_t* mh = lv_menu_get_main_header(_menu);
   if (!mh) return nullptr;

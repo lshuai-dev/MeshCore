@@ -36,6 +36,7 @@ class TrackerScreen : public AbstractScreen {
   void requestMapWork(uint8_t work, uint32_t delay_ms = 0);
   void scheduleMapWork(uint32_t delay_ms = 0);
   void processMapWork();
+  bool processPoolPrewarm();
   bool processStartupWork();
   bool hasMapWork() const;
   uint32_t nextMapWorkDelayMs() const;
@@ -58,6 +59,7 @@ class TrackerScreen : public AbstractScreen {
   _lv_obj_t* _btn_zoom_in = nullptr;
   _lv_obj_t* _btn_zoom_out = nullptr;
   _lv_obj_t* _btn_gps = nullptr;
+  char _status_text[112] = "Map";
   lv_point_t _pan_origin = {0, 0};
   int32_t _pan_applied_x = 0;
   int32_t _pan_applied_y = 0;
@@ -67,7 +69,9 @@ class TrackerScreen : public AbstractScreen {
   bool _auto_center_on_first_fix = false;
   bool _panel_attached = false;
   bool _toolbar_busy = false;
+  int8_t _toolbar_gps_usable = -1;
   bool _map_unavailable = false;
+  bool _pool_prewarm_pending = false;
   bool _map_work_timer_active = false;
   lv_timer_t* _map_work_timer = nullptr;
   int _contact_gps_count = 0;

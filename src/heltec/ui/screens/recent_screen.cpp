@@ -34,6 +34,7 @@ _lv_obj_t* RecentScreen::create(_lv_obj_t* parent) {
   for (int i = 0; i < kMaxRows; ++i) {
     _rows[i] = ht_label_create(_scroll, meta_id::RecentRowLabel, "");
     if (!_rows[i]) continue;
+    lv_label_set_text_static(_rows[i], _row_text[i]);
     lv_obj_set_width(_rows[i], lv_pct(100));
     lv_obj_clear_flag(_rows[i], LV_OBJ_FLAG_SCROLLABLE | LV_OBJ_FLAG_SCROLL_ON_FOCUS);
     lv_label_set_long_mode(_rows[i], LV_LABEL_LONG_CLIP);
@@ -49,13 +50,15 @@ void RecentScreen::refreshRecent() {
 
   if (n == 0) {
     if (_rows[0]) {
+      lv_snprintf(_row_text[0], sizeof(_row_text[0]), "(no recent)");
       lv_label_set_long_mode(_rows[0], LV_LABEL_LONG_DOT);
-      lv_label_set_text(_rows[0], "(no recent)");
+      lv_label_set_text_static(_rows[0], _row_text[0]);
       lv_obj_clear_flag(_rows[0], LV_OBJ_FLAG_HIDDEN);
     }
     for (int i = 1; i < kMaxRows; ++i) {
       if (_rows[i]) {
-        lv_label_set_text(_rows[i], "");
+        _row_text[i][0] = '\0';
+        lv_label_set_text_static(_rows[i], _row_text[i]);
         lv_obj_add_flag(_rows[i], LV_OBJ_FLAG_HIDDEN);
       }
     }
@@ -67,13 +70,13 @@ void RecentScreen::refreshRecent() {
     if (i < n) {
       char age[16];
       format_age(items[i].age_seconds, age, sizeof(age));
-      char line[80];
-      lv_snprintf(line, sizeof(line), "%s  %s", items[i].name, age);
+      lv_snprintf(_row_text[i], sizeof(_row_text[i]), "%s  %s", items[i].name, age);
       lv_label_set_long_mode(_rows[i], LV_LABEL_LONG_DOT);
-      lv_label_set_text(_rows[i], line);
+      lv_label_set_text_static(_rows[i], _row_text[i]);
       lv_obj_clear_flag(_rows[i], LV_OBJ_FLAG_HIDDEN);
     } else {
-      lv_label_set_text(_rows[i], "");
+      _row_text[i][0] = '\0';
+      lv_label_set_text_static(_rows[i], _row_text[i]);
       lv_obj_add_flag(_rows[i], LV_OBJ_FLAG_HIDDEN);
     }
   }

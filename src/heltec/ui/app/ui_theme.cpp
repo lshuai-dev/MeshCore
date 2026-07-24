@@ -10,7 +10,7 @@
 #include "ui/theme/ui_theme_mono_flat.hpp"
 #endif
 
-#if LV_USE_THEME_DEFAULT && defined(UI_THEME_COLOR) && UI_THEME_COLOR
+#if defined(UI_THEME_COLOR) && UI_THEME_COLOR
 #include "ui/theme/ui_theme_pixel.hpp"
 #endif
 #include "ui/theme/ui_theme_metrics.hpp"
@@ -71,7 +71,7 @@ bool ui_theme_init(lv_disp_t* disp) {
   if (!disp) return false;
   ui_theme_metrics_init();
 
-#if LV_USE_THEME_DEFAULT && defined(UI_THEME_COLOR) && UI_THEME_COLOR
+#if defined(UI_THEME_COLOR) && UI_THEME_COLOR
   const lv_font_t* ui_font =
 #if defined(LV_FONT_UNSCII_8) && LV_FONT_UNSCII_8
       &lv_font_unscii_8;
@@ -117,7 +117,7 @@ bool ui_theme_init(lv_disp_t* disp) {
 
 void ui_theme_apply_switch_row_focus(_lv_obj_t* row, _lv_obj_t* sw) {
   if (!row || !sw) return;
-#if LV_USE_THEME_DEFAULT && defined(UI_THEME_COLOR) && UI_THEME_COLOR
+#if defined(UI_THEME_COLOR) && UI_THEME_COLOR
   ui_pixel_apply_switch_row_focus(row, sw);
 #elif LV_USE_THEME_MONO && defined(UI_THEME_MONO) && UI_THEME_MONO
   ui_mono_flat_apply_switch_row_focus(row, sw);

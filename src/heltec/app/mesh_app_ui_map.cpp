@@ -4,7 +4,6 @@
 
 #include "HeltecMesh.h"
 #include "map_geo.hpp"
-#include "ui/map/map_debug.hpp"
 #include "ui/map/map_fixed_test.hpp"
 
 #include <helpers/ContactInfo.h>
@@ -20,9 +19,9 @@ using GpsStatus = IBizFacade::GpsStatus;
 struct RawPoint {
   double lat_deg;
   double lon_deg;
-  char label[32];
+  char glyph;
   bool is_self;
-  int contact_index;
+  int16_t contact_index;
 };
 
 bool valid_geo_deg(double lat, double lon) {
@@ -141,24 +140,21 @@ MapPlotUi buildMapPlotUi(const GpsStatus& gps) {
     RawPoint& me = raw[raw_count++];
     me.lat_deg = HELTEC_MAP_FIXED_GPS_LAT;
     me.lon_deg = HELTEC_MAP_FIXED_GPS_LON;
-    strncpy(me.label, "Me", sizeof(me.label));
-    me.label[sizeof(me.label) - 1] = '\0';
+    me.glyph = 'M';
     me.is_self = true;
     me.contact_index = -1;
 
     RawPoint& a = raw[raw_count++];
     a.lat_deg = HELTEC_MAP_FIXED_A_LAT;
     a.lon_deg = HELTEC_MAP_FIXED_A_LON;
-    strncpy(a.label, "A", sizeof(a.label));
-    a.label[sizeof(a.label) - 1] = '\0';
+    a.glyph = 'A';
     a.is_self = false;
     a.contact_index = -1;
 
     RawPoint& b = raw[raw_count++];
     b.lat_deg = HELTEC_MAP_FIXED_B_LAT;
     b.lon_deg = HELTEC_MAP_FIXED_B_LON;
-    strncpy(b.label, "B", sizeof(b.label));
-    b.label[sizeof(b.label) - 1] = '\0';
+    b.glyph = 'B';
     b.is_self = false;
     b.contact_index = -1;
 
@@ -170,22 +166,20 @@ MapPlotUi buildMapPlotUi(const GpsStatus& gps) {
     uint32_t height_m = 50;
     for (int i = 0; i < raw_count && out.marker_count < MapPlotUi::kMaxMarkers; ++i) {
       MapPlotMarker& m = out.markers[out.marker_count++];
-      strncpy(m.label, raw[i].label, sizeof(m.label));
-      m.label[sizeof(m.label) - 1] = '\0';
-      m.lat_deg = raw[i].lat_deg;
-      m.lon_deg = raw[i].lon_deg;
+      m.lat_micro = (int32_t)llround(raw[i].lat_deg * 1000000.0);
+      m.lon_micro = (int32_t)llround(raw[i].lon_deg * 1000000.0);
+      m.glyph = raw[i].glyph;
       m.is_self = raw[i].is_self;
       m.contact_index = raw[i].contact_index;
-      geo::offset_from_center(out.center_lat, out.center_lon, raw[i].lat_deg, raw[i].lon_deg, m.east_m,
-                              m.north_m);
-      width_m = (uint32_t)fmax((double)width_m, fabs((double)m.east_m) * 2.0);
-      height_m = (uint32_t)fmax((double)height_m, fabs((double)m.north_m) * 2.0);
+      float east_m = 0.f;
+      float north_m = 0.f;
+      geo::offset_from_center(out.center_lat, out.center_lon, raw[i].lat_deg, raw[i].lon_deg,
+                              east_m, north_m);
+      width_m = (uint32_t)fmax((double)width_m, fabs((double)east_m) * 2.0);
+      height_m = (uint32_t)fmax((double)height_m, fabs((double)north_m) * 2.0);
     }
     out.span_w_m = (uint32_t)((double)width_m * 1.1);
     out.span_h_m = (uint32_t)((double)height_m * 1.1);
-    MAP_UI_LOG("fixed test G(%.6f,%.6f) A(%.6f,%.6f) B(%.6f,%.6f)", HELTEC_MAP_FIXED_GPS_LAT,
-               HELTEC_MAP_FIXED_GPS_LON, HELTEC_MAP_FIXED_A_LAT, HELTEC_MAP_FIXED_A_LON,
-               HELTEC_MAP_FIXED_B_LAT, HELTEC_MAP_FIXED_B_LON);
     return out;
   }
 #endif
@@ -198,8 +192,7 @@ MapPlotUi buildMapPlotUi(const GpsStatus& gps) {
     RawPoint& p = raw[raw_count++];
     p.lat_deg = gps.lat_deg;
     p.lon_deg = gps.lon_deg;
-    strncpy(p.label, "Me", sizeof(p.label));
-    p.label[sizeof(p.label) - 1] = '\0';
+    p.glyph = 'M';
     p.is_self = true;
     p.contact_index = -1;
     self_idx = raw_count - 1;
@@ -221,10 +214,9 @@ MapPlotUi buildMapPlotUi(const GpsStatus& gps) {
     RawPoint& p = raw[raw_count++];
     p.lat_deg = lat_deg;
     p.lon_deg = lon_deg;
-    strncpy(p.label, c.name[0] ? c.name : "?", sizeof(p.label));
-    p.label[sizeof(p.label) - 1] = '\0';
+    p.glyph = c.name[0] ? c.name[0] : '?';
     p.is_self = false;
-    p.contact_index = i;
+    p.contact_index = (int16_t)i;
   }
 
   out.contact_gps_count = contact_gps_total;
@@ -241,17 +233,18 @@ MapPlotUi buildMapPlotUi(const GpsStatus& gps) {
   uint32_t height_m = 50;
   for (int i = 0; i < raw_count && out.marker_count < MapPlotUi::kMaxMarkers; ++i) {
     MapPlotMarker& m = out.markers[out.marker_count++];
-    strncpy(m.label, raw[i].label, sizeof(m.label));
-    m.label[sizeof(m.label) - 1] = '\0';
-    m.lat_deg = raw[i].lat_deg;
-    m.lon_deg = raw[i].lon_deg;
+    m.lat_micro = (int32_t)llround(raw[i].lat_deg * 1000000.0);
+    m.lon_micro = (int32_t)llround(raw[i].lon_deg * 1000000.0);
+    m.glyph = raw[i].glyph;
     m.is_self = raw[i].is_self;
     m.contact_index = raw[i].contact_index;
     if (raw_count > 1) {
-      geo::offset_from_center(out.center_lat, out.center_lon, raw[i].lat_deg, raw[i].lon_deg, m.east_m,
-                              m.north_m);
-      width_m = (uint32_t)fmax((double)width_m, fabs((double)m.east_m) * 2.0);
-      height_m = (uint32_t)fmax((double)height_m, fabs((double)m.north_m) * 2.0);
+      float east_m = 0.f;
+      float north_m = 0.f;
+      geo::offset_from_center(out.center_lat, out.center_lon, raw[i].lat_deg, raw[i].lon_deg,
+                              east_m, north_m);
+      width_m = (uint32_t)fmax((double)width_m, fabs((double)east_m) * 2.0);
+      height_m = (uint32_t)fmax((double)height_m, fabs((double)north_m) * 2.0);
     }
   }
   out.span_w_m = (uint32_t)((double)width_m * 1.1);
@@ -268,10 +261,7 @@ const MapPlotUi& MeshAppUi::mapPlotUi() const {
   if (_map_plot_cache_valid && fp == _map_plot_fp) {
     return _map_plot_cache;
   }
-  const uint32_t t0 = mapUiPerfNowUs();
   _map_plot_cache = buildMapPlotUi(gps);
-  mapUiLogPerfDetail("buildMapPlotUi", t0, "markers=%d contacts_gps=%d",
-                     _map_plot_cache.marker_count, _map_plot_cache.contact_gps_count);
   _map_plot_fp = fp;
   _map_plot_cache_valid = true;
   return _map_plot_cache;

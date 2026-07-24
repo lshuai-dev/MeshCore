@@ -83,6 +83,7 @@ _lv_obj_t* AlertOverlay::create(lv_obj_t* parent) {
   if (!_label) return nullptr;
   lv_obj_set_width(_label, lv_pct(100));
   lv_label_set_long_mode(_label, LV_LABEL_LONG_WRAP);
+  lv_label_set_text_static(_label, _text_buffer);
 
   return _root;
 }
@@ -109,9 +110,6 @@ void AlertOverlay::onEnter() {
   }
   lv_obj_update_layout(_root);
   lv_obj_invalidate(_root);
-  if (lv_disp_t* disp = lv_disp_get_default()) {
-    lv_refr_now(disp);
-  }
   ALERT_LOG("enter root=%p hidden=%d root=%dx%d box=%p box=%dx%d label=%p label=%dx%d",
             _root, lv_obj_has_flag(_root, LV_OBJ_FLAG_HIDDEN) ? 1 : 0,
             (int)lv_obj_get_width(_root), (int)lv_obj_get_height(_root),
@@ -134,7 +132,8 @@ void AlertOverlay::onExit() {
 }
 
 void AlertOverlay::setText(const char* text) {
-  if (_label) lv_label_set_text(_label, text ? text : "");
+  lv_snprintf(_text_buffer, sizeof(_text_buffer), "%s", text ? text : "");
+  if (_label) lv_label_set_text_static(_label, _text_buffer);
   if (_box) {
     const lv_coord_t w = parent_width(_root);
     const lv_coord_t box_w = w > 24 ? (lv_coord_t)(w - 16) : w;

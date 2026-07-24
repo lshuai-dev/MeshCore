@@ -16,13 +16,11 @@ struct CompassUi {
 
 #if defined(ENV_INCLUDE_MAP) && ENV_INCLUDE_MAP
 struct MapPlotMarker {
-  char label[32] = {};
-  double lat_deg = 0.0;
-  double lon_deg = 0.0;
-  float east_m = 0.f;
-  float north_m = 0.f;
+  int32_t lat_micro = 0;
+  int32_t lon_micro = 0;
+  int16_t contact_index = -1;
+  char glyph = '?';
   bool is_self = false;
-  int contact_index = -1;
 };
 
 struct MapPlotUi {
@@ -64,6 +62,8 @@ class IBizFacade : public ui::IFeedback {
  public:
   virtual ~IBizFacade() = default;
 
+  // Snapshot types returned to screens. Keep the facade as the single UI/business
+  // boundary; these groups are organizational and are not separate interfaces.
   struct RadioStatus {
     float freq_mhz = 0.0f;
     float bw_khz = 0.0f;
@@ -85,10 +85,12 @@ class IBizFacade : public ui::IFeedback {
     double alt_m = 0.0;
   };
 
+  // UI workflow requests.
   virtual void requestRadioParamPresetPicker() = 0;
   virtual void requestSendMessageOverlay() = 0;
   virtual void requestCompassCalibration() = 0;
 
+  // Messaging data and commands.
   /** Send-message overlay: personal contacts (pub key prefix + label). */
   virtual int sendMessagePersonalCount() const = 0;
   virtual bool sendMessagePersonalAt(int index, uint8_t pub_key_prefix[6], char* label,
@@ -100,6 +102,7 @@ class IBizFacade : public ui::IFeedback {
   virtual int loRaBandPresetCount() const = 0;
   virtual const char* loRaBandPresetName(int preset_index) const = 0;
 
+  // Read-only device and screen state.
   virtual RadioStatus radioStatus() const = 0;
   virtual GpsStatus gpsStatus() const = 0;
   virtual bool buzzerEnabled() const = 0;
@@ -122,6 +125,7 @@ class IBizFacade : public ui::IFeedback {
   virtual const CompassUi& compassUi() const = 0;
   virtual FindFriendUi findFriendUi() const = 0;
 
+  // Location, compass, and find-friend state.
   virtual bool locationShareEnabled() const = 0;
   virtual int locShareIntervalIndex() const = 0;
   virtual int locShareIntervalOptionCount() const = 0;
@@ -131,11 +135,12 @@ class IBizFacade : public ui::IFeedback {
   virtual int findFriendContactCount() const = 0;
   virtual bool findFriendContactLabel(int index, char* buf, size_t buf_len) const = 0;
   /** Build dropdown text (recent first) and optional mesh-index map for each listed row. */
-  virtual int buildFindFriendDropdownOptions(char* buf, size_t buf_len, int* mesh_map,
+  virtual int buildFindFriendDropdownOptions(char* buf, size_t buf_len, int16_t* mesh_map,
                                              int mesh_map_cap) const = 0;
   virtual bool findFriendContactHasGps(int index) const = 0;
   virtual int findFriendTargetContactIndex() const = 0;
 
+  // Device and radio commands.
   virtual bool sendAdvert() = 0;
   virtual void sendAdvertWithFeedback() = 0;
   virtual bool toggleGPS() = 0;
@@ -176,6 +181,7 @@ class IBizFacade : public ui::IFeedback {
   virtual bool factoryReset() { return false; }
   virtual bool clearUserData() { return false; }
 
+  // GPS track storage controls.
   virtual bool gpsTrackRecording() const { return false; }
   virtual bool setGpsTrackRecording(bool enabled) { (void)enabled; return false; }
   virtual int gpsTrackIntervalIndex() const { return 0; }

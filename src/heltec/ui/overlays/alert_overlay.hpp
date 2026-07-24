@@ -35,6 +35,7 @@ class AlertOverlay : public AbstractOverlay {
 
   _lv_obj_t* _box = nullptr;
   _lv_obj_t* _label = nullptr;
+  char _text_buffer[80] = {};
   uint32_t _entered_ms = 0;
 };
 

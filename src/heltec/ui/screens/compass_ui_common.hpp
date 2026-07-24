@@ -71,14 +71,20 @@ inline void compass_format_distance_m(char* buf, size_t len, double meters) {
     lv_snprintf(buf, len, "Dist:--");
     return;
   }
+  const uint64_t cm = (uint64_t)(meters * 100.0 + 0.5);
   if (meters > 1000.0) {
-    lv_snprintf(buf, len, "Dist:%.2fkm", meters / 1000.0);
+    const uint64_t km_centi = (cm + 500U) / 1000U;
+    lv_snprintf(buf, len, "Dist:%lu.%02lukm", (unsigned long)(km_centi / 100U),
+                (unsigned long)(km_centi % 100U));
   } else if (meters >= 100.0) {
-    lv_snprintf(buf, len, "Dist:%.0fm", meters);
+    lv_snprintf(buf, len, "Dist:%lum", (unsigned long)((cm + 50U) / 100U));
   } else if (meters >= 10.0) {
-    lv_snprintf(buf, len, "Dist:%.1fm", meters);
+    const uint64_t dm = (cm + 5U) / 10U;
+    lv_snprintf(buf, len, "Dist:%lu.%lum", (unsigned long)(dm / 10U),
+                (unsigned long)(dm % 10U));
   } else {
-    lv_snprintf(buf, len, "Dist:%.2fm", meters);
+    lv_snprintf(buf, len, "Dist:%lu.%02lum", (unsigned long)(cm / 100U),
+                (unsigned long)(cm % 100U));
   }
 }
 

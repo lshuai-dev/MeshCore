@@ -22,6 +22,16 @@ void AppStateUiDispatcher::bindGlobalHandler(GlobalHandler handler, void* user_d
   scheduleDispatch();
 }
 
+bool AppStateUiDispatcher::createTimer() {
+  if (_dispatch_timer) return true;
+  _dispatch_timer = lv_timer_create(dispatchTimerCallback, 1U, this);
+  if (!_dispatch_timer) return false;
+  lv_timer_set_repeat_count(_dispatch_timer, -1);
+  lv_timer_pause(_dispatch_timer);
+  scheduleDispatch();
+  return true;
+}
+
 void AppStateUiDispatcher::onAppStateChanged(const AppStateEvent& event) {
   const uint8_t idx = eventIndex(event.type);
   if (idx >= kEventTypeCount) return;
@@ -31,17 +41,19 @@ void AppStateUiDispatcher::onAppStateChanged(const AppStateEvent& event) {
 }
 
 void AppStateUiDispatcher::scheduleDispatch() {
-  if ((!_surfaces && !_global_handler) || !hasPending() || _dispatch_scheduled) return;
-  if (LV_RES_OK != lv_async_call([](void* user_data) {
-        auto* dispatcher = static_cast<AppStateUiDispatcher*>(user_data);
-        if (!dispatcher) return;
-        dispatcher->_dispatch_scheduled = false;
-        dispatcher->dispatchPending();
-        dispatcher->scheduleDispatch();
-      }, this)) {
-    return;
-  }
-  _dispatch_scheduled = true;
+  if ((!_surfaces && !_global_handler) || !hasPending()) return;
+  if (!_dispatch_timer) return;
+  lv_timer_resume(_dispatch_timer);
+  lv_timer_ready(_dispatch_timer);
+}
+
+void AppStateUiDispatcher::dispatchTimerCallback(lv_timer_t* timer) {
+  auto* dispatcher = timer
+                         ? static_cast<AppStateUiDispatcher*>(timer->user_data)
+                         : nullptr;
+  if (!dispatcher) return;
+  dispatcher->dispatchPending();
+  if (!dispatcher->hasPending()) lv_timer_pause(timer);
 }
 
 void AppStateUiDispatcher::dispatchPending() {
@@ -50,16 +62,11 @@ void AppStateUiDispatcher::dispatchPending() {
   const uint16_t mask = _pending_mask;
   if (mask == 0) return;
 
-  AppStateEvent pending[kEventTypeCount]{};
   for (uint8_t i = 0; i < kEventTypeCount; ++i) {
-    if ((mask & static_cast<uint16_t>(1U << i)) == 0) continue;
-    pending[i] = _latest[i];
-  }
-  _pending_mask = 0;
-
-  for (uint8_t i = 0; i < kEventTypeCount; ++i) {
-    if ((mask & static_cast<uint16_t>(1U << i)) == 0) continue;
-    AppStateEvent event = pending[i];
+    const uint16_t bit = static_cast<uint16_t>(1U << i);
+    if ((mask & bit) == 0) continue;
+    const AppStateEvent event = _latest[i];
+    _pending_mask &= static_cast<uint16_t>(~bit);
     if (_global_handler) {
       _global_handler(_global_handler_user_data, event);
     }

@@ -39,6 +39,9 @@ class CompassScreen : public AbstractScreen {
   lv_obj_t* _lbl_q_prefix = nullptr;
   lv_obj_t* _lbl_q_val = nullptr;
   lv_obj_t* _lbl_mag[3] = {nullptr, nullptr, nullptr};
+  char _hdg_text[20] = "HDG:--";
+  char _q_text[8] = "--";
+  char _mag_text[3][20] = {"X:--", "Y:--", "Z:--"};
   int16_t _heading_dial_track_tenths = -10000;
   int16_t _heading_label_tenths = -10000;
   float _last_heading_deg = 0.f;

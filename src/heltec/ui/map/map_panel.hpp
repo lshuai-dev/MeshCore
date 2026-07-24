@@ -31,8 +31,13 @@ class MapPanel {
   bool attached() const { return _viewport != nullptr && _tile_layer != nullptr; }
   /** Create tile slots in small batches (internal heap is tight on some boards). */
   bool buildPendingTiles(int max_tiles);
+  /** Pre-create tile and marker object pools in bounded batches. */
+  bool prewarmPools(int max_tiles, int max_markers);
   bool tilesReady() const { return _tiles_built >= kMaxTiles; }
+  bool markerPoolReady() const { return _markers_built >= kMaxMarkers; }
+  bool poolsReady() const { return tilesReady() && markerPoolReady(); }
   bool tileBuildFailed() const { return _tile_build_failed; }
+  bool poolBuildFailed() const { return _tile_build_failed || _marker_build_failed; }
   void load_prefs(const float* gps_home_deg = nullptr);
   /** Apply SD tile style/zoom after the card becomes available. */
   void applySdPrefs();
@@ -78,14 +83,33 @@ class MapPanel {
     uint32_t x_tile = 0;
     uint32_t y_tile = 0;
     bool active = false;
+    bool missing_cached = false;
     char loaded_path[96] = {};
-    char miss_path[96] = {};
+    char placeholder_text[48] = {};
   };
 
   struct MarkerSlot {
     lv_obj_t* root = nullptr;
     lv_obj_t* label = nullptr;
     bool active = false;
+    char glyph = '?';
+    char text[2] = {'?', '\0'};
+  };
+
+  struct TileNeed {
+    uint32_t x_tile = 0;
+    uint32_t y_tile = 0;
+    int16_t x = 0;
+    int16_t y = 0;
+    int8_t slot = -1;
+  };
+
+  struct CompactMarker {
+    int32_t lat_micro = 0;
+    int32_t lon_micro = 0;
+    int16_t contact_index = -1;
+    char glyph = '?';
+    bool is_self = false;
   };
 
   void center_view();
@@ -93,13 +117,14 @@ class MapPanel {
   void request_redraw();
   /** Re-layout visible tiles; keep loaded PNG paths when still valid. */
   void request_layout();
+  void prepare_tile_layout();
   void layout_tiles();
   void layout_markers();
   void reposition_visible_tiles();
   void draw_location_pins();
   void draw_range_rings();
   bool createTileSlot(int idx);
-  void ensureMarkerSlot(int idx);
+  bool ensureMarkerSlot(int idx);
   void markDirty(uint8_t dirty) { _dirty = static_cast<uint8_t>(_dirty | dirty); }
   void resetTransientPan();
 
@@ -124,7 +149,9 @@ class MapPanel {
   int _visible_marker_count = 0;
   uint8_t _dirty = DirtyTiles | DirtyMarkers | DirtyRings | DirtyGpsPin | DirtyViewport;
   bool _tile_load_pending = true;
+  bool _tile_layout_prepared = false;
   bool _tile_build_failed = false;
+  bool _marker_build_failed = false;
   bool _pan_dragging = false;
   int16_t _transient_pan_x = 0;
   int16_t _transient_pan_y = 0;
@@ -137,10 +164,14 @@ class MapPanel {
   uint8_t _tiles_x = 0;
   uint8_t _tiles_y = 0;
   int _tiles_built = 0;
+  int _markers_built = 0;
+  uint8_t _tile_need_count = 0;
+  uint8_t _tile_load_cursor = 0;
 
   TileSlot _tiles[kMaxTiles]{};
+  TileNeed _tile_needs[kMaxTiles]{};
   MarkerSlot _markers[kMaxMarkers]{};
-  heltec::meshcore::biz::MapPlotMarker _marker_data[kMaxMarkers]{};
+  CompactMarker _marker_data[kMaxMarkers]{};
   int _marker_count = 0;
 };
 

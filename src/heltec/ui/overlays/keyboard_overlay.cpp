@@ -94,116 +94,77 @@ lv_keyboard_mode_t message_keyboard_mode() {
 }
 
 static lv_style_t s_kb_root_message_style;
-static lv_style_t s_kb_root_message_compact_style;
 static lv_style_t s_kb_root_waypoint_style;
-static lv_style_t s_kb_root_waypoint_compact_style;
 static lv_style_t s_kb_message_main_style;
-static lv_style_t s_kb_message_compact_main_style;
 static lv_style_t s_kb_message_items_style;
-static lv_style_t s_kb_message_compact_items_style;
 static lv_style_t s_kb_waypoint_main_style;
 static lv_style_t s_kb_waypoint_items_style;
-static lv_style_t s_kb_waypoint_compact_main_style;
-static lv_style_t s_kb_waypoint_compact_items_style;
 static lv_style_t s_textarea_message_style;
-static lv_style_t s_textarea_message_compact_style;
 static lv_style_t s_textarea_waypoint_style;
-static lv_style_t s_textarea_waypoint_compact_style;
 static bool s_keyboard_layout_styles_ready = false;
 
 void init_keyboard_layout_styles() {
   if (s_keyboard_layout_styles_ready) return;
+  const bool compact = compact_keyboard_display();
 
   lv_style_init(&s_kb_root_message_style);
   lv_style_set_flex_main_place(&s_kb_root_message_style, LV_FLEX_ALIGN_START);
   lv_style_set_flex_cross_place(&s_kb_root_message_style, LV_FLEX_ALIGN_CENTER);
   lv_style_set_flex_track_place(&s_kb_root_message_style, LV_FLEX_ALIGN_START);
-
-  lv_style_init(&s_kb_root_message_compact_style);
-  lv_style_set_flex_main_place(&s_kb_root_message_compact_style, LV_FLEX_ALIGN_START);
-  lv_style_set_flex_cross_place(&s_kb_root_message_compact_style, LV_FLEX_ALIGN_CENTER);
-  lv_style_set_flex_track_place(&s_kb_root_message_compact_style, LV_FLEX_ALIGN_START);
-  lv_style_set_pad_ver(&s_kb_root_message_compact_style, 1);
-  lv_style_set_pad_row(&s_kb_root_message_compact_style, 1);
+  if (compact) {
+    lv_style_set_pad_ver(&s_kb_root_message_style, 1);
+    lv_style_set_pad_row(&s_kb_root_message_style, 1);
+  }
 
   lv_style_init(&s_kb_root_waypoint_style);
   lv_style_set_flex_main_place(&s_kb_root_waypoint_style, LV_FLEX_ALIGN_START);
   lv_style_set_flex_cross_place(&s_kb_root_waypoint_style, LV_FLEX_ALIGN_CENTER);
   lv_style_set_flex_track_place(&s_kb_root_waypoint_style, LV_FLEX_ALIGN_START);
-  lv_style_set_pad_ver(&s_kb_root_waypoint_style, 2);
-  lv_style_set_pad_row(&s_kb_root_waypoint_style, 2);
-
-  lv_style_init(&s_kb_root_waypoint_compact_style);
-  lv_style_set_flex_main_place(&s_kb_root_waypoint_compact_style, LV_FLEX_ALIGN_START);
-  lv_style_set_flex_cross_place(&s_kb_root_waypoint_compact_style, LV_FLEX_ALIGN_CENTER);
-  lv_style_set_flex_track_place(&s_kb_root_waypoint_compact_style, LV_FLEX_ALIGN_START);
-  lv_style_set_pad_ver(&s_kb_root_waypoint_compact_style, 1);
-  lv_style_set_pad_row(&s_kb_root_waypoint_compact_style, 1);
+  lv_style_set_pad_ver(&s_kb_root_waypoint_style, compact ? 1 : 2);
+  lv_style_set_pad_row(&s_kb_root_waypoint_style, compact ? 1 : 2);
 
   lv_style_init(&s_kb_message_main_style);
-  lv_style_set_flex_grow(&s_kb_message_main_style, 1);
+  lv_style_set_flex_grow(&s_kb_message_main_style, compact ? 0 : 1);
   lv_style_set_width(&s_kb_message_main_style, lv_pct(100));
-  lv_style_set_height(&s_kb_message_main_style, LV_SIZE_CONTENT);
-  lv_style_set_min_height(&s_kb_message_main_style, 40);
-
-  lv_style_init(&s_kb_message_compact_main_style);
-  lv_style_set_flex_grow(&s_kb_message_compact_main_style, 0);
-  lv_style_set_width(&s_kb_message_compact_main_style, lv_pct(100));
-  lv_style_set_height(&s_kb_message_compact_main_style, 36);
-  lv_style_set_min_height(&s_kb_message_compact_main_style, 36);
-  lv_style_set_pad_all(&s_kb_message_compact_main_style, 0);
-  lv_style_set_pad_row(&s_kb_message_compact_main_style, 0);
-  lv_style_set_pad_column(&s_kb_message_compact_main_style, 0);
+  lv_style_set_height(&s_kb_message_main_style, compact ? 36 : LV_SIZE_CONTENT);
+  lv_style_set_min_height(&s_kb_message_main_style, compact ? 36 : 40);
+  if (compact) {
+    lv_style_set_pad_all(&s_kb_message_main_style, 0);
+    lv_style_set_pad_row(&s_kb_message_main_style, 0);
+    lv_style_set_pad_column(&s_kb_message_main_style, 0);
+  }
 
   lv_style_init(&s_kb_message_items_style);
   lv_style_set_text_font(&s_kb_message_items_style, LV_FONT_DEFAULT);
-  lv_style_set_pad_all(&s_kb_message_items_style, 1);
-
-  lv_style_init(&s_kb_message_compact_items_style);
-  lv_style_set_text_font(&s_kb_message_compact_items_style, LV_FONT_DEFAULT);
-  lv_style_set_pad_all(&s_kb_message_compact_items_style, 0);
+  lv_style_set_pad_all(&s_kb_message_items_style, compact ? 0 : 1);
 
   lv_style_init(&s_kb_waypoint_main_style);
   lv_style_set_flex_grow(&s_kb_waypoint_main_style, 0);
   lv_style_set_width(&s_kb_waypoint_main_style, lv_pct(100));
-  lv_style_set_height(&s_kb_waypoint_main_style, 40);
-  lv_style_set_min_height(&s_kb_waypoint_main_style, 40);
+  lv_style_set_height(&s_kb_waypoint_main_style, compact ? 36 : 40);
+  lv_style_set_min_height(&s_kb_waypoint_main_style, compact ? 36 : 40);
 
   lv_style_init(&s_kb_waypoint_items_style);
   lv_style_set_text_font(&s_kb_waypoint_items_style, waypoint_keyboard_font());
-  lv_style_set_pad_all(&s_kb_waypoint_items_style, 2);
-
-  lv_style_init(&s_kb_waypoint_compact_main_style);
-  lv_style_set_flex_grow(&s_kb_waypoint_compact_main_style, 0);
-  lv_style_set_width(&s_kb_waypoint_compact_main_style, lv_pct(100));
-  lv_style_set_height(&s_kb_waypoint_compact_main_style, 36);
-  lv_style_set_min_height(&s_kb_waypoint_compact_main_style, 36);
-
-  lv_style_init(&s_kb_waypoint_compact_items_style);
-  lv_style_set_text_font(&s_kb_waypoint_compact_items_style, waypoint_keyboard_font());
-  lv_style_set_pad_all(&s_kb_waypoint_compact_items_style, 1);
+  lv_style_set_pad_all(&s_kb_waypoint_items_style, compact ? 1 : 2);
 
   lv_style_init(&s_textarea_message_style);
   lv_style_set_text_font(&s_textarea_message_style, LV_FONT_DEFAULT);
-  lv_style_set_height(&s_textarea_message_style, 18);
-
-  lv_style_init(&s_textarea_message_compact_style);
-  lv_style_set_text_font(&s_textarea_message_compact_style, LV_FONT_DEFAULT);
-  lv_style_set_height(&s_textarea_message_compact_style, 16);
-  lv_style_set_min_height(&s_textarea_message_compact_style, 16);
-  lv_style_set_pad_hor(&s_textarea_message_compact_style, 1);
-  lv_style_set_pad_ver(&s_textarea_message_compact_style, 1);
+  lv_style_set_height(&s_textarea_message_style, compact ? 16 : 18);
+  if (compact) {
+    lv_style_set_min_height(&s_textarea_message_style, 16);
+    lv_style_set_pad_hor(&s_textarea_message_style, 1);
+    lv_style_set_pad_ver(&s_textarea_message_style, 1);
+  }
 
   lv_style_init(&s_textarea_waypoint_style);
   lv_style_set_text_font(&s_textarea_waypoint_style, LV_FONT_DEFAULT);
-  lv_style_set_height(&s_textarea_waypoint_style, 18);
-
-  lv_style_init(&s_textarea_waypoint_compact_style);
-  lv_style_set_text_font(&s_textarea_waypoint_compact_style, LV_FONT_DEFAULT);
-  lv_style_set_height(&s_textarea_waypoint_compact_style, 16);
-  lv_style_set_min_height(&s_textarea_waypoint_compact_style, 16);
-  lv_style_set_pad_hor(&s_textarea_waypoint_compact_style, 1);
-  lv_style_set_pad_ver(&s_textarea_waypoint_compact_style, 1);
+  lv_style_set_height(&s_textarea_waypoint_style, compact ? 16 : 18);
+  if (compact) {
+    lv_style_set_min_height(&s_textarea_waypoint_style, 16);
+    lv_style_set_pad_hor(&s_textarea_waypoint_style, 1);
+    lv_style_set_pad_ver(&s_textarea_waypoint_style, 1);
+  }
 
   s_keyboard_layout_styles_ready = true;
 }
@@ -212,43 +173,27 @@ void install_keyboard_layout_styles(lv_obj_t* root, lv_obj_t* kb, lv_obj_t* text
   init_keyboard_layout_styles();
   if (root) {
     lv_obj_add_style(root, &s_kb_root_message_style, LV_PART_MAIN);
-    lv_obj_add_style(root, &s_kb_root_message_compact_style,
-                     LV_PART_MAIN | LV_STATE_USER_2);
     lv_obj_add_style(root, &s_kb_root_waypoint_style,
                      LV_PART_MAIN | LV_STATE_USER_1);
-    lv_obj_add_style(root, &s_kb_root_waypoint_compact_style,
-                     LV_PART_MAIN | LV_STATE_USER_1 | LV_STATE_USER_2);
   }
   if (kb) {
     lv_obj_add_style(kb, &s_kb_message_main_style, LV_PART_MAIN);
-    lv_obj_add_style(kb, &s_kb_message_compact_main_style,
-                     LV_PART_MAIN | LV_STATE_USER_2);
     lv_obj_add_style(kb, &s_kb_waypoint_main_style,
                      LV_PART_MAIN | LV_STATE_USER_1);
-    lv_obj_add_style(kb, &s_kb_waypoint_compact_main_style,
-                     LV_PART_MAIN | LV_STATE_USER_1 | LV_STATE_USER_2);
     lv_obj_add_style(kb, &s_kb_message_items_style, LV_PART_ITEMS);
-    lv_obj_add_style(kb, &s_kb_message_compact_items_style,
-                     LV_PART_ITEMS | LV_STATE_USER_2);
     lv_obj_add_style(kb, &s_kb_waypoint_items_style,
                      LV_PART_ITEMS | LV_STATE_USER_1);
-    lv_obj_add_style(kb, &s_kb_waypoint_compact_items_style,
-                     LV_PART_ITEMS | LV_STATE_USER_1 | LV_STATE_USER_2);
   }
   if (textarea) {
     lv_obj_add_style(textarea, &s_textarea_message_style, LV_PART_MAIN);
-    lv_obj_add_style(textarea, &s_textarea_message_compact_style,
-                     LV_PART_MAIN | LV_STATE_USER_2);
     lv_obj_add_style(textarea, &s_textarea_waypoint_style,
                      LV_PART_MAIN | LV_STATE_USER_1);
-    lv_obj_add_style(textarea, &s_textarea_waypoint_compact_style,
-                     LV_PART_MAIN | LV_STATE_USER_1 | LV_STATE_USER_2);
   }
 }
 
 void set_keyboard_layout_state(lv_obj_t* root, lv_obj_t* kb, lv_obj_t* textarea,
-                               bool waypoint, bool compact) {
-  const lv_state_t layout_states = LV_STATE_USER_1 | LV_STATE_USER_2;
+                               bool waypoint) {
+  const lv_state_t layout_states = LV_STATE_USER_1;
   lv_obj_t* objs[] = {root, kb, textarea};
   for (lv_obj_t* obj : objs) {
     if (!obj) continue;
@@ -256,14 +201,12 @@ void set_keyboard_layout_state(lv_obj_t* root, lv_obj_t* kb, lv_obj_t* textarea,
     if (waypoint) {
       lv_obj_add_state(obj, LV_STATE_USER_1);
     }
-    if (compact) lv_obj_add_state(obj, LV_STATE_USER_2);
   }
 }
 
 void apply_message_keyboard_layout(lv_obj_t* root, lv_obj_t* kb, lv_obj_t* textarea) {
-  const bool compact = compact_keyboard_display();
   init_keyboard_layout_styles();
-  set_keyboard_layout_state(root, kb, textarea, false, compact);
+  set_keyboard_layout_state(root, kb, textarea, false);
   if (root) {
     lv_obj_clear_flag(root, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_scroll_to_y(root, 0, LV_ANIM_OFF);
@@ -271,9 +214,8 @@ void apply_message_keyboard_layout(lv_obj_t* root, lv_obj_t* kb, lv_obj_t* texta
 }
 
 void apply_waypoint_keyboard_layout(lv_obj_t* root, lv_obj_t* kb, lv_obj_t* textarea) {
-  const bool compact = compact_keyboard_display();
   init_keyboard_layout_styles();
-  set_keyboard_layout_state(root, kb, textarea, true, compact);
+  set_keyboard_layout_state(root, kb, textarea, true);
   if (root) {
     lv_obj_clear_flag(root, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_scroll_to_y(root, 0, LV_ANIM_OFF);
@@ -545,12 +487,14 @@ bool KeyboardOverlay::ensureContent() {
   if (!_title) return false;
   lv_obj_set_width(_title, lv_pct(100));
   lv_label_set_long_mode(_title, LV_LABEL_LONG_CLIP);
-  lv_label_set_text(_title, "#broadcast");
+  lv_snprintf(_title_text, sizeof(_title_text), "#broadcast");
+  lv_label_set_text_static(_title, _title_text);
   _textarea = ht_textarea_create(_root, meta_id::KeyboardTextarea);
   if (!_textarea) return false;
   lv_obj_set_size(_textarea, lv_pct(100), 18);
   lv_textarea_set_one_line(_textarea, true);
   lv_textarea_set_max_length(_textarea, kMaxText);
+  lv_textarea_set_text_buffer(_textarea, _text_buffer, sizeof(_text_buffer));
   lv_obj_set_scrollbar_mode(_textarea, LV_SCROLLBAR_MODE_OFF);
   _vertical_spacer = lv_obj_create(_root);
   if (!_vertical_spacer) return false;
@@ -596,12 +540,12 @@ bool KeyboardOverlay::prepareMessageInput(const char* title_text) {
   _submitted_text[0] = '\0';
   if (_vertical_spacer) lv_obj_add_flag(_vertical_spacer, LV_OBJ_FLAG_HIDDEN);
 
-  char title[40];
-  snprintf(title, sizeof(title), "#%s", title_text ? title_text : "message");
+  lv_snprintf(_title_text, sizeof(_title_text), "#%s",
+              title_text ? title_text : "message");
   lv_textarea_set_accepted_chars(_textarea, nullptr);
   lv_textarea_set_max_length(_textarea, kMaxText);
   lv_textarea_set_text(_textarea, "");
-  lv_label_set_text(_title, title);
+  lv_label_set_text_static(_title, _title_text);
   lv_keyboard_set_textarea(_keyboard, _textarea);
   lv_keyboard_set_mode(_keyboard, message_keyboard_mode());
   reset_keyboard_interaction(_keyboard);
@@ -618,7 +562,8 @@ bool KeyboardOverlay::prepareWaypointInput() {
   _submitted_text[0] = '\0';
   if (_vertical_spacer) lv_obj_clear_flag(_vertical_spacer, LV_OBJ_FLAG_HIDDEN);
 
-  lv_label_set_text(_title, "lat,lon");
+  lv_snprintf(_title_text, sizeof(_title_text), "lat,lon");
+  lv_label_set_text_static(_title, _title_text);
   lv_textarea_set_max_length(_textarea, 48);
   lv_textarea_set_text(_textarea, "");
   lv_textarea_set_accepted_chars(_textarea, "0123456789.,- ");

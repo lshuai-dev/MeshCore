@@ -1,4 +1,6 @@
 #include "cascading_menu.hpp"
+
+#if LV_USE_MENU
 #include "ui/core/ui_events.h"
 #include "ui/core/ht_meta_data.hpp"
 #include <cstdio>
@@ -260,3 +262,5 @@ bool CascadingMenu::addMenu(const char* label, AbstractMenu& submenu) {
   return true;
 }
 }  // namespace heltec::meshcore::ui
+
+#endif  // LV_USE_MENU

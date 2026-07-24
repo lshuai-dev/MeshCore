@@ -16,6 +16,13 @@ struct RadioParamPreset {
 };
 
 static constexpr int kRadioParamPresetCount = 17;
+static constexpr size_t kRadioParamPresetUiScratchSize = 640;
+
+/** Shared startup/refresh scratch; LVGL dropdown and roller copy the options. */
+inline char* radioParamPresetUiScratch() {
+  static char buffer[kRadioParamPresetUiScratchSize];
+  return buffer;
+}
 
 inline int radioParamPresetCount() { return kRadioParamPresetCount; }
 

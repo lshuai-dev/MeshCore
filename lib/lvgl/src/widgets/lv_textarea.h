@@ -43,6 +43,8 @@ typedef struct {
     char * placeholder_txt;      /*Place holder label. only visible if text is an empty string*/
     char * pwd_tmp;              /*Used to store the original text in password mode*/
     char * pwd_bullet;           /*Replacement characters displayed in password mode*/
+    char * text_buf;             /*Optional caller-owned fixed text buffer*/
+    uint32_t text_buf_size;      /*Capacity of text_buf including the terminating zero*/
     const char * accepted_chars; /*Only these characters will be accepted. NULL: accept all*/
     uint32_t max_length;         /*The max. number of characters. 0: no limit*/
     uint16_t pwd_show_time;      /*Time to show characters in password mode before change them to '*'*/
@@ -124,6 +126,17 @@ void lv_textarea_del_char_forward(lv_obj_t * obj);
  * @param txt       pointer to the text
  */
 void lv_textarea_set_text(lv_obj_t * obj, const char * txt);
+
+/**
+ * Bind a caller-owned fixed buffer as the editable text storage.
+ * The buffer must remain valid for the lifetime of the text area and its
+ * capacity includes the terminating zero. This mode is intended for normal
+ * (non-password) text areas and avoids reallocating on every edit.
+ * @param obj         pointer to a text area object
+ * @param buffer      caller-owned writable buffer
+ * @param capacity    buffer capacity in bytes including the terminating zero
+ */
+void lv_textarea_set_text_buffer(lv_obj_t * obj, char * buffer, uint32_t capacity);
 
 /**
  * Set the placeholder text of a text area

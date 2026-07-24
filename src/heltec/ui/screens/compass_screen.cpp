@@ -51,7 +51,13 @@ int clamp_q(int q) {
 void style_q_row_label(lv_obj_t* lb, const char* text) {
   if (!lb) return;
   lv_label_set_long_mode(lb, LV_LABEL_LONG_CLIP);
-  lv_label_set_text(lb, text ? text : "");
+  lv_label_set_text_static(lb, text ? text : "");
+}
+
+void set_static_text(lv_obj_t* label, char* buffer, size_t capacity, const char* text) {
+  if (!label || !buffer || capacity == 0) return;
+  lv_snprintf(buffer, capacity, "%s", text ? text : "");
+  lv_label_set_text_static(label, buffer);
 }
 
 void set_q_color_state(lv_obj_t* lb, int state) {
@@ -66,16 +72,16 @@ void set_q_color_state(lv_obj_t* lb, int state) {
 
 void set_q_label(lv_obj_t* prefix, lv_obj_t* val, const char* val_text, int quality, bool active) {
   if (!prefix || !val) return;
-  lv_label_set_text(prefix, "Q:");
+  lv_label_set_text_static(prefix, "Q:");
   if (!active) {
-    lv_label_set_text(val, "--");
+    lv_label_set_text_static(val, val_text ? val_text : "--");
     set_q_color_state(prefix, 0);
     set_q_color_state(val, 0);
     return;
   }
   const int q = clamp_q(quality);
   set_q_color_state(prefix, 0);
-  lv_label_set_text(val, val_text ? val_text : "--");
+  lv_label_set_text_static(val, val_text ? val_text : "--");
   set_q_color_state(val, q >= 3 ? 1 : 2);
 }
 
@@ -84,9 +90,8 @@ void set_q_label(lv_obj_t* prefix, lv_obj_t* val, const char* val_text, int qual
 void CompassScreen::clearMagLabels() {
   for (int i = 0; i < 3; ++i) {
     if (!_lbl_mag[i]) continue;
-    char line[20];
-    lv_snprintf(line, sizeof(line), "%c:--", "XYZ"[i]);
-    lv_label_set_text(_lbl_mag[i], line);
+    lv_snprintf(_mag_text[i], sizeof(_mag_text[i]), "%c:--", "XYZ"[i]);
+    lv_label_set_text_static(_lbl_mag[i], _mag_text[i]);
     _last_mag_centi[i] = kMagInvalid;
   }
 }
@@ -95,8 +100,9 @@ void CompassScreen::showUnavailable(const biz::CompassUi& c, const char* hdg_tex
   _dial.setDialHidden(true);
   _dial.setLayersVisible(false);
   _dial.invalidateNeedle();
-  if (_lbl_hdg) lv_label_set_text(_lbl_hdg, hdg_text);
-  set_q_label(_lbl_q_prefix, _lbl_q_val, "--", 0, false);
+  set_static_text(_lbl_hdg, _hdg_text, sizeof(_hdg_text), hdg_text);
+  set_static_text(_lbl_q_val, _q_text, sizeof(_q_text), "--");
+  set_q_label(_lbl_q_prefix, _lbl_q_val, _q_text, 0, false);
   clearMagLabels();
   _heading_dial_track_tenths = kHeadingInvalid;
   _heading_label_tenths = kHeadingInvalid;
@@ -130,6 +136,7 @@ _lv_obj_t* CompassScreen::create(_lv_obj_t* parent) {
   if (info) {
     _lbl_hdg = ht_label_create(info, meta_id::CompassInfoLabel);
     compass_style_info_label(_lbl_hdg, "HDG:--", LV_LABEL_LONG_CLIP);
+    if (_lbl_hdg) lv_label_set_text_static(_lbl_hdg, _hdg_text);
 
     _lbl_q_row = ht_obj_create(info, meta_id::CompassQRow);
     if (_lbl_q_row) {
@@ -145,17 +152,18 @@ _lv_obj_t* CompassScreen::create(_lv_obj_t* parent) {
     _lbl_q_prefix = ht_label_create(_lbl_q_row, meta_id::CompassQLabel);
     if (_lbl_q_prefix) lv_obj_set_width(_lbl_q_prefix, LV_SIZE_CONTENT);
     style_q_row_label(_lbl_q_prefix, "Q:");
+    if (_lbl_q_prefix) lv_label_set_text_static(_lbl_q_prefix, "Q:");
     _lbl_q_val = ht_label_create(_lbl_q_row, meta_id::CompassQLabel);
     if (_lbl_q_val) lv_obj_set_width(_lbl_q_val, LV_SIZE_CONTENT);
     style_q_row_label(_lbl_q_val, "--");
+    if (_lbl_q_val) lv_label_set_text_static(_lbl_q_val, _q_text);
 
     for (int i = 0; i < 3; ++i) {
       _lbl_mag[i] = ht_label_create(info, meta_id::CompassInfoLabel);
       if (_lbl_mag[i]) {
         lv_obj_set_width(_lbl_mag[i], lv_pct(100));
-        char b[20];
-        lv_snprintf(b, sizeof(b), "%c:--", "XYZ"[i]);
-        compass_style_info_label(_lbl_mag[i], b, LV_LABEL_LONG_CLIP);
+        compass_style_info_label(_lbl_mag[i], _mag_text[i], LV_LABEL_LONG_CLIP);
+        lv_label_set_text_static(_lbl_mag[i], _mag_text[i]);
       }
     }
     lv_obj_move_foreground(info);
@@ -213,16 +221,14 @@ void CompassScreen::refresh_ui(const biz::CompassUi& c) {
   if (state_changed || label_moved) {
     _heading_label_tenths = hdg_t;
     if (_lbl_hdg) {
-      char buf[20];
-      lv_snprintf(buf, sizeof(buf), "HDG:%3d.%d", hdg_t / 10, hdg_t % 10);
-      lv_label_set_text(_lbl_hdg, buf);
+      lv_snprintf(_hdg_text, sizeof(_hdg_text), "HDG:%3d.%d", hdg_t / 10, hdg_t % 10);
+      lv_label_set_text_static(_lbl_hdg, _hdg_text);
     }
   }
 
   if (state_changed) {
-    char buf[8];
-    lv_snprintf(buf, sizeof(buf), "%d", clamp_q(c.quality));
-    set_q_label(_lbl_q_prefix, _lbl_q_val, buf, c.quality, true);
+    lv_snprintf(_q_text, sizeof(_q_text), "%d", clamp_q(c.quality));
+    set_q_label(_lbl_q_prefix, _lbl_q_val, _q_text, c.quality, true);
     _last_quality = c.quality;
   }
 
@@ -239,11 +245,10 @@ void CompassScreen::refresh_ui(const biz::CompassUi& c) {
     for (int i = 0; i < 3; ++i) {
       if (!_lbl_mag[i]) continue;
       const int cval = mag_centi(c.mag_xyz[i]);
-      char line[20];
       const int w = cval / 100;
       const int f = (cval < 0 ? -cval : cval) % 100;
-      lv_snprintf(line, sizeof(line), "%c:%3d.%02d", "XYZ"[i], w, f);
-      lv_label_set_text(_lbl_mag[i], line);
+      lv_snprintf(_mag_text[i], sizeof(_mag_text[i]), "%c:%3d.%02d", "XYZ"[i], w, f);
+      lv_label_set_text_static(_lbl_mag[i], _mag_text[i]);
       _last_mag_centi[i] = (int16_t)cval;
     }
   }

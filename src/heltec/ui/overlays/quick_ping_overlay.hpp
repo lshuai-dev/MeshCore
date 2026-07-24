@@ -37,6 +37,8 @@ class QuickPingOverlay final : public AbstractOverlay {
   void onExit() override;
   _lv_obj_t* focusedObject() const override;
   bool hitVisibleKeyboard(int16_t x, int16_t y) const;
+  bool hitVerticalSwipeControl(int16_t x, int16_t y) const;
+  bool hitSwipeDismissRegion(int16_t x, int16_t y) const;
   /** Start the slide-out animation. Returns false when SurfaceManager should dismiss now. */
   bool requestCloseAnimation();
 
@@ -65,6 +67,7 @@ class QuickPingOverlay final : public AbstractOverlay {
   static constexpr int kMaxGroups = 12;
   static constexpr int kMaxContacts = 12;
   static constexpr int kMessagePresetCount = 5;
+  static constexpr uint32_t kMaxMessageLength = 120;
 
   _lv_obj_t* createDropdownRow(_lv_obj_t* parent, const char* label_text,
                                _lv_obj_t** out_dropdown);
@@ -82,6 +85,7 @@ class QuickPingOverlay final : public AbstractOverlay {
   void syncDropdownListLayout(_lv_obj_t* dropdown);
   void setKeyboardVisible(bool visible);
   bool keyboardVisible() const;
+  bool dismissTransientControls();
   bool targetInside(_lv_obj_t* target, _lv_obj_t* ancestor) const;
   void closeKeyboardForOutsideTarget(_lv_obj_t* target);
   void handleDropdownRow(_lv_obj_t* target);
@@ -114,7 +118,7 @@ class QuickPingOverlay final : public AbstractOverlay {
   static void onKeyboardValuePre(lv_event_t* e);
   static void onOutsideEvent(lv_event_t* e);
   static void slideYExec(void* var, int32_t value);
-  static void closeAnimationReady(lv_anim_t* anim);
+  static void closeAnimationReady(void* user_data);
 
   void startOpenAnimation();
 
@@ -153,6 +157,7 @@ class QuickPingOverlay final : public AbstractOverlay {
   _lv_obj_t* _repeat_dropdown = nullptr;
 
   char _recipient_options[512] = {};
+  char _message_text[kMaxMessageLength + 1] = {};
 };
 
 }  // namespace heltec::meshcore::ui

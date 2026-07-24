@@ -3,11 +3,13 @@
 #include "ui/app/ui_app_frame_metrics.hpp"
 #include "ui/app/ui_theme.hpp"
 #include "ui/core/ht_meta_data.hpp"
+#include "ui/core/ui_motion_scheduler.hpp"
 #include "ui/navigation/ui_navigator.hpp"
 #include "ui/theme/ui_theme_metrics.hpp"
 #include "ui/theme/ui_widget_theme.hpp"
 #include "ui/widgets/top_pane.hpp"
 #include "ui/core/ui_events.h"
+#include "heltec/drivers/input/touch_port.hpp"
 #include "heltec/ui/images.h"
 #include "MeshCore.h"
 #include <math.h>
@@ -39,6 +41,10 @@ static constexpr lv_coord_t kGridTitleBottomMarginPx = 4;
 
 static uint16_t gridNavOpenAnimMs(const lv_obj_t* obj) {
   return ui_navigation_metrics(obj).open_anim_ms;
+}
+
+static uint16_t gridNavCloseAnimMs(const lv_obj_t* obj) {
+  return static_cast<uint16_t>((static_cast<uint32_t>(gridNavOpenAnimMs(obj)) * 3U) / 4U);
 }
 
 static _lv_obj_t* gridCellIconArea(_lv_obj_t* cell) {
@@ -105,16 +111,14 @@ static void layoutGridCellIcon(_lv_obj_t* cell, lv_coord_t cell_w, lv_coord_t ce
   lv_obj_set_style_layout(icon_area, 0, LV_PART_MAIN);
   lv_obj_set_height(bar, bar_h);
   lv_obj_set_pos(bar, 0, bar_y);
-  const lv_coord_t icon_max_h =
-      LV_MAX(2, max_area_h - kGridIconPadPx * 2);
+  const lv_coord_t icon_max_h = LV_MAX(2, max_area_h - kGridIconPadPx * 2);
   layoutGridIconImage(icon, area_w - kGridIconPadPx * 2, icon_max_h);
   lv_obj_set_size(icon_area, area_w, max_area_h);
   lv_obj_set_pos(icon_area, 0, 0);
   const lv_coord_t icon_w = lv_obj_get_width(icon);
   const lv_coord_t icon_h = lv_obj_get_height(icon);
-  const lv_coord_t usable_h = max_area_h;
   const lv_coord_t icon_x = LV_MAX(0, (area_w - icon_w) / 2);
-  const lv_coord_t icon_y = LV_MAX(0, (usable_h - icon_h) / 2);
+  const lv_coord_t icon_y = LV_MAX(0, (max_area_h - icon_h) / 2);
   lv_obj_set_pos(icon, icon_x, icon_y);
 }
 
@@ -164,7 +168,10 @@ static void layoutRootBelowTopPane(_lv_obj_t* root) {
 
 }  // namespace
 
-NavigationPane::~NavigationPane() = default;
+NavigationPane::~NavigationPane() {
+  if (_nav) ui_motion_cancel(_nav);
+  ui_motion_cancel(this);
+}
 
 _lv_obj_t* NavigationPane::navButtonHost() const {
   return itemHost();
@@ -475,8 +482,8 @@ _lv_obj_t* NavigationPane::create(_lv_obj_t* parent) {
     auto* self = static_cast<NavigationPane*>(lv_event_get_user_data(e));
     if (!self || !self->_nav || lv_event_get_code(e) != LV_EVENT_SIZE_CHANGED) return;
     const bool fading = self->_ring_fade_busy;
-    lv_anim_del(self->_nav, nullptr);
-    lv_anim_del(self, nullptr);
+    ui_motion_cancel(self->_nav);
+    ui_motion_cancel(self);
     if (fading) {
       self->_ring_fade_busy = false;
       lv_obj_clear_state(self->_nav, LV_STATE_USER_4);
@@ -512,18 +519,18 @@ void NavigationPane::setIcon(uint8_t id, const lv_img_dsc_t* img) {
     return;
   }
 
-  auto add_cell_press_cb = [this](_lv_obj_t* cell) {
-    lv_obj_add_event_cb(cell, [](lv_event_t* e) {
-      if (LV_EVENT_PRESSED != lv_event_get_code(e)) return;
-      auto* nav = static_cast<NavigationPane*>(lv_event_get_user_data(e));
-      if (!nav || !nav->panelVisible() || nav->_ring_fade_busy) return;
-      nav->onCellPressed(lv_event_get_target(e));
-    }, LV_EVENT_PRESSED, this);
+  auto add_cell_click_cb = [this](_lv_obj_t* cell) {
     lv_obj_add_event_cb(cell, [](lv_event_t* e) {
       if (LV_EVENT_CLICKED != lv_event_get_code(e)) return;
       auto* nav = static_cast<NavigationPane*>(lv_event_get_user_data(e));
       if (!nav || !nav->panelVisible() || nav->_ring_fade_busy) return;
-      nav->onCellPressed(lv_event_get_target(e));
+#if defined(HELTEC_V4_R8_TFT) && defined(HELTEC_HAS_TOUCH) && HELTEC_HAS_TOUCH
+      // Crossing the swipe threshold suppresses LVGL's pointer path by
+      // delivering a synthetic release while the finger is still down. Do not
+      // turn that release into a navigation click/commit.
+      if (heltec::meshcore::dal::touch_port::isPressed()) return;
+#endif
+      nav->onCellClicked(lv_event_get_target(e));
       (void)nav->commitFocused();
       lv_event_stop_processing(e);
       lv_event_stop_bubbling(e);
@@ -583,7 +590,7 @@ void NavigationPane::setIcon(uint8_t id, const lv_img_dsc_t* img) {
     lv_obj_add_flag(cell, LV_OBJ_FLAG_HIDDEN);
   }
   lv_obj_clear_flag(cell, LV_OBJ_FLAG_SCROLL_ON_FOCUS);
-  add_cell_press_cb(cell);
+  add_cell_click_cb(cell);
 
 
   layoutNav(false);
@@ -599,9 +606,10 @@ void NavigationPane::setSelectedIndex(uint8_t id, bool preview) {
 }
 
 void NavigationPane::resetPanel() {
-  lv_anim_del(_nav, nullptr);
-  lv_anim_del(this, nullptr);
+  if (_nav) ui_motion_cancel(_nav);
+  ui_motion_cancel(this);
   _ring_fade_busy = false;
+  _close_animating = false;
   if (!_nav) return;
   lv_obj_add_state(_nav, LV_STATE_USER_4);
   updateGeometry();
@@ -613,6 +621,7 @@ void NavigationPane::resetPanel() {
 
 void NavigationPane::onEnter() {
   UiSurface::onEnter();
+  _close_animating = false;
   if (!_nav || btnCount() == 0) return;
   openPanel();
 }
@@ -635,7 +644,7 @@ _lv_obj_t* NavigationPane::frameRoot() const {
   return _root;
 }
 
-void NavigationPane::onCellPressed(_lv_obj_t* cell) {
+void NavigationPane::onCellClicked(_lv_obj_t* cell) {
   if (!cell) return;
   const uint8_t id = navCellId(cell);
   if (id == _ring_layout_focus) return;
@@ -726,12 +735,59 @@ bool NavigationPane::onKey(uint32_t lv_key) {
   return false;
 }
 
+bool NavigationPane::requestCloseAnimation() {
+  if (!_root || !_nav || !panelVisible()) return false;
+  if (_close_animating) return true;
+
+  lv_coord_t nx = 0;
+  lv_coord_t ny = 0;
+  lv_coord_t nw = lv_obj_get_width(_nav);
+  lv_coord_t nh = lv_obj_get_height(_nav);
+  gridPaneFrameRect(_root, _tileview, &nx, &ny, &nw, &nh);
+  const lv_coord_t closed_x = closedPaneX(_nav, nx);
+  const lv_coord_t current_x = lv_obj_get_x(_nav);
+  const uint16_t close_slide_ms = gridNavCloseAnimMs(_root);
+  if (current_x <= closed_x || close_slide_ms == 0) return false;
+
+  ui_motion_cancel(_nav);
+  ui_motion_cancel(this);
+  _ring_fade_busy = true;
+  _close_animating = true;
+  setNavButtonsInteractive(false);
+
+  UiMotionSpec motion;
+  motion.target = _nav;
+  motion.exec = [](void* var, int32_t value) {
+    lv_obj_set_x(static_cast<_lv_obj_t*>(var), static_cast<lv_coord_t>(value));
+  };
+  motion.ready = [](void* user_data) {
+    auto* self = static_cast<NavigationPane*>(user_data);
+    if (!self) return;
+    self->_close_animating = false;
+    self->_ring_fade_busy = false;
+    if (_lv_obj_t* frame = self->frameRoot()) {
+      ui_event_send(frame, UiEventType::NavClose);
+    }
+  };
+  motion.ready_data = this;
+  motion.start_value = current_x;
+  motion.end_value = closed_x;
+  motion.duration_ms = close_slide_ms;
+  motion.path = UiMotionPath::EaseIn;
+  if (!ui_motion_start(motion)) {
+    _ring_fade_busy = false;
+    _close_animating = false;
+    return false;
+  }
+  return true;
+}
+
 void NavigationPane::openPanel() {
   if (!_root || !_nav) return;
   const uint16_t open_slide_ms = gridNavOpenAnimMs(_root);
 
-  lv_anim_del(_nav, nullptr);
-  lv_anim_del(this, nullptr);
+  ui_motion_cancel(_nav);
+  ui_motion_cancel(this);
 
   _ring_fade_busy = true;
   setNavButtonsInteractive(false);
@@ -758,18 +814,13 @@ void NavigationPane::openPanel() {
   lv_obj_clear_flag(_nav, LV_OBJ_FLAG_HIDDEN);
   lv_obj_move_foreground(_nav);
   layoutNav(false);
-  lv_anim_t a;
-  lv_anim_init(&a);
-  lv_anim_set_var(&a, _nav);
-  lv_anim_set_exec_cb(&a, [](void* var, int32_t v) {
+  UiMotionSpec motion;
+  motion.target = _nav;
+  motion.exec = [](void* var, int32_t v) {
     lv_obj_set_x(static_cast<lv_obj_t*>(var), static_cast<lv_coord_t>(v));
-  });
-  lv_anim_set_values(&a, closed_x, nx);
-  lv_anim_set_time(&a, open_slide_ms);
-  lv_anim_set_path_cb(&a, lv_anim_path_ease_out);
-  lv_anim_set_user_data(&a, this);
-  lv_anim_set_ready_cb(&a, [](lv_anim_t* anim) {
-    auto* self = static_cast<NavigationPane*>(lv_anim_get_user_data(anim));
+  };
+  motion.ready = [](void* user_data) {
+    auto* self = static_cast<NavigationPane*>(user_data);
     if (!self) return;
     self->_ring_fade_busy = false;
     self->updateGeometry();
@@ -778,12 +829,18 @@ void NavigationPane::openPanel() {
     if (_lv_group_t* g = self->group()) {
       lv_group_focus_obj(self->_nav);
     }
-  });
-  lv_anim_start(&a);
-  if (open_slide_ms == 0) {
+  };
+  motion.ready_data = this;
+  motion.start_value = closed_x;
+  motion.end_value = nx;
+  motion.duration_ms = open_slide_ms;
+  motion.path = UiMotionPath::EaseOut;
+  if (!ui_motion_start(motion)) {
+    lv_obj_set_x(_nav, nx);
     _ring_fade_busy = false;
     updateGeometry();
     setNavButtonsInteractive(true);
+    layoutNav(false);
     if (_lv_group_t* g = group()) {
       lv_group_focus_obj(_nav);
     }

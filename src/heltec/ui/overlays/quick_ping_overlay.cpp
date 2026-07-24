@@ -9,7 +9,9 @@
 #include "heltec/ui/core/biz_facade.hpp"
 #include "ui/app/ui_theme.hpp"
 #include "ui/core/ht_meta_data.hpp"
+#include "ui/core/ui_deferred_queue.hpp"
 #include "ui/core/ui_events.h"
+#include "ui/core/ui_motion_scheduler.hpp"
 #include "ui/theme/ui_theme_metrics.hpp"
 #include "ui/theme/ui_widget_theme.hpp"
 
@@ -21,9 +23,22 @@ constexpr const char* kMessageOptions = "hi\nbye\nyes\nno\nok";
 constexpr const char* kMessagePresets[] = {
     "hi", "bye", "yes", "no", "ok",
 };
-constexpr uint32_t kMaxMessageLength = 120;
-constexpr lv_coord_t kDropdownRowHeight = 30;
-constexpr lv_coord_t kDropdownControlHeight = 28;
+constexpr lv_coord_t kPaneInset = 8;
+constexpr lv_coord_t kPaneWidth = 224;
+constexpr lv_coord_t kPaneHeight = 304;
+constexpr lv_coord_t kTitleBarHeight = 39;
+constexpr lv_coord_t kContentPadHorizontal = 6;
+constexpr lv_coord_t kContentPadBottom = 7;
+constexpr lv_coord_t kRowGap = 6;
+constexpr lv_coord_t kDropdownRowHeight = 40;
+constexpr lv_coord_t kDropdownRowRadius = 6;
+constexpr lv_coord_t kDropdownControlX = 81;
+constexpr lv_coord_t kDropdownControlY = 3;
+constexpr lv_coord_t kDropdownControlWidth = 130;
+constexpr lv_coord_t kDropdownControlHeight = 32;
+constexpr lv_coord_t kRowLabelX = 12;
+constexpr lv_coord_t kRowLabelWidth = 70;
+constexpr lv_coord_t kMessageDropdownWidth = 26;
 
 #ifndef QUICK_PING_SLIDE_ANIM_MS
 #define QUICK_PING_SLIDE_ANIM_MS 220
@@ -121,21 +136,19 @@ _lv_obj_t* QuickPingOverlay::create(_lv_obj_t* parent) {
   if (_root) return _root;
   if (!AbstractOverlay::create(parent)) return nullptr;
 
-  const UiQuickPingMetrics& metrics = ui_quick_ping_metrics(_root);
-  lv_obj_set_size(_root, lv_pct(metrics.width_pct), lv_pct(metrics.height_pct));
-  lv_obj_align(_root, LV_ALIGN_TOP_LEFT, 0, 0);
+  lv_obj_set_size(_root, kPaneWidth, kPaneHeight);
+  lv_obj_align(_root, LV_ALIGN_TOP_LEFT, kPaneInset, kPaneInset);
   lv_obj_set_flex_flow(_root, LV_FLEX_FLOW_COLUMN);
   lv_obj_set_flex_align(_root, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_START,
                         LV_FLEX_ALIGN_START);
   lv_obj_set_style_pad_all(_root, 0, LV_PART_MAIN);
   lv_obj_clear_flag(_root, LV_OBJ_FLAG_SCROLLABLE);
   lv_obj_add_flag(_root, LV_OBJ_FLAG_CLICKABLE);
-  lv_obj_add_event_cb(_root, onOutsideEvent, LV_EVENT_PRESSED, this);
   lv_obj_add_event_cb(_root, onOutsideEvent, LV_EVENT_CLICKED, this);
 
   _title_bar = ht_obj_create(_root, meta_id::QuickPingTitleBar);
   if (!_title_bar) return nullptr;
-  lv_obj_set_size(_title_bar, lv_pct(100), 28);
+  lv_obj_set_size(_title_bar, lv_pct(100), kTitleBarHeight);
   lv_obj_set_flex_flow(_title_bar, LV_FLEX_FLOW_ROW);
   lv_obj_set_flex_align(_title_bar, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER,
                         LV_FLEX_ALIGN_CENTER);
@@ -153,10 +166,14 @@ _lv_obj_t* QuickPingOverlay::create(_lv_obj_t* parent) {
   lv_obj_set_flex_flow(_content, LV_FLEX_FLOW_COLUMN);
   lv_obj_set_flex_align(_content, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_START,
                         LV_FLEX_ALIGN_START);
-  lv_obj_set_style_pad_all(_content, metrics.content_pad, LV_PART_MAIN);
+  lv_obj_set_style_pad_left(_content, kContentPadHorizontal, LV_PART_MAIN);
+  lv_obj_set_style_pad_right(_content, kContentPadHorizontal, LV_PART_MAIN);
+  lv_obj_set_style_pad_top(_content, 0, LV_PART_MAIN);
+  lv_obj_set_style_pad_bottom(_content, kContentPadBottom, LV_PART_MAIN);
+  lv_obj_set_style_pad_row(_content, kRowGap, LV_PART_MAIN);
   lv_obj_clear_flag(_content, LV_OBJ_FLAG_SCROLLABLE);
 
-  _row_target = createDropdownRow(_content, "target:", &_dd_target);
+  _row_target = createDropdownRow(_content, "Target :", &_dd_target);
   _row_recipient = createDropdownRow(_content, "to:", &_dd_recipient);
   _row_message = createMessageRow(_content);
   _keyboard = createKeyboard(_content);
@@ -181,10 +198,10 @@ void QuickPingOverlay::onEnter() {
 
 void QuickPingOverlay::onExit() {
   if (_root) {
-    lv_anim_del(_root, slideYExec);
-    lv_obj_set_y(_root, 0);
+    ui_motion_cancel(_root, slideYExec);
+    lv_obj_set_y(_root, kPaneInset);
   }
-  lv_async_call_cancel(openPendingKeyboardAsync, this);
+  ui_defer_cancel(openPendingKeyboardAsync, this);
   clearRepeatSelection();
   _close_animating = false;
   _close_animation_ready = false;
@@ -203,26 +220,25 @@ void QuickPingOverlay::slideYExec(void* var, int32_t value) {
 
 void QuickPingOverlay::startOpenAnimation() {
   if (!_root || !lv_obj_is_valid(_root)) return;
-  lv_anim_del(_root, slideYExec);
+  ui_motion_cancel(_root, slideYExec);
   lv_obj_update_layout(_root);
   lv_coord_t height = lv_obj_get_height(_root);
   if (height <= 0) {
     if (_lv_obj_t* parent = lv_obj_get_parent(_root)) height = lv_obj_get_height(parent);
   }
   if (height <= 0 || QUICK_PING_SLIDE_ANIM_MS == 0) {
-    lv_obj_set_y(_root, 0);
+    lv_obj_set_y(_root, kPaneInset);
     return;
   }
 
-  lv_obj_set_y(_root, static_cast<lv_coord_t>(-height));
-  lv_anim_t anim;
-  lv_anim_init(&anim);
-  lv_anim_set_var(&anim, _root);
-  lv_anim_set_exec_cb(&anim, slideYExec);
-  lv_anim_set_values(&anim, -height, 0);
-  lv_anim_set_time(&anim, QUICK_PING_SLIDE_ANIM_MS);
-  lv_anim_set_path_cb(&anim, lv_anim_path_ease_out);
-  lv_anim_start(&anim);
+  UiMotionSpec motion;
+  motion.target = _root;
+  motion.exec = slideYExec;
+  motion.start_value = -height;
+  motion.end_value = kPaneInset;
+  motion.duration_ms = QUICK_PING_SLIDE_ANIM_MS;
+  motion.path = UiMotionPath::EaseOut;
+  if (!ui_motion_start(motion)) lv_obj_set_y(_root, kPaneInset);
 }
 
 bool QuickPingOverlay::requestCloseAnimation() {
@@ -235,7 +251,7 @@ bool QuickPingOverlay::requestCloseAnimation() {
 
   closeDropdowns();
   clearRepeatSelection();
-  lv_anim_del(_root, slideYExec);
+  ui_motion_cancel(_root, slideYExec);
   lv_obj_update_layout(_root);
   lv_coord_t height = lv_obj_get_height(_root);
   if (height <= 0) {
@@ -243,22 +259,22 @@ bool QuickPingOverlay::requestCloseAnimation() {
   }
   if (height <= 0 || QUICK_PING_SLIDE_ANIM_MS == 0) return false;
 
+  UiMotionSpec motion;
+  motion.target = _root;
+  motion.exec = slideYExec;
+  motion.ready = closeAnimationReady;
+  motion.ready_data = this;
+  motion.start_value = lv_obj_get_y(_root);
+  motion.end_value = -height;
+  motion.duration_ms = QUICK_PING_SLIDE_ANIM_MS;
+  motion.path = UiMotionPath::EaseIn;
+  if (!ui_motion_start(motion)) return false;
   _close_animating = true;
-  lv_anim_t anim;
-  lv_anim_init(&anim);
-  lv_anim_set_var(&anim, _root);
-  lv_anim_set_exec_cb(&anim, slideYExec);
-  lv_anim_set_values(&anim, lv_obj_get_y(_root), -height);
-  lv_anim_set_time(&anim, QUICK_PING_SLIDE_ANIM_MS);
-  lv_anim_set_path_cb(&anim, lv_anim_path_ease_in);
-  lv_anim_set_user_data(&anim, this);
-  lv_anim_set_ready_cb(&anim, closeAnimationReady);
-  lv_anim_start(&anim);
   return true;
 }
 
-void QuickPingOverlay::closeAnimationReady(lv_anim_t* anim) {
-  auto* self = anim ? static_cast<QuickPingOverlay*>(lv_anim_get_user_data(anim)) : nullptr;
+void QuickPingOverlay::closeAnimationReady(void* user_data) {
+  auto* self = static_cast<QuickPingOverlay*>(user_data);
   if (!self) return;
   self->_close_animating = false;
   self->_close_animation_ready = true;
@@ -276,7 +292,9 @@ bool QuickPingOverlay::onKey(uint32_t key) {
     rebuildFocusGroup(_ta_message);
     return true;
   }
-  return emitEvent(UiEventType::QuickPingClose);
+  // Keep the pane open after ESC/back once transient controls are gone.
+  // QuickPingPane dismissal is intentionally owned by the upward swipe path.
+  return true;
 }
 
 _lv_obj_t* QuickPingOverlay::focusedObject() const {
@@ -299,11 +317,9 @@ _lv_obj_t* QuickPingOverlay::createDropdownRow(_lv_obj_t* parent, const char* la
   _lv_obj_t* row = ht_obj_create(parent, meta_id::QuickPingRow);
   if (!row) return nullptr;
   lv_obj_set_size(row, lv_pct(100), kDropdownRowHeight);
-  lv_obj_set_flex_flow(row, LV_FLEX_FLOW_ROW);
-  lv_obj_set_flex_align(row, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER,
-                        LV_FLEX_ALIGN_CENTER);
+  lv_obj_set_layout(row, 0);
   lv_obj_set_style_pad_all(row, 0, LV_PART_MAIN);
-  lv_obj_set_style_pad_column(row, 4, LV_PART_MAIN);
+  lv_obj_set_style_radius(row, kDropdownRowRadius, LV_PART_MAIN);
   lv_obj_clear_flag(row, LV_OBJ_FLAG_SCROLLABLE);
   lv_obj_add_flag(row, LV_OBJ_FLAG_CLICKABLE);
   lv_obj_clear_flag(row, LV_OBJ_FLAG_CLICK_FOCUSABLE);
@@ -312,16 +328,17 @@ _lv_obj_t* QuickPingOverlay::createDropdownRow(_lv_obj_t* parent, const char* la
 
   _lv_obj_t* label = ht_label_create(row, meta_id::QuickPingLabel, label_text ? label_text : "");
   if (label) {
-    lv_obj_set_width(label, 60);
+    lv_obj_set_width(label, kRowLabelWidth);
+    lv_obj_align(label, LV_ALIGN_LEFT_MID, kRowLabelX, 0);
     lv_label_set_long_mode(label, LV_LABEL_LONG_DOT);
   }
 
   _lv_obj_t* dropdown = ht_dropdown_create(row, meta_id::QuickPingDropdown);
   if (!dropdown) return row;
-  lv_obj_set_height(dropdown, kDropdownControlHeight);
+  lv_obj_set_size(dropdown, kDropdownControlWidth, kDropdownControlHeight);
+  lv_obj_align(dropdown, LV_ALIGN_TOP_LEFT, kDropdownControlX, kDropdownControlY);
   lv_obj_set_style_pad_right(dropdown, 8, LV_PART_MAIN);
   ui_theme_center_dropdown_value(dropdown);
-  lv_obj_set_flex_grow(dropdown, 1);
   lv_dropdown_set_dir(dropdown, LV_DIR_BOTTOM);
   lv_dropdown_set_selected_highlight(dropdown, true);
   lv_obj_add_event_cb(dropdown, onDropdownConfirmPreprocess,
@@ -337,11 +354,9 @@ _lv_obj_t* QuickPingOverlay::createMessageRow(_lv_obj_t* parent) {
   _lv_obj_t* row = ht_obj_create(parent, meta_id::QuickPingRow);
   if (!row) return nullptr;
   lv_obj_set_size(row, lv_pct(100), kDropdownRowHeight);
-  lv_obj_set_flex_flow(row, LV_FLEX_FLOW_ROW);
-  lv_obj_set_flex_align(row, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER,
-                        LV_FLEX_ALIGN_CENTER);
+  lv_obj_set_layout(row, 0);
   lv_obj_set_style_pad_all(row, 0, LV_PART_MAIN);
-  lv_obj_set_style_pad_column(row, 4, LV_PART_MAIN);
+  lv_obj_set_style_radius(row, kDropdownRowRadius, LV_PART_MAIN);
   lv_obj_clear_flag(row, LV_OBJ_FLAG_SCROLLABLE);
   lv_obj_add_flag(row, LV_OBJ_FLAG_CLICKABLE);
   lv_obj_clear_flag(row, LV_OBJ_FLAG_CLICK_FOCUSABLE);
@@ -350,7 +365,8 @@ _lv_obj_t* QuickPingOverlay::createMessageRow(_lv_obj_t* parent) {
 
   _lv_obj_t* label = ht_label_create(row, meta_id::QuickPingLabel, "message:");
   if (label) {
-    lv_obj_set_width(label, 60);
+    lv_obj_set_width(label, kRowLabelWidth);
+    lv_obj_align(label, LV_ALIGN_LEFT_MID, kRowLabelX, 0);
     lv_label_set_long_mode(label, LV_LABEL_LONG_DOT);
     lv_obj_add_flag(label, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_clear_flag(label, LV_OBJ_FLAG_CLICK_FOCUSABLE);
@@ -360,10 +376,13 @@ _lv_obj_t* QuickPingOverlay::createMessageRow(_lv_obj_t* parent) {
 
   _ta_message = ht_textarea_create(row, meta_id::QuickPingMessageInput);
   if (_ta_message) {
-    lv_obj_set_height(_ta_message, 22);
-    lv_obj_set_flex_grow(_ta_message, 1);
+    lv_obj_set_size(_ta_message, kDropdownControlWidth - kMessageDropdownWidth,
+                    kDropdownControlHeight);
+    lv_obj_align(_ta_message, LV_ALIGN_TOP_LEFT, kDropdownControlX,
+                 kDropdownControlY);
     lv_textarea_set_one_line(_ta_message, true);
     lv_textarea_set_max_length(_ta_message, kMaxMessageLength);
+    lv_textarea_set_text_buffer(_ta_message, _message_text, sizeof(_message_text));
     lv_textarea_set_cursor_click_pos(_ta_message, true);
     lv_textarea_set_placeholder_text(_ta_message, "");
     if (_lv_obj_t* text_label = lv_textarea_get_label(_ta_message)) {
@@ -380,9 +399,11 @@ _lv_obj_t* QuickPingOverlay::createMessageRow(_lv_obj_t* parent) {
 
   _dd_message = ht_dropdown_create(row, meta_id::QuickPingMessageDropdown);
   if (_dd_message) {
-    lv_obj_set_size(_dd_message, 22, kDropdownControlHeight);
+    lv_obj_set_size(_dd_message, kMessageDropdownWidth, kDropdownControlHeight);
+    lv_obj_align(_dd_message, LV_ALIGN_TOP_LEFT,
+                 kDropdownControlX + kDropdownControlWidth - kMessageDropdownWidth,
+                 kDropdownControlY);
     ui_theme_center_dropdown_value(_dd_message);
-    lv_obj_set_flex_grow(_dd_message, 0);
     lv_dropdown_set_options_static(_dd_message, kMessageOptions);
     lv_dropdown_set_text(_dd_message, LV_SYMBOL_DOWN);
     lv_dropdown_set_symbol(_dd_message, nullptr);
@@ -420,7 +441,6 @@ _lv_obj_t* QuickPingOverlay::createKeyboard(_lv_obj_t* parent) {
 }
 
 void QuickPingOverlay::applyState(bool keep_focus) {
-  syncLists();
   syncRecipientDropdown();
 
   const TargetKind kind = targetKind();
@@ -540,7 +560,6 @@ void QuickPingOverlay::syncDropdownOptions() {
     lv_dropdown_set_options_static(_dd_message, kMessageOptions);
     lv_dropdown_set_selected(_dd_message, _message_index);
   }
-  syncRecipientDropdown();
   _syncing_dropdowns = was_syncing;
 }
 
@@ -659,6 +678,55 @@ bool QuickPingOverlay::hitVisibleKeyboard(int16_t x, int16_t y) const {
   return lv_obj_hit_test(_keyboard, &point);
 }
 
+bool QuickPingOverlay::hitVerticalSwipeControl(int16_t x, int16_t y) const {
+  lv_point_t point;
+  point.x = static_cast<lv_coord_t>(x);
+  point.y = static_cast<lv_coord_t>(y);
+  if (hitVisibleKeyboard(x, y)) return true;
+
+  _lv_obj_t* const protected_controls[] = {
+      _dd_target, _dd_recipient, _dd_message, _ta_message,
+  };
+  for (_lv_obj_t* control : protected_controls) {
+    if (control && lv_obj_is_valid(control) &&
+        !lv_obj_has_flag(control, LV_OBJ_FLAG_HIDDEN) && lv_obj_hit_test(control, &point)) {
+      return true;
+    }
+  }
+
+  _lv_obj_t* const dropdowns[] = {_dd_target, _dd_recipient, _dd_message};
+  for (_lv_obj_t* dropdown : dropdowns) {
+    _lv_obj_t* list = dropdown ? lv_dropdown_get_list(dropdown) : nullptr;
+    if (list && lv_obj_is_valid(list) && !lv_obj_has_flag(list, LV_OBJ_FLAG_HIDDEN) &&
+        lv_obj_hit_test(list, &point)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+bool QuickPingOverlay::hitSwipeDismissRegion(int16_t x, int16_t y) const {
+  if (!_root || !lv_obj_is_valid(_root) || lv_obj_has_flag(_root, LV_OBJ_FLAG_HIDDEN)) {
+    return false;
+  }
+
+  lv_point_t point;
+  point.x = static_cast<lv_coord_t>(x);
+  point.y = static_cast<lv_coord_t>(y);
+  if (!lv_obj_hit_test(_root, &point) || hitVerticalSwipeControl(x, y)) return false;
+  return true;
+}
+
+bool QuickPingOverlay::dismissTransientControls() {
+  if (closeDropdown(_dd_target) || closeDropdown(_dd_recipient) || closeDropdown(_dd_message)) {
+    return true;
+  }
+  if (!keyboardVisible()) return false;
+  setKeyboardVisible(false);
+  rebuildFocusGroup(_ta_message);
+  return true;
+}
+
 bool QuickPingOverlay::targetInside(_lv_obj_t* target, _lv_obj_t* ancestor) const {
   if (!target || !ancestor || !lv_obj_is_valid(target) || !lv_obj_is_valid(ancestor)) return false;
   for (_lv_obj_t* obj = target; obj; obj = lv_obj_get_parent(obj)) {
@@ -741,7 +809,7 @@ void QuickPingOverlay::handleMessageInput() {
   }
   if (keyboardVisible() || _keyboard_open_pending) return;
   _keyboard_open_pending = true;
-  lv_async_call(openPendingKeyboardAsync, this);
+  if (!ui_defer(openPendingKeyboardAsync, this)) _keyboard_open_pending = false;
 }
 
 void QuickPingOverlay::openPendingKeyboard() {
@@ -825,7 +893,7 @@ void QuickPingOverlay::activateDropdown(_lv_obj_t* dropdown) {
 }
 
 void QuickPingOverlay::clearRepeatSelection() {
-  lv_async_call_cancel(finishRepeatSelectionAsync, this);
+  ui_defer_cancel(finishRepeatSelectionAsync, this);
   _repeat_pending = false;
   _repeat_index = 0;
   _repeat_dropdown = nullptr;
@@ -837,7 +905,7 @@ void QuickPingOverlay::armRepeatSelection(_lv_obj_t* dropdown) {
   _repeat_pending = true;
   _repeat_index = lv_dropdown_get_selected(dropdown);
   _repeat_dropdown = dropdown;
-  lv_async_call(finishRepeatSelectionAsync, this);
+  if (!ui_defer(finishRepeatSelectionAsync, this)) clearRepeatSelection();
 }
 
 void QuickPingOverlay::finishRepeatSelection() {
@@ -1063,18 +1131,21 @@ void QuickPingOverlay::onKeyboardValuePre(lv_event_t* e) {
 
 void QuickPingOverlay::onOutsideEvent(lv_event_t* e) {
   const lv_event_code_t code = lv_event_get_code(e);
-  if (code != LV_EVENT_PRESSED && code != LV_EVENT_CLICKED && code != LV_EVENT_FOCUSED) return;
+  if (code != LV_EVENT_CLICKED) return;
   auto* self = static_cast<QuickPingOverlay*>(lv_event_get_user_data(e));
   if (!self) return;
   _lv_obj_t* target = lv_event_get_target(e);
-  if (code == LV_EVENT_CLICKED) {
-    self->closeKeyboardForOutsideTarget(target);
-    self->handleDropdownRow(target);
-    lv_event_stop_bubbling(e);
-    lv_event_stop_processing(e);
+
+  // A background click may dismiss a transient dropdown/keyboard, but the
+  // pane itself is closed only by its upward swipe gesture (or non-touch ESC).
+  if (target == self->_root || target == self->_content) {
+    (void)self->dismissTransientControls();
   } else {
     self->closeKeyboardForOutsideTarget(target);
+    self->handleDropdownRow(target);
   }
+  lv_event_stop_bubbling(e);
+  lv_event_stop_processing(e);
 }
 
 }  // namespace heltec::meshcore::ui

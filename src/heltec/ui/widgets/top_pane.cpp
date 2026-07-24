@@ -309,7 +309,7 @@ bool TopPane::create(_lv_obj_t* parent) {
 }
 
 void TopPane::setTitle(const char* text) {
-  if (_title) lv_label_set_text(_title, text ? text : "");
+  if (_title) lv_label_set_text_static(_title, text ? text : "");
 }
 
 void TopPane::setBatteryMilliVolts(uint16_t mv) {

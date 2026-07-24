@@ -121,7 +121,7 @@ class UiApp final : public IUiHost, public InputHost {
 #if defined(HELTEC_V4_R8_TFT) && defined(HELTEC_HAS_TOUCH) && HELTEC_HAS_TOUCH
   static bool touchGestureBlockVerticalSwipe(int16_t x, int16_t y);
   static bool touchGestureRawPointerPassthrough(int16_t x, int16_t y);
-  static bool touchGestureBlockQuickPingKeyboard(int16_t x, int16_t y);
+  static bool touchGestureBlockQuickPingDoubleTap(int16_t x, int16_t y);
 #endif
 #endif
   uint8_t activeTileIndex() const;
@@ -138,12 +138,16 @@ class UiApp final : public IUiHost, public InputHost {
 #if defined(HELTEC_V4_R8_TFT) && defined(HELTEC_HAS_TOUCH) && HELTEC_HAS_TOUCH
   enum class DeferredTouchAction : uint8_t {
     None = 0,
-    ToggleNavigation,
-    ToggleQuickPing,
+    OpenNavigation,
+    CloseNavigation,
+    OpenQuickPing,
+    CloseQuickPing,
   };
 
-  void toggleNavigationPaneFromEdgeSwipe();
-  void toggleQuickPingFromTopSwipe();
+  void openNavigationPaneFromEdgeSwipe();
+  void closeNavigationPaneFromSwipe();
+  void openQuickPingFromTopSwipe();
+  void closeQuickPingFromSwipe();
   void deferTouchAction(DeferredTouchAction action);
   void runDeferredTouchAction();
   static void deferredTouchActionTimerCb(lv_timer_t* timer);

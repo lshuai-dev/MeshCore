@@ -9,6 +9,7 @@
 #include <lvgl.h>
 
 #include "heltec/ui/core/biz_facade.hpp"
+#include "config/LoRaBandPresets.h"
 
 namespace heltec::meshcore::ui {
 
@@ -42,7 +43,7 @@ _lv_obj_t* RadioParamSyncOverlay::create(lv_obj_t* parent) {
   _title = ht_label_create(_root, meta_id::RadioParamSyncTitle);
   if (!_title) return nullptr;
   lv_obj_set_width(_title, lv_pct(100));
-  lv_label_set_text(_title, "Radio param preset");
+  lv_label_set_text_static(_title, "Radio param preset");
 
   _list = ht_obj_create(_root, meta_id::RadioParamSyncList);
   if (!_list) return nullptr;
@@ -110,7 +111,7 @@ _lv_obj_t* RadioParamSyncOverlay::create(lv_obj_t* parent) {
   _footer = ht_label_create(_root, meta_id::RadioParamSyncFooter);
   if (!_footer) return nullptr;
   lv_obj_set_width(_footer, lv_pct(100));
-  lv_label_set_text(_footer, "Enter: OK  Esc: back");
+  lv_label_set_text_static(_footer, "Enter: OK  Esc: back");
 
 #if !defined(HELTEC_V4_R8_TFT)
   lv_obj_add_flag(_root, LV_OBJ_FLAG_CLICKABLE);
@@ -243,7 +244,6 @@ void RadioParamSyncOverlay::renderRows() {
   lv_roller_set_selected(_roller, static_cast<uint16_t>(_select), LV_ANIM_OFF);
 #else
   const int cur_idx = _biz.currentLoRaBandPresetIndex();
-  char buf[32];
   const int center = static_cast<int>(_visible_rows) / 2;
 
   for (int vr = 0; vr < static_cast<int>(_visible_rows); vr++) {
@@ -254,11 +254,12 @@ void RadioParamSyncOverlay::renderRows() {
     const bool is_cur = (item == cur_idx);
 
     if (is_cur) {
-      lv_snprintf(buf, sizeof(buf), "*%s", name ? name : "");
+      lv_snprintf(_current_row_text, sizeof(_current_row_text), "*%s",
+                  name ? name : "");
+      lv_label_set_text_static(row, _current_row_text);
     } else {
-      lv_snprintf(buf, sizeof(buf), "%s", name ? name : "");
+      lv_label_set_text_static(row, name ? name : "");
     }
-    lv_label_set_text(row, buf);
 
     if (vr == center) {
       lv_obj_add_state(row, LV_STATE_CHECKED);
@@ -271,27 +272,28 @@ void RadioParamSyncOverlay::renderRows() {
 
 #if defined(HELTEC_V4_R8_TFT)
 void RadioParamSyncOverlay::rebuildRollerOptions() {
-  if (!_roller || sizeof(_roller_options) < 2) return;
+  if (!_roller || kRadioParamPresetUiScratchSize < 2) return;
+  char* const roller_options = radioParamPresetUiScratch();
 
   const int cur_idx = _biz.currentLoRaBandPresetIndex();
   size_t pos = 0;
-  _roller_options[0] = '\0';
+  roller_options[0] = '\0';
   for (int i = 0; i < static_cast<int>(_count); ++i) {
     const char* name = _biz.loRaBandPresetName(i);
     if (!name) name = "";
     const int written =
-        lv_snprintf(_roller_options + pos, sizeof(_roller_options) - pos,
+        lv_snprintf(roller_options + pos, kRadioParamPresetUiScratchSize - pos,
                     "%s%s%s", i > 0 ? "\n" : "", i == cur_idx ? "*" : "", name);
     if (written < 0) break;
-    const size_t available = sizeof(_roller_options) - pos;
+    const size_t available = kRadioParamPresetUiScratchSize - pos;
     if (static_cast<size_t>(written) >= available) {
-      pos = sizeof(_roller_options) - 1;
+      pos = kRadioParamPresetUiScratchSize - 1;
       break;
     }
     pos += static_cast<size_t>(written);
   }
-  _roller_options[pos] = '\0';
-  lv_roller_set_options(_roller, _roller_options, LV_ROLLER_MODE_NORMAL);
+  roller_options[pos] = '\0';
+  lv_roller_set_options(_roller, roller_options, LV_ROLLER_MODE_NORMAL);
 }
 #endif
 

@@ -34,10 +34,14 @@ _lv_obj_t* PreviewOverlay::create(lv_obj_t* parent) {
   _title = ht_label_create(row, meta_id::PreviewTitle);
   _age = ht_label_create(row, meta_id::PreviewAge);
   if (!_title || !_age) return nullptr;
+  lv_label_set_text_static(_title, _title_text);
+  lv_label_set_text_static(_age, _age_text);
 
   _origin = ht_label_create(_root, meta_id::PreviewOrigin);
   _text = ht_label_create(_root, meta_id::PreviewText);
   if (!_origin || !_text) return nullptr;
+  lv_label_set_text_static(_origin, _origin_text);
+  lv_label_set_text_static(_text, _message_text);
   lv_obj_set_width(_origin, lv_pct(100));
   lv_label_set_long_mode(_origin, LV_LABEL_LONG_DOT);
   lv_obj_set_width(_text, lv_pct(100));
@@ -55,7 +59,7 @@ _lv_obj_t* PreviewOverlay::create(lv_obj_t* parent) {
   if (!_footer) return nullptr;
   lv_obj_set_width(_footer, lv_pct(100));
   lv_label_set_long_mode(_footer, LV_LABEL_LONG_WRAP);
-  lv_label_set_text(_footer, "Short press: dismiss  Long press: dismiss");
+  lv_label_set_text_static(_footer, "Short press: dismiss  Long press: dismiss");
 
   return _root;
 }
@@ -72,21 +76,20 @@ bool PreviewOverlay::onKey(uint32_t key) {
 
 void PreviewOverlay::applyContent(uint8_t unread, uint32_t age_sec, const char* origin, const char* text) {
   if (!_root) return;
-  char title[16];
-  char age[12];
-  lv_snprintf(title, sizeof(title), "Unread:%u", (unsigned)unread);
+  lv_snprintf(_title_text, sizeof(_title_text), "Unread:%u", (unsigned)unread);
   if (age_sec < 60) {
-    lv_snprintf(age, sizeof(age), "%us", (unsigned)age_sec);
+    lv_snprintf(_age_text, sizeof(_age_text), "%us", (unsigned)age_sec);
   } else if (age_sec < 3600) {
-    lv_snprintf(age, sizeof(age), "%um", (unsigned)(age_sec / 60));
+    lv_snprintf(_age_text, sizeof(_age_text), "%um", (unsigned)(age_sec / 60));
   } else {
-    lv_snprintf(age, sizeof(age), "%uh", (unsigned)(age_sec / 3600));
+    lv_snprintf(_age_text, sizeof(_age_text), "%uh", (unsigned)(age_sec / 3600));
   }
-
-  lv_label_set_text(_title, title);
-  lv_label_set_text(_age, age);
-  lv_label_set_text(_origin, origin ? origin : "");
-  lv_label_set_text(_text, text ? text : "");
+  lv_snprintf(_origin_text, sizeof(_origin_text), "%s", origin ? origin : "");
+  lv_snprintf(_message_text, sizeof(_message_text), "%s", text ? text : "");
+  lv_label_set_text_static(_title, _title_text);
+  lv_label_set_text_static(_age, _age_text);
+  lv_label_set_text_static(_origin, _origin_text);
+  lv_label_set_text_static(_text, _message_text);
 }
 
 void PreviewOverlay::dismissByUser() {

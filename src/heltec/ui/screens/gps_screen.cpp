@@ -12,12 +12,28 @@ _lv_obj_t* GPSScreen::createRoot(_lv_obj_t* parent) {
 
 void set_power_state(_lv_obj_t* lb, bool on) {
   if (!lb) return;
-  lv_label_set_text(lb, on ? "on" : "off");
+  lv_label_set_text_static(lb, on ? "on" : "off");
   if (on) {
     lv_obj_add_state(lb, LV_STATE_USER_3);
   } else {
     lv_obj_clear_state(lb, LV_STATE_USER_3);
   }
+}
+
+void format_micro_degrees(char* buffer, size_t capacity, long value) {
+  int64_t signed_value = value;
+  const bool negative = signed_value < 0;
+  if (negative) signed_value = -signed_value;
+  lv_snprintf(buffer, capacity, "%s%ld.%06ld", negative ? "-" : "",
+              (long)(signed_value / 1000000LL), (long)(signed_value % 1000000LL));
+}
+
+void format_altitude(char* buffer, size_t capacity, double altitude_m) {
+  int64_t centi = (int64_t)(altitude_m * 100.0 + (altitude_m >= 0.0 ? 0.5 : -0.5));
+  const bool negative = centi < 0;
+  if (negative) centi = -centi;
+  lv_snprintf(buffer, capacity, "alt %s%ld.%02ld m", negative ? "-" : "",
+              (long)(centi / 100), (long)(centi % 100));
 }
 
 _lv_obj_t* GPSScreen::create(_lv_obj_t* parent) {
@@ -41,13 +57,13 @@ _lv_obj_t* GPSScreen::create(_lv_obj_t* parent) {
   }
 
   _lbl_fix = ht_label_create(_root, meta_id::GpsFixLabel);
-  lv_label_set_text(_lbl_fix, "no fix");
+  lv_label_set_text_static(_lbl_fix, "no fix");
   _lbl_sat = ht_label_create(_root, meta_id::GpsSatLabel);
-  lv_label_set_text(_lbl_sat, "sat --");
+  lv_label_set_text_static(_lbl_sat, _sat_text);
   _lbl_latlon = ht_label_create(_root, meta_id::GpsLatLonLabel);
-  lv_label_set_text(_lbl_latlon, "lat -- lon --");
+  lv_label_set_text_static(_lbl_latlon, _latlon_text);
   _lbl_alt = ht_label_create(_root, meta_id::GpsAltLabel);
-  lv_label_set_text(_lbl_alt, "alt --");
+  lv_label_set_text_static(_lbl_alt, _alt_text);
 
   _lv_obj_t* const labels[] = {
       _lbl_gps_prefix, _lbl_gps_state, _lbl_fix, _lbl_sat, _lbl_latlon, _lbl_alt,
@@ -94,46 +110,49 @@ void GPSScreen::onAppStateChanged(const AppStateEvent& event) {
 void GPSScreen::onRefreshRequested() { refreshSnapshot(); }
 
 void GPSScreen::updateGps(const biz::IBizFacade::GpsStatus& s) {
-  char tmp[72];
   const bool show_fix_data = s.available && s.enabled && s.fix_valid;
 
   set_power_state(_lbl_gps_state, s.enabled);
 
   if (_lbl_fix) {
     if (!s.available) {
-      lv_label_set_text(_lbl_fix, "Can't access GPS");
+      lv_label_set_text_static(_lbl_fix, "Can't access GPS");
     } else if (!s.enabled || !s.fix_valid) {
-      lv_label_set_text(_lbl_fix, "no fix");
+      lv_label_set_text_static(_lbl_fix, "no fix");
     } else {
-      lv_label_set_text(_lbl_fix, "fix");
+      lv_label_set_text_static(_lbl_fix, "fix");
     }
   }
 
   if (_lbl_sat) {
     if (!show_fix_data) {
-      lv_label_set_text(_lbl_sat, "sat --");
+      lv_snprintf(_sat_text, sizeof(_sat_text), "sat --");
     } else {
-      lv_snprintf(tmp, sizeof(tmp), "sat %d", s.satellites);
-      lv_label_set_text(_lbl_sat, tmp);
+      lv_snprintf(_sat_text, sizeof(_sat_text), "sat %d", s.satellites);
     }
+    lv_label_set_text_static(_lbl_sat, _sat_text);
   }
 
   if (_lbl_latlon) {
     if (!show_fix_data) {
-      lv_label_set_text(_lbl_latlon, "lat -- lon --");
+      lv_snprintf(_latlon_text, sizeof(_latlon_text), "lat -- lon --");
     } else {
-      lv_snprintf(tmp, sizeof(tmp), "lat %.6f lon %.6f", s.lat_deg, s.lon_deg);
-      lv_label_set_text(_lbl_latlon, tmp);
+      char lat[20];
+      char lon[20];
+      format_micro_degrees(lat, sizeof(lat), s.lat_micro);
+      format_micro_degrees(lon, sizeof(lon), s.lon_micro);
+      lv_snprintf(_latlon_text, sizeof(_latlon_text), "lat %s lon %s", lat, lon);
     }
+    lv_label_set_text_static(_lbl_latlon, _latlon_text);
   }
 
   if (_lbl_alt) {
     if (!show_fix_data) {
-      lv_label_set_text(_lbl_alt, "alt --");
+      lv_snprintf(_alt_text, sizeof(_alt_text), "alt --");
     } else {
-      lv_snprintf(tmp, sizeof(tmp), "alt %.2f m", s.alt_m);
-      lv_label_set_text(_lbl_alt, tmp);
+      format_altitude(_alt_text, sizeof(_alt_text), s.alt_m);
     }
+    lv_label_set_text_static(_lbl_alt, _alt_text);
   }
 }
 

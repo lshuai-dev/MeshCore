@@ -66,6 +66,8 @@ class SendMessageOverlay : public AbstractOverlay {
   _lv_obj_t* _list = nullptr;
   _lv_obj_t* _footer = nullptr;
   _lv_obj_t* _row_objs[kMaxListItems] = {};
+  _lv_obj_t* _row_labels[kMaxListItems] = {};
+  char _row_text[kMaxListItems][32] = {};
 
   SendMessageModel _model;
   bool _syncing_focus = false;

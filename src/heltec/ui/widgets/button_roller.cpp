@@ -1,5 +1,6 @@
 #include "button_roller.hpp"
 #include "ui/core/ht_meta_data.hpp"
+#include "ui/core/ui_motion_scheduler.hpp"
 #include "ui/app/ui_theme.hpp"
 #include "ui/menus/context_menu_metrics.hpp"
 #include "ui/theme/ui_theme_metrics.hpp"
@@ -175,26 +176,30 @@ void ButtonRoller::layoutItems(uint8_t focus_index, lv_anim_enable_t anim , bool
         if (index < 0) index += static_cast<int8_t>(_count);
 
         const lv_coord_t target_y = center_offset + i * row_h;
-        lv_anim_del(_items[index], anim_set_y);
+        ui_motion_cancel(_items[index], anim_set_y);
         if (anim == LV_ANIM_OFF || ms == 0) {
           lv_obj_set_y(_items[index], target_y);
           if (is_checked && 0 == i) setItemSelected(_items[index], true);
           continue;
         }
 
-        lv_anim_t a;
-        lv_anim_init(&a);
-        lv_anim_set_var(&a, _items[index]);
+        UiMotionSpec motion;
+        motion.target = _items[index];
         if (is_checked && 0 == i) {
-          lv_anim_set_ready_cb(&a, [](lv_anim_t* a) {
-            lv_obj_t* btn = static_cast<lv_obj_t*>(a->var);
+          motion.ready = [](void* user_data) {
+            lv_obj_t* btn = static_cast<lv_obj_t*>(user_data);
             if (btn) setItemSelected(btn, true);
-          });
+          };
+          motion.ready_data = _items[index];
         }
-        lv_anim_set_exec_cb(&a, anim_set_y);
-        lv_anim_set_values(&a, lv_obj_get_y(_items[index]), target_y);
-        lv_anim_set_time(&a, ms);
-        lv_anim_start(&a);
+        motion.exec = anim_set_y;
+        motion.start_value = lv_obj_get_y(_items[index]);
+        motion.end_value = target_y;
+        motion.duration_ms = ms;
+        if (!ui_motion_start(motion)) {
+          lv_obj_set_y(_items[index], target_y);
+          if (is_checked && 0 == i) setItemSelected(_items[index], true);
+        }
       }
       _last_vp_h = vp_h;
       _last_layout_focus = focus_index;

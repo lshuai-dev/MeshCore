@@ -401,7 +401,7 @@ bool MeshAppUi::findFriendContactLabel(int index, char* buf, size_t buf_len) con
   return true;
 }
 
-int MeshAppUi::buildFindFriendDropdownOptions(char* buf, size_t buf_len, int* mesh_map,
+int MeshAppUi::buildFindFriendDropdownOptions(char* buf, size_t buf_len, int16_t* mesh_map,
                                               int mesh_map_cap) const {
   if (!buf || buf_len == 0) return 0;
 
@@ -445,7 +445,7 @@ int MeshAppUi::buildFindFriendDropdownOptions(char* buf, size_t buf_len, int* me
     if (!findFriendContactLabel(order[k], lab, sizeof(lab))) continue;
     const int written = lv_snprintf(p, rem, "\n%s", lab);
     if (written < 0 || (size_t)written >= rem) break;
-    if (mesh_map && listed < mesh_map_cap) mesh_map[listed] = order[k];
+    if (mesh_map && listed < mesh_map_cap) mesh_map[listed] = static_cast<int16_t>(order[k]);
     p += written;
     rem -= (size_t)written;
     ++listed;

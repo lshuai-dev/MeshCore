@@ -65,11 +65,13 @@ _lv_obj_t* CalibrationOverlay::create(lv_obj_t* parent) {
 
   _body = ht_label_create(_panel, meta_id::CalibrationBody);
   if (!_body) return nullptr;
+  lv_label_set_text_static(_body, _body_text);
   lv_obj_set_width(_body, lv_pct(100));
   lv_label_set_long_mode(_body, LV_LABEL_LONG_WRAP);
 
   _footer = ht_label_create(_panel, meta_id::CalibrationFooter);
   if (!_footer) return nullptr;
+  lv_label_set_text_static(_footer, _footer_text);
   lv_obj_set_width(_footer, lv_pct(100));
   lv_label_set_long_mode(_footer, LV_LABEL_LONG_WRAP);
 
@@ -155,44 +157,52 @@ void CalibrationOverlay::render() {
 
   switch (_phase) {
     case Phase::Idle:
-      lv_label_set_text(_body, "");
-      lv_label_set_text(_footer, "");
+      _body_text[0] = '\0';
+      _footer_text[0] = '\0';
       break;
 
     case Phase::Calibrating: {
       const uint32_t now = millis();
       const uint32_t remain_s = (_deadline_ms > now) ? ((_deadline_ms - now) / 1000U) : 0U;
-      char status[64];
+      lv_snprintf(_body_text, sizeof(_body_text),
+                  "Compass calibration\nMove in a figure-8");
       if (_last_q >= 0) {
-        snprintf(status, sizeof(status), "Q:%d  %u/%u  %lus\nESC: cancel", (int)_last_q,
-                 (unsigned)_quality_streak, (unsigned)kStreakNeed, (unsigned long)remain_s);
+        lv_snprintf(_footer_text, sizeof(_footer_text),
+                    "Q:%d  %u/%u  %lus\nESC: cancel", (int)_last_q,
+                    (unsigned)_quality_streak, (unsigned)kStreakNeed,
+                    (unsigned long)remain_s);
       } else {
-        snprintf(status, sizeof(status), "Q:-  %u/%u  %lus\nESC: cancel",
-                 (unsigned)_quality_streak, (unsigned)kStreakNeed, (unsigned long)remain_s);
+        lv_snprintf(_footer_text, sizeof(_footer_text),
+                    "Q:-  %u/%u  %lus\nESC: cancel", (unsigned)_quality_streak,
+                    (unsigned)kStreakNeed, (unsigned long)remain_s);
       }
-      lv_label_set_text(_body, "Compass calibration\nMove in a figure-8");
-      lv_label_set_text(_footer, status);
       break;
     }
 
     case Phase::Success:
-      lv_label_set_text(_body, "Calibration OK");
-      lv_label_set_text(_footer, "Enter/ESC: close");
+      lv_snprintf(_body_text, sizeof(_body_text), "Calibration OK");
+      lv_snprintf(_footer_text, sizeof(_footer_text), "Enter/ESC: close");
       break;
 
     case Phase::Fail:
       if (_no_sensor) {
-        lv_label_set_text(_body, "No compass module\nHardware missing");
-        lv_label_set_text(_footer, "Enter/ESC: close");
+        lv_snprintf(_body_text, sizeof(_body_text),
+                    "No compass module\nHardware missing");
+        lv_snprintf(_footer_text, sizeof(_footer_text), "Enter/ESC: close");
       } else if (_save_failed) {
-        lv_label_set_text(_body, "Quality OK\nSave failed");
-        lv_label_set_text(_footer, "Enter: retry  ESC: close");
+        lv_snprintf(_body_text, sizeof(_body_text), "Quality OK\nSave failed");
+        lv_snprintf(_footer_text, sizeof(_footer_text),
+                    "Enter: retry  ESC: close");
       } else {
-        lv_label_set_text(_body, "Calibration failed\nQuality still low");
-        lv_label_set_text(_footer, "Enter: retry  ESC: close");
+        lv_snprintf(_body_text, sizeof(_body_text),
+                    "Calibration failed\nQuality still low");
+        lv_snprintf(_footer_text, sizeof(_footer_text),
+                    "Enter: retry  ESC: close");
       }
       break;
   }
+  lv_label_set_text_static(_body, _body_text);
+  lv_label_set_text_static(_footer, _footer_text);
 }
 
 void CalibrationOverlay::evaluateQuality(int quality) {

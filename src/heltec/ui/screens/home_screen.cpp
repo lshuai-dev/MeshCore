@@ -42,23 +42,22 @@ void HomeScreen::onRefreshRequested() { refreshSnapshot(); }
 
 void HomeScreen::refreshLabels() {
   if (_lblId) {
-    lv_label_set_text(_lblId, _id_line);
+    lv_label_set_text_static(_lblId, _id_line);
   }
   if (_lblMsg) {
-    char b[40];
-    lv_snprintf(b, sizeof(b), "MSG: %d", _message_count);
-    lv_label_set_text(_lblMsg, b);
+    lv_snprintf(_message_line, sizeof(_message_line), "MSG: %d", _message_count);
+    lv_label_set_text_static(_lblMsg, _message_line);
   }
   if (_lblStatus) {
     if (_companion_connected) {
-      lv_label_set_text(_lblStatus, "< Connected >");
+      lv_snprintf(_status_line, sizeof(_status_line), "< Connected >");
     } else if (_pairing_pin != 0) {
-      char b[24];
-      lv_snprintf(b, sizeof(b), "Pin:%lu", (unsigned long)_pairing_pin);
-      lv_label_set_text(_lblStatus, b);
+      lv_snprintf(_status_line, sizeof(_status_line), "Pin:%lu",
+                  (unsigned long)_pairing_pin);
     } else {
-      lv_label_set_text(_lblStatus, "COMP: idle");
+      lv_snprintf(_status_line, sizeof(_status_line), "COMP: idle");
     }
+    lv_label_set_text_static(_lblStatus, _status_line);
   }
 }
 
@@ -74,6 +73,13 @@ _lv_obj_t* HomeScreen::create(_lv_obj_t* parent) {
   _lblMsg = ht_label_create(_root, meta_id::HomeMessageLabel, "MSG: 0");
 
   _lblStatus = ht_label_create(_root, meta_id::HomeStatusLabel, "");
+
+  lv_snprintf(_id_line, sizeof(_id_line), "ID: --------");
+  lv_snprintf(_message_line, sizeof(_message_line), "MSG: 0");
+  _status_line[0] = '\0';
+  if (_lblId) lv_label_set_text_static(_lblId, _id_line);
+  if (_lblMsg) lv_label_set_text_static(_lblMsg, _message_line);
+  if (_lblStatus) lv_label_set_text_static(_lblStatus, _status_line);
 
   _lv_obj_t* const labels[] = {_lblId, _lblMsg, _lblStatus};
   for (_lv_obj_t* label : labels) {

@@ -78,12 +78,12 @@ class SystemScreen : public AbstractScreen {
 
   void handleAction(SysAction action);
   void executeAction(SysAction action);
+  bool createActionConfirmation();
   void openActionConfirmation(SysAction action);
   void closeActionConfirmation();
   void acceptActionConfirmation();
   bool handleConfirmationKey(uint32_t key);
   static void onActionConfirmationEvent(lv_event_t* e);
-  static void executeConfirmedActionAsync(void* user_data);
   SysAction actionForRow(_lv_obj_t* obj) const;
   void syncDropdownLayout(_lv_obj_t* dd) const;
   void clearFocusRowHighlight();
@@ -161,6 +161,7 @@ class SystemScreen : public AbstractScreen {
   _lv_obj_t* _row_clear_data = nullptr;
   _lv_obj_t* _action_confirm_root = nullptr;
   _lv_obj_t* _action_confirm_box = nullptr;
+  _lv_obj_t* _action_confirm_body = nullptr;
   _lv_obj_t* _action_confirm_cancel = nullptr;
   _lv_obj_t* _action_confirm_accept = nullptr;
   SysAction _pending_action = SysAction::None;
@@ -172,10 +173,12 @@ class SystemScreen : public AbstractScreen {
   _lv_obj_t* _waypoint_keyboard_return_focus = nullptr;
   bool _syncing_dropdown = false;
   bool _syncing_switch = false;
-  char _friend_dd_options_applied[1024] = {};
-  int _friend_mesh_map[100] = {};
+#if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
+  uint32_t _friend_dd_options_hash_applied = 0;
+  int16_t _friend_mesh_map[100] = {};
   int _friend_mesh_map_count = 0;
   int _friend_mesh_map_count_applied = -1;
+#endif
   uint8_t _keypad_group_mask = 0xFF;
 };
 

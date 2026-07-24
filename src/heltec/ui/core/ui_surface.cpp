@@ -44,7 +44,7 @@ _lv_obj_t* UiSurface::create(_lv_obj_t* parent) {
     } else if (event->type == UiEventType::SurfaceRefresh) {
       self->onRefreshRequested();
     }
-  }, LV_EVENT_ALL, this);
+  }, ui_event_code(), this);
 
   return _root;
 }

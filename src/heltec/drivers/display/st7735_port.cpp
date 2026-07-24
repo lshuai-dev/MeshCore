@@ -37,7 +37,7 @@ SPIClass tft_spi;
 #endif
 
 static const uint16_t s_buf_size_px = kScrWidth * kScrHeight / kPartLines;
-LV_ATTRIBUTE_FAST_MEM LV_ATTRIBUTE_MEM_ALIGN static lv_color_t s_buf[s_buf_size_px * (LV_COLOR_DEPTH / 8)];
+LV_ATTRIBUTE_FAST_MEM LV_ATTRIBUTE_MEM_ALIGN static lv_color_t s_buf[s_buf_size_px];
 static lv_disp_draw_buf_t s_draw_buf;
 static lv_disp_drv_t s_disp_drv;
 

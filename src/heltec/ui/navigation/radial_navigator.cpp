@@ -3,6 +3,7 @@
 #include "ui/app/ui_app_frame_metrics.hpp"
 #include "ui/app/ui_theme.hpp"
 #include "ui/core/ht_meta_data.hpp"
+#include "ui/core/ui_motion_scheduler.hpp"
 #include "ui/core/ui_events.h"
 #include "ui/navigation/ui_navigator.hpp"
 #include "ui/theme/ui_theme_metrics.hpp"
@@ -236,8 +237,8 @@ void RadialNavigator::setNavButtonsInteractive(bool interactive) {
 }
 
 void RadialNavigator::clearAnimations() {
-  if (_nav) lv_anim_del(_nav, nullptr);
-  lv_anim_del(this, nullptr);
+  if (_nav) ui_motion_cancel(_nav);
+  ui_motion_cancel(this);
 }
 
 void RadialNavigator::invalidateSlotCache() {
@@ -283,27 +284,27 @@ void RadialNavigator::layoutRing(bool animate, bool snap_theta, bool update_emph
     _emphasis_index = kNoEmphasis;
     layoutRing(false, false, false);
     clearAnimations();
-    lv_anim_t a;
-    lv_anim_init(&a);
-    lv_anim_set_var(&a, this);
-    lv_anim_set_time(&a, ms);
-    lv_anim_set_path_cb(&a, lv_anim_path_ease_in_out);
-    lv_anim_set_exec_cb(&a, [](void* var, int32_t v) {
+    UiMotionSpec motion;
+    motion.target = this;
+    motion.exec = [](void* var, int32_t v) {
       auto* self = static_cast<RadialNavigator*>(var);
       self->_ring_theta = v / 1000.f;
       self->layoutRing(false, false, false);
-    });
-    lv_anim_set_ready_cb(&a, [](lv_anim_t* anim) {
-      auto* self = static_cast<RadialNavigator*>(lv_anim_get_user_data(anim));
+    };
+    motion.ready = [](void* user_data) {
+      auto* self = static_cast<RadialNavigator*>(user_data);
       if (!self) return;
       self->_emphasis_index = self->focusedIndex();
       self->layoutRing(false, false, false);
-    });
-    lv_anim_set_user_data(&a, this);
-    lv_anim_set_values(&a, static_cast<int32_t>(roundf(_ring_theta * 1000.f)),
-                       static_cast<int32_t>(roundf(target * 1000.f)));
-    lv_anim_start(&a);
-    return;
+    };
+    motion.ready_data = this;
+    motion.start_value = static_cast<int32_t>(roundf(_ring_theta * 1000.f));
+    motion.end_value = static_cast<int32_t>(roundf(target * 1000.f));
+    motion.duration_ms = ms;
+    motion.path = UiMotionPath::EaseInOut;
+    if (ui_motion_start(motion)) return;
+    _ring_theta = target;
+    _emphasis_index = focus;
   }
 
   if (snap_theta) _ring_theta = target;

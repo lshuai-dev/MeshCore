@@ -9,6 +9,7 @@
 #include "heltec/ui/core/biz_facade.hpp"
 #include "ui/app/ui_theme.hpp"
 #include "ui/core/ht_meta_data.hpp"
+#include "ui/core/ui_deferred_queue.hpp"
 #include "ui/core/ui_events.h"
 #include "keyboard_overlay.hpp"
 
@@ -125,7 +126,7 @@ _lv_obj_t* SendMessageOverlay::create(lv_obj_t* parent) {
   if (!_title) return nullptr;
   lv_obj_set_width(_title, lv_pct(100));
   lv_label_set_long_mode(_title, LV_LABEL_LONG_CLIP);
-  lv_label_set_text(_title, "send message");
+  lv_label_set_text_static(_title, "send message");
 
   _list_mid = ht_obj_create(_root, meta_id::SendMessageList);
   if (!_list_mid) return nullptr;
@@ -142,7 +143,7 @@ _lv_obj_t* SendMessageOverlay::create(lv_obj_t* parent) {
   if (!_footer) return nullptr;
   lv_obj_set_width(_footer, lv_pct(100));
   lv_label_set_long_mode(_footer, LV_LABEL_LONG_CLIP);
-  lv_label_set_text(_footer, "Menu: select  Back: cancel");
+  lv_label_set_text_static(_footer, "Menu: select  Back: cancel");
 
   if (!ensureRowPool()) return nullptr;
 
@@ -257,8 +258,8 @@ void SendMessageOverlay::renderRows() {
     title = (_model.listKind() == 1) ? "group" : "personal";
     footer = footerForPage(true);
   }
-  lv_label_set_text(_title, title);
-  lv_label_set_text(_footer, footer);
+  lv_label_set_text_static(_title, title);
+  lv_label_set_text_static(_footer, footer);
   lv_obj_clear_flag(_title, LV_OBJ_FLAG_HIDDEN);
   lv_obj_clear_flag(_footer, LV_OBJ_FLAG_HIDDEN);
 
@@ -291,7 +292,7 @@ void SendMessageOverlay::renderRows() {
     const int item = wrapIndex(sel + slot - focus);
     lv_obj_clear_flag(row, LV_OBJ_FLAG_HIDDEN);
     ht_set_user_data(row, reinterpret_cast<void*>(static_cast<uintptr_t>(item)));
-    lv_label_set_text(row, rowLabel(item));
+    lv_label_set_text_static(row, rowLabel(item));
     if (slot == focus) {
       lv_obj_add_state(row, LV_STATE_CHECKED);
     } else {
@@ -330,7 +331,7 @@ void SendMessageOverlay::scheduleSendResultAlert(bool ok) {
   _send_alert_ok = ok;
   if (_send_alert_scheduled) return;
   _send_alert_scheduled = true;
-  if (LV_RES_OK != lv_async_call(showSendResultAlertAsync, this)) {
+  if (!ui_defer(showSendResultAlertAsync, this)) {
     _send_alert_scheduled = false;
     _biz.showAlert(ok ? "Queued" : "Failed", 1600);
   }

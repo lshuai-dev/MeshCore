@@ -32,6 +32,7 @@ class RecentScreen : public AbstractScreen {
 
   _lv_obj_t* _scroll = nullptr;
   _lv_obj_t* _rows[kMaxRows] = {nullptr};
+  char _row_text[kMaxRows][48] = {};
 };
 
 }  // namespace heltec::meshcore::ui

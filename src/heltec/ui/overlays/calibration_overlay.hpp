@@ -46,6 +46,8 @@ class CalibrationOverlay : public AbstractOverlay {
   _lv_obj_t* _panel = nullptr;
   _lv_obj_t* _body = nullptr;
   _lv_obj_t* _footer = nullptr;
+  char _body_text[48] = {};
+  char _footer_text[64] = {};
 
   Phase _phase = Phase::Idle;
   uint32_t _deadline_ms = 0;

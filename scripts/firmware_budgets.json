@@ -1,0 +1,38 @@
+[
+  {
+    "device": "V4 R8 TFT BLE",
+    "environment": "heltec_v4_r8_tft_companion_radio_ble",
+    "ram_bytes": 205000,
+    "flash_bytes": 1900000
+  },
+  {
+    "device": "T1 BLE",
+    "environment": "Heltec_t1_companion_radio_ble",
+    "ram_bytes": 152000,
+    "flash_bytes": 670000
+  },
+  {
+    "device": "T096 BLE",
+    "environment": "Heltec_t096_companion_radio_ble",
+    "ram_bytes": 152000,
+    "flash_bytes": 670000
+  },
+  {
+    "device": "T114 BLE",
+    "environment": "Heltec_t114_companion_radio_ble",
+    "ram_bytes": 152000,
+    "flash_bytes": 670000
+  },
+  {
+    "device": "Tracker v1 BLE",
+    "environment": "Heltec_Wireless_Tracker_companion_radio_ble",
+    "ram_bytes": 210000,
+    "flash_bytes": 2000000
+  },
+  {
+    "device": "Tracker v2 BLE",
+    "environment": "heltec_tracker_v2_companion_radio_ble",
+    "ram_bytes": 210000,
+    "flash_bytes": 2000000
+  }
+]

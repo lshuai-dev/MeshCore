@@ -42,7 +42,6 @@ void map_sd_resolve_style(char* style, size_t style_len);
 /** If the preferred zoom has no valid PNG, pick nearest maps/ or tiles/ zoom. */
 uint8_t map_sd_best_zoom(const char* style, uint8_t preferred);
 /** Log maps/ styles and maps/tiles zoom folders for current style (MESH_DEBUG). */
-void map_sd_log_catalog(const char* style);
 /** Resolve style + zoom from SD contents; updates prefs when adjusted. */
 void map_sd_apply_tile_prefs(MapUiPrefs& prefs);
 /** First valid tile under maps/{style}/{z} or tiles/{z} on SD. */

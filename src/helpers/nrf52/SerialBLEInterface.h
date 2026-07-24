@@ -21,17 +21,19 @@ class SerialBLEInterface : public BaseSerialInterface {
     uint8_t buf[MAX_FRAME_SIZE];
   };
 
-  #define FRAME_QUEUE_SIZE  12
+  #define FRAME_QUEUE_SIZE  8
   
   uint8_t send_queue_len;
+  uint8_t send_queue_head;
   Frame send_queue[FRAME_QUEUE_SIZE];
   
   uint8_t recv_queue_len;
+  uint8_t recv_queue_head;
   Frame recv_queue[FRAME_QUEUE_SIZE];
 
   void clearBuffers();
-  void shiftSendQueueLeft();
-  void shiftRecvQueueLeft();
+  void popSendQueue();
+  void popRecvQueue();
   bool isValidConnection(uint16_t handle, bool requireWaitingForSecurity = false) const;
   bool isAdvertising() const;
   static void onConnect(uint16_t connection_handle);
@@ -50,7 +52,9 @@ public:
     _last_health_check = 0;
     _last_retry_attempt = 0;
     send_queue_len = 0;
+    send_queue_head = 0;
     recv_queue_len = 0;
+    recv_queue_head = 0;
   }
 
   /**

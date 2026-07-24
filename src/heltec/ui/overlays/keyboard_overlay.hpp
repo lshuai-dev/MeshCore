@@ -53,6 +53,8 @@ class KeyboardOverlay : public AbstractOverlay {
   uint32_t _skip_next_ok_value_ms = 0;
 
   static constexpr int kMaxText = 80;
+  char _title_text[40]{};
+  char _text_buffer[kMaxText + 1]{};
   char _submitted_text[kMaxText + 1]{};
 };
 

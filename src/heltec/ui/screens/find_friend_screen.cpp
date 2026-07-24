@@ -27,6 +27,14 @@
 
 namespace heltec::meshcore::ui {
 
+namespace {
+void set_static_text(lv_obj_t* label, char* buffer, size_t capacity, const char* text) {
+  if (!label || !buffer || capacity == 0) return;
+  lv_snprintf(buffer, capacity, "%s", text ? text : "");
+  lv_label_set_text_static(label, buffer);
+}
+}  // namespace
+
 _lv_obj_t* FindFriendScreen::createRoot(_lv_obj_t* parent) {
   return ht_obj_create(parent, meta_id::FindFriendScreenRoot);
 }
@@ -35,9 +43,9 @@ void FindFriendScreen::showInfoOnly(const char* target, const char* dist, const 
   _dial.setDialHidden(true);
   _dial.setLayersVisible(false);
   _dial.invalidateNeedle();
-  if (_lbl_target) lv_label_set_text(_lbl_target, target ? target : "");
-  if (_lbl_dist) lv_label_set_text(_lbl_dist, dist ? dist : "");
-  if (_lbl_status) lv_label_set_text(_lbl_status, status ? status : "");
+  set_static_text(_lbl_target, _target_text, sizeof(_target_text), target);
+  set_static_text(_lbl_dist, _dist_text, sizeof(_dist_text), dist);
+  set_static_text(_lbl_status, _status_text, sizeof(_status_text), status);
 }
 
 void FindFriendScreen::onEnter() {
@@ -50,9 +58,9 @@ void FindFriendScreen::onEnter() {
 
   _dial.setDialHidden(true);
   _dial.setLayersVisible(false);
-  if (_lbl_target) lv_label_set_text(_lbl_target, ">--");
-  if (_lbl_dist) lv_label_set_text(_lbl_dist, "");
-  if (_lbl_status) lv_label_set_text(_lbl_status, "Starting...");
+  set_static_text(_lbl_target, _target_text, sizeof(_target_text), ">--");
+  set_static_text(_lbl_dist, _dist_text, sizeof(_dist_text), "");
+  set_static_text(_lbl_status, _status_text, sizeof(_status_text), "Starting...");
 }
 
 _lv_obj_t* FindFriendScreen::create(_lv_obj_t* parent) {
@@ -69,10 +77,13 @@ _lv_obj_t* FindFriendScreen::create(_lv_obj_t* parent) {
   if (info) {
     _lbl_target = ht_label_create(info, meta_id::CompassInfoLabel);
     compass_style_info_label(_lbl_target, ">--", LV_LABEL_LONG_WRAP);
+    if (_lbl_target) lv_label_set_text_static(_lbl_target, _target_text);
     _lbl_dist = ht_label_create(info, meta_id::CompassInfoLabel);
     compass_style_info_label(_lbl_dist, "Dist:--", LV_LABEL_LONG_WRAP);
+    if (_lbl_dist) lv_label_set_text_static(_lbl_dist, _dist_text);
     _lbl_status = ht_label_create(info, meta_id::CompassInfoLabel);
     compass_style_info_label(_lbl_status, "", LV_LABEL_LONG_WRAP);
+    if (_lbl_status) lv_label_set_text_static(_lbl_status, _status_text);
   }
 
   return _root;
@@ -114,24 +125,22 @@ void FindFriendScreen::render(const biz::FindFriendUi& u) {
     _dial.invalidateNeedle();
   }
 
-  if (_lbl_target) lv_label_set_text(_lbl_target, target);
+  set_static_text(_lbl_target, _target_text, sizeof(_target_text), target);
 
   if (_lbl_dist) {
-    char buf[20];
     if (u.bearing_valid && u.gps_fix) {
-      compass_format_distance_m(buf, sizeof(buf), u.distance_m);
+      compass_format_distance_m(_dist_text, sizeof(_dist_text), u.distance_m);
     } else {
-      lv_snprintf(buf, sizeof(buf), "Dist:--");
+      lv_snprintf(_dist_text, sizeof(_dist_text), "Dist:--");
     }
-    lv_label_set_text(_lbl_dist, buf);
+    lv_label_set_text_static(_lbl_dist, _dist_text);
   }
 
   if (_lbl_status) {
-    char buf[32];
-    compass_format_find_friend_status(buf, sizeof(buf), u.mode, u.arrived, u.relative_valid, u.turn_deg,
+    compass_format_find_friend_status(_status_text, sizeof(_status_text), u.mode, u.arrived, u.relative_valid, u.turn_deg,
                                       u.target_valid, u.gps_fix, u.heading_valid, u.bearing_valid,
                                       u.bearing_to_waypoint_deg);
-    lv_label_set_text(_lbl_status, buf);
+    lv_label_set_text_static(_lbl_status, _status_text);
   }
 }
 

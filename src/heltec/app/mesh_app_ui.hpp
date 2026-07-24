@@ -83,7 +83,7 @@ class MeshAppUi final : public IBizFacade {
 
   int findFriendContactCount() const override;
   bool findFriendContactLabel(int index, char* buf, size_t buf_len) const override;
-  int buildFindFriendDropdownOptions(char* buf, size_t buf_len, int* mesh_map,
+  int buildFindFriendDropdownOptions(char* buf, size_t buf_len, int16_t* mesh_map,
                                      int mesh_map_cap) const override;
   bool findFriendContactHasGps(int index) const override;
   int findFriendTargetContactIndex() const override;

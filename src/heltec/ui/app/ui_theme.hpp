@@ -7,6 +7,9 @@ struct _lv_disp_t;
 typedef struct _lv_disp_t lv_disp_t;
 
 namespace heltec::meshcore::ui {
+// Stable, centralized device-theme boundary. Device variants provide color and
+// metric values through this module; screens and widgets do not depend on a
+// device-specific theme interface or subclass.
 struct UiThemeColors {
   uint32_t fg;
   uint32_t bg;
@@ -160,7 +163,4 @@ void ui_theme_center_dropdown_value(_lv_obj_t* dropdown);
 #error "UI_THEME_MONO requires LV_USE_THEME_MONO=1"
 #endif
 #elif defined(UI_THEME_COLOR) && UI_THEME_COLOR
-#if !LV_USE_THEME_DEFAULT
-#error "UI_THEME_COLOR requires LV_USE_THEME_DEFAULT=1"
-#endif
 #endif

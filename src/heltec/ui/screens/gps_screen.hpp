@@ -42,6 +42,9 @@ class GPSScreen : public AbstractScreen {
   _lv_obj_t* _lbl_sat = nullptr;
   _lv_obj_t* _lbl_latlon = nullptr;
   _lv_obj_t* _lbl_alt = nullptr;
+  char _sat_text[16] = "sat --";
+  char _latlon_text[56] = "lat -- lon --";
+  char _alt_text[24] = "alt --";
   biz::IBizFacade::GpsStatus _gps{};
 };
 

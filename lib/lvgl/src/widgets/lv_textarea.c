@@ -136,7 +136,19 @@ void lv_textarea_add_char(lv_obj_t * obj, uint32_t c)
         if(txt[0] == '\0') lv_obj_invalidate(obj);
     }
 
-    lv_label_ins_text(ta->label, ta->cursor.pos, letter_buf); /*Insert the character*/
+    if(ta->text_buf) {
+        const size_t old_len = strlen(ta->text_buf);
+        const size_t ins_len = strlen(letter_buf);
+        if(old_len + ins_len + 1 > ta->text_buf_size) {
+            LV_LOG_INFO("Character does not fit in the fixed text area buffer");
+            return;
+        }
+        _lv_txt_ins(ta->text_buf, ta->cursor.pos, letter_buf);
+        lv_label_set_text_static(ta->label, ta->text_buf);
+    }
+    else {
+        lv_label_ins_text(ta->label, ta->cursor.pos, letter_buf); /*Insert the character*/
+    }
     lv_textarea_clear_selection(obj); /*Clear selection*/
 
     if(ta->pwd_mode) {
@@ -187,7 +199,19 @@ void lv_textarea_add_text(lv_obj_t * obj, const char * txt)
     }
 
     /*Insert the text*/
-    lv_label_ins_text(ta->label, ta->cursor.pos, txt);
+    if(ta->text_buf) {
+        const size_t old_len = strlen(ta->text_buf);
+        const size_t ins_len = strlen(txt);
+        if(old_len + ins_len + 1 > ta->text_buf_size) {
+            LV_LOG_INFO("Text does not fit in the fixed text area buffer");
+            return;
+        }
+        _lv_txt_ins(ta->text_buf, ta->cursor.pos, txt);
+        lv_label_set_text_static(ta->label, ta->text_buf);
+    }
+    else {
+        lv_label_ins_text(ta->label, ta->cursor.pos, txt);
+    }
     lv_textarea_clear_selection(obj);
 
     if(ta->pwd_mode) {
@@ -228,7 +252,8 @@ void lv_textarea_del_char(lv_obj_t * obj)
     _lv_txt_cut(label_txt, ta->cursor.pos - 1, 1);
 
     /*Refresh the label*/
-    lv_label_set_text(ta->label, label_txt);
+    if(ta->text_buf) lv_label_set_text_static(ta->label, ta->text_buf);
+    else lv_label_set_text(ta->label, label_txt);
     lv_textarea_clear_selection(obj);
 
     /*If the textarea became empty, invalidate it to hide the placeholder*/
@@ -275,6 +300,36 @@ void lv_textarea_set_text(lv_obj_t * obj, const char * txt)
     /*Clear the existing selection*/
     lv_textarea_clear_selection(obj);
 
+    if(ta->text_buf) {
+        if(txt == ta->text_buf) {
+            ta->text_buf[ta->text_buf_size - 1] = '\0';
+            lv_label_set_text_static(ta->label, ta->text_buf);
+            lv_textarea_set_cursor_pos(obj, LV_TEXTAREA_CURSOR_LAST);
+        }
+        else if(lv_textarea_get_accepted_chars(obj) || lv_textarea_get_max_length(obj)) {
+            ta->text_buf[0] = '\0';
+            lv_label_set_text_static(ta->label, ta->text_buf);
+            lv_textarea_set_cursor_pos(obj, LV_TEXTAREA_CURSOR_LAST);
+            uint32_t i = 0;
+            while(txt[i] != '\0') {
+                uint32_t c = _lv_txt_encoded_next(txt, &i);
+                lv_textarea_add_char(obj, _lv_txt_unicode_to_encoded(c));
+            }
+        }
+        else {
+            size_t copy_len = strlen(txt);
+            if(copy_len >= ta->text_buf_size) copy_len = ta->text_buf_size - 1;
+            lv_memcpy(ta->text_buf, txt, copy_len);
+            ta->text_buf[copy_len] = '\0';
+            lv_label_set_text_static(ta->label, ta->text_buf);
+            lv_textarea_set_cursor_pos(obj, LV_TEXTAREA_CURSOR_LAST);
+        }
+
+        if(ta->placeholder_txt && ta->text_buf[0] == '\0') lv_obj_invalidate(obj);
+        lv_event_send(obj, LV_EVENT_VALUE_CHANGED, NULL);
+        return;
+    }
+
     /*Add the character one-by-one if not all characters are accepted or there is character limit.*/
     if(lv_textarea_get_accepted_chars(obj) || lv_textarea_get_max_length(obj)) {
         lv_label_set_text(ta->label, "");
@@ -310,6 +365,24 @@ void lv_textarea_set_text(lv_obj_t * obj, const char * txt)
     }
 
     lv_event_send(obj, LV_EVENT_VALUE_CHANGED, NULL);
+}
+
+void lv_textarea_set_text_buffer(lv_obj_t * obj, char * buffer, uint32_t capacity)
+{
+    LV_ASSERT_OBJ(obj, MY_CLASS);
+    LV_ASSERT_NULL(buffer);
+
+    if(buffer == NULL || capacity == 0) return;
+    lv_textarea_t * ta = (lv_textarea_t *)obj;
+    const char * current = lv_label_get_text(ta->label);
+    size_t copy_len = current ? strlen(current) : 0;
+    if(copy_len >= capacity) copy_len = capacity - 1;
+    if(current && current != buffer) memmove(buffer, current, copy_len);
+    buffer[copy_len] = '\0';
+    ta->text_buf = buffer;
+    ta->text_buf_size = capacity;
+    lv_label_set_text_static(ta->label, ta->text_buf);
+    lv_textarea_set_cursor_pos(obj, LV_TEXTAREA_CURSOR_LAST);
 }
 
 void lv_textarea_set_placeholder_text(lv_obj_t * obj, const char * txt)
@@ -407,6 +480,13 @@ void lv_textarea_set_password_mode(lv_obj_t * obj, bool en)
 
     lv_textarea_t * ta = (lv_textarea_t *)obj;
     if(ta->pwd_mode == en) return;
+
+    if(en && ta->text_buf) {
+        const char * fixed_text = ta->text_buf;
+        ta->text_buf = NULL;
+        ta->text_buf_size = 0;
+        lv_label_set_text(ta->label, fixed_text);
+    }
 
     ta->pwd_mode = en ? 1U : 0U;
     /*Pwd mode is now enabled*/
@@ -815,6 +895,8 @@ static void lv_textarea_constructor(const lv_obj_class_t * class_p, lv_obj_t * o
     ta->pwd_show_time     = LV_TEXTAREA_DEF_PWD_SHOW_TIME;
     ta->accepted_chars    = NULL;
     ta->max_length        = 0;
+    ta->text_buf          = NULL;
+    ta->text_buf_size     = 0;
     ta->cursor.show      = 1;
     /*It will be set to zero later (with zero value lv_textarea_set_cursor_pos(obj, 0); wouldn't do anything as there is no difference)*/
     ta->cursor.pos        = 1;
@@ -916,7 +998,9 @@ static void label_event_cb(lv_event_t * e)
     lv_obj_t * ta = lv_obj_get_parent(label);
 
     if(code == LV_EVENT_STYLE_CHANGED || code == LV_EVENT_SIZE_CHANGED) {
-        lv_label_set_text(label, NULL);
+        lv_textarea_t * ta_data = (lv_textarea_t *)ta;
+        if(ta_data->text_buf) lv_label_set_text_static(label, ta_data->text_buf);
+        else lv_label_set_text(label, NULL);
         refr_cursor_area(ta);
         start_cursor_blink(ta);
     }

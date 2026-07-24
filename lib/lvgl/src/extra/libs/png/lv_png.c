@@ -13,25 +13,15 @@
 #include "lodepng.h"
 #include <stdlib.h>
 
-#if defined(HELTEC_V4_R8_TFT) && defined(ENV_INCLUDE_MAP) && ENV_INCLUDE_MAP && \
-    defined(MESH_DEBUG) && MESH_DEBUG && defined(ESP_PLATFORM)
-    #define HELTEC_MAP_PNG_DIAG_ENABLED 1
-    #include "esp_timer.h"
-    extern void heltec_map_png_trace(const char * path, uint32_t bytes, uint32_t io_us,
-                                     uint32_t decode_us, uint32_t convert_us, uint32_t total_us);
-    extern void heltec_map_png_diag(const char * phase, const char * path, uint32_t code,
-                                    const char * detail);
-#else
-    #define HELTEC_MAP_PNG_DIAG_ENABLED 0
-#endif
-
 /*********************
  *      DEFINES
  *********************/
 #ifdef LODEPNG_COMPILE_ALLOCATORS
     #define lv_png_free(ptr) lv_mem_free((ptr))
+    #define lv_png_realloc(ptr, size) lv_mem_realloc((ptr), (size))
 #else
     #define lv_png_free(ptr) lodepng_free((ptr))
+    #define lv_png_realloc(ptr, size) lodepng_realloc((ptr), (size))
 #endif
 
 /**********************
@@ -97,37 +87,18 @@ static lv_res_t decoder_info(struct _lv_img_decoder_t * decoder, const void * sr
             uint32_t size[2];
             lv_fs_file_t f;
             lv_fs_res_t res = lv_fs_open(&f, fn, LV_FS_MODE_RD);
-            if(res != LV_FS_RES_OK) {
-#if HELTEC_MAP_PNG_DIAG_ENABLED
-                heltec_map_png_diag("info-open", fn, (uint32_t)res, "lv_fs_open");
-#endif
-                return LV_RES_INV;
-            }
+            if(res != LV_FS_RES_OK) return LV_RES_INV;
 
             res = lv_fs_seek(&f, 16, LV_FS_SEEK_SET);
-#if HELTEC_MAP_PNG_DIAG_ENABLED
             if(res != LV_FS_RES_OK) {
-                heltec_map_png_diag("info-seek", fn, (uint32_t)res, "lv_fs_seek");
                 lv_fs_close(&f);
                 return LV_RES_INV;
             }
-#else
-            (void)res;
-#endif
 
             uint32_t rn = 0;
             res = lv_fs_read(&f, &size, 8, &rn);
             lv_fs_close(&f);
-
-#if HELTEC_MAP_PNG_DIAG_ENABLED
-            if(res != LV_FS_RES_OK || rn != 8) {
-                heltec_map_png_diag("info-read", fn, res != LV_FS_RES_OK ? (uint32_t)res : rn,
-                                    res != LV_FS_RES_OK ? "lv_fs_read" : "header-bytes");
-                return LV_RES_INV;
-            }
-#else
-            if(rn != 8) return LV_RES_INV;
-#endif
+            if(res != LV_FS_RES_OK || rn != 8) return LV_RES_INV;
 
             /*Save the data in the header*/
             header->always_zero = 0;
@@ -195,22 +166,12 @@ static lv_res_t decoder_open(lv_img_decoder_t * decoder, lv_img_decoder_dsc_t * 
         const char * fn = dsc->src;
         if(strcmp(lv_fs_get_ext(fn), "png") == 0) {              /*Check the extension*/
 
-#if HELTEC_MAP_PNG_DIAG_ENABLED
-            const int64_t trace_start_us = esp_timer_get_time();
-#endif
-
             /*Load the PNG file into buffer. It's still compressed (not decoded)*/
             unsigned char * png_data;      /*Pointer to the loaded data. Same as the original file just loaded into the RAM*/
             size_t png_data_size;          /*Size of `png_data` in bytes*/
 
             error = lodepng_load_file(&png_data, &png_data_size, fn);   /*Load the file*/
-#if HELTEC_MAP_PNG_DIAG_ENABLED
-            const int64_t trace_io_done_us = esp_timer_get_time();
-#endif
             if(error) {
-#if HELTEC_MAP_PNG_DIAG_ENABLED
-                heltec_map_png_diag("load-error", fn, error, lodepng_error_text(error));
-#endif
                 LV_LOG_WARN("error %" LV_PRIu32 ": %s\n", error, lodepng_error_text(error));
                 return LV_RES_INV;
             }
@@ -222,29 +183,26 @@ static lv_res_t decoder_open(lv_img_decoder_t * decoder, lv_img_decoder_dsc_t * 
             /*Decode the loaded image in ARGB8888 */
             error = lodepng_decode32(&img_data, &png_width, &png_height, png_data, png_data_size);
             lv_png_free(png_data); /*Free the loaded file*/
-#if HELTEC_MAP_PNG_DIAG_ENABLED
-            const int64_t trace_decode_done_us = esp_timer_get_time();
-#endif
             if(error) {
                 if(img_data != NULL) {
                     lv_png_free(img_data);
                 }
-#if HELTEC_MAP_PNG_DIAG_ENABLED
-                heltec_map_png_diag("decode-error", fn, error, lodepng_error_text(error));
-#endif
                 LV_LOG_WARN("error %" LV_PRIu32 ": %s\n", error, lodepng_error_text(error));
                 return LV_RES_INV;
             }
 
             /*Convert the image to the system's color depth*/
             convert_color_depth(img_data,  png_width * png_height);
-#if HELTEC_MAP_PNG_DIAG_ENABLED
-            const int64_t trace_convert_done_us = esp_timer_get_time();
-            heltec_map_png_trace(fn, (uint32_t)png_data_size,
-                                 (uint32_t)(trace_io_done_us - trace_start_us),
-                                 (uint32_t)(trace_decode_done_us - trace_io_done_us),
-                                 (uint32_t)(trace_convert_done_us - trace_decode_done_us),
-                                 (uint32_t)(trace_convert_done_us - trace_start_us));
+#if LV_COLOR_DEPTH == 16
+            {
+                uint8_t * shrunk = lv_png_realloc(img_data, (size_t)png_width * png_height * 3U);
+                if(shrunk != NULL) img_data = shrunk;
+            }
+#elif LV_COLOR_DEPTH == 8 || LV_COLOR_DEPTH == 1
+            {
+                uint8_t * shrunk = lv_png_realloc(img_data, (size_t)png_width * png_height * 2U);
+                if(shrunk != NULL) img_data = shrunk;
+            }
 #endif
             dsc->img_data = img_data;
             return LV_RES_OK;     /*The image is fully decoded. Return with its pointer*/
@@ -268,6 +226,17 @@ static lv_res_t decoder_open(lv_img_decoder_t * decoder, lv_img_decoder_dsc_t * 
 
         /*Convert the image to the system's color depth*/
         convert_color_depth(img_data,  png_width * png_height);
+#if LV_COLOR_DEPTH == 16
+        {
+            uint8_t * shrunk = lv_png_realloc(img_data, (size_t)png_width * png_height * 3U);
+            if(shrunk != NULL) img_data = shrunk;
+        }
+#elif LV_COLOR_DEPTH == 8 || LV_COLOR_DEPTH == 1
+        {
+            uint8_t * shrunk = lv_png_realloc(img_data, (size_t)png_width * png_height * 2U);
+            if(shrunk != NULL) img_data = shrunk;
+        }
+#endif
 
         dsc->img_data = img_data;
         return LV_RES_OK;     /*Return with its pointer*/

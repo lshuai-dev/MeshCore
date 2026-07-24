@@ -5,6 +5,8 @@
 #include "app_state_event.hpp"
 #include "app_state_notifier.hpp"
 
+struct _lv_timer_t;
+
 namespace heltec::meshcore::ui {
 
 class SurfaceManager;
@@ -15,6 +17,8 @@ class AppStateUiDispatcher final : public AppStateObserver {
 
   void bindSurfaceManager(SurfaceManager& surfaces);
   void bindGlobalHandler(GlobalHandler handler, void* user_data);
+  /** Allocate the single dispatch timer during UI startup. */
+  bool createTimer();
   void onAppStateChanged(const AppStateEvent& event) override;
   bool hasPending() const { return _pending_mask != 0; }
 
@@ -24,6 +28,7 @@ class AppStateUiDispatcher final : public AppStateObserver {
   static_assert(kEventTypeCount <= 16, "AppState pending mask is too small");
 
   static uint8_t eventIndex(AppStateEventType type);
+  static void dispatchTimerCallback(_lv_timer_t* timer);
   void scheduleDispatch();
   void dispatchPending();
 
@@ -32,7 +37,7 @@ class AppStateUiDispatcher final : public AppStateObserver {
   GlobalHandler _global_handler = nullptr;
   void* _global_handler_user_data = nullptr;
   uint16_t _pending_mask = 0;
-  bool _dispatch_scheduled = false;
+  _lv_timer_t* _dispatch_timer = nullptr;
 };
 
 }  // namespace heltec::meshcore::ui

@@ -36,6 +36,10 @@ class PreviewOverlay : public AbstractOverlay {
   _lv_obj_t* _origin = nullptr;
   _lv_obj_t* _text = nullptr;
   _lv_obj_t* _footer = nullptr;
+  char _title_text[16] = {};
+  char _age_text[12] = {};
+  char _origin_text[48] = {};
+  char _message_text[80] = {};
 };
 
 }  // namespace heltec::meshcore::ui

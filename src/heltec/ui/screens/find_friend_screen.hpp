@@ -33,6 +33,9 @@ class FindFriendScreen : public AbstractScreen {
   lv_obj_t* _lbl_target = nullptr;
   lv_obj_t* _lbl_dist = nullptr;
   lv_obj_t* _lbl_status = nullptr;
+  char _target_text[48] = ">--";
+  char _dist_text[24] = "Dist:--";
+  char _status_text[40] = {};
   int16_t _ring_heading_tenths = 0;
   float _turn_show_deg = 0.f;
   bool _gps_fix = false;

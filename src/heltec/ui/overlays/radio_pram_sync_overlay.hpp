@@ -47,12 +47,12 @@ class RadioParamSyncOverlay : public AbstractOverlay {
   _lv_obj_t* _footer = nullptr;
 #if defined(HELTEC_V4_R8_TFT)
   _lv_obj_t* _roller = nullptr;
-  char _roller_options[640] = {0};
   uint8_t _roller_press_selected = 0;
 #endif
   int8_t _select = 0;
   uint8_t _count = 0;
   uint8_t _visible_rows = 1;
+  char _current_row_text[32] = {};
 };
 
 }  // namespace heltec::meshcore::ui

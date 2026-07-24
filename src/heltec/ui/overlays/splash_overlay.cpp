@@ -69,7 +69,7 @@ bool SplashOverlay::create(_lv_obj_t* parent) {
   if (!_attribution) return false;
   lv_obj_set_width(_attribution, lv_pct(100));
   lv_label_set_long_mode(_attribution, LV_LABEL_LONG_CLIP);
-  lv_label_set_text(_attribution, "Heltec MeshCore FW");
+  lv_label_set_text_static(_attribution, "Heltec MeshCore FW");
 
   printInfo();
 
@@ -91,12 +91,11 @@ void SplashOverlay::printInfo() {
   const char* ver = FIRMWARE_VERSION;
   const char* dash = strchr(ver, '-');
   int len = dash ? (int)(dash - ver) : (int)strlen(ver);
-  char buf[12];
-  if (len >= (int)sizeof(buf)) len = (int)sizeof(buf) - 1;
-  memcpy(buf, ver, (size_t)len);
-  buf[len] = '\0';
-  if (_ver) lv_label_set_text(_ver, buf);
-  if (_date) lv_label_set_text(_date, FIRMWARE_BUILD_DATE);
+  if (len >= (int)sizeof(_version_text)) len = (int)sizeof(_version_text) - 1;
+  memcpy(_version_text, ver, (size_t)len);
+  _version_text[len] = '\0';
+  if (_ver) lv_label_set_text_static(_ver, _version_text);
+  if (_date) lv_label_set_text_static(_date, FIRMWARE_BUILD_DATE);
 }
 
 void SplashOverlay::hide() {

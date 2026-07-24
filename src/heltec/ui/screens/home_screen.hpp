@@ -37,6 +37,8 @@ class HomeScreen : public AbstractScreen {
   bool _companion_connected = false;
   uint32_t _pairing_pin = 0;
   char _id_line[40] = {};
+  char _message_line[24] = {};
+  char _status_line[24] = {};
 };
 
 }  // namespace heltec::meshcore::ui
