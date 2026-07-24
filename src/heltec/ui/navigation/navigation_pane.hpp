@@ -45,6 +45,7 @@ class NavigationPane : public UiSurface {
   void updateGeometry();
   void setNavButtonsInteractive(bool interactive);
   void stepNavFocus(int delta);
+  void onCellTouchEvent(lv_event_t* e);
   void onCellClicked(_lv_obj_t* cell);
   bool commitFocused();
   void sendTilePreview(uint8_t tile_idx);
@@ -62,6 +63,9 @@ class NavigationPane : public UiSurface {
   bool _close_animating = false;
   bool _updating_geometry = false;
   bool _layout_busy = false;
+  bool _touch_active = false;
+  bool _touch_dragged = false;
+  lv_point_t _touch_origin = {0, 0};
   const char* _labels[kMaxButtons] = {};
   uint8_t _footer_id = static_cast<uint8_t>(eScreenId::None);
 };

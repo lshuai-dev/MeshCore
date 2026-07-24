@@ -17,6 +17,10 @@
 #define M_PI 3.14159265358979323846
 #endif
 
+#ifndef HELTEC_TOUCH_GESTURE_SWIPE_PX
+#define HELTEC_TOUCH_GESTURE_SWIPE_PX 24
+#endif
+
 namespace heltec::meshcore::ui {
 
 namespace {
@@ -129,6 +133,16 @@ static bool isNavStepKey(uint32_t key) {
 
 static int navStepDelta(uint32_t key) {
   return (key == LV_KEY_PREV || key == LV_KEY_LEFT || key == LV_KEY_UP) ? -1 : 1;
+}
+
+static bool navTouchMovedBeyondThreshold(const lv_point_t& origin,
+                                         const lv_point_t& current) {
+  const int32_t dx = static_cast<int32_t>(current.x) - origin.x;
+  const int32_t dy = static_cast<int32_t>(current.y) - origin.y;
+  const int32_t abs_dx = dx < 0 ? -dx : dx;
+  const int32_t abs_dy = dy < 0 ? -dy : dy;
+  return abs_dx >= HELTEC_TOUCH_GESTURE_SWIPE_PX ||
+         abs_dy >= HELTEC_TOUCH_GESTURE_SWIPE_PX;
 }
 
 static uint8_t navCellId(_lv_obj_t* cell) {
@@ -521,6 +535,11 @@ void NavigationPane::setIcon(uint8_t id, const lv_img_dsc_t* img) {
 
   auto add_cell_click_cb = [this](_lv_obj_t* cell) {
     lv_obj_add_event_cb(cell, [](lv_event_t* e) {
+      auto* nav = static_cast<NavigationPane*>(lv_event_get_user_data(e));
+      if (!nav) return;
+      nav->onCellTouchEvent(e);
+    }, LV_EVENT_ALL, this);
+    lv_obj_add_event_cb(cell, [](lv_event_t* e) {
       if (LV_EVENT_CLICKED != lv_event_get_code(e)) return;
       auto* nav = static_cast<NavigationPane*>(lv_event_get_user_data(e));
       if (!nav || !nav->panelVisible() || nav->_ring_fade_busy) return;
@@ -530,6 +549,12 @@ void NavigationPane::setIcon(uint8_t id, const lv_img_dsc_t* img) {
       // turn that release into a navigation click/commit.
       if (heltec::meshcore::dal::touch_port::isPressed()) return;
 #endif
+      if (nav->_touch_dragged) {
+        nav->_touch_active = false;
+        nav->_touch_dragged = false;
+        return;
+      }
+      nav->_touch_active = false;
       nav->onCellClicked(lv_event_get_target(e));
       (void)nav->commitFocused();
       lv_event_stop_processing(e);
@@ -594,6 +619,45 @@ void NavigationPane::setIcon(uint8_t id, const lv_img_dsc_t* img) {
 
 
   layoutNav(false);
+}
+
+void NavigationPane::onCellTouchEvent(lv_event_t* e) {
+  if (!e) return;
+  const lv_event_code_t code = lv_event_get_code(e);
+  if (code != LV_EVENT_PRESSED && code != LV_EVENT_PRESSING &&
+      code != LV_EVENT_RELEASED && code != LV_EVENT_PRESS_LOST) {
+    return;
+  }
+
+  _lv_obj_t* cell = lv_event_get_target(e);
+  if (!cell) return;
+
+  lv_indev_t* indev = lv_event_get_indev(e);
+  if (!indev) indev = lv_indev_get_act();
+  if (!indev) return;
+
+  lv_point_t point;
+  lv_indev_get_point(indev, &point);
+  if (code == LV_EVENT_PRESSED) {
+    _touch_active = true;
+    _touch_dragged = false;
+    _touch_origin = point;
+    return;
+  }
+
+  if (code == LV_EVENT_PRESSING) {
+    if (_touch_active && !_touch_dragged &&
+        navTouchMovedBeyondThreshold(_touch_origin, point)) {
+      _touch_dragged = true;
+      lv_obj_clear_state(cell, LV_STATE_PRESSED);
+    }
+    return;
+  }
+
+  if (code == LV_EVENT_RELEASED || code == LV_EVENT_PRESS_LOST) {
+    if (_touch_dragged) lv_obj_clear_state(cell, LV_STATE_PRESSED);
+    if (code == LV_EVENT_PRESS_LOST) _touch_active = false;
+  }
 }
 
 void NavigationPane::setSelectedIndex(uint8_t id, bool preview) {
