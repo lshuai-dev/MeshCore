@@ -347,7 +347,9 @@ void UiApp::init() {
   _navigation.bindView(_frame_root, _tileview);
   UI_BOOT_LOG("navigation bindView done");
 #endif
+  UI_BOOT_LOG("post-bind frame events begin");
   bindFrameEvents();
+  UI_BOOT_LOG("post-bind frame events done");
   if (_tileview) {
     lv_obj_add_event_cb(_tileview, [](lv_event_t* e) {
       auto* app = static_cast<UiApp*>(lv_event_get_user_data(e));
@@ -369,6 +371,7 @@ void UiApp::init() {
       }
     }, ui_event_code(), this);
   }
+  UI_BOOT_LOG("post-bind tileview events done");
   _previewOvl.setTarget(_frame_root);
   _alertOvl.setTarget(_frame_root);
   _radioParamSyncOvl.setTarget(_frame_root);
@@ -386,19 +389,23 @@ void UiApp::init() {
   _ctxCompassMenu.setTarget(_frame_root);
 #endif
 #endif
+  UI_BOOT_LOG("post-bind overlay targets done");
 
   _display_auto_off_ms = 0;
   _display_last_activity_ms = millis();
   _inited = true;
+  UI_BOOT_LOG("post-bind ready flag set");
   if (_tileview) {
     lv_obj_t* tile = lv_tileview_get_tile_act(_tileview);
     if (!tile) {
       tile = lv_obj_get_child(_tileview, 0);
       if (tile) lv_obj_set_tile(_tileview, tile, LV_ANIM_OFF);
     }
-    lv_obj_update_layout(_tileview);
+    UI_BOOT_LOG("post-bind active tile=%p", tile);
   }
+  UI_BOOT_LOG("post-bind activate screen begin");
   activateActiveScreen();
+  UI_BOOT_LOG("post-bind activate screen done");
 }
 
 void UiApp::bindFrameEvents() {
