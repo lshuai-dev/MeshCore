@@ -448,7 +448,9 @@ void NavigationPane::updateGeometry() {
   } else if (_tileview && lv_obj_is_valid(_tileview)) {
     lv_obj_update_layout(_tileview);
   }
-  lv_obj_update_layout(_root);
+  // _root receives its size and position directly above.  Its child panel is
+  // sized and positioned below as well, so a second layout pass here only
+  // re-enters LVGL layout handlers without changing the geometry we read.
   const lv_coord_t pw = lv_obj_get_width(_root);
   const lv_coord_t ph = lv_obj_get_height(_root);
   if (pw < 8 || ph < 8) {
