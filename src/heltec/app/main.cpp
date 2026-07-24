@@ -42,6 +42,7 @@ static uint32_t _atoi(const char* sp) {
   DataStore store(LittleFS, rtc_clock);
 #elif defined(ESP32)
   #include <SPIFFS.h>
+  #include <esp_heap_caps.h>
   DataStore store(SPIFFS, rtc_clock);
 #endif
 
@@ -153,8 +154,15 @@ void setup() {
   board.begin();
   heltec::meshcore::dal::display_port::setBacklightOn(true);
   ApplicationRuntime& runtime = applicationRuntime();
+  MESH_DEBUG_PRINTLN("[boot] ui.init begin");
   runtime.ui.init();
   const bool hasDisplay = runtime.ui.isReady();
+  MESH_DEBUG_PRINTLN("[boot] ui.init done ready=%d", hasDisplay ? 1 : 0);
+#if defined(ESP32) && defined(MESH_DEBUG) && MESH_DEBUG
+  MESH_DEBUG_PRINTLN("[boot] heap after ui free=%u psram=%u integrity=%d",
+                     (unsigned)ESP.getFreeHeap(), (unsigned)ESP.getFreePsram(),
+                     heap_caps_check_integrity_all(true) ? 1 : 0);
+#endif
   if (hasDisplay) {
     for (uint8_t i = 0; i < 8; ++i) {
       lv_timer_handler();
@@ -182,6 +190,7 @@ void setup() {
   // SPIFFS volume can take long enough to format that the interrupt WDT
   // resets the device before the application starts.  Formatting remains
   // available through the explicit factory-reset/maintenance paths.
+  MESH_DEBUG_PRINTLN("[boot] SPIFFS.begin(false) begin");
   const bool fs_ok = SPIFFS.begin(false);
   if (!fs_ok) {
     MESH_DEBUG_PRINTLN("[fs] SPIFFS mount failed; auto-format disabled during boot");

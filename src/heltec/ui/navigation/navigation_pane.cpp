@@ -17,6 +17,12 @@
 #define M_PI 3.14159265358979323846
 #endif
 
+#if defined(MESH_DEBUG) && MESH_DEBUG
+#define NAV_BOOT_LOG(fmt, ...) do { Serial.printf("[nav] " fmt "\n", ##__VA_ARGS__); } while (0)
+#else
+#define NAV_BOOT_LOG(...) ((void)0)
+#endif
+
 namespace heltec::meshcore::ui {
 
 namespace {
@@ -342,12 +348,17 @@ uint8_t NavigationPane::focusedIndex() const {
 
 void NavigationPane::configure(const UiNavigationItem* items, uint8_t count) {
   if (!items) return;
+  NAV_BOOT_LOG("configure begin this=%p count=%u", this, (unsigned)count);
   for (uint8_t i = 0; i < count; ++i) {
     const UiNavigationItem& item = items[i];
+    NAV_BOOT_LOG("configure item=%u id=%u label=%s icon=%p footer=%d", (unsigned)i,
+                 (unsigned)item.screen_index, item.label ? item.label : "", item.icon,
+                 item.footer ? 1 : 0);
     setIcon(item.screen_index, item.icon);
     setLabel(item.screen_index, item.label);
     if (item.footer) setFooterSlot(item.screen_index);
   }
+  NAV_BOOT_LOG("configure done buttons=%u", (unsigned)btnCount());
 }
 
 bool NavigationPane::panelVisible() const {
@@ -433,6 +444,8 @@ static void syncPaneRadiusToTileView(_lv_obj_t* pane, _lv_obj_t* tileview) {
 void NavigationPane::updateGeometry() {
   if (!_root || !_nav || _updating_geometry) return;
 
+  NAV_BOOT_LOG("updateGeometry begin root=%p nav=%p frame=%p tileview=%p", _root, _nav,
+               _frame_root, _tileview);
   _updating_geometry = true;
   layoutRootBelowTopPane(_root);
   if (_frame_root && lv_obj_is_valid(_frame_root)) {
@@ -462,17 +475,24 @@ void NavigationPane::updateGeometry() {
     layoutNav(false, false);
   }
   _updating_geometry = false;
+  NAV_BOOT_LOG("updateGeometry done root=%dx%d nav=%dx%d visible=%d", (int)pw, (int)ph,
+               (int)lv_obj_get_width(_nav), (int)lv_obj_get_height(_nav),
+               panelVisible() ? 1 : 0);
 }
 
 void NavigationPane::bindView(_lv_obj_t* frame, _lv_obj_t* tileview) {
+  NAV_BOOT_LOG("bindView begin frame=%p tileview=%p", frame, tileview);
   _frame_root = frame;
   _tileview = tileview;
   updateGeometry();
+  NAV_BOOT_LOG("bindView done");
 }
 
 _lv_obj_t* NavigationPane::create(_lv_obj_t* parent) {
   if (_root) return _root;
+  NAV_BOOT_LOG("create begin this=%p parent=%p", this, parent);
   if (!UiSurface::create(parent)) return nullptr;
+  NAV_BOOT_LOG("create surface root=%p group=%p", _root, group());
   ht_set_meta_id(_root, meta_id::NavigationRoot);
   ui_widget_theme_apply(_root);
   layoutRootBelowTopPane(_root);
@@ -483,6 +503,7 @@ _lv_obj_t* NavigationPane::create(_lv_obj_t* parent) {
 
   _nav = ui_navigator_create_grid(_root);
   if (!_nav) return nullptr;
+  NAV_BOOT_LOG("create navigator nav=%p host=%p", _nav, itemHost());
   addFocusObject(_nav);
 
   lv_obj_add_event_cb(_root, [](lv_event_t* e) {
@@ -504,12 +525,14 @@ _lv_obj_t* NavigationPane::create(_lv_obj_t* parent) {
   lv_obj_add_flag(_nav, LV_OBJ_FLAG_HIDDEN);
   updateGeometry();
   lv_obj_add_flag(_root, LV_OBJ_FLAG_HIDDEN);
+  NAV_BOOT_LOG("create done root=%p nav=%p", _root, _nav);
   return _root;
 }
 
 void NavigationPane::setIcon(uint8_t id, const lv_img_dsc_t* img) {
   if (id >= kMaxButtons || !img) return;
   if (!_nav || !group()) return;
+  NAV_BOOT_LOG("setIcon begin id=%u img=%p", (unsigned)id, img);
 
 #if defined(UI_NAV_USE_SCREEN_ICONS) && UI_NAV_USE_SCREEN_ICONS
   const lv_img_dsc_t* const nav_img = img;
@@ -547,6 +570,7 @@ void NavigationPane::setIcon(uint8_t id, const lv_img_dsc_t* img) {
   _lv_obj_t* cell = ht_obj_create(
       host, meta_id::NavigationCell, reinterpret_cast<void*>(static_cast<uintptr_t>(id)));
   if (!cell) return;
+  NAV_BOOT_LOG("setIcon cell id=%u cell=%p", (unsigned)id, cell);
   lv_obj_set_flex_flow(cell, LV_FLEX_FLOW_COLUMN);
   lv_obj_set_flex_align(cell, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_END,
                         LV_FLEX_ALIGN_CENTER);
@@ -601,6 +625,7 @@ void NavigationPane::setIcon(uint8_t id, const lv_img_dsc_t* img) {
 
 
   layoutNav(false);
+  NAV_BOOT_LOG("setIcon done id=%u cell=%p", (unsigned)id, cell);
 }
 
 void NavigationPane::setSelectedIndex(uint8_t id) {
@@ -626,6 +651,7 @@ void NavigationPane::resetPanel() {
 }
 
 void NavigationPane::onEnter() {
+  NAV_BOOT_LOG("onEnter root=%p nav=%p buttons=%u", _root, _nav, (unsigned)btnCount());
   UiSurface::onEnter();
   _close_animating = false;
   if (!_nav || btnCount() == 0) return;
@@ -633,6 +659,7 @@ void NavigationPane::onEnter() {
 }
 
 void NavigationPane::onExit() {
+  NAV_BOOT_LOG("onExit root=%p nav=%p", _root, _nav);
   resetPanel();
 }
 
@@ -648,6 +675,8 @@ _lv_obj_t* NavigationPane::frameRoot() const {
 void NavigationPane::onCellClicked(_lv_obj_t* cell) {
   if (!cell) return;
   const uint8_t id = navCellId(cell);
+  NAV_BOOT_LOG("cell clicked cell=%p id=%u focus=%u", cell, (unsigned)id,
+               (unsigned)_ring_layout_focus);
   if (id == _ring_layout_focus) return;
   _ring_layout_focus = id;
   layoutNav(true);
@@ -702,6 +731,7 @@ bool NavigationPane::commitFocused() {
     return false;
   }
   ui_event_send(_tileview, UiEventType::TileCommit, &_ring_layout_focus);
+  NAV_BOOT_LOG("commit focus=%u tileview=%p", (unsigned)_ring_layout_focus, _tileview);
   return true;
 }
 
@@ -736,6 +766,7 @@ bool NavigationPane::onKey(uint32_t lv_key) {
 
 bool NavigationPane::requestCloseAnimation() {
   if (!_root || !_nav || !panelVisible()) return false;
+  NAV_BOOT_LOG("requestClose root=%p nav=%p x=%d", _root, _nav, (int)lv_obj_get_x(_nav));
   if (_close_animating) return true;
 
   lv_coord_t nx = 0;
@@ -783,6 +814,7 @@ bool NavigationPane::requestCloseAnimation() {
 
 void NavigationPane::openPanel() {
   if (!_root || !_nav) return;
+  NAV_BOOT_LOG("openPanel begin root=%p nav=%p", _root, _nav);
   const uint16_t open_slide_ms = gridNavOpenAnimMs(_root);
 
   ui_motion_cancel(_nav);
@@ -844,6 +876,8 @@ void NavigationPane::openPanel() {
       lv_group_focus_obj(_nav);
     }
   }
+  NAV_BOOT_LOG("openPanel scheduled x=%d->%d duration=%u", (int)closed_x, (int)nx,
+               (unsigned)open_slide_ms);
 }
 
 

@@ -7,9 +7,17 @@
 #include "ui/theme/ui_theme_metrics.hpp"
 #include <Arduino.h>
 
+#if defined(MESH_DEBUG) && MESH_DEBUG
+#define UI_BOOT_LOG(fmt, ...) do { Serial.printf("[ui] " fmt "\n", ##__VA_ARGS__); } while (0)
+#else
+#define UI_BOOT_LOG(...) ((void)0)
+#endif
+
 namespace heltec::meshcore::ui {
 
 void UiApp::openNavigationPane() {
+  UI_BOOT_LOG("openNavigationPane begin inited=%d contains=%d", _inited ? 1 : 0,
+              _surfaces.contains(&_navigation) ? 1 : 0);
   if (!_inited || _surfaces.contains(&_navigation)) return;
 
   reconcileInput();
@@ -17,7 +25,9 @@ void UiApp::openNavigationPane() {
 
   _navigation.setSelectedIndex(activeTileIndex());
   notifyNavActivity(millis());
-  (void)_surfaces.present(&_navigation);
+  const bool ok = _surfaces.present(&_navigation);
+  UI_BOOT_LOG("openNavigationPane present=%d depth=%u", ok ? 1 : 0,
+              (unsigned)_surfaces.modalDepth());
 }
 
 void UiApp::scheduleNavTileCommit(uint8_t tile_idx) {
@@ -74,16 +84,24 @@ bool UiApp::switchAdjacentTile(int8_t dir) {
 
 void UiApp::closeNavigationPane() {
   if (!_surfaces.contains(&_navigation)) return;
+  UI_BOOT_LOG("closeNavigationPane begin depth=%u", (unsigned)_surfaces.modalDepth());
   _nav_last_activity_ms = 0;
   stopNavigationAutoCommitTimer();
-  (void)_surfaces.dismissBranch(&_navigation);
+  const bool ok = _surfaces.dismissBranch(&_navigation);
+  UI_BOOT_LOG("closeNavigationPane dismiss=%d depth=%u", ok ? 1 : 0,
+              (unsigned)_surfaces.modalDepth());
   if (AbstractScreen* scr = activeScreen()) {
     setTopPaneTitle(scr->title());
   }
 }
 
 bool UiApp::initNavigationPane(_lv_obj_t* parent) {
-  if (!_navigation.init(parent)) return false;
+  UI_BOOT_LOG("navigation init begin parent=%p", parent);
+  if (!_navigation.init(parent)) {
+    UI_BOOT_LOG("navigation init failed");
+    return false;
+  }
+  UI_BOOT_LOG("navigation init created root=%p", _navigation.root());
 
   struct NavSlot {
     eScreenId id;
@@ -124,6 +142,8 @@ bool UiApp::initNavigationPane(_lv_obj_t* parent) {
       {eScreenId::System, &_scrSystem, false},
   };
 #endif
+  UI_BOOT_LOG("navigation configure begin count=%u",
+              (unsigned)(sizeof(slots) / sizeof(slots[0])));
   UiNavigationItem items[sizeof(slots) / sizeof(slots[0])] = {};
   uint8_t item_count = 0;
   for (const NavSlot& slot : slots) {
@@ -134,8 +154,10 @@ bool UiApp::initNavigationPane(_lv_obj_t* parent) {
     item.footer = slot.footer;
   }
   _navigation.configure(items, item_count);
+  UI_BOOT_LOG("navigation configure done count=%u", (unsigned)item_count);
 
   _navigation.setSelectedIndex(activeTileIndex());
+  UI_BOOT_LOG("navigation selected index=%u", (unsigned)activeTileIndex());
 
   return true;
 }

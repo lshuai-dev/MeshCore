@@ -31,8 +31,15 @@
     Serial.printf("[alert] " fmt "\n", ##__VA_ARGS__); \
     Serial.flush(); \
   } while (0)
+#define UI_BOOT_LOG(fmt, ...) \
+  do { Serial.printf("[ui] " fmt "\n", ##__VA_ARGS__); } while (0)
 #else
 #define UI_ALERT_LOG(fmt, ...) ((void)0)
+#define UI_BOOT_LOG(...) ((void)0)
+#endif
+
+#ifndef HELTEC_DISABLE_NAVIGATION_PANE
+#define HELTEC_DISABLE_NAVIGATION_PANE 0
 #endif
 
 namespace heltec::meshcore::ui {
@@ -211,6 +218,7 @@ void UiApp::onTopPaneLongPress() {
 
 void UiApp::init() {
   _inited = false;
+  UI_BOOT_LOG("init begin this=%p", this);
   ui_events_init();
   ui_task().attachHost(this);
   _app_state_dispatcher.bindSurfaceManager(_surfaces);
@@ -327,8 +335,18 @@ void UiApp::init() {
   lv_obj_clear_flag(content, LV_OBJ_FLAG_SCROLLABLE);
   lv_obj_add_flag(content, LV_OBJ_FLAG_OVERFLOW_VISIBLE);
   if (!initScreens(content)) return;
-  if (!initNavigationPane(_layerOverlay)) return;
+  UI_BOOT_LOG("initScreens done tileview=%p", _tileview);
+#if HELTEC_DISABLE_NAVIGATION_PANE
+  UI_BOOT_LOG("navigation disabled by HELTEC_DISABLE_NAVIGATION_PANE");
+#else
+  if (!initNavigationPane(_layerOverlay)) {
+    UI_BOOT_LOG("initNavigationPane failed");
+    return;
+  }
+  UI_BOOT_LOG("initNavigationPane done root=%p", _navigation.root());
   _navigation.bindView(_frame_root, _tileview);
+  UI_BOOT_LOG("navigation bindView done");
+#endif
   bindFrameEvents();
   if (_tileview) {
     lv_obj_add_event_cb(_tileview, [](lv_event_t* e) {
@@ -535,6 +553,8 @@ void UiApp::tick() {
 bool UiApp::initScreens(_lv_obj_t* content) {
   if (!content) return false;
 
+  UI_BOOT_LOG("initScreens begin content=%p", content);
+
   AbstractScreen* screens[static_cast<uint8_t>(eScreenId::kScreenCnt)];
   uint8_t screen_count = 0;
   screens[screen_count++] = &_scrHome;
@@ -578,6 +598,8 @@ bool UiApp::initScreens(_lv_obj_t* content) {
     AbstractScreen* scr = screens[i];
     if (!scr) continue;
 
+    UI_BOOT_LOG("screen init begin index=%u screen=%p", (unsigned)i, scr);
+
     ht_set_meta_id(tile, meta_id::AppTile);
     ht_set_user_data(tile, scr);
     ui_widget_theme_apply(tile);
@@ -588,6 +610,7 @@ bool UiApp::initScreens(_lv_obj_t* content) {
     if (!scr->init(tile)) return false;
     lv_obj_t* scr_root = scr->root();
     if (!scr_root) return false;
+    UI_BOOT_LOG("screen init done index=%u root=%p", (unsigned)i, scr_root);
   }
 
   relayout_tileview_tiles(_tileview);
@@ -601,6 +624,7 @@ bool UiApp::initScreens(_lv_obj_t* content) {
 #endif
 
   if (AbstractScreen* home = screenAt(0)) _top_pane.setTitle(home->title());
+  UI_BOOT_LOG("initScreens done count=%u", (unsigned)screen_count);
   return true;
 }
 
