@@ -212,18 +212,6 @@ uint8_t RadialNavigator::focusedIndex() const {
   return _ring_layout_focus != kNoEmphasis ? _ring_layout_focus : 0;
 }
 
-void RadialNavigator::configure(const UiNavigationItem* items, uint8_t count) {
-  if (!items) return;
-  for (uint8_t i = 0; i < count; ++i) {
-    setIcon(items[i].screen_index, items[i].icon);
-  }
-}
-
-void RadialNavigator::bindView(_lv_obj_t* frame, _lv_obj_t* tileview) {
-  _frame_root = frame;
-  _tileview = tileview;
-}
-
 uint8_t RadialNavigator::focusedSlot() const {
   const uint8_t n = btnCount();
   return n ? static_cast<uint8_t>(_ring_focus_slot % n) : 0;
@@ -494,12 +482,13 @@ void RadialNavigator::setIcon(uint8_t id, const lv_img_dsc_t* img) {
   layoutRing(false);
 }
 
-void RadialNavigator::setSelectedIndex(uint8_t id) {
+void RadialNavigator::setSelectedIndex(uint8_t id, bool preview) {
   if (id >= kMaxButtons || !_nav || !findCellById(id)) return;
   _ring_layout_focus = id;
   _ring_focus_slot = slotForId(id);
   if (!panelVisible()) return;
-  layoutRing(false);
+  layoutRing(!preview);
+  if (preview) sendTilePreview(id);
 }
 
 void RadialNavigator::resetPanel() {
@@ -536,6 +525,12 @@ uint16_t RadialNavigator::inputRebindDelayMs() const {
   return 0;
 }
 
+void RadialNavigator::sendTilePreview(uint8_t tile_idx) {
+  if (_tileview && tile_idx < kMaxButtons) {
+    ui_event_send(_tileview, UiEventType::TilePreview, &tile_idx);
+  }
+}
+
 _lv_obj_t* RadialNavigator::frameRoot() const {
   if (_frame_root) return _frame_root;
   return _root;
@@ -548,6 +543,7 @@ void RadialNavigator::onCellPressed(_lv_obj_t* cell) {
   _ring_layout_focus = id;
   _ring_focus_slot = static_cast<uint8_t>(lv_obj_get_index(cell));
   layoutRing(true);
+  sendTilePreview(id);
   if (_lv_obj_t* frame = frameRoot()) {
     ui_event_send(frame, UiEventType::NavActivity);
   }
@@ -564,6 +560,7 @@ void RadialNavigator::stepNavFocus(int delta) {
   _ring_focus_slot = static_cast<uint8_t>(next);
   _ring_layout_focus = navButtonId(btn);
   layoutRing(true);
+  sendTilePreview(_ring_layout_focus);
 }
 
 bool RadialNavigator::onKey(uint32_t lv_key) {

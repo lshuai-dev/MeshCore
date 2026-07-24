@@ -4,7 +4,6 @@
 #include <stdint.h>
 
 #include "ui/core/ht_meta_data.hpp"
-#include "ui/core/screen_id.hpp"
 
 namespace heltec::meshcore::ui {
 
@@ -35,13 +34,6 @@ struct UiNavigationMetrics {
   lv_coord_t grid_label_h;
   lv_coord_t grid_cell_radius;
   lv_coord_t grid_footer_h;
-};
-
-struct UiNavigationItem {
-  uint8_t screen_index = 0;
-  const char* label = nullptr;
-  const lv_img_dsc_t* icon = nullptr;
-  bool footer = false;
 };
 
 lv_obj_t* ui_navigator_create_grid(lv_obj_t* parent);

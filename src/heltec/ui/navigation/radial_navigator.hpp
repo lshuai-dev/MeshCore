@@ -2,7 +2,6 @@
 #include "heltec/ui/core/biz_facade.hpp"
 #include "heltec/ui/core/screen_id.hpp"
 #include "heltec/ui/core/ui_surface.hpp"
-#include "heltec/ui/navigation/ui_navigator.hpp"
 
 #include <lvgl.h>
 
@@ -12,22 +11,22 @@ class RadialNavigator : public UiSurface {
   explicit RadialNavigator(biz::IBizFacade& biz) : UiSurface(biz) {}
   ~RadialNavigator();
 
-  void configure(const UiNavigationItem* items, uint8_t count);
-  void setSelectedIndex(uint8_t screen_index);
+  _lv_obj_t* create(_lv_obj_t* parent) override;
+  void setIcon(uint8_t screen_index, const lv_img_dsc_t* image);
+  void setSelectedIndex(uint8_t screen_index, bool preview = false);
   bool isTransitioning() const { return false; }
   uint8_t focusedIndex() const;
-  void bindView(_lv_obj_t* frame, _lv_obj_t* tileview);
+  _lv_obj_t* navButtonHost() const { return itemHost(); }
+  _lv_obj_t* navFocusWidget() const { return _nav ? _nav : _root; }
+  void setTileView(_lv_obj_t* tileview) { _tileview = tileview; }
+  void setFrameRoot(_lv_obj_t* frame) { _frame_root = frame; }
 
   void onEnter() override;
   void onExit() override;
   uint16_t inputRebindDelayMs() const override;
 
- protected:
-  _lv_obj_t* create(_lv_obj_t* parent) override;
-
  private:
   bool onKey(uint32_t lv_key) override;
-  void setIcon(uint8_t screen_index, const lv_img_dsc_t* image);
   _lv_obj_t* itemHost() const;
   _lv_obj_t* findCellById(uint8_t id) const;
   uint8_t btnCount() const;
@@ -41,6 +40,7 @@ class RadialNavigator : public UiSurface {
   void setNavButtonsInteractive(bool interactive);
   void stepNavFocus(int delta);
   void onCellPressed(_lv_obj_t* cell);
+  void sendTilePreview(uint8_t tile_idx);
   void clearAnimations();
   void ensureDefaultFocus();
   void invalidateSlotCache();

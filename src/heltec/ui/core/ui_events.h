@@ -9,6 +9,7 @@ enum class UiEventType : uint8_t {
   NavOpen,
   NavClose,
   NavActivity,
+  TilePreview,
   TileCommit,
   ContextOpen,
   ContextClose,

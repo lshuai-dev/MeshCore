@@ -38,10 +38,6 @@
 #define UI_BOOT_LOG(...) ((void)0)
 #endif
 
-#ifndef HELTEC_DISABLE_NAVIGATION_PANE
-#define HELTEC_DISABLE_NAVIGATION_PANE 0
-#endif
-
 namespace heltec::meshcore::ui {
 
 namespace {
@@ -336,17 +332,14 @@ void UiApp::init() {
   lv_obj_add_flag(content, LV_OBJ_FLAG_OVERFLOW_VISIBLE);
   if (!initScreens(content)) return;
   UI_BOOT_LOG("initScreens done tileview=%p", _tileview);
-#if HELTEC_DISABLE_NAVIGATION_PANE
-  UI_BOOT_LOG("navigation disabled by HELTEC_DISABLE_NAVIGATION_PANE");
-#else
   if (!initNavigationPane(_layerOverlay)) {
     UI_BOOT_LOG("initNavigationPane failed");
     return;
   }
   UI_BOOT_LOG("initNavigationPane done root=%p", _navigation.root());
-  _navigation.bindView(_frame_root, _tileview);
+  _navigation.setFrameRoot(_frame_root);
+  _navigation.setTileView(_tileview);
   UI_BOOT_LOG("navigation bindView done");
-#endif
   UI_BOOT_LOG("post-bind frame events begin");
   bindFrameEvents();
   UI_BOOT_LOG("post-bind frame events done");
@@ -361,6 +354,11 @@ void UiApp::init() {
       const UiEvent* event = ui_event_get(e);
       if (!event) return;
       switch (event->type) {
+        case UiEventType::TilePreview: {
+          const auto* idx = static_cast<const uint8_t*>(event->payload);
+          if (idx) app->previewNavTile(*idx);
+          break;
+        }
         case UiEventType::TileCommit: {
           const auto* idx = static_cast<const uint8_t*>(event->payload);
           if (idx) app->scheduleNavTileCommit(*idx);

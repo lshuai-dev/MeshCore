@@ -7,27 +7,17 @@
 #include "ui/theme/ui_theme_metrics.hpp"
 #include <Arduino.h>
 
-#if defined(MESH_DEBUG) && MESH_DEBUG
-#define UI_BOOT_LOG(fmt, ...) do { Serial.printf("[ui] " fmt "\n", ##__VA_ARGS__); } while (0)
-#else
-#define UI_BOOT_LOG(...) ((void)0)
-#endif
-
 namespace heltec::meshcore::ui {
 
 void UiApp::openNavigationPane() {
-  UI_BOOT_LOG("openNavigationPane begin inited=%d contains=%d", _inited ? 1 : 0,
-              _surfaces.contains(&_navigation) ? 1 : 0);
   if (!_inited || _surfaces.contains(&_navigation)) return;
 
   reconcileInput();
   if (_surfaces.contains(&_navigation)) return;
 
-  _navigation.setSelectedIndex(activeTileIndex());
+  _navigation.setSelectedIndex(activeTileIndex(), true);
   notifyNavActivity(millis());
-  const bool ok = _surfaces.present(&_navigation);
-  UI_BOOT_LOG("openNavigationPane present=%d depth=%u", ok ? 1 : 0,
-              (unsigned)_surfaces.modalDepth());
+  (void)_surfaces.present(&_navigation);
 }
 
 void UiApp::scheduleNavTileCommit(uint8_t tile_idx) {
@@ -76,7 +66,7 @@ bool UiApp::switchAdjacentTile(int8_t dir) {
     bindScreen(scr);
     setTopPaneTitle(scr->title());
   }
-  _navigation.setSelectedIndex((uint8_t)next);
+  _navigation.setSelectedIndex((uint8_t)next, true);
   notifyDisplayActivity(millis());
   return true;
 #endif
@@ -84,80 +74,66 @@ bool UiApp::switchAdjacentTile(int8_t dir) {
 
 void UiApp::closeNavigationPane() {
   if (!_surfaces.contains(&_navigation)) return;
-  UI_BOOT_LOG("closeNavigationPane begin depth=%u", (unsigned)_surfaces.modalDepth());
   _nav_last_activity_ms = 0;
   stopNavigationAutoCommitTimer();
-  const bool ok = _surfaces.dismissBranch(&_navigation);
-  UI_BOOT_LOG("closeNavigationPane dismiss=%d depth=%u", ok ? 1 : 0,
-              (unsigned)_surfaces.modalDepth());
+  (void)_surfaces.dismissBranch(&_navigation);
   if (AbstractScreen* scr = activeScreen()) {
     setTopPaneTitle(scr->title());
   }
 }
 
 bool UiApp::initNavigationPane(_lv_obj_t* parent) {
-  UI_BOOT_LOG("navigation init begin parent=%p", parent);
-  if (!_navigation.init(parent)) {
-    UI_BOOT_LOG("navigation init failed");
-    return false;
-  }
-  UI_BOOT_LOG("navigation init created root=%p", _navigation.root());
+  if (!_navigation.create(parent)) return false;
 
   struct NavSlot {
     eScreenId id;
     AbstractScreen* scr;
-    bool footer;
   };
 #if defined(UI_NAVIGATION_GRID) && UI_NAVIGATION_GRID
   const NavSlot slots[] = {
-      {eScreenId::Home, &_scrHome, false},
-      {eScreenId::Radio, &_scrRadio, false},
-      {eScreenId::Recent, &_scrRecent, false},
+      {eScreenId::Home, &_scrHome},
+      {eScreenId::Radio, &_scrRadio},
+      {eScreenId::Recent, &_scrRecent},
 #if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
-      {eScreenId::Compass, &_scrCompass, false},
+      {eScreenId::Compass, &_scrCompass},
 #else
-      {eScreenId::GPS, &_scrGPS, false},
+      {eScreenId::GPS, &_scrGPS},
 #endif
 #if defined(ENV_INCLUDE_MAP) && ENV_INCLUDE_MAP
-      {eScreenId::Tracker, &_scrTracker, false},
+      {eScreenId::Tracker, &_scrTracker},
 #endif
-      {eScreenId::System, &_scrSystem, false},
-#if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
-      {eScreenId::FindFriend, &_scrFindFriend, true},
-#endif
+      {eScreenId::System, &_scrSystem},
   };
 #else
   const NavSlot slots[] = {
-      {eScreenId::Home, &_scrHome, false},
-      {eScreenId::Recent, &_scrRecent, false},
-      {eScreenId::Radio, &_scrRadio, false},
+      {eScreenId::Home, &_scrHome},
+      {eScreenId::Recent, &_scrRecent},
+      {eScreenId::Radio, &_scrRadio},
 #if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
-      {eScreenId::Compass, &_scrCompass, false},
-      {eScreenId::FindFriend, &_scrFindFriend, false},
+      {eScreenId::Compass, &_scrCompass},
+      {eScreenId::FindFriend, &_scrFindFriend},
 #endif
-      {eScreenId::GPS, &_scrGPS, false},
+      {eScreenId::GPS, &_scrGPS},
 #if defined(ENV_INCLUDE_MAP) && ENV_INCLUDE_MAP
-      {eScreenId::Tracker, &_scrTracker, false},
+      {eScreenId::Tracker, &_scrTracker},
 #endif
-      {eScreenId::System, &_scrSystem, false},
+      {eScreenId::System, &_scrSystem},
   };
 #endif
-  UI_BOOT_LOG("navigation configure begin count=%u",
-              (unsigned)(sizeof(slots) / sizeof(slots[0])));
-  UiNavigationItem items[sizeof(slots) / sizeof(slots[0])] = {};
-  uint8_t item_count = 0;
   for (const NavSlot& slot : slots) {
-    UiNavigationItem& item = items[item_count++];
-    item.screen_index = static_cast<uint8_t>(slot.id);
-    item.label = slot.scr->title();
-    item.icon = slot.scr->icon();
-    item.footer = slot.footer;
+    _navigation.setIcon(static_cast<uint8_t>(slot.id), slot.scr->icon());
+#if defined(UI_NAVIGATION_GRID) && UI_NAVIGATION_GRID
+    _navigation.setLabel(static_cast<uint8_t>(slot.id), slot.scr->title());
+#endif
   }
-  _navigation.configure(items, item_count);
-  UI_BOOT_LOG("navigation configure done count=%u", (unsigned)item_count);
+#if defined(UI_NAVIGATION_GRID) && UI_NAVIGATION_GRID && \
+    defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
+  _navigation.setIcon(static_cast<uint8_t>(eScreenId::FindFriend), _scrFindFriend.icon());
+  _navigation.setLabel(static_cast<uint8_t>(eScreenId::FindFriend), _scrFindFriend.title());
+  _navigation.setFooterSlot(static_cast<uint8_t>(eScreenId::FindFriend));
+#endif
 
-  _navigation.setSelectedIndex(activeTileIndex());
-  UI_BOOT_LOG("navigation selected index=%u", (unsigned)activeTileIndex());
+  _navigation.setSelectedIndex(activeTileIndex(), true);
 
   return true;
 }
@@ -185,6 +161,12 @@ void UiApp::ensureTileKeypadFocus() {
 #endif
   bindScreen(resolveActiveScreen());
   if (AbstractScreen* scr = activeScreen()) {
+    setTopPaneTitle(scr->title());
+  }
+}
+
+void UiApp::previewNavTile(uint8_t tile_idx) {
+  if (AbstractScreen* scr = screenAt(tile_idx)) {
     setTopPaneTitle(scr->title());
   }
 }

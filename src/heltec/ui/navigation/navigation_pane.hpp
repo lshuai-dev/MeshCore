@@ -3,7 +3,6 @@
 #include "heltec/ui/core/biz_facade.hpp"
 #include "heltec/ui/core/screen_id.hpp"
 #include "heltec/ui/core/ui_surface.hpp"
-#include "heltec/ui/navigation/ui_navigator.hpp"
 
 #include <lvgl.h>
 
@@ -15,26 +14,26 @@ class NavigationPane : public UiSurface {
   explicit NavigationPane(biz::IBizFacade& biz) : UiSurface(biz) {}
   ~NavigationPane();
 
-  void configure(const UiNavigationItem* items, uint8_t count);
-  void setSelectedIndex(uint8_t screen_index);
+  _lv_obj_t* create(_lv_obj_t* parent) override;
+  void setIcon(uint8_t screen_index, const lv_img_dsc_t* image);
+  void setLabel(uint8_t screen_index, const char* label);
+  void setFooterSlot(uint8_t screen_index);
+  void setSelectedIndex(uint8_t screen_index, bool preview = false);
   bool isTransitioning() const { return _ring_fade_busy; }
   uint8_t focusedIndex() const;
+  _lv_obj_t* navButtonHost() const;
+  _lv_obj_t* navFocusWidget() const { return _nav ? _nav : _root; }
   /** Slide the pane left, then emit NavClose. Returns false when it should close immediately. */
   bool requestCloseAnimation();
-  void bindView(_lv_obj_t* frame, _lv_obj_t* tileview);
+  void setTileView(_lv_obj_t* tileview);
+  void setFrameRoot(_lv_obj_t* frame) { _frame_root = frame; }
 
   void onEnter() override;
   void onExit() override;
   uint16_t inputRebindDelayMs() const override;
 
- protected:
-  _lv_obj_t* create(_lv_obj_t* parent) override;
-
  private:
   bool onKey(uint32_t lv_key) override;
-  void setIcon(uint8_t screen_index, const lv_img_dsc_t* image);
-  void setLabel(uint8_t screen_index, const char* label);
-  void setFooterSlot(uint8_t screen_index);
   _lv_obj_t* itemHost() const;
   _lv_obj_t* findCellById(uint8_t id) const;
   uint8_t btnCount() const;
@@ -48,6 +47,7 @@ class NavigationPane : public UiSurface {
   void stepNavFocus(int delta);
   void onCellClicked(_lv_obj_t* cell);
   bool commitFocused();
+  void sendTilePreview(uint8_t tile_idx);
   _lv_obj_t* frameRoot() const;
 
   static constexpr uint8_t kMaxButtons = static_cast<uint8_t>(eScreenId::kScreenCnt);
