@@ -85,52 +85,48 @@ void UiApp::closeNavigationPane() {
 bool UiApp::initNavigationPane(_lv_obj_t* parent) {
   if (!_navigation.create(parent)) return false;
 
-  struct NavSlot {
-    eScreenId id;
-    AbstractScreen* scr;
-  };
 #if defined(UI_NAVIGATION_GRID) && UI_NAVIGATION_GRID
-  const NavSlot slots[] = {
-      {eScreenId::Home, &_scrHome},
-      {eScreenId::Radio, &_scrRadio},
-      {eScreenId::Recent, &_scrRecent},
+  const UiNavigationItem items[] = {
+      {static_cast<uint8_t>(eScreenId::Home), _scrHome.title(), _scrHome.icon(), false},
+      {static_cast<uint8_t>(eScreenId::Radio), _scrRadio.title(), _scrRadio.icon(), false},
+      {static_cast<uint8_t>(eScreenId::Recent), _scrRecent.title(), _scrRecent.icon(), false},
 #if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
-      {eScreenId::Compass, &_scrCompass},
+      {static_cast<uint8_t>(eScreenId::Compass), _scrCompass.title(), _scrCompass.icon(), false},
 #else
-      {eScreenId::GPS, &_scrGPS},
+      {static_cast<uint8_t>(eScreenId::GPS), _scrGPS.title(), _scrGPS.icon(), false},
 #endif
 #if defined(ENV_INCLUDE_MAP) && ENV_INCLUDE_MAP
-      {eScreenId::Tracker, &_scrTracker},
+      {static_cast<uint8_t>(eScreenId::Tracker), _scrTracker.title(), _scrTracker.icon(), false},
 #endif
-      {eScreenId::System, &_scrSystem},
+      {static_cast<uint8_t>(eScreenId::System), _scrSystem.title(), _scrSystem.icon(), false},
   };
 #else
-  const NavSlot slots[] = {
-      {eScreenId::Home, &_scrHome},
-      {eScreenId::Recent, &_scrRecent},
-      {eScreenId::Radio, &_scrRadio},
+  const UiNavigationItem items[] = {
+      {static_cast<uint8_t>(eScreenId::Home), _scrHome.title(), _scrHome.icon(), false},
+      {static_cast<uint8_t>(eScreenId::Recent), _scrRecent.title(), _scrRecent.icon(), false},
+      {static_cast<uint8_t>(eScreenId::Radio), _scrRadio.title(), _scrRadio.icon(), false},
 #if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
-      {eScreenId::Compass, &_scrCompass},
-      {eScreenId::FindFriend, &_scrFindFriend},
+      {static_cast<uint8_t>(eScreenId::Compass), _scrCompass.title(), _scrCompass.icon(), false},
+      {static_cast<uint8_t>(eScreenId::FindFriend), _scrFindFriend.title(), _scrFindFriend.icon(), false},
 #endif
-      {eScreenId::GPS, &_scrGPS},
+      {static_cast<uint8_t>(eScreenId::GPS), _scrGPS.title(), _scrGPS.icon(), false},
 #if defined(ENV_INCLUDE_MAP) && ENV_INCLUDE_MAP
-      {eScreenId::Tracker, &_scrTracker},
+      {static_cast<uint8_t>(eScreenId::Tracker), _scrTracker.title(), _scrTracker.icon(), false},
 #endif
-      {eScreenId::System, &_scrSystem},
+      {static_cast<uint8_t>(eScreenId::System), _scrSystem.title(), _scrSystem.icon(), false},
   };
 #endif
-  for (const NavSlot& slot : slots) {
-    _navigation.setIcon(static_cast<uint8_t>(slot.id), slot.scr->icon());
-#if defined(UI_NAVIGATION_GRID) && UI_NAVIGATION_GRID
-    _navigation.setLabel(static_cast<uint8_t>(slot.id), slot.scr->title());
-#endif
-  }
 #if defined(UI_NAVIGATION_GRID) && UI_NAVIGATION_GRID && \
     defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
-  _navigation.setIcon(static_cast<uint8_t>(eScreenId::FindFriend), _scrFindFriend.icon());
-  _navigation.setLabel(static_cast<uint8_t>(eScreenId::FindFriend), _scrFindFriend.title());
-  _navigation.setFooterSlot(static_cast<uint8_t>(eScreenId::FindFriend));
+  const UiNavigationItem footer = {
+      static_cast<uint8_t>(eScreenId::FindFriend), _scrFindFriend.title(),
+      _scrFindFriend.icon(), true};
+#endif
+
+  _navigation.configure(items, static_cast<uint8_t>(sizeof(items) / sizeof(items[0])));
+#if defined(UI_NAVIGATION_GRID) && UI_NAVIGATION_GRID && \
+    defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
+  _navigation.configure(&footer, 1);
 #endif
 
   _navigation.setSelectedIndex(activeTileIndex(), true);

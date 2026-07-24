@@ -55,13 +55,15 @@ static _lv_obj_t* ui_navigator_create_with_layout(_lv_obj_t* parent, uint8_t lay
   if (layout == kNavigatorLayoutGrid) {
     w->content = heltec::meshcore::ui::ht_obj_create(
         obj, heltec::meshcore::ui::meta_id::NavigationContent);
-    if (w->content) {
-      lv_obj_set_pos(w->content, 0, 0);
-      lv_obj_set_size(w->content, lv_pct(100), lv_pct(100));
-      lv_obj_set_style_pad_all(w->content, 0, LV_PART_MAIN);
-      lv_obj_clear_flag(w->content, LV_OBJ_FLAG_SCROLLABLE | LV_OBJ_FLAG_CLICKABLE);
-      lv_obj_add_flag(w->content, LV_OBJ_FLAG_OVERFLOW_VISIBLE);
+    if (!w->content) {
+      lv_obj_del(obj);
+      return nullptr;
     }
+    lv_obj_set_pos(w->content, 0, 0);
+    lv_obj_set_size(w->content, lv_pct(100), lv_pct(100));
+    lv_obj_set_style_pad_all(w->content, 0, LV_PART_MAIN);
+    lv_obj_clear_flag(w->content, LV_OBJ_FLAG_SCROLLABLE | LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_add_flag(w->content, LV_OBJ_FLAG_OVERFLOW_VISIBLE);
   }
   return obj;
 }

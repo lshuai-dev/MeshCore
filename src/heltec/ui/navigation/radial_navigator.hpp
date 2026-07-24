@@ -2,6 +2,7 @@
 #include "heltec/ui/core/biz_facade.hpp"
 #include "heltec/ui/core/screen_id.hpp"
 #include "heltec/ui/core/ui_surface.hpp"
+#include "ui/navigation/ui_navigator.hpp"
 
 #include <lvgl.h>
 
@@ -12,13 +13,17 @@ class RadialNavigator : public UiSurface {
   ~RadialNavigator();
 
   _lv_obj_t* create(_lv_obj_t* parent) override;
+  void configure(const UiNavigationItem* items, uint8_t count);
   void setIcon(uint8_t screen_index, const lv_img_dsc_t* image);
   void setSelectedIndex(uint8_t screen_index, bool preview = false);
   bool isTransitioning() const { return false; }
   uint8_t focusedIndex() const;
   _lv_obj_t* navButtonHost() const { return itemHost(); }
   _lv_obj_t* navFocusWidget() const { return _nav ? _nav : _root; }
-  void setTileView(_lv_obj_t* tileview) { _tileview = tileview; }
+  void setTileView(_lv_obj_t* tileview) {
+    _tileview = tileview;
+    _geometry_valid = false;
+  }
   void setFrameRoot(_lv_obj_t* frame) { _frame_root = frame; }
 
   void onEnter() override;
@@ -39,7 +44,8 @@ class RadialNavigator : public UiSurface {
   void updateGeometry();
   void setNavButtonsInteractive(bool interactive);
   void stepNavFocus(int delta);
-  void onCellPressed(_lv_obj_t* cell);
+  void onCellTouchEvent(lv_event_t* e);
+  void onCellClicked(_lv_obj_t* cell);
   void sendTilePreview(uint8_t tile_idx);
   void clearAnimations();
   void ensureDefaultFocus();
@@ -61,6 +67,14 @@ class RadialNavigator : public UiSurface {
   uint8_t _ring_focus_slot = 0;
   uint8_t _slot_cache_count = 0;
   bool _updating_geometry = false;
+  bool _geometry_valid = false;
+  bool _cached_panel_visible = false;
+  lv_coord_t _cached_nav_x = 0;
+  lv_coord_t _cached_nav_y = 0;
+  lv_coord_t _cached_nav_side = 0;
+  bool _touch_active = false;
+  bool _touch_dragged = false;
+  lv_point_t _touch_origin = {0, 0};
 };
 
 }  // namespace heltec::meshcore::ui

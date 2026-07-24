@@ -14,6 +14,9 @@
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
 #endif
+#ifndef HELTEC_TOUCH_GESTURE_SWIPE_PX
+#define HELTEC_TOUCH_GESTURE_SWIPE_PX 24
+#endif
 
 namespace heltec::meshcore::ui {
 namespace {
@@ -114,6 +117,16 @@ static int navStepDelta(uint32_t key) {
   return (key == LV_KEY_PREV || key == LV_KEY_LEFT || key == LV_KEY_UP) ? -1 : 1;
 }
 
+static bool navTouchMovedBeyondThreshold(const lv_point_t& origin,
+                                         const lv_point_t& current) {
+  const int32_t dx = static_cast<int32_t>(current.x) - origin.x;
+  const int32_t dy = static_cast<int32_t>(current.y) - origin.y;
+  const int32_t abs_dx = dx < 0 ? -dx : dx;
+  const int32_t abs_dy = dy < 0 ? -dy : dy;
+  return abs_dx >= HELTEC_TOUCH_GESTURE_SWIPE_PX ||
+         abs_dy >= HELTEC_TOUCH_GESTURE_SWIPE_PX;
+}
+
 static void layoutRootBelowTopPane(_lv_obj_t* root) {
   if (!root) return;
   _lv_obj_t* parent = lv_obj_get_parent(root);
@@ -163,14 +176,28 @@ static void layoutSquareInParent(_lv_obj_t* obj) {
   const lv_coord_t side = LV_MIN(parent_w, parent_h);
   const lv_coord_t x = parent_w > side ? (parent_w - side) / 2 : 0;
   const lv_coord_t y = parent_h > side ? (parent_h - side) / 2 : 0;
-  lv_obj_set_size(obj, side, side);
-  lv_obj_set_pos(obj, x, y);
+  if (lv_obj_get_width(obj) != side || lv_obj_get_height(obj) != side) {
+    lv_obj_set_size(obj, side, side);
+  }
+  if (lv_obj_get_x(obj) != x || lv_obj_get_y(obj) != y) {
+    lv_obj_set_pos(obj, x, y);
+  }
 }
 
 }  // namespace
 
 RadialNavigator::~RadialNavigator() {
   clearAnimations();
+}
+
+void RadialNavigator::configure(const UiNavigationItem* items, uint8_t count) {
+  if (!items) return;
+  if (count > kMaxButtons) count = kMaxButtons;
+  for (uint8_t i = 0; i < count; ++i) {
+    const UiNavigationItem& item = items[i];
+    if (item.screen_index >= kMaxButtons || !item.icon) continue;
+    setIcon(item.screen_index, item.icon);
+  }
 }
 
 _lv_obj_t* RadialNavigator::itemHost() const {
@@ -379,6 +406,14 @@ void RadialNavigator::updateGeometry() {
   const lv_coord_t ph = lv_obj_get_height(_root);
   if (pw >= 8 && ph >= 8) {
     layoutSquareInParent(_nav);
+    const lv_coord_t nav_x = lv_obj_get_x(_nav);
+    const lv_coord_t nav_y = lv_obj_get_y(_nav);
+    const lv_coord_t nav_side = lv_obj_get_width(_nav);
+    const bool visible = panelVisible();
+    const bool geometry_changed =
+        !_geometry_valid || _cached_panel_visible != visible ||
+        _cached_nav_x != nav_x || _cached_nav_y != nav_y ||
+        _cached_nav_side != nav_side;
     if (!panelVisible()) {
       const uint8_t n = btnCount();
       if (n != 0) {
@@ -388,7 +423,12 @@ void RadialNavigator::updateGeometry() {
         _emphasis_index = focusedIndex();
       }
     }
-    layoutRing(false, false);
+    if (geometry_changed) layoutRing(false, false);
+    _cached_panel_visible = visible;
+    _cached_nav_x = nav_x;
+    _cached_nav_y = nav_y;
+    _cached_nav_side = nav_side;
+    _geometry_valid = true;
   }
   _updating_geometry = false;
 }
@@ -405,7 +445,15 @@ _lv_obj_t* RadialNavigator::create(_lv_obj_t* parent) {
   lv_group_set_wrap(group(), false);
 
   _nav = ht_obj_create(_root, meta_id::NavigationRing);
-  if (!_nav) return nullptr;
+  if (!_nav) {
+    if (_focus_group) {
+      lv_group_del(_focus_group);
+      _focus_group = nullptr;
+    }
+    lv_obj_del(_root);
+    _root = nullptr;
+    return nullptr;
+  }
   lv_obj_set_style_pad_all(_nav, 0, LV_PART_MAIN);
   lv_obj_clear_flag(_nav, LV_OBJ_FLAG_SCROLLABLE | LV_OBJ_FLAG_CLICKABLE);
   lv_obj_add_flag(_nav, LV_OBJ_FLAG_FLOATING | LV_OBJ_FLAG_OVERFLOW_VISIBLE |
@@ -454,6 +502,7 @@ void RadialNavigator::setIcon(uint8_t id, const lv_img_dsc_t* img) {
     lv_imgbtn_set_src(existing, LV_IMGBTN_STATE_PRESSED, nav_img, nullptr, nullptr);
     lv_imgbtn_set_src(existing, LV_IMGBTN_STATE_RELEASED, nav_img, nullptr, nullptr);
     style_nav_imgbtn(existing, nav_img);
+    _geometry_valid = false;
     layoutRing(false);
     return;
   }
@@ -462,6 +511,7 @@ void RadialNavigator::setIcon(uint8_t id, const lv_img_dsc_t* img) {
       host, meta_id::NavigationRingItem, reinterpret_cast<void*>(static_cast<uintptr_t>(id)));
   if (!btn) return;
   invalidateSlotCache();
+  _geometry_valid = false;
   lv_imgbtn_set_src(btn, LV_IMGBTN_STATE_PRESSED, nav_img, nullptr, nullptr);
   lv_imgbtn_set_src(btn, LV_IMGBTN_STATE_RELEASED, nav_img, nullptr, nullptr);
   style_nav_imgbtn(btn, nav_img);
@@ -474,11 +524,21 @@ void RadialNavigator::setIcon(uint8_t id, const lv_img_dsc_t* img) {
     lv_obj_add_flag(btn, LV_OBJ_FLAG_HIDDEN);
   }
   lv_obj_add_event_cb(btn, [](lv_event_t* e) {
-    if (LV_EVENT_PRESSED != lv_event_get_code(e)) return;
     auto* nav = static_cast<RadialNavigator*>(lv_event_get_user_data(e));
-    if (!nav || !nav->panelVisible()) return;
-    nav->onCellPressed(lv_event_get_target(e));
-  }, LV_EVENT_PRESSED, this);
+    if (!nav) return;
+    nav->onCellTouchEvent(e);
+    if (LV_EVENT_CLICKED != lv_event_get_code(e)) return;
+    if (!nav->panelVisible()) return;
+    if (nav->_touch_dragged) {
+      nav->_touch_active = false;
+      nav->_touch_dragged = false;
+      lv_event_stop_processing(e);
+      lv_event_stop_bubbling(e);
+      return;
+    }
+    nav->_touch_active = false;
+    nav->onCellClicked(lv_event_get_target(e));
+  }, LV_EVENT_ALL, this);
   layoutRing(false);
 }
 
@@ -536,7 +596,48 @@ _lv_obj_t* RadialNavigator::frameRoot() const {
   return _root;
 }
 
-void RadialNavigator::onCellPressed(_lv_obj_t* cell) {
+void RadialNavigator::onCellTouchEvent(lv_event_t* e) {
+  if (!e) return;
+  const lv_event_code_t code = lv_event_get_code(e);
+  if (code != LV_EVENT_PRESSED && code != LV_EVENT_PRESSING &&
+      code != LV_EVENT_RELEASED && code != LV_EVENT_PRESS_LOST) {
+    return;
+  }
+
+  _lv_obj_t* cell = lv_event_get_target(e);
+  if (!cell) return;
+  lv_indev_t* indev = lv_event_get_indev(e);
+  if (!indev) indev = lv_indev_get_act();
+  if (!indev) {
+    if (code == LV_EVENT_RELEASED || code == LV_EVENT_PRESS_LOST) {
+      _touch_active = false;
+    }
+    return;
+  }
+
+  lv_point_t point;
+  lv_indev_get_point(indev, &point);
+  if (code == LV_EVENT_PRESSED) {
+    _touch_active = true;
+    _touch_dragged = false;
+    _touch_origin = point;
+    return;
+  }
+  if (code == LV_EVENT_PRESSING) {
+    if (_touch_active && !_touch_dragged &&
+        navTouchMovedBeyondThreshold(_touch_origin, point)) {
+      _touch_dragged = true;
+      lv_obj_clear_state(cell, LV_STATE_PRESSED);
+    }
+    return;
+  }
+  if (code == LV_EVENT_RELEASED || code == LV_EVENT_PRESS_LOST) {
+    if (_touch_dragged) lv_obj_clear_state(cell, LV_STATE_PRESSED);
+    if (code == LV_EVENT_PRESS_LOST) _touch_active = false;
+  }
+}
+
+void RadialNavigator::onCellClicked(_lv_obj_t* cell) {
   if (!cell) return;
   const uint8_t id = navButtonId(cell);
   if (id == _ring_layout_focus) return;

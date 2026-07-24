@@ -3,6 +3,7 @@
 #include "heltec/ui/core/biz_facade.hpp"
 #include "heltec/ui/core/screen_id.hpp"
 #include "heltec/ui/core/ui_surface.hpp"
+#include "ui/navigation/ui_navigator.hpp"
 
 #include <lvgl.h>
 
@@ -15,6 +16,7 @@ class NavigationPane : public UiSurface {
   ~NavigationPane();
 
   _lv_obj_t* create(_lv_obj_t* parent) override;
+  void configure(const UiNavigationItem* items, uint8_t count);
   void setIcon(uint8_t screen_index, const lv_img_dsc_t* image);
   void setLabel(uint8_t screen_index, const char* label);
   void setFooterSlot(uint8_t screen_index);
@@ -66,6 +68,14 @@ class NavigationPane : public UiSurface {
   bool _touch_active = false;
   bool _touch_dragged = false;
   lv_point_t _touch_origin = {0, 0};
+  bool _geometry_valid = false;
+  bool _cached_panel_visible = false;
+  lv_coord_t _cached_nav_x = 0;
+  lv_coord_t _cached_nav_y = 0;
+  lv_coord_t _cached_nav_w = 0;
+  lv_coord_t _cached_nav_h = 0;
+  lv_coord_t _cached_tile_radius = 0;
+  bool _cached_tile_radius_valid = false;
   const char* _labels[kMaxButtons] = {};
   uint8_t _footer_id = static_cast<uint8_t>(eScreenId::None);
 };

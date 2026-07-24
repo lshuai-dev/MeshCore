@@ -191,6 +191,18 @@ NavigationPane::~NavigationPane() {
   ui_motion_cancel(this);
 }
 
+void NavigationPane::configure(const UiNavigationItem* items, uint8_t count) {
+  if (!items) return;
+  if (count > kMaxButtons) count = kMaxButtons;
+  for (uint8_t i = 0; i < count; ++i) {
+    const UiNavigationItem& item = items[i];
+    if (item.screen_index >= kMaxButtons) continue;
+    if (item.icon) setIcon(item.screen_index, item.icon);
+    if (item.label) setLabel(item.screen_index, item.label);
+    if (item.footer) setFooterSlot(item.screen_index);
+  }
+}
+
 _lv_obj_t* NavigationPane::navButtonHost() const {
   return itemHost();
 }
@@ -250,6 +262,8 @@ void NavigationPane::setLabel(uint8_t id, const char* label) {
 void NavigationPane::setFooterSlot(uint8_t id) {
   if (id >= kMaxButtons) return;
   _footer_id = id;
+  _geometry_valid = false;
+  _cached_tile_radius_valid = false;
   if (_lv_obj_t* cell = findCellById(id)) {
     lv_obj_set_flex_align(cell, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
     if (_lv_obj_t* icon_area = gridCellIconArea(cell)) {
@@ -467,19 +481,46 @@ void NavigationPane::updateGeometry() {
     lv_coord_t nw = pw;
     lv_coord_t nh = ph;
     gridPaneFrameRect(_root, _tileview, &nx, &ny, &nw, &nh, false);
-    lv_obj_set_size(_nav, nw, nh);
-    syncPaneRadiusToTileView(_nav, _tileview);
-    lv_obj_set_pos(_nav, panelVisible() ? nx : closedPaneX(_nav, nx), ny);
+    const bool visible = panelVisible();
+    // Use the newly computed panel width for the hidden position.  Reading
+    // the old object width here would leave a freshly created pane partially
+    // visible until the next geometry pass.
+    const lv_coord_t desired_x = visible ? nx : (nw > 0 ? nx - nw : nx);
+    const bool geometry_changed =
+        !_geometry_valid || _cached_panel_visible != visible ||
+        _cached_nav_x != desired_x || _cached_nav_y != ny ||
+        _cached_nav_w != nw || _cached_nav_h != nh;
+    if (geometry_changed) {
+      lv_obj_set_size(_nav, nw, nh);
+      lv_obj_set_pos(_nav, desired_x, ny);
+      _cached_panel_visible = visible;
+      _cached_nav_x = desired_x;
+      _cached_nav_y = ny;
+      _cached_nav_w = nw;
+      _cached_nav_h = nh;
+    }
+    const lv_coord_t radius =
+        (_tileview && lv_obj_is_valid(_tileview))
+            ? lv_obj_get_style_radius(_tileview, LV_PART_MAIN)
+            : 0;
+    if (!_cached_tile_radius_valid || _cached_tile_radius != radius) {
+      syncPaneRadiusToTileView(_nav, _tileview);
+      _cached_tile_radius = radius;
+      _cached_tile_radius_valid = true;
+    }
     if (!panelVisible()) {
       _emphasis_index = focusedIndex();
     }
-    layoutNav(false, false);
+    if (geometry_changed) layoutNav(false, false);
+    _geometry_valid = true;
   }
   _updating_geometry = false;
 }
 
 void NavigationPane::setTileView(_lv_obj_t* tileview) {
   _tileview = tileview;
+  _geometry_valid = false;
+  _cached_tile_radius_valid = false;
   updateGeometry();
 }
 
@@ -495,7 +536,15 @@ _lv_obj_t* NavigationPane::create(_lv_obj_t* parent) {
   lv_group_set_wrap(group(), false);
 
   _nav = ui_navigator_create_grid(_root);
-  if (!_nav) return nullptr;
+  if (!_nav) {
+    if (_focus_group) {
+      lv_group_del(_focus_group);
+      _focus_group = nullptr;
+    }
+    lv_obj_del(_root);
+    _root = nullptr;
+    return nullptr;
+  }
   addFocusObject(_nav);
 
   lv_obj_add_event_cb(_root, [](lv_event_t* e) {
@@ -535,38 +584,10 @@ void NavigationPane::setIcon(uint8_t id, const lv_img_dsc_t* img) {
   _lv_obj_t* existing = findCellById(id);
   if (existing) {
     if (_lv_obj_t* icon = gridCellIcon(existing)) lv_img_set_src(icon, nav_img);
+    _geometry_valid = false;
     if (panelVisible()) layoutNav(false);
     return;
   }
-
-  auto add_cell_click_cb = [this](_lv_obj_t* cell) {
-    lv_obj_add_event_cb(cell, [](lv_event_t* e) {
-      auto* nav = static_cast<NavigationPane*>(lv_event_get_user_data(e));
-      if (!nav) return;
-      nav->onCellTouchEvent(e);
-    }, LV_EVENT_ALL, this);
-    lv_obj_add_event_cb(cell, [](lv_event_t* e) {
-      if (LV_EVENT_CLICKED != lv_event_get_code(e)) return;
-      auto* nav = static_cast<NavigationPane*>(lv_event_get_user_data(e));
-      if (!nav || !nav->panelVisible() || nav->_ring_fade_busy) return;
-#if defined(HELTEC_V4_R8_TFT) && defined(HELTEC_HAS_TOUCH) && HELTEC_HAS_TOUCH
-      // Crossing the swipe threshold suppresses LVGL's pointer path by
-      // delivering a synthetic release while the finger is still down. Do not
-      // turn that release into a navigation click/commit.
-      if (heltec::meshcore::dal::touch_port::isPressed()) return;
-#endif
-      if (nav->_touch_dragged) {
-        nav->_touch_active = false;
-        nav->_touch_dragged = false;
-        return;
-      }
-      nav->_touch_active = false;
-      nav->onCellClicked(lv_event_get_target(e));
-      (void)nav->commitFocused();
-      lv_event_stop_processing(e);
-      lv_event_stop_bubbling(e);
-    }, LV_EVENT_CLICKED, this);
-  };
 
   _lv_obj_t* cell = ht_obj_create(
       host, meta_id::NavigationCell, reinterpret_cast<void*>(static_cast<uintptr_t>(id)));
@@ -579,7 +600,10 @@ void NavigationPane::setIcon(uint8_t id, const lv_img_dsc_t* img) {
   lv_obj_add_flag(cell, LV_OBJ_FLAG_EVENT_BUBBLE);
 
   _lv_obj_t* icon_area = ht_obj_create(cell, meta_id::NavigationIconArea);
-  if (!icon_area) return;
+  if (!icon_area) {
+    lv_obj_del(cell);
+    return;
+  }
   lv_obj_set_width(icon_area, lv_pct(100));
   lv_obj_set_flex_grow(icon_area, 1);
   lv_obj_set_flex_flow(icon_area, LV_FLEX_FLOW_ROW);
@@ -590,14 +614,20 @@ void NavigationPane::setIcon(uint8_t id, const lv_img_dsc_t* img) {
   lv_obj_add_flag(icon_area, LV_OBJ_FLAG_EVENT_BUBBLE);
 
   _lv_obj_t* icon = ht_img_create(icon_area, meta_id::NavigationIcon);
-  if (!icon) return;
+  if (!icon) {
+    lv_obj_del(cell);
+    return;
+  }
   lv_img_set_src(icon, nav_img);
   lv_img_set_antialias(icon, false);
   lv_obj_clear_flag(icon, LV_OBJ_FLAG_CLICKABLE | LV_OBJ_FLAG_SCROLLABLE);
   lv_obj_add_flag(icon, LV_OBJ_FLAG_EVENT_BUBBLE);
 
   _lv_obj_t* bar = ht_obj_create(cell, meta_id::NavigationTitleBar);
-  if (!bar) return;
+  if (!bar) {
+    lv_obj_del(cell);
+    return;
+  }
   lv_obj_set_width(bar, lv_pct(100));
   lv_obj_set_flex_flow(bar, LV_FLEX_FLOW_ROW);
   lv_obj_set_flex_align(bar, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER,
@@ -609,7 +639,10 @@ void NavigationPane::setIcon(uint8_t id, const lv_img_dsc_t* img) {
 
   _lv_obj_t* lbl = ht_label_create(bar, meta_id::NavigationTitleLabel,
                                    _labels[id] ? _labels[id] : "");
-  if (!lbl) return;
+  if (!lbl) {
+    lv_obj_del(cell);
+    return;
+  }
   lv_obj_set_width(lbl, lv_pct(100));
   lv_label_set_long_mode(lbl, LV_LABEL_LONG_DOT);
   layoutGridTitleBar(bar);
@@ -621,9 +654,31 @@ void NavigationPane::setIcon(uint8_t id, const lv_img_dsc_t* img) {
     lv_obj_add_flag(cell, LV_OBJ_FLAG_HIDDEN);
   }
   lv_obj_clear_flag(cell, LV_OBJ_FLAG_SCROLL_ON_FOCUS);
-  add_cell_click_cb(cell);
+  lv_obj_add_event_cb(cell, [](lv_event_t* e) {
+    auto* nav = static_cast<NavigationPane*>(lv_event_get_user_data(e));
+    if (!nav) return;
+    nav->onCellTouchEvent(e);
+    if (LV_EVENT_CLICKED != lv_event_get_code(e)) return;
+    if (!nav->panelVisible() || nav->_ring_fade_busy) return;
+#if defined(HELTEC_V4_R8_TFT) && defined(HELTEC_HAS_TOUCH) && HELTEC_HAS_TOUCH
+    // Crossing the swipe threshold suppresses LVGL's pointer path by
+    // delivering a synthetic release while the finger is still down. Do not
+    // turn that release into a navigation click/commit.
+    if (heltec::meshcore::dal::touch_port::isPressed()) return;
+#endif
+    if (nav->_touch_dragged) {
+      nav->_touch_active = false;
+      nav->_touch_dragged = false;
+      return;
+    }
+    nav->_touch_active = false;
+    nav->onCellClicked(lv_event_get_target(e));
+    (void)nav->commitFocused();
+    lv_event_stop_processing(e);
+    lv_event_stop_bubbling(e);
+  }, LV_EVENT_ALL, this);
 
-
+  _geometry_valid = false;
   if (panelVisible()) layoutNav(false);
 }
 
