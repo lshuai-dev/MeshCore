@@ -21,6 +21,8 @@ enum class UiEventType : uint8_t {
   PreviewClose,
   AlertClose,
   RadioSyncClose,
+  ChoicePickerOpen,
+  ChoicePickerClose,
   CalibrationClose,
   KeyboardClose,
   SendMessageClose,

@@ -3,6 +3,7 @@
 #include "../core/abstract_screen.hpp"
 #include "../core/app_state_event.hpp"
 #include "../core/ui_feedback.hpp"
+#include "../overlays/choice_picker_overlay.hpp"
 
 namespace heltec::meshcore::biz {
 class IBizFacade;
@@ -29,7 +30,7 @@ constexpr MetaId SystemVolumeSlider = ht_meta_id(MetaIdScope::Screen, 0xAD);
 #endif
 }
 
-class SystemScreen : public AbstractScreen {
+class SystemScreen : public AbstractScreen, public IChoicePickerSource {
  public:
   SystemScreen(biz::IBizFacade& biz, const char* title, const lv_img_dsc_t* icon)
       : AbstractScreen(biz, title, icon), _feedback(biz) {}
@@ -69,9 +70,7 @@ class SystemScreen : public AbstractScreen {
   static void onActionRowEvent(lv_event_t* e);
   static void onSwitchValueChanged(lv_event_t* e);
   static void onDropdownValueChanged(lv_event_t* e);
-  static void onDropdownStateEvent(lv_event_t* e);
   static void onDropdownReleasedPre(lv_event_t* e);
-  static void realignDropdownListAsync(void* user_data);
 #if defined(HAS_BUZZER_VOLUME_CONTROL) && HAS_BUZZER_VOLUME_CONTROL
   static void onBuzzerVolumeButtonClicked(lv_event_t* e);
 #endif
@@ -85,19 +84,22 @@ class SystemScreen : public AbstractScreen {
   bool handleConfirmationKey(uint32_t key);
   static void onActionConfirmationEvent(lv_event_t* e);
   SysAction actionForRow(_lv_obj_t* obj) const;
-  void syncDropdownLayout(_lv_obj_t* dd) const;
-  void realignDropdownList(_lv_obj_t* dd);
   void clearGroupFocusVisual();
   void scrollFocusedIntoView(_lv_obj_t* focused) const;
-  void closeOpenDropdowns();
   void applyGroupFocus(_lv_obj_t* focused);
   bool focusKeypadWidget(_lv_obj_t* obj);
+  bool openChoicePicker(ChoiceRow* choice);
+  const char* choicePickerTitle() const override;
+  int choicePickerOptionCount() override;
+  int choicePickerSelectedIndex() const override;
+  bool choicePickerOptionLabel(int index, char* buf, size_t cap) override;
+  void choicePickerCommit(int index) override;
+  void choicePickerClosed(bool committed) override;
   void syncDropdownsFromApp(const biz::IBizFacade& app);
 #if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
   void syncFriendDropdownFromApp(const biz::IBizFacade& app, bool force = false);
   void loadFriendDropdownWindow(const biz::IBizFacade& app, int start, int selected_rank,
                                 bool force = false);
-  bool moveFriendDropdownSelection(int direction);
   int friendMeshIndexForSelection() const;
 #endif
   void updateConditionalVisibility(const biz::IBizFacade& app);
@@ -105,7 +107,6 @@ class SystemScreen : public AbstractScreen {
   void syncControlsFromApp(const biz::IBizFacade& app);
   void refreshControls();
 
-  bool anyDropdownOpen() const;
   void setDropdownIndex(_lv_obj_t* dd, uint16_t index, bool fire_changed, bool force = false);
   void setDropdownOptions(_lv_obj_t* dd, const char* options);
   ChoiceRow* dropdownChoice(_lv_obj_t* dd);
@@ -158,8 +159,9 @@ class SystemScreen : public AbstractScreen {
   SysAction _pending_action = SysAction::None;
   uint32_t _suppress_action_click_until_ms = 0;
 
-  _lv_obj_t* _open_dropdown = nullptr;
-  uint16_t _open_dropdown_original_index = 0;
+  ChoiceRow* _active_choice = nullptr;
+  _lv_obj_t* _choice_picker_return_focus = nullptr;
+  lv_coord_t _choice_picker_scroll_y = 0;
   _lv_obj_t* _waypoint_keyboard_return_focus = nullptr;
   bool _syncing_dropdown = false;
   bool _syncing_switch = false;
@@ -173,7 +175,6 @@ class SystemScreen : public AbstractScreen {
   int _friend_total = 0;
   int _friend_window_start = 0;
   int _friend_selected_rank = -1;
-  int _friend_open_original_mesh_idx = -1;
 #endif
 };
 

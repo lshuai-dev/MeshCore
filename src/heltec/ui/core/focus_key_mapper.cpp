@@ -5,6 +5,7 @@
 #include "ui/navigation/ui_navigator.hpp"
 #include "ui/overlays/preview_overlay.hpp"
 #include "ui/overlays/radio_pram_sync_overlay.hpp"
+#include "ui/overlays/choice_picker_overlay.hpp"
 #include "ui/overlays/send_message_overlay_ids.hpp"
 #include "ui/screens/recent_screen.hpp"
 #include "ui/screens/system_screen.hpp"
@@ -66,6 +67,12 @@ uint32_t FocusKeyMapper::translateForObject(lv_obj_t* obj, uint32_t lv_key) {
   }
 
   if (ht_id(obj) == meta_id::RadioParamSyncOverlayRoot) {
+    if (lv_key == LV_KEY_NEXT) return LV_KEY_RIGHT;
+    if (lv_key == LV_KEY_PREV) return LV_KEY_LEFT;
+    return lv_key;
+  }
+
+  if (ht_id(obj) == meta_id::ChoicePickerOverlayRoot) {
     if (lv_key == LV_KEY_NEXT) return LV_KEY_RIGHT;
     if (lv_key == LV_KEY_PREV) return LV_KEY_LEFT;
     return lv_key;

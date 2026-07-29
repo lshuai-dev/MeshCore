@@ -157,6 +157,14 @@ void UiApp::onTouchSwipe(uint8_t axis, int8_t dir, int16_t start_x, int16_t star
   }
 
 #if defined(HELTEC_V4_R8_TFT) && defined(HELTEC_HAS_TOUCH) && HELTEC_HAS_TOUCH
+  if (_surfaces.isActive(&_choicePickerOvl)) {
+    if (axis == static_cast<uint8_t>(heltec::meshcore::dal::touch_input::SwipeAxis::Vertical)) {
+      _choicePickerOvl.stepSelection(dir < 0 ? 1 : -1);
+    }
+    notifyDisplayActivity(millis());
+    return;
+  }
+
   if (_surfaces.isActive(&_radioParamSyncOvl)) {
     notifyDisplayActivity(millis());
     return;

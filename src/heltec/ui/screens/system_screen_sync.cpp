@@ -1,12 +1,32 @@
 #include "system_screen.hpp"
 
 #include "ui/app/ui_theme.hpp"
-#include "ui/core/ui_deferred_queue.hpp"
 #include <Arduino.h>
+#include <string.h>
 
 namespace heltec::meshcore::ui {
 namespace {
 void sync_switch(_lv_obj_t* sw,bool on,bool* syncing){if(!sw)return;const bool cur=lv_obj_has_state(sw,LV_STATE_CHECKED);if(cur==on)return;if(syncing)*syncing=true;if(on)lv_obj_add_state(sw,LV_STATE_CHECKED);else lv_obj_clear_state(sw,LV_STATE_CHECKED);if(syncing)*syncing=false;}
+
+bool copy_dropdown_option(const char* options, int wanted, char* buf, size_t cap) {
+  if (!options || !buf || cap == 0 || wanted < 0) return false;
+  int index = 0;
+  const char* start = options;
+  for (const char* p = options;; ++p) {
+    if (*p == '\n' || *p == '\0') {
+      if (index == wanted) {
+        size_t len = static_cast<size_t>(p - start);
+        if (len >= cap) len = cap - 1;
+        memcpy(buf, start, len);
+        buf[len] = '\0';
+        return true;
+      }
+      if (*p == '\0') return false;
+      ++index;
+      start = p + 1;
+    }
+  }
+}
 }  // namespace
 
 void SystemScreen::onSwitchValueChanged(lv_event_t* e) {
@@ -79,39 +99,129 @@ void SystemScreen::onDropdownReleasedPre(lv_event_t* e) {
   auto* self = static_cast<SystemScreen*>(lv_event_get_user_data(e));
   if (!self) return;
   _lv_obj_t* const dd = lv_event_get_target(e);
-  self->syncDropdownLayout(dd);
-#if LV_USE_DROPDOWN != 0
-  if (!ui_defer(realignDropdownListAsync, dd)) self->realignDropdownList(dd);
-#endif
+  lv_indev_t* const indev = lv_indev_get_act();
+  if (indev && lv_indev_get_scroll_obj(indev)) return;
+  ChoiceRow* const choice = self->dropdownChoice(dd);
+  if (!choice || !self->openChoicePicker(choice)) return;
+  lv_event_stop_processing(e);
+  lv_event_stop_bubbling(e);
 }
 
-void SystemScreen::onDropdownStateEvent(lv_event_t* e) {
-  auto* self = static_cast<SystemScreen*>(lv_event_get_user_data(e));
-  if (!self) return;
-  _lv_obj_t* const dd = lv_event_get_target(e);
-  if (!self->isDropdownRow(dd)) return;
-
-  const lv_event_code_t code = lv_event_get_code(e);
-  if (code == LV_EVENT_READY) {
-    if (self->_open_dropdown && self->_open_dropdown != dd) self->closeOpenDropdowns();
-    self->_open_dropdown = dd;
-    self->_open_dropdown_original_index = lv_dropdown_get_selected(dd);
+bool SystemScreen::openChoicePicker(ChoiceRow* choice) {
+  if (!choice || !choice->dropdown || _active_choice) return false;
 #if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
-    if (dd == self->_dd_friend) {
-      self->_friend_open_original_mesh_idx = self->friendMeshIndexForSelection();
-    }
+  if (choice == &_choice_friend) syncFriendDropdownFromApp(_biz, true);
 #endif
-    lv_obj_add_state(dd, LV_STATE_EDITED);
-    if (self->group()) lv_group_set_editing(self->group(), true);
-    self->syncDropdownLayout(dd);
-#if LV_USE_DROPDOWN != 0
-    if (!ui_defer(realignDropdownListAsync, dd)) self->realignDropdownList(dd);
-#endif
-  } else if (code == LV_EVENT_CANCEL) {
-    if (self->_open_dropdown == dd) self->_open_dropdown = nullptr;
-    lv_obj_clear_state(dd, LV_STATE_EDITED);
-    if (self->group()) lv_group_set_editing(self->group(), false);
+  if (lv_dropdown_is_open(choice->dropdown)) lv_dropdown_close(choice->dropdown);
+  if (group()) lv_group_set_editing(group(), false);
+  _choice_picker_return_focus = choice->dropdown;
+  _choice_picker_scroll_y = _root ? lv_obj_get_scroll_top(_root) : 0;
+  _active_choice = choice;
+  if (emitEvent(UiEventType::ChoicePickerOpen, static_cast<IChoicePickerSource*>(this))) {
+    return true;
   }
+  _active_choice = nullptr;
+  _choice_picker_return_focus = nullptr;
+  return false;
+}
+
+const char* SystemScreen::choicePickerTitle() const {
+  return _active_choice && _active_choice->title ? _active_choice->title : "Select";
+}
+
+int SystemScreen::choicePickerOptionCount() {
+  if (!_active_choice || !_active_choice->dropdown) return 0;
+#if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
+  if (_active_choice == &_choice_friend) {
+    syncFriendDropdownFromApp(_biz, false);
+    return _friend_total + 1;
+  }
+#endif
+  return static_cast<int>(lv_dropdown_get_option_cnt(_active_choice->dropdown));
+}
+
+int SystemScreen::choicePickerSelectedIndex() const {
+  if (!_active_choice || !_active_choice->dropdown) return 0;
+#if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
+  if (_active_choice == &_choice_friend) {
+    return _friend_selected_rank >= 0 ? _friend_selected_rank + 1 : 0;
+  }
+#endif
+  return static_cast<int>(lv_dropdown_get_selected(_active_choice->dropdown));
+}
+
+bool SystemScreen::choicePickerOptionLabel(int index, char* buf, size_t cap) {
+  if (!_active_choice || !_active_choice->dropdown || !buf || cap == 0) return false;
+#if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
+  if (_active_choice == &_choice_friend) {
+    if (index == 0) {
+      lv_snprintf(buf, cap, "(none)");
+      return true;
+    }
+    const int rank = index - 1;
+    if (rank < 0 || rank >= _friend_total) return false;
+    if (rank < _friend_window_start ||
+        rank >= _friend_window_start + _friend_mesh_map_count) {
+      int start = rank - kFriendWindowSize / 2;
+      const int max_start =
+          _friend_total > kFriendWindowSize ? _friend_total - kFriendWindowSize : 0;
+      if (start < 0) start = 0;
+      if (start > max_start) start = max_start;
+      loadFriendDropdownWindow(_biz, start, _friend_selected_rank, true);
+    }
+    const int local = rank - _friend_window_start;
+    if (local < 0 || local >= _friend_mesh_map_count) return false;
+    return _biz.findFriendContactLabel(_friend_mesh_map[local], buf, cap);
+  }
+#endif
+  return copy_dropdown_option(lv_dropdown_get_options(_active_choice->dropdown), index, buf, cap);
+}
+
+void SystemScreen::choicePickerCommit(int index) {
+  ChoiceRow* const choice = _active_choice;
+  if (!choice || !choice->dropdown) return;
+#if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
+  if (choice == &_choice_friend) {
+    int mesh_index = -1;
+    if (index > 0) {
+      biz::IBizFacade::FindFriendContactItem item{};
+      int total = 0;
+      int selected_rank = -1;
+      if (_biz.fillFindFriendContacts(index - 1, -1, &item, 1, &total,
+                                      &selected_rank) == 1) {
+        mesh_index = item.contact_index;
+      }
+    }
+    _biz.setFindFriendTargetContactIndex(mesh_index);
+    syncFriendDropdownFromApp(_biz, true);
+    _feedback.showAlert("Friend selected", 2000);
+    return;
+  }
+#endif
+  const int count = static_cast<int>(lv_dropdown_get_option_cnt(choice->dropdown));
+  if (count <= 0) return;
+  if (index < 0) index = 0;
+  if (index >= count) index = count - 1;
+  const int old = static_cast<int>(lv_dropdown_get_selected(choice->dropdown));
+  setDropdownIndex(choice->dropdown, static_cast<uint16_t>(index), false, true);
+  if (index != old) lv_event_send(choice->dropdown, LV_EVENT_VALUE_CHANGED, nullptr);
+}
+
+void SystemScreen::choicePickerClosed(bool committed) {
+  (void)committed;
+  ChoiceRow* const closing_choice = _active_choice;
+  _lv_obj_t* const return_focus = _choice_picker_return_focus;
+  _active_choice = nullptr;
+  _choice_picker_return_focus = nullptr;
+#if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
+  if (closing_choice == &_choice_friend) syncFriendDropdownFromApp(_biz, true);
+#endif
+  if (return_focus && group() && lv_obj_is_valid(return_focus) &&
+      lv_obj_get_group(return_focus) == group() &&
+      lv_group_get_focused(group()) != return_focus) {
+    lv_group_focus_obj(return_focus);
+  }
+  if (_root) lv_obj_scroll_to_y(_root, _choice_picker_scroll_y, LV_ANIM_OFF);
 }
 
 void SystemScreen::onDropdownValueChanged(lv_event_t* e) {
@@ -157,7 +267,6 @@ void SystemScreen::onDropdownValueChanged(lv_event_t* e) {
 
 void SystemScreen::onExit() {
   closeActionConfirmation();
-  closeOpenDropdowns();
   clearGroupFocusVisual();
   AbstractScreen::onExit();
 }
@@ -173,10 +282,6 @@ void SystemScreen::setDropdownIndex(_lv_obj_t* dd, uint16_t index, bool fire_cha
   lv_dropdown_set_selected(choice->dropdown, index);
   _syncing_dropdown = false;
   if (fire_changed) lv_event_send(choice->dropdown, LV_EVENT_VALUE_CHANGED, nullptr);
-}
-
-bool SystemScreen::anyDropdownOpen() const {
-  return _open_dropdown && lv_obj_is_valid(_open_dropdown) && lv_dropdown_is_open(_open_dropdown);
 }
 
 void SystemScreen::syncDropdownsFromApp(const biz::IBizFacade& app) {
@@ -212,7 +317,7 @@ void SystemScreen::syncControlsFromApp(const biz::IBizFacade& app) {
 
 void SystemScreen::refreshControls() {
   syncSwitchesFromApp(_biz);
-  if (!anyDropdownOpen()) {
+  if (!_active_choice) {
     setDropdownIndex(_dd_region, (uint16_t)_biz.currentLoRaBandPresetIndex(), false);
     setDropdownIndex(_dd_screen_off, (uint16_t)_biz.displayAutoOffIndex(), false);
     if (_biz.locationShareEnabled()) {

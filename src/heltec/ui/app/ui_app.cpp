@@ -109,6 +109,7 @@ UiApp::UiApp(biz::IBizFacade& biz)
       _previewOvl(_biz),
       _alertOvl(_biz),
       _radioParamSyncOvl(_biz),
+      _choicePickerOvl(_biz),
       _sendMessageOvl(_biz),
       _keyboardOvl(_biz)
 #if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
@@ -362,6 +363,7 @@ void UiApp::init() {
   _previewOvl.setTarget(_frame_root);
   _alertOvl.setTarget(_frame_root);
   _radioParamSyncOvl.setTarget(_frame_root);
+  _choicePickerOvl.setTarget(_frame_root);
   _keyboardOvl.setTarget(_frame_root);
   _sendMessageOvl.setTarget(_frame_root);
 #if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
@@ -475,6 +477,17 @@ void UiApp::handleFrameEvent(lv_event_t* e) {
       break;
     case UiEventType::RadioSyncClose:
       closeRadioParamSyncOverlay();
+      break;
+    case UiEventType::ChoicePickerOpen: {
+      auto* source = static_cast<IChoicePickerSource*>(const_cast<void*>(event->payload));
+      if (!source || _surfaces.contains(&_choicePickerOvl) || !inputOnActiveScreen()) break;
+      if (_choicePickerOvl.prepare(source)) {
+        (void)_surfaces.present(&_choicePickerOvl, _surfaces.active());
+      }
+      break;
+    }
+    case UiEventType::ChoicePickerClose:
+      closeChoicePickerOverlay();
       break;
     case UiEventType::CalibrationClose:
 #if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS

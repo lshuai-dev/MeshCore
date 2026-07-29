@@ -3,7 +3,6 @@
 #include "ui/app/ui_theme.hpp"
 #include "ui/core/ui_events.h"
 #include "ui/core/ht_meta_data.hpp"
-#include "ui/core/ui_deferred_queue.hpp"
 #include <lvgl.h>
 #include <string.h>
 
@@ -150,64 +149,22 @@ int SystemScreen::friendMeshIndexForSelection() const {
   return _friend_mesh_map[selected - 1];
 }
 
-bool SystemScreen::moveFriendDropdownSelection(int direction) {
-  if (!_dd_friend || direction == 0 || _friend_total <= 0) return false;
-  const int selected = (int)lv_dropdown_get_selected(_dd_friend);
-  int position = 0;
-  if (selected > 0 && selected - 1 < _friend_mesh_map_count) {
-    position = _friend_window_start + selected;
-  }
-  const int option_total = _friend_total + 1;
-  position = (position + (direction > 0 ? 1 : -1) + option_total) % option_total;
-  const int rank = position - 1;
-  if (rank < 0) {
-    _friend_selected_rank = -1;
-    setDropdownIndex(_dd_friend, 0, false, true);
-    return true;
-  }
-
-  int start = _friend_window_start;
-  const int max_start = _friend_total > kFriendWindowSize ? _friend_total - kFriendWindowSize : 0;
-  const int local = rank - start;
-  if (rank == 0 && direction > 0) {
-    start = 0;
-  } else if (rank == _friend_total - 1 && direction < 0) {
-    start = max_start;
-  } else if ((local < 0 || (direction < 0 && local <= 1)) && start > 0) {
-    start -= kFriendWindowStep;
-  } else if ((local >= kFriendWindowSize ||
-              (direction > 0 && local >= kFriendWindowSize - 2)) && start < max_start) {
-    start += kFriendWindowStep;
-  }
-  if (start < 0) start = 0;
-  if (start > max_start) start = max_start;
-  _friend_selected_rank = rank;
-  if (start != _friend_window_start) {
-    loadFriendDropdownWindow(_biz, start, rank, true);
-  } else {
-    setDropdownIndex(_dd_friend,
-                     static_cast<uint16_t>(rank - _friend_window_start + 1), false, true);
-  }
-  return true;
-}
 #endif
 
 void SystemScreen::updateConditionalVisibility(const biz::IBizFacade& app) {
   const bool loc_share = app.locationShareEnabled();
   set_row_hidden(_row_adv, !loc_share);
-  if (!loc_share && _open_dropdown == _dd_adv) closeOpenDropdowns();
 #if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
   const bool friend_mode = app.findFriendMode() == 0;
   set_row_hidden(_row_friend, !friend_mode);
   set_row_hidden(_row_wp_gps, friend_mode);
   set_row_hidden(_row_wp_manual, friend_mode);
-  if (!friend_mode && _open_dropdown == _dd_friend) closeOpenDropdowns();
 #endif
 }
 
 _lv_obj_t* SystemScreen::create(_lv_obj_t* parent) {
   if (!AbstractScreen::create(parent)) return nullptr;
-  if (group()) lv_group_set_wrap(group(), false);
+  if (group()) lv_group_set_wrap(group(), true);
   lv_obj_add_flag(_root, LV_OBJ_FLAG_EVENT_BUBBLE | LV_OBJ_FLAG_SCROLLABLE);
   lv_obj_set_scroll_dir(_root, LV_DIR_VER);
   lv_obj_set_scrollbar_mode(_root, LV_SCROLLBAR_MODE_OFF);
@@ -276,6 +233,34 @@ _lv_obj_t* SystemScreen::create(_lv_obj_t* parent) {
   addFocusItem(_row_factory_reset);
   addFocusItem(_row_clear_data);
 
+  // System owns focus scrolling. Disable LVGL's implicit auto-scroll so focus
+  // restore, pointer focus and modal transitions cannot move the page behind us.
+  _lv_obj_t* const focus_controls[] = {
+      _dd_region,
+      _dd_screen_off,
+      _swBle,
+#ifdef PIN_BUZZER
+      _swBuzzer,
+#endif
+#if defined(HAS_BUZZER_VOLUME_CONTROL) && HAS_BUZZER_VOLUME_CONTROL
+      _btnBuzzerVolumeDown,
+      _btnBuzzerVolumeUp,
+#endif
+      _swLocShare,
+      _dd_adv,
+#if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
+      _dd_ff_mode,
+      _dd_friend,
+      _row_wp_gps,
+      _row_wp_manual,
+#endif
+      _row_factory_reset,
+      _row_clear_data,
+  };
+  for (_lv_obj_t* control : focus_controls) {
+    if (control) lv_obj_clear_flag(control, LV_OBJ_FLAG_SCROLL_ON_FOCUS);
+  }
+
   (void)createActionConfirmation();
   ht_set_user_data(_root, this);
 
@@ -300,7 +285,8 @@ _lv_obj_t* SystemScreen::create(_lv_obj_t* parent) {
 
 void SystemScreen::onEnter() {
   AbstractScreen::onEnter();
-  closeOpenDropdowns();
+  _active_choice = nullptr;
+  _choice_picker_return_focus = nullptr;
 }
 
 void SystemScreen::onUiEvent(const UiEvent& event) {
