@@ -1,4 +1,5 @@
 #include "app/HeltecMesh.h"
+#include "app/geodesic.hpp"
 #include <target.h>
 #include "config/NodePrefs.h"
 #include <Arduino.h>
@@ -29,19 +30,6 @@ bool s_loc_share_has_last_gps = false;
 double s_loc_share_last_lat = 0.0;
 double s_loc_share_last_lon = 0.0;
 
-double haversine_distance_m(double lat1_deg, double lon1_deg, double lat2_deg, double lon2_deg) {
-  constexpr double kPi = 3.14159265358979323846;
-  constexpr double kEarthR = 6371000.0;
-  const double p1 = lat1_deg * (kPi / 180.0);
-  const double p2 = lat2_deg * (kPi / 180.0);
-  const double dp = (lat2_deg - lat1_deg) * (kPi / 180.0);
-  const double dl = (lon2_deg - lon1_deg) * (kPi / 180.0);
-  const double a = sin(dp * 0.5) * sin(dp * 0.5) +
-                   cos(p1) * cos(p2) * sin(dl * 0.5) * sin(dl * 0.5);
-  const double c = 2.0 * atan2(sqrt(a), sqrt(1.0 - a));
-  return kEarthR * c;
-}
-
 void locShareRememberGps(double lat, double lon) {
   s_loc_share_last_lat = lat;
   s_loc_share_last_lon = lon;
@@ -50,7 +38,8 @@ void locShareRememberGps(double lat, double lon) {
 
 bool locShareGpsMovedEnough(double lat, double lon) {
   if (!s_loc_share_has_last_gps) return false;
-  return haversine_distance_m(s_loc_share_last_lat, s_loc_share_last_lon, lat, lon) >=
+  return heltec::meshcore::geo::geodesic_distance_m(
+             s_loc_share_last_lat, s_loc_share_last_lon, lat, lon) >=
          LOC_SHARE_MOVEMENT_ADVERT_M;
 }
 
@@ -898,9 +887,19 @@ void HeltecMesh::queueMessage(const ContactInfo &from, uint8_t txt_type, mesh::P
 
   // we only want to show text messages on display, not cli data
   bool should_display = txt_type == TXT_TYPE_PLAIN || txt_type == TXT_TYPE_SIGNED_PLAIN;
-  if (should_display && _ui) {
-    _ui->newMsg(path_len, from.name, text, offline_queue_len);
-    _ui->notify(UIEventType::contactMessage);
+  if (should_display) {
+    heltec::meshcore::history::ConversationKey key{};
+    key.type = heltec::meshcore::history::ConversationType::Direct;
+    memcpy(key.peer_prefix, from.id.pub_key, sizeof(key.peer_prefix));
+    const size_t history_len = static_cast<size_t>(tlen);
+    const bool stored = _store->appendMessage(
+        key, heltec::meshcore::history::MessageDirection::Incoming, text, history_len);
+    const int unread = _store->countUnreadMessages();
+    if (_ui) _ui->newMsg(path_len, from.name, text, unread);
+    if (stored) {
+      notifyUiDomain(heltec::meshcore::ui::AppStateEventType::MessageHistoryChanged);
+    }
+    if (_ui) _ui->notify(UIEventType::contactMessage);
   }
 }
 
@@ -998,7 +997,17 @@ void HeltecMesh::onChannelMessageRecv(const mesh::GroupChannel &channel, mesh::P
   if (getChannel(channel_idx, channel_details)) {
     channel_name = channel_details.name;
   }
-  if (_ui) _ui->newMsg(path_len, channel_name, text, offline_queue_len);
+  heltec::meshcore::history::ConversationKey key{};
+  key.type = heltec::meshcore::history::ConversationType::Channel;
+  key.channel_idx = channel_idx;
+  const size_t history_len = static_cast<size_t>(tlen);
+  const bool stored = _store->appendMessage(
+      key, heltec::meshcore::history::MessageDirection::Incoming, text, history_len);
+  const int unread = _store->countUnreadMessages();
+  if (_ui) _ui->newMsg(path_len, channel_name, text, unread);
+  if (stored) {
+    notifyUiDomain(heltec::meshcore::ui::AppStateEventType::MessageHistoryChanged);
+  }
 }
 
 uint8_t HeltecMesh::onContactRequest(const ContactInfo &contact, uint32_t sender_timestamp, const uint8_t *data,

@@ -20,7 +20,7 @@ void UiApp::openNavigationPane() {
   (void)_surfaces.present(&_navigation);
 }
 
-void UiApp::scheduleNavTileCommit(uint8_t tile_idx) {
+void UiApp::scheduleNavTileCommit(uint8_t tile_idx, bool user_commit) {
   const bool nav_active = _surfaces.isActive(&_navigation);
   const bool transitioning = _navigation.isTransitioning();
   if (!nav_active || transitioning) return;
@@ -28,13 +28,24 @@ void UiApp::scheduleNavTileCommit(uint8_t tile_idx) {
   if (kNoScheduledTile != _scheduled_nav_tile) return;
   stopNavigationAutoCommitTimer();
   _scheduled_nav_tile = tile_idx;
+  _scheduled_nav_action = user_commit && tile_idx == activeTileIndex();
   if (!ui_defer(+[](void* user_data) {
         auto* app = static_cast<UiApp*>(user_data);
         if (!app || kNoScheduledTile == app->_scheduled_nav_tile) return;
 
         const uint8_t pending_tile = app->_scheduled_nav_tile;
+        const bool open_action = app->_scheduled_nav_action;
         app->_scheduled_nav_tile = kNoScheduledTile;
+        app->_scheduled_nav_action = false;
         if (!app->_tileview || pending_tile >= kScreenCnt) return;
+
+        if (open_action) {
+          app->closeNavigationPane();
+          if (app->_frame_root) {
+            (void)ui_event_send(app->_frame_root, UiEventType::ActionOpen);
+          }
+          return;
+        }
 
         (void)app->selectTile(pending_tile);
         if (AbstractScreen* scr = app->screenAt(pending_tile)) {
@@ -44,6 +55,7 @@ void UiApp::scheduleNavTileCommit(uint8_t tile_idx) {
         app->closeNavigationPane();
       }, this)) {
     _scheduled_nav_tile = kNoScheduledTile;
+    _scheduled_nav_action = false;
   }
 }
 

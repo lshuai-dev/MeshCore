@@ -170,6 +170,12 @@ void UiTask::begin(NodePrefs* node_prefs) {
 }
 
 void UiTask::msgRead(int msgcount) {
+  // This callback tracks the companion app's volatile offline queue. Device
+  // unread state is maintained separately by the persistent message history.
+  (void)msgcount;
+}
+
+void UiTask::setMessageCount(int msgcount) {
   _msg_count = msgcount;
   AppStateEvent ev{};
   ev.type = AppStateEventType::UnreadMessageCountChanged;

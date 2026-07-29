@@ -18,6 +18,8 @@ extern const lv_img_dsc_t icon_meshcore_log_img;
 #if defined(HELTEC_V4_R8_TFT)
 extern const lv_img_dsc_t icon_meshcore_logo_alpha_img;
 extern const lv_img_dsc_t ui_background_img;
+extern const lv_img_dsc_t quick_ping_target_img;
+extern const lv_img_dsc_t quick_ping_message_img;
 #endif
 
 extern const lv_img_dsc_t icon_home_nav_img;

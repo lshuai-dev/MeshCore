@@ -29,11 +29,20 @@ void SendMessageModel::reset(const biz::IBizFacade& biz) {
 }
 
 void SendMessageModel::syncContacts(const biz::IBizFacade& biz) {
+  _contact_total = biz.sendMessagePersonalCount();
+  loadContactWindow(biz, 0);
+}
+
+void SendMessageModel::loadContactWindow(const biz::IBizFacade& biz, int start) {
+  const int max_start = _contact_total > kMaxContacts ? _contact_total - kMaxContacts : 0;
+  if (start < 0) start = 0;
+  if (start > max_start) start = max_start;
+  _contact_window_start = start;
+
   for (int i = 0; i < kMaxContacts; ++i) _contacts[i] = CachedContact{};
   _contact_count = 0;
 
-  const int total = biz.sendMessagePersonalCount();
-  for (int i = 0; i < total && _contact_count < kMaxContacts; ++i) {
+  for (int i = start; i < _contact_total && _contact_count < kMaxContacts; ++i) {
     CachedContact& c = _contacts[_contact_count];
     if (!biz.sendMessagePersonalAt(i, c.pub_key_prefix, c.name, sizeof(c.name))) continue;
     c.used = true;
@@ -48,9 +57,46 @@ void SendMessageModel::rebuildTargetCategories(const biz::IBizFacade& biz) {
   if (biz.sendMessageHasGroupChannels()) {
     safeCopy(_cat_rows[_cat_count++], sizeof(_cat_rows[0]), "group");
   }
-  if (_contact_count > 0) {
+  if (_contact_total > 0) {
     safeCopy(_cat_rows[_cat_count++], sizeof(_cat_rows[0]), "personal");
   }
+}
+
+void SendMessageModel::moveSelection(const biz::IBizFacade& biz, int delta) {
+  const int count = rowCount();
+  if (count <= 0 || delta == 0) return;
+
+  if (_page != Page::TargetList || _list_kind != 2 || _contact_total <= 0) {
+    setSelectedIndex(wrapIndex(selectedIndex() + delta));
+    return;
+  }
+
+  int global = _contact_window_start + selectedIndex();
+  global = (global + (delta > 0 ? 1 : -1) + _contact_total) % _contact_total;
+
+  int next_start = _contact_window_start;
+  const int max_start = _contact_total > kMaxContacts ? _contact_total - kMaxContacts : 0;
+  if (global == 0 && delta > 0) {
+    next_start = 0;
+  } else if (global == _contact_total - 1 && delta < 0) {
+    next_start = max_start;
+  } else {
+    const int local = global - next_start;
+    if ((local < 0 || (delta < 0 && local <= 1)) && next_start > 0) {
+      next_start -= kContactWindowStep;
+      if (next_start < 0) next_start = 0;
+    } else if ((local >= _contact_count || (delta > 0 && local >= kMaxContacts - 2)) &&
+               next_start < max_start) {
+      next_start += kContactWindowStep;
+      if (next_start > max_start) next_start = max_start;
+    }
+  }
+
+  if (next_start != _contact_window_start) {
+    loadContactWindow(biz, next_start);
+    rebuildTargetList(biz, 2);
+  }
+  setSelectedIndex(global - _contact_window_start);
 }
 
 void SendMessageModel::rebuildTargetList(const biz::IBizFacade& biz, int list_kind) {

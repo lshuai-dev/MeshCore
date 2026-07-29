@@ -6,6 +6,7 @@
 #include "ui/overlays/preview_overlay.hpp"
 #include "ui/overlays/radio_pram_sync_overlay.hpp"
 #include "ui/overlays/send_message_overlay_ids.hpp"
+#include "ui/screens/recent_screen.hpp"
 #include "ui/screens/system_screen.hpp"
 
 #include <lvgl.h>
@@ -25,9 +26,10 @@ static bool is_scroll_focused_screen_root(lv_obj_t* obj) {
       return true;
 #if defined(ENV_INCLUDE_MAP) && ENV_INCLUDE_MAP
     case meta_id::TrackerScreenRoot:
-      return false;
+      return true;
 #endif
     case meta_id::SystemRoot:
+      return true;
     default:
       return false;
   }
@@ -71,6 +73,22 @@ uint32_t FocusKeyMapper::translateForObject(lv_obj_t* obj, uint32_t lv_key) {
 
   if (ht_id(obj) == meta_id::PreviewText) {
     if (lv_key == LV_KEY_NEXT || lv_key == LV_KEY_PREV) return LV_KEY_ENTER;
+    return lv_key;
+  }
+
+  if (ht_id(obj) == meta_id::RecentRowLabel) {
+    // Recent owns a sliding contact window, so it must receive the navigation
+    // key and update its logical index before moving visual focus.
+    if (lv_key == LV_KEY_NEXT) return LV_KEY_DOWN;
+    if (lv_key == LV_KEY_PREV) return LV_KEY_UP;
+    return lv_key;
+  }
+
+  if (ht_id(obj) == meta_id::RecentSendButton) {
+    // The detail page has a single focusable control. Convert focus traversal
+    // keys into page navigation so one-key boards can browse older messages.
+    if (lv_key == LV_KEY_NEXT) return LV_KEY_UP;
+    if (lv_key == LV_KEY_PREV) return LV_KEY_DOWN;
     return lv_key;
   }
 

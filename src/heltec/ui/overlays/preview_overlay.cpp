@@ -1,7 +1,8 @@
 #include "preview_overlay.hpp"
 
-#include "ui/core/ui_events.h"
 #include "ui/core/ht_meta_data.hpp"
+#include "ui/core/operation_hints.hpp"
+#include "ui/core/ui_events.h"
 
 #include <lvgl.h>
 
@@ -58,8 +59,8 @@ _lv_obj_t* PreviewOverlay::create(lv_obj_t* parent) {
   _footer = ht_label_create(_root, meta_id::PreviewFooter);
   if (!_footer) return nullptr;
   lv_obj_set_width(_footer, lv_pct(100));
-  lv_label_set_long_mode(_footer, LV_LABEL_LONG_WRAP);
-  lv_label_set_text_static(_footer, "Short press: dismiss  Long press: dismiss");
+  lv_label_set_long_mode(_footer, LV_LABEL_LONG_CLIP);
+  lv_label_set_text_static(_footer, operation_hint::kPreviewClose);
 
   return _root;
 }

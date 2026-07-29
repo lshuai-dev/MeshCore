@@ -36,13 +36,25 @@ class AbstractScreen : public UiSurface {
   _lv_obj_t* create(_lv_obj_t* parent) override;
   _lv_obj_t* createRoot(_lv_obj_t* parent) override;
   bool onKey(uint32_t key) override;
+  /** Adds one logical row/control to this screen's flat focus order. */
+  void addFocusItem(_lv_obj_t* object, _lv_obj_t* frame = nullptr);
 
  private:
-  bool handleScrollWrapKey(uint32_t key);
+  static constexpr uint8_t kMaxFocusItems = 16;
+
+  bool handlePageScrollKey(uint32_t key);
+  bool scrollPage(bool forward);
+  static void onFocusGroupEdge(lv_group_t* group, bool forward);
+  bool isAvailableFocusItem(const _lv_obj_t* obj) const;
+  _lv_obj_t* firstAvailableFocusItem() const;
+  static void onFocusItemChanged(lv_event_t* e);
 
   const char* _title;
   const lv_img_dsc_t* _icon;
   bool _root_scroll_focus;
+  bool _root_focus_fallback = false;
+  _lv_obj_t* _focus_items[kMaxFocusItems] = {};
+  uint8_t _focus_item_count = 0;
 };
 
 }  // namespace heltec::meshcore::ui

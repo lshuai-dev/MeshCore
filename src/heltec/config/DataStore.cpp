@@ -488,6 +488,8 @@ void DataStore::begin() {
   // init 'blob store' support
   _fs->mkdir("/bl");
 #endif
+
+  (void)ensureMessageHistory();
 }
 
 #if defined(ESP32)

@@ -11,6 +11,7 @@ enum class UiEventType : uint8_t {
   NavActivity,
   TilePreview,
   TileCommit,
+  ActionOpen,
   ContextOpen,
   ContextClose,
   SendMessageOpen,
@@ -40,6 +41,18 @@ struct UiEvent {
 
 struct UiMessageKeyboardRequest {
   const char* title = nullptr;
+};
+
+enum class UiMessageTargetKind : uint8_t {
+  Direct = 0,
+  Channel = 1,
+};
+
+struct UiSendMessageTarget {
+  UiMessageTargetKind kind = UiMessageTargetKind::Direct;
+  uint8_t pub_key_prefix[6] = {};
+  int channel_idx = -1;
+  char label[24] = {};
 };
 
 struct UiMessageKeyboardSubmit {

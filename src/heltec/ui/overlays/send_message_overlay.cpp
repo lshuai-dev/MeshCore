@@ -9,6 +9,7 @@
 #include "heltec/ui/core/biz_facade.hpp"
 #include "ui/app/ui_theme.hpp"
 #include "ui/core/ht_meta_data.hpp"
+#include "ui/core/operation_hints.hpp"
 #include "ui/core/ui_deferred_queue.hpp"
 #include "ui/core/ui_events.h"
 #include "keyboard_overlay.hpp"
@@ -69,7 +70,8 @@ static void applyOpaqueCover(lv_obj_t* obj) {
 }
 
 const char* footerForPage(bool back_to_parent) {
-  return back_to_parent ? "Menu:OK Back:back" : "Menu:OK Back:cancel";
+  (void)back_to_parent;
+  return operation_hint::kMessageSelect;
 }
 
 }  // namespace
@@ -84,10 +86,8 @@ bool SendMessageOverlay::onKey(uint32_t key) {
     const int count = rowCount();
     if (count <= 0) return true;
     const int dir = (key == LV_KEY_NEXT || key == LV_KEY_RIGHT || key == LV_KEY_DOWN) ? 1 : -1;
-    const int before = _model.selectedIndex();
-    _model.setSelectedIndex(wrapIndex(_model.selectedIndex() + dir));
+    _model.moveSelection(_biz, dir);
     renderRows();
-    (void)before;
     return true;
   }
   if (key == LV_KEY_ESC) {
@@ -143,7 +143,7 @@ _lv_obj_t* SendMessageOverlay::create(lv_obj_t* parent) {
   if (!_footer) return nullptr;
   lv_obj_set_width(_footer, lv_pct(100));
   lv_label_set_long_mode(_footer, LV_LABEL_LONG_CLIP);
-  lv_label_set_text_static(_footer, "Menu: select  Back: cancel");
+  lv_label_set_text_static(_footer, operation_hint::kMessageSelect);
 
   if (!ensureRowPool()) return nullptr;
 
@@ -157,6 +157,22 @@ void SendMessageOverlay::syncContacts() {
 
 void SendMessageOverlay::setTarget(const Target& t) {
   _model.setTarget(t);
+}
+
+void SendMessageOverlay::prepareTarget(const UiSendMessageTarget* target) {
+  _pending_target_valid = false;
+  if (!target) return;
+  Target pending{};
+  if (target->kind == UiMessageTargetKind::Channel) {
+    pending.kind = TargetKind::Group;
+    pending.channel_idx = target->channel_idx;
+  } else {
+    pending.kind = TargetKind::Personal;
+    memcpy(pending.pub_key_prefix, target->pub_key_prefix, sizeof(pending.pub_key_prefix));
+  }
+  SendMessageModel::safeCopy(pending.label, sizeof(pending.label), target->label);
+  _pending_target = pending;
+  _pending_target_valid = true;
 }
 
 void SendMessageOverlay::rebuildTargetCategories() {
@@ -473,6 +489,11 @@ void SendMessageOverlay::onEnter() {
   applyOpaqueCover(_list_mid);
   _confirm_pending = false;
   _model.reset(_biz);
+  if (_pending_target_valid) {
+    setTarget(_pending_target);
+    rebuildMainRows();
+    _pending_target_valid = false;
+  }
   lv_obj_update_layout(_root);
   renderRows();
   lv_obj_update_layout(_root);

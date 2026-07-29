@@ -26,6 +26,7 @@ enum class InputCommand : uint8_t {
   None = 0,
   CloseTopLayer,
   OpenNavigation,
+  OpenAction,
   GoHome,
   ToggleBacklight,
   WakeBacklight,

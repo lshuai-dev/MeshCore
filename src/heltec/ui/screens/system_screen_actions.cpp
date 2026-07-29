@@ -2,6 +2,7 @@
 
 #include "ui/app/ui_theme.hpp"
 #include "ui/core/ht_meta_data.hpp"
+#include "ui/core/operation_hints.hpp"
 #include "ui/core/ui_events.h"
 #include <Arduino.h>
 
@@ -180,8 +181,8 @@ bool SystemScreen::createActionConfirmation() {
   lv_obj_t* const key_hint = lv_label_create(_action_confirm_box);
   if (key_hint) {
     lv_obj_set_width(key_hint, lv_pct(100));
-    lv_label_set_long_mode(key_hint, LV_LABEL_LONG_WRAP);
-    lv_label_set_text_static(key_hint, "ESC: Cancel\nENTER: Confirm");
+    lv_label_set_long_mode(key_hint, LV_LABEL_LONG_CLIP);
+    lv_label_set_text_static(key_hint, operation_hint::kDestructiveConfirm);
     lv_obj_set_style_text_align(key_hint, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
     lv_obj_set_style_text_color(key_hint, ui_color_overlay_fg(), LV_PART_MAIN);
   }

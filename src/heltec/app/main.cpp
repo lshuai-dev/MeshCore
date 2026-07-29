@@ -221,6 +221,7 @@ void setup() {
 #if defined(NRF52_PLATFORM) || defined(STM32_PLATFORM)
   store.begin();
   the_mesh.begin(hasDisplay);
+  heltec::meshcore::ui::ui_task().setMessageCount(store.countUnreadMessages());
   // request_radio_preset_overlay_if_unconfigured(hasDisplay);
 
 #ifdef BLE_PIN_CODE
@@ -245,6 +246,7 @@ void setup() {
         false
     #endif
   );
+  heltec::meshcore::ui::ui_task().setMessageCount(store.countUnreadMessages());
 
   //#ifdef WIFI_SSID
   //  WiFi.begin(WIFI_SSID, WIFI_PWD);
@@ -264,6 +266,7 @@ void setup() {
 #elif defined(ESP32)
   store.begin();
   the_mesh.begin(hasDisplay);
+  heltec::meshcore::ui::ui_task().setMessageCount(store.countUnreadMessages());
 
 #ifdef WIFI_SSID
   board.setInhibitSleep(true);
@@ -334,4 +337,10 @@ void loop() {
   heltec::meshcore::ui::ui_task().loop();
   runtime.ui.tick();
   rtc_clock.tick();
+
+  // Both supported Arduino cores run loop() from a FreeRTOS task.  Without a
+  // blocking point this low-priority task remains permanently runnable, so
+  // the idle task cannot enter ESP32/nRF52 low-power idle between events.
+  // One tick keeps radio/UI latency bounded while allowing tickless idle.
+  delay(5);
 }

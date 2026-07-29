@@ -25,6 +25,12 @@ bool InputDispatcher::dispatch(InputHost& host, InputCommand command, uint32_t n
       }
       return true;
 
+    case InputCommand::OpenAction:
+      if (lv_obj_t* frame = host.frameRoot()) {
+        ui_event_send(frame, UiEventType::ActionOpen);
+      }
+      return true;
+
     case InputCommand::CloseTopLayer:
       // Let the active LVGL focused object decide what ESC means for its local state.
       return false;

@@ -19,6 +19,8 @@ struct _lv_obj_t;
 
 namespace heltec::meshcore::ui {
 
+struct UiSendMessageTarget;
+
 /** @brief 发消息 overlay；由 UiApp::activate 驱动显隐。 */
 class SendMessageOverlay : public AbstractOverlay {
  public:
@@ -26,6 +28,7 @@ class SendMessageOverlay : public AbstractOverlay {
   using UiSurface::setTarget;
 
   void submitCustomMessage(const char* text);
+  void prepareTarget(const UiSendMessageTarget* target);
 
   void onEnter() override;
   void onExit() override;
@@ -73,6 +76,8 @@ class SendMessageOverlay : public AbstractOverlay {
   int8_t _visible_row_count = 0;
 
   SendMessageModel _model;
+  Target _pending_target{};
+  bool _pending_target_valid = false;
   bool _confirm_pending = false;
   bool _send_alert_ok = false;
   bool _send_alert_scheduled = false;

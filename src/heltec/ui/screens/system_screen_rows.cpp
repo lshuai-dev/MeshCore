@@ -11,10 +11,11 @@ namespace {
 constexpr lv_coord_t kSystemDropdownHeight = 36;
 constexpr lv_coord_t kSystemDropdownListPadVer = 2;
 #endif
-void setup_focus_row(_lv_obj_t* row, _lv_obj_t* control) { ui_theme_apply_switch_row_focus(row, control); }
-void configure_system_row(_lv_obj_t* row, lv_flex_flow_t flow, lv_flex_align_t main, lv_flex_align_t cross) {
+void configure_system_row(_lv_obj_t* row, lv_flex_flow_t flow, lv_flex_align_t main,
+                          lv_flex_align_t cross, bool single_line = true) {
   if (!row) return;
-  lv_obj_set_size(row, lv_pct(100), LV_SIZE_CONTENT);
+  lv_obj_set_size(row, lv_pct(100),
+                  single_line ? ui_settings_row_height() : LV_SIZE_CONTENT);
   lv_obj_set_flex_flow(row, flow);
   lv_obj_set_flex_align(row, main, cross, cross);
 #if LV_COLOR_DEPTH == 1
@@ -52,18 +53,6 @@ bool keypad_suppresses_bubble(_lv_obj_t* obj) {
 #endif
   return false;
 }
-_lv_obj_t* focus_row_for(_lv_obj_t* obj) {
-#if LV_USE_SWITCH != 0
-  if (obj && lv_obj_check_type(obj, &lv_switch_class)) return lv_obj_get_parent(obj);
-#endif
-#if LV_USE_DROPDOWN != 0
-  if (obj && lv_obj_check_type(obj, &lv_dropdown_class)) return lv_obj_get_parent(obj);
-#endif
-#if LV_USE_SLIDER != 0
-  if (obj && lv_obj_check_type(obj, &lv_slider_class)) { _lv_obj_t* controls=lv_obj_get_parent(obj); return controls ? lv_obj_get_parent(controls) : obj; }
-#endif
-  return obj;
-}
 void clear_group_widget_states(_lv_obj_t* obj, lv_group_t* g) {
   if (!obj) return;
   if (lv_obj_get_group(obj) == g) { lv_obj_clear_state(obj, LV_STATE_FOCUSED); lv_obj_clear_state(obj, LV_STATE_FOCUS_KEY); lv_obj_invalidate(obj); }
@@ -71,29 +60,17 @@ void clear_group_widget_states(_lv_obj_t* obj, lv_group_t* g) {
 }
 #if defined(HELTEC_V4_R8_TFT) && defined(HELTEC_HAS_TOUCH) && HELTEC_HAS_TOUCH
 bool point_hits_obj(const _lv_obj_t* obj, lv_coord_t x, lv_coord_t y) {
-  if (!obj || !lv_obj_is_valid(obj) || lv_obj_has_flag(obj, LV_OBJ_FLAG_HIDDEN)) return false;
-  lv_area_t area; lv_obj_get_coords(const_cast<_lv_obj_t*>(obj), &area);
-  return x >= area.x1 && x <= area.x2 && y >= area.y1 && y <= area.y2;
+  if (!obj || !lv_obj_is_valid(obj) || !lv_obj_is_visible(obj)) return false;
+  lv_point_t point{x, y};
+  return lv_obj_hit_test(const_cast<_lv_obj_t*>(obj), &point);
 }
 #endif
 #if LV_USE_DROPDOWN != 0
-void realign_dropdown_list_async(void* user_data) {
-  _lv_obj_t* dd=static_cast<_lv_obj_t*>(user_data); if(!dd || !lv_dropdown_is_open(dd)) return;
-  _lv_obj_t* list=lv_dropdown_get_list(dd); if(!list) return;
-  lv_obj_update_layout(dd); const lv_coord_t w=lv_obj_get_width(dd); if(w>0) lv_obj_set_width(list,w);
-  lv_obj_set_scrollbar_mode(list,LV_SCROLLBAR_MODE_OFF); ui_theme_apply_dropdown_list(list); ui_theme_match_dropdown_list_padding(dd,list);
-#if defined(HELTEC_V4_R8_TFT)
-  lv_obj_set_style_pad_top(list,kSystemDropdownListPadVer,LV_PART_MAIN); lv_obj_set_style_pad_bottom(list,kSystemDropdownListPadVer,LV_PART_MAIN);
-  lv_obj_set_style_pad_top(list,kSystemDropdownListPadVer,LV_PART_SELECTED); lv_obj_set_style_pad_bottom(list,kSystemDropdownListPadVer,LV_PART_SELECTED);
-#endif
-  lv_obj_update_layout(list); const lv_dir_t dir=lv_dropdown_get_dir(dd);
-  if(dir==LV_DIR_BOTTOM) lv_obj_align_to(list,dd,LV_ALIGN_OUT_BOTTOM_LEFT,0,0); else if(dir==LV_DIR_TOP) lv_obj_align_to(list,dd,LV_ALIGN_OUT_TOP_LEFT,0,0); else if(dir==LV_DIR_LEFT) lv_obj_align_to(list,dd,LV_ALIGN_OUT_LEFT_TOP,0,0); else if(dir==LV_DIR_RIGHT) lv_obj_align_to(list,dd,LV_ALIGN_OUT_RIGHT_TOP,0,0);
-}
 bool cycle_open_dropdown(_lv_obj_t* dd,uint32_t key) {
   if(!dd || !lv_obj_check_type(dd,&lv_dropdown_class) || !lv_dropdown_is_open(dd)) return false; const uint16_t count=lv_dropdown_get_option_cnt(dd); if(count<=1) return false;
   const uint16_t cur=lv_dropdown_get_selected(dd); uint16_t next=cur;
   if(key==LV_KEY_DOWN||key==LV_KEY_RIGHT||key==LV_KEY_NEXT) next=(uint16_t)((cur+1u)%count); else if(key==LV_KEY_UP||key==LV_KEY_LEFT||key==LV_KEY_PREV) next=cur==0?(uint16_t)(count-1u):(uint16_t)(cur-1u); else return false;
-  lv_dropdown_set_selected(dd,next); _lv_obj_t* list=lv_dropdown_get_list(dd); if(list) lv_obj_invalidate(list); if(!ui_defer(realign_dropdown_list_async,dd)) realign_dropdown_list_async(dd); return true;
+  lv_dropdown_set_selected(dd,next); _lv_obj_t* list=lv_dropdown_get_list(dd); if(list) lv_obj_invalidate(list); return true;
 }
 #endif
 }  // namespace
@@ -109,13 +86,6 @@ SystemScreen::SysAction SystemScreen::actionForRow(_lv_obj_t* obj) const {
   return SysAction::None;
 }
 
-void SystemScreen::addKeypadWidget(_lv_obj_t* obj) {
-  if (!obj || !group()) return;
-  lv_obj_add_flag(obj, LV_OBJ_FLAG_CLICKABLE);
-  if (!keypad_suppresses_bubble(obj)) lv_obj_add_flag(obj, LV_OBJ_FLAG_EVENT_BUBBLE);
-  lv_group_add_obj(group(), obj);
-}
-
 _lv_obj_t* SystemScreen::addActionRow(_lv_obj_t* scroll, const char* title, _lv_obj_t** out_row) {
   _lv_obj_t* row = ht_obj_create(scroll, meta_id::SystemActionRow);
   if (!row) return nullptr;
@@ -125,8 +95,6 @@ _lv_obj_t* SystemScreen::addActionRow(_lv_obj_t* scroll, const char* title, _lv_
   if (label) lv_label_set_text_static(label, title ? title : "");
   lv_obj_add_flag(row, LV_OBJ_FLAG_CLICKABLE);
   bindWidget(row);
-  lv_obj_add_event_cb(row, onRowFocus, LV_EVENT_FOCUSED, this);
-  lv_obj_add_event_cb(row, onRowFocus, LV_EVENT_DEFOCUSED, this);
   lv_obj_add_event_cb(row, onActionRowEvent, LV_EVENT_CLICKED, this);
   if (out_row) *out_row = row;
   return row;
@@ -143,7 +111,6 @@ _lv_obj_t* SystemScreen::addSwitchRow(_lv_obj_t* scroll, const char* title, _lv_
   *out_sw = ht_switch_create(row, meta_id::SystemSwitch);
   if (!*out_sw) return row;
   lv_obj_clear_flag(*out_sw, LV_OBJ_FLAG_SCROLLABLE);
-  setup_focus_row(row, *out_sw);
   bindWidget(*out_sw);
   lv_obj_add_event_cb(*out_sw, onSwitchValueChanged, LV_EVENT_VALUE_CHANGED, this);
   return row;
@@ -188,9 +155,6 @@ _lv_obj_t* SystemScreen::addDropdownRow(_lv_obj_t* scroll, ChoiceRow& choice, co
   lv_dropdown_set_selected_highlight(dd, true);
 
   bindWidget(dd);
-  lv_obj_add_event_cb(dd, onRowFocus, LV_EVENT_FOCUSED, this);
-  lv_obj_add_event_cb(dd, onRowFocus, LV_EVENT_DEFOCUSED, this);
-  setup_focus_row(row, dd);
   lv_obj_add_event_cb(dd, onDropdownValueChanged, LV_EVENT_VALUE_CHANGED, this);
   lv_obj_add_event_cb(dd, onDropdownStateEvent, LV_EVENT_READY, this);
   lv_obj_add_event_cb(dd, onDropdownStateEvent, LV_EVENT_CANCEL, this);
@@ -232,7 +196,14 @@ void SystemScreen::closeOpenDropdowns() {
 #if LV_USE_DROPDOWN != 0
   if (lv_obj_is_valid(closing) && lv_obj_check_type(closing, &lv_dropdown_class) &&
       lv_dropdown_is_open(closing)) {
-    lv_dropdown_set_selected(closing, _open_dropdown_original_index);
+#if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
+    if (closing == _dd_friend) {
+      syncFriendDropdownFromApp(_biz, true);
+    } else
+#endif
+    {
+      lv_dropdown_set_selected(closing, _open_dropdown_original_index);
+    }
     lv_dropdown_close(closing);
   }
 #endif
@@ -258,43 +229,16 @@ void SystemScreen::applyGroupFocus(_lv_obj_t* focused) {
         scrollFocusedIntoView(focused);
       }
     }
-    clearFocusRowHighlight();
     return;
   }
 #endif
 
   scrollFocusedIntoView(focused);
-
-#if LV_USE_SWITCH != 0
-  if (lv_obj_check_type(focused, &lv_switch_class)) {
-    highlightFocusRow(lv_obj_get_parent(focused));
-    return;
-  }
-#endif
-#if defined(HAS_BUZZER_VOLUME_CONTROL) && HAS_BUZZER_VOLUME_CONTROL
-  if (focused == _btnBuzzerVolumeDown || focused == _btnBuzzerVolumeUp) {
-    clearFocusRowHighlight();
-    return;
-  }
-#endif
-  if (isDropdownRow(focused)) {
-    highlightFocusRow(focus_row_for(focused));
-    return;
-  }
-  if (isActionRow(focused)) {
-    highlightFocusRow(focused);
-  } else {
-    clearFocusRowHighlight();
-  }
 }
 
 bool SystemScreen::focusKeypadWidget(_lv_obj_t* obj) {
   if (!obj || !group() || !lv_obj_is_valid(obj)) return false;
   if (lv_obj_has_flag(obj, LV_OBJ_FLAG_HIDDEN)) return false;
-
-  if (lv_obj_get_group(obj) != group()) {
-    rebuildKeypadGroup(_biz);
-  }
   if (lv_obj_get_group(obj) != group()) return false;
 
   lv_obj_clear_state(obj, LV_STATE_PRESSED);
@@ -309,7 +253,6 @@ void SystemScreen::clearGroupFocusVisual() {
   lv_obj_t* const foc = lv_group_get_focused(g);
   if (foc) lv_event_send(foc, LV_EVENT_DEFOCUSED, nullptr);
   clear_group_widget_states(_root, g);
-  clearFocusRowHighlight();
 }
 
 void SystemScreen::syncDropdownLayout(_lv_obj_t* dd) const {
@@ -319,6 +262,46 @@ void SystemScreen::syncDropdownLayout(_lv_obj_t* dd) const {
   for (_lv_obj_t* p = dd; p; p = lv_obj_get_parent(p)) {
     lv_obj_update_layout(p);
   }
+#else
+  (void)dd;
+#endif
+}
+
+void SystemScreen::realignDropdownListAsync(void* user_data) {
+#if LV_USE_DROPDOWN != 0
+  _lv_obj_t* const dd = static_cast<_lv_obj_t*>(user_data);
+  if (!dd || !lv_obj_is_valid(dd)) return;
+
+  for (_lv_obj_t* obj = dd; obj; obj = lv_obj_get_parent(obj)) {
+    if (ht_id(obj) != meta_id::SystemRoot) continue;
+    auto* self = static_cast<SystemScreen*>(ht_user_data(obj));
+    if (self) self->realignDropdownList(dd);
+    return;
+  }
+#else
+  (void)user_data;
+#endif
+}
+
+void SystemScreen::realignDropdownList(_lv_obj_t* dd) {
+#if LV_USE_DROPDOWN != 0
+  if (!dd || !_root || !lv_obj_is_valid(dd) || !lv_dropdown_is_open(dd)) return;
+  _lv_obj_t* const list = lv_dropdown_get_list(dd);
+  if (!list) return;
+
+  syncDropdownLayout(dd);
+  const lv_coord_t width = lv_obj_get_width(dd);
+  if (width > 0) lv_obj_set_width(list, width);
+  lv_obj_set_scrollbar_mode(list, LV_SCROLLBAR_MODE_OFF);
+  ui_theme_apply_dropdown_list(list);
+  ui_theme_match_dropdown_list_padding(dd, list);
+#if defined(HELTEC_V4_R8_TFT)
+  lv_obj_set_style_pad_top(list, kSystemDropdownListPadVer, LV_PART_MAIN);
+  lv_obj_set_style_pad_bottom(list, kSystemDropdownListPadVer, LV_PART_MAIN);
+  lv_obj_set_style_pad_top(list, kSystemDropdownListPadVer, LV_PART_SELECTED);
+  lv_obj_set_style_pad_bottom(list, kSystemDropdownListPadVer, LV_PART_SELECTED);
+#endif
+  ui_dropdown_fit_list_to_viewport(dd, _root, _root);
 #else
   (void)dd;
 #endif
@@ -339,7 +322,26 @@ void SystemScreen::onWidgetKeyPreprocess(lv_event_t* e) {
   }
 
 #if LV_USE_DROPDOWN != 0
+#if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
+  if (target == self->_dd_friend && self->_open_dropdown == target &&
+      lv_dropdown_is_open(target)) {
+    int direction = 0;
+    if (key == LV_KEY_DOWN || key == LV_KEY_RIGHT || key == LV_KEY_NEXT) direction = 1;
+    if (key == LV_KEY_UP || key == LV_KEY_LEFT || key == LV_KEY_PREV) direction = -1;
+    if (direction != 0 && self->moveFriendDropdownSelection(direction)) {
+      if (!ui_defer(realignDropdownListAsync, target)) {
+        self->realignDropdownList(target);
+      }
+      lv_event_stop_processing(e);
+      lv_event_stop_bubbling(e);
+      return;
+    }
+  }
+#endif
   if (cycle_open_dropdown(target, key)) {
+    if (!ui_defer(realignDropdownListAsync, target)) {
+      self->realignDropdownList(target);
+    }
     lv_event_stop_processing(e);
     lv_event_stop_bubbling(e);
     return;
@@ -353,8 +355,12 @@ void SystemScreen::onWidgetKeyPreprocess(lv_event_t* e) {
   // normal confirmation alert is shown.
   if (key == LV_KEY_ENTER && self->_open_dropdown == target &&
       lv_dropdown_is_open(target)) {
-    const bool changed =
-        lv_dropdown_get_selected(target) != self->_open_dropdown_original_index;
+    bool changed = lv_dropdown_get_selected(target) != self->_open_dropdown_original_index;
+#if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
+    if (target == self->_dd_friend) {
+      changed = self->friendMeshIndexForSelection() != self->_friend_open_original_mesh_idx;
+    }
+#endif
     self->_open_dropdown = nullptr;
     lv_dropdown_close(target);
     lv_obj_clear_state(target, LV_STATE_EDITED);
@@ -419,43 +425,27 @@ void SystemScreen::onActionRowEvent(lv_event_t* e) {
   lv_event_stop_bubbling(e);
 }
 
-void SystemScreen::clearFocusRowHighlight() {
-  if (!_focus_row) return;
-  lv_obj_clear_state(_focus_row, LV_STATE_FOCUS_KEY);
-  lv_obj_invalidate(_focus_row);
-  _focus_row = nullptr;
-}
-
-void SystemScreen::highlightFocusRow(_lv_obj_t* row) {
-  if (!row) return;
-  clearFocusRowHighlight();
-  _focus_row = row;
-  lv_obj_add_state(row, LV_STATE_FOCUS_KEY);
-  lv_obj_invalidate(row);
-}
-
-bool SystemScreen::isActionRow(_lv_obj_t* obj) const {
-  return actionForRow(obj) != SysAction::None;
-}
-
-void SystemScreen::onRowFocus(lv_event_t* e) {
-  auto* self = static_cast<SystemScreen*>(lv_event_get_user_data(e));
-  if (!self) return;
-
-  _lv_obj_t* const row = focus_row_for(lv_event_get_target(e));
-  const lv_event_code_t code = lv_event_get_code(e);
-
-  if (code == LV_EVENT_FOCUSED) {
-    self->highlightFocusRow(row);
-  } else if (code == LV_EVENT_DEFOCUSED && self->_focus_row == row) {
-    self->clearFocusRowHighlight();
-  }
-}
-
 #if defined(HELTEC_V4_R8_TFT) && defined(HELTEC_HAS_TOUCH) && HELTEC_HAS_TOUCH
 
 bool SystemScreen::hitScrollableContent(lv_coord_t x, lv_coord_t y) const {
-  return point_hits_obj(_root, x, y);
+#if LV_USE_DROPDOWN != 0
+  // LVGL creates an opened dropdown list outside the System root. Treat the
+  // popup as its own vertical-scroll target before checking the page viewport.
+  // Otherwise the global gesture recognizer can turn the pointer into a
+  // RELEASED event while the user is trying to scroll the option list.
+  if (_open_dropdown && lv_obj_is_valid(_open_dropdown) &&
+      lv_dropdown_is_open(_open_dropdown)) {
+    _lv_obj_t* const list = lv_dropdown_get_list(_open_dropdown);
+    if (point_hits_obj(list, x, y)) return true;
+  }
+#endif
+
+  // The tile is the stable, clipped viewport for this screen. `_root` is the
+  // scrolling content container and its layout can be updated/repositioned
+  // while focus changes or a dropdown is aligned, so it must not be the sole
+  // authority for deciding whether LVGL owns a vertical drag.
+  _lv_obj_t* const viewport = tile();
+  return point_hits_obj(viewport ? viewport : _root, x, y);
 }
 
 #endif
@@ -465,7 +455,8 @@ bool SystemScreen::hitScrollableContent(lv_coord_t x, lv_coord_t y) const {
 _lv_obj_t* SystemScreen::addBuzzerVolumeRow(_lv_obj_t* scroll) {
   _lv_obj_t* row = ht_obj_create(scroll, meta_id::SystemVolumeRow);
   if (!row) return nullptr;
-  configure_system_row(row, LV_FLEX_FLOW_COLUMN, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_START);
+  configure_system_row(row, LV_FLEX_FLOW_COLUMN, LV_FLEX_ALIGN_START,
+                       LV_FLEX_ALIGN_START, false);
 
   _lv_obj_t* title = ht_label_create(row, meta_id::SystemVolumeLabel, "Volume");
   configure_system_label(title, lv_pct(100));

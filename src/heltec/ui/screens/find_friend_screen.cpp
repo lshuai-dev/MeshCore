@@ -84,6 +84,7 @@ _lv_obj_t* FindFriendScreen::create(_lv_obj_t* parent) {
     _lbl_status = ht_label_create(info, meta_id::CompassInfoLabel);
     compass_style_info_label(_lbl_status, "", LV_LABEL_LONG_WRAP);
     if (_lbl_status) lv_label_set_text_static(_lbl_status, _status_text);
+
   }
 
   return _root;

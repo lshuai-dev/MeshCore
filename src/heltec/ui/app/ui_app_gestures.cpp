@@ -248,6 +248,10 @@ void UiApp::onTouchSwipe(uint8_t axis, int8_t dir, int16_t start_x, int16_t star
     notifyDisplayActivity(millis());
     return;
   }
+  if (_surfaces.isActive(&_scrRecent) && _scrRecent.handleHorizontalSwipe(dir)) {
+    notifyDisplayActivity(millis());
+    return;
+  }
   (void)switchAdjacentTile(dir);
 }
 

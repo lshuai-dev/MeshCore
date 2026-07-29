@@ -8,6 +8,8 @@
 #include "ui/menus/context_menu.hpp"
 #include "ui/menus/context_menu_metrics.hpp"
 #include "ui/navigation/ui_navigator.hpp"
+#include "ui/screens/gps_screen.hpp"
+#include "ui/screens/radio_screen.hpp"
 #include "ui/screens/system_screen.hpp"
 #include "ui/theme/ui_theme_metrics.hpp"
 #include "ui/theme/ui_widget_theme.hpp"
@@ -195,7 +197,9 @@ extern "C" void ui_pixel_theme_apply(lv_theme_t* th, lv_obj_t* obj) {
   const bool custom_applied = ui_widget_theme_apply(obj);
 
 #if LV_USE_SWITCH
-  if (ht_id(obj) == meta_id::SystemSwitch) {
+  const MetaId id = ht_id(obj);
+  if (id == meta_id::SystemSwitch || id == meta_id::GpsPowerSwitch ||
+      id == meta_id::GpsTrackSwitch || id == meta_id::RadioLnaSwitch) {
     applySwitch(obj);
     return;
   }

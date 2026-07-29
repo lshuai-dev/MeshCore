@@ -22,7 +22,7 @@ namespace {
 char s_adv_dd_options[64];
 char s_screen_off_options[64];
 #if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
-char s_friend_dd_options[1024];
+char s_friend_dd_options[384];
 #endif
 
 int append_options(char* buf, size_t cap, const biz::IBizFacade& app, int count,
@@ -62,26 +62,6 @@ uint32_t options_hash(const char* text) {
   return hash;
 }
 
-int friend_dropdown_index(const biz::IBizFacade& app, const int16_t* mesh_map,
-                          int mesh_map_count) {
-  const int idx = app.findFriendTargetContactIndex();
-  if (idx < 0) return 0;
-  for (int i = 0; i < mesh_map_count; ++i) {
-    if (mesh_map[i] == idx) return i + 1;
-  }
-  return 0;
-}
-
-uint8_t keypad_group_mask_for(const biz::IBizFacade& app) {
-  const bool loc_share = app.locationShareEnabled();
-#if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
-  const bool friend_mode = app.findFriendMode() == 0;
-  return static_cast<uint8_t>((loc_share ? 1u : 0u) | (friend_mode ? 2u : 0u) | (!friend_mode ? 4u : 0u));
-#else
-  return static_cast<uint8_t>(loc_share ? 1u : 0u);
-#endif
-}
-
 void set_row_hidden(_lv_obj_t* row, bool hidden) {
   if (!row) return;
   if (hidden) lv_obj_add_flag(row, LV_OBJ_FLAG_HIDDEN);
@@ -98,10 +78,53 @@ bool SystemScreen::onKey(uint32_t key) {
 #if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
 void SystemScreen::syncFriendDropdownFromApp(const biz::IBizFacade& app, bool force) {
   if (!_dd_friend) return;
+  biz::IBizFacade::FindFriendContactItem probe[kFriendWindowSize]{};
+  int total = 0;
+  int selected_rank = -1;
+  (void)app.fillFindFriendContacts(_friend_window_start, app.findFriendTargetContactIndex(),
+                                   probe, kFriendWindowSize, &total, &selected_rank);
 
-  _friend_mesh_map_count = app.buildFindFriendDropdownOptions(
-      s_friend_dd_options, sizeof(s_friend_dd_options), _friend_mesh_map,
-      (int)(sizeof(_friend_mesh_map) / sizeof(_friend_mesh_map[0])));
+  const int max_start = total > kFriendWindowSize ? total - kFriendWindowSize : 0;
+  int start = _friend_window_start;
+  if (start > max_start) start = max_start;
+  if (selected_rank >= 0) {
+    const int local = selected_rank - start;
+    if (local < 0 || local >= kFriendWindowSize) {
+      start = (selected_rank / kFriendWindowStep) * kFriendWindowStep;
+    } else if (local >= kFriendWindowSize - 2 && start < max_start) {
+      start += kFriendWindowStep;
+    } else if (local <= 1 && start > 0) {
+      start -= kFriendWindowStep;
+    }
+  }
+  if (start < 0) start = 0;
+  if (start > max_start) start = max_start;
+  loadFriendDropdownWindow(app, start, selected_rank, force);
+}
+
+void SystemScreen::loadFriendDropdownWindow(const biz::IBizFacade& app, int start,
+                                            int selected_rank, bool force) {
+  if (!_dd_friend) return;
+  biz::IBizFacade::FindFriendContactItem items[kFriendWindowSize]{};
+  int total = 0;
+  int ignored_rank = -1;
+  _friend_mesh_map_count = app.fillFindFriendContacts(
+      start, -1, items, kFriendWindowSize, &total, &ignored_rank);
+  _friend_total = total;
+  const int max_start = total > kFriendWindowSize ? total - kFriendWindowSize : 0;
+  if (start < 0) start = 0;
+  if (start > max_start) start = max_start;
+  _friend_window_start = start;
+  _friend_selected_rank = selected_rank;
+
+  lv_snprintf(s_friend_dd_options, sizeof(s_friend_dd_options), "(none)");
+  for (int i = 0; i < _friend_mesh_map_count; ++i) {
+    _friend_mesh_map[i] = items[i].contact_index;
+    const size_t used = strlen(s_friend_dd_options);
+    if (used >= sizeof(s_friend_dd_options) - 1) break;
+    lv_snprintf(s_friend_dd_options + used, sizeof(s_friend_dd_options) - used,
+                "\n%s", items[i].label[0] ? items[i].label : "?");
+  }
 
   const uint32_t hash = options_hash(s_friend_dd_options);
   const bool options_changed = force || _friend_mesh_map_count != _friend_mesh_map_count_applied ||
@@ -111,65 +134,63 @@ void SystemScreen::syncFriendDropdownFromApp(const biz::IBizFacade& app, bool fo
     _friend_dd_options_hash_applied = hash;
     _friend_mesh_map_count_applied = _friend_mesh_map_count;
     setDropdownOptions(_dd_friend, s_friend_dd_options);
-    setDropdownIndex(_dd_friend,
-                     (uint16_t)friend_dropdown_index(app, _friend_mesh_map, _friend_mesh_map_count), false,
-                     true);
+  }
+  int local_selection = 0;
+  if (selected_rank >= _friend_window_start &&
+      selected_rank < _friend_window_start + _friend_mesh_map_count) {
+    local_selection = selected_rank - _friend_window_start + 1;
+  }
+  setDropdownIndex(_dd_friend, (uint16_t)local_selection, false, options_changed);
+}
+
+int SystemScreen::friendMeshIndexForSelection() const {
+  if (!_dd_friend) return -1;
+  const int selected = (int)lv_dropdown_get_selected(_dd_friend);
+  if (selected <= 0 || selected - 1 >= _friend_mesh_map_count) return -1;
+  return _friend_mesh_map[selected - 1];
+}
+
+bool SystemScreen::moveFriendDropdownSelection(int direction) {
+  if (!_dd_friend || direction == 0 || _friend_total <= 0) return false;
+  const int selected = (int)lv_dropdown_get_selected(_dd_friend);
+  int position = 0;
+  if (selected > 0 && selected - 1 < _friend_mesh_map_count) {
+    position = _friend_window_start + selected;
+  }
+  const int option_total = _friend_total + 1;
+  position = (position + (direction > 0 ? 1 : -1) + option_total) % option_total;
+  const int rank = position - 1;
+  if (rank < 0) {
+    _friend_selected_rank = -1;
+    setDropdownIndex(_dd_friend, 0, false, true);
+    return true;
+  }
+
+  int start = _friend_window_start;
+  const int max_start = _friend_total > kFriendWindowSize ? _friend_total - kFriendWindowSize : 0;
+  const int local = rank - start;
+  if (rank == 0 && direction > 0) {
+    start = 0;
+  } else if (rank == _friend_total - 1 && direction < 0) {
+    start = max_start;
+  } else if ((local < 0 || (direction < 0 && local <= 1)) && start > 0) {
+    start -= kFriendWindowStep;
+  } else if ((local >= kFriendWindowSize ||
+              (direction > 0 && local >= kFriendWindowSize - 2)) && start < max_start) {
+    start += kFriendWindowStep;
+  }
+  if (start < 0) start = 0;
+  if (start > max_start) start = max_start;
+  _friend_selected_rank = rank;
+  if (start != _friend_window_start) {
+    loadFriendDropdownWindow(_biz, start, rank, true);
   } else {
     setDropdownIndex(_dd_friend,
-                     (uint16_t)friend_dropdown_index(app, _friend_mesh_map, _friend_mesh_map_count), false);
+                     static_cast<uint16_t>(rank - _friend_window_start + 1), false, true);
   }
+  return true;
 }
 #endif
-
-void SystemScreen::rebuildKeypadGroup(const biz::IBizFacade& app) {
-  if (!group()) return;
-  lv_group_t* const g = group();
-  lv_obj_t* const prev_focus = lv_group_get_focused(g);
-
-  clearFocusObjects();
-
-  const bool loc_share = app.locationShareEnabled();
-#if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
-  const bool friend_mode = app.findFriendMode() == 0;
-#endif
-
-  addKeypadWidget(_dd_region);
-  addKeypadWidget(_dd_screen_off);
-  addKeypadWidget(_swBle);
-  addKeypadWidget(_swGps);
-#if defined(HAS_LNA_CONTROL) && HAS_LNA_CONTROL
-  addKeypadWidget(_swLna);
-#endif
-#ifdef PIN_BUZZER
-  addKeypadWidget(_swBuzzer);
-#endif
-#if defined(HAS_BUZZER_VOLUME_CONTROL) && HAS_BUZZER_VOLUME_CONTROL
-  addKeypadWidget(_btnBuzzerVolumeDown);
-  addKeypadWidget(_btnBuzzerVolumeUp);
-#endif
-#if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
-  addKeypadWidget(_swGpsTrack);
-#endif
-  addKeypadWidget(_swLocShare);
-  if (loc_share) addKeypadWidget(_dd_adv);
-#if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
-  addKeypadWidget(_dd_ff_mode);
-  if (friend_mode) addKeypadWidget(_dd_friend);
-  if (!friend_mode) {
-    addKeypadWidget(_row_wp_gps);
-    addKeypadWidget(_row_wp_manual);
-  }
-#endif
-  addKeypadWidget(_row_factory_reset);
-  addKeypadWidget(_row_clear_data);
-
-  if (prev_focus && lv_obj_is_valid(prev_focus)) {
-    lv_group_focus_obj(prev_focus);
-  }
-  if (!lv_group_get_focused(g) && lv_group_get_obj_count(g) > 0) {
-    lv_group_focus_next(g);
-  }
-}
 
 void SystemScreen::updateConditionalVisibility(const biz::IBizFacade& app) {
   const bool loc_share = app.locationShareEnabled();
@@ -182,16 +203,11 @@ void SystemScreen::updateConditionalVisibility(const biz::IBizFacade& app) {
   set_row_hidden(_row_wp_manual, friend_mode);
   if (!friend_mode && _open_dropdown == _dd_friend) closeOpenDropdowns();
 #endif
-  const uint8_t mask = keypad_group_mask_for(app);
-  if (mask != _keypad_group_mask) {
-    rebuildKeypadGroup(app);
-    _keypad_group_mask = mask;
-  }
 }
 
 _lv_obj_t* SystemScreen::create(_lv_obj_t* parent) {
   if (!AbstractScreen::create(parent)) return nullptr;
-  if (group()) lv_group_set_wrap(group(), true);
+  if (group()) lv_group_set_wrap(group(), false);
   lv_obj_add_flag(_root, LV_OBJ_FLAG_EVENT_BUBBLE | LV_OBJ_FLAG_SCROLLABLE);
   lv_obj_set_scroll_dir(_root, LV_DIR_VER);
   lv_obj_set_scrollbar_mode(_root, LV_SCROLLBAR_MODE_OFF);
@@ -211,22 +227,11 @@ _lv_obj_t* SystemScreen::create(_lv_obj_t* parent) {
   }
 
   addSwitchRow(_root, "Bluetooth", &_swBle);
-  addSwitchRow(_root, "GPS", &_swGps);
-#if defined(HAS_LNA_CONTROL) && HAS_LNA_CONTROL
-#if defined(HELTEC_V4_R8_TFT)
-  addSwitchRow(_root, "LNA", &_swLna);
-#else
-  if (_biz.isLnaCanControl()) addSwitchRow(_root, "LNA", &_swLna);
-#endif
-#endif
 #ifdef PIN_BUZZER
   addSwitchRow(_root, "Buzzer", &_swBuzzer);
 #endif
 #if defined(HAS_BUZZER_VOLUME_CONTROL) && HAS_BUZZER_VOLUME_CONTROL
   addBuzzerVolumeRow(_root);
-#endif
-#if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
-  addSwitchRow(_root, "GPS track", &_swGpsTrack);
 #endif
   addSwitchRow(_root, "Location share", &_swLocShare);
 
@@ -250,7 +255,27 @@ _lv_obj_t* SystemScreen::create(_lv_obj_t* parent) {
   addActionRow(_root, "> Factory reset", &_row_factory_reset);
   addActionRow(_root, "> Clear data", &_row_clear_data);
 
-  applyActionRowThemes();
+  addFocusItem(_dd_region, _choice_region.row);
+  addFocusItem(_dd_screen_off, _choice_screen_off.row);
+  addFocusItem(_swBle, _swBle ? lv_obj_get_parent(_swBle) : nullptr);
+#ifdef PIN_BUZZER
+  addFocusItem(_swBuzzer, _swBuzzer ? lv_obj_get_parent(_swBuzzer) : nullptr);
+#endif
+#if defined(HAS_BUZZER_VOLUME_CONTROL) && HAS_BUZZER_VOLUME_CONTROL
+  addFocusItem(_btnBuzzerVolumeDown);
+  addFocusItem(_btnBuzzerVolumeUp);
+#endif
+  addFocusItem(_swLocShare, _swLocShare ? lv_obj_get_parent(_swLocShare) : nullptr);
+  addFocusItem(_dd_adv, _choice_adv.row);
+#if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
+  addFocusItem(_dd_ff_mode, _choice_ff_mode.row);
+  addFocusItem(_dd_friend, _choice_friend.row);
+  addFocusItem(_row_wp_gps);
+  addFocusItem(_row_wp_manual);
+#endif
+  addFocusItem(_row_factory_reset);
+  addFocusItem(_row_clear_data);
+
   (void)createActionConfirmation();
   ht_set_user_data(_root, this);
 
@@ -276,7 +301,6 @@ _lv_obj_t* SystemScreen::create(_lv_obj_t* parent) {
 void SystemScreen::onEnter() {
   AbstractScreen::onEnter();
   closeOpenDropdowns();
-  ensureKeypadFocus();
 }
 
 void SystemScreen::onUiEvent(const UiEvent& event) {

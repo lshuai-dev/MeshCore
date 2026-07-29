@@ -165,7 +165,7 @@ class UiApp final : public IUiHost, public InputHost {
 
   void closeNavigationImmediate();
   bool selectTile(uint8_t tile_idx);
-  void scheduleNavTileCommit(uint8_t tile_idx);
+  void scheduleNavTileCommit(uint8_t tile_idx, bool user_commit = false);
   void previewNavTile(uint8_t tile_idx);
   void onTileActiveChanged();
   bool switchAdjacentTile(int8_t dir);
@@ -181,6 +181,7 @@ class UiApp final : public IUiHost, public InputHost {
   AppNavigation _navigation;
   uint32_t _nav_last_activity_ms = 0;
   uint8_t _scheduled_nav_tile = kNoScheduledTile;
+  bool _scheduled_nav_action = false;
   lv_timer_t* _nav_auto_commit_timer = nullptr;
   uint32_t _display_auto_off_ms = 0;
   uint32_t _display_last_activity_ms = 0;

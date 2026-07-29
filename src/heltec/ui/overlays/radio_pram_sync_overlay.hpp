@@ -53,6 +53,7 @@ class RadioParamSyncOverlay : public AbstractOverlay {
   int8_t _select = 0;
   uint8_t _count = 0;
   uint8_t _visible_rows = 1;
+  bool _applying = false;
   char _current_row_text[32] = {};
 };
 

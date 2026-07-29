@@ -66,7 +66,6 @@ _lv_obj_t* HomeScreen::create(_lv_obj_t* parent) {
   lv_obj_set_flex_align(_root, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER,
                         LV_FLEX_ALIGN_CENTER);
   lv_obj_set_style_pad_all(_root, 4, LV_PART_MAIN);
-  lv_obj_clear_flag(_root, LV_OBJ_FLAG_SCROLLABLE);
 
   _lblId = ht_label_create(_root, meta_id::HomeIdLabel, "ID: --------");
 

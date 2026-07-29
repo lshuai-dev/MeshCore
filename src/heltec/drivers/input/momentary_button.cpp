@@ -169,11 +169,18 @@ static void drain_edges(ButtonState& button, uint8_t slot, unsigned long now) {
     } else if (button.down_at > 0) {
       const unsigned long held = now - button.down_at;
       if (s_cfg.long_press_ms == 0 || held < s_cfg.long_press_ms) {
-        if (++button.clicks > HELTEC_BUTTON_MAX_CLICKS) {
+        ++button.clicks;
+        if (HELTEC_BUTTON_MAX_CLICKS >= 3 && button.clicks >= 3) {
+          emit_gesture(slot, ButtonGesture::Triple);
+          button.clicks = 0;
+          button.last_release = 0;
+        } else if (button.clicks > HELTEC_BUTTON_MAX_CLICKS) {
           emit_gesture(slot, gesture_for_clicks(HELTEC_BUTTON_MAX_CLICKS));
           button.clicks = 1;
+          button.last_release = now;
+        } else {
+          button.last_release = now;
         }
-        button.last_release = now;
       }
       BTN_UI_LOG("gpio pin=%d release held=%lums clicks=%u", (int)button.pin,
                  (unsigned long)held, (unsigned)button.clicks);

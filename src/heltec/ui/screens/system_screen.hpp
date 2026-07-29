@@ -32,8 +32,7 @@ constexpr MetaId SystemVolumeSlider = ht_meta_id(MetaIdScope::Screen, 0xAD);
 class SystemScreen : public AbstractScreen {
  public:
   SystemScreen(biz::IBizFacade& biz, const char* title, const lv_img_dsc_t* icon)
-      : AbstractScreen(biz, title, icon, false), _feedback(biz) {}
-  lv_obj_t* focusedObject() const override;
+      : AbstractScreen(biz, title, icon), _feedback(biz) {}
   eScreenId screenId() const override { return eScreenId::System; }
   void onEnter() override;
   void onExit() override;
@@ -68,11 +67,11 @@ class SystemScreen : public AbstractScreen {
 
   static void onWidgetKeyPreprocess(lv_event_t* e);
   static void onActionRowEvent(lv_event_t* e);
-  static void onRowFocus(lv_event_t* e);
   static void onSwitchValueChanged(lv_event_t* e);
   static void onDropdownValueChanged(lv_event_t* e);
   static void onDropdownStateEvent(lv_event_t* e);
   static void onDropdownReleasedPre(lv_event_t* e);
+  static void realignDropdownListAsync(void* user_data);
 #if defined(HAS_BUZZER_VOLUME_CONTROL) && HAS_BUZZER_VOLUME_CONTROL
   static void onBuzzerVolumeButtonClicked(lv_event_t* e);
 #endif
@@ -87,9 +86,7 @@ class SystemScreen : public AbstractScreen {
   static void onActionConfirmationEvent(lv_event_t* e);
   SysAction actionForRow(_lv_obj_t* obj) const;
   void syncDropdownLayout(_lv_obj_t* dd) const;
-  void clearFocusRowHighlight();
-  void highlightFocusRow(_lv_obj_t* row);
-  bool isActionRow(_lv_obj_t* obj) const;
+  void realignDropdownList(_lv_obj_t* dd);
   void clearGroupFocusVisual();
   void scrollFocusedIntoView(_lv_obj_t* focused) const;
   void closeOpenDropdowns();
@@ -98,14 +95,15 @@ class SystemScreen : public AbstractScreen {
   void syncDropdownsFromApp(const biz::IBizFacade& app);
 #if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
   void syncFriendDropdownFromApp(const biz::IBizFacade& app, bool force = false);
+  void loadFriendDropdownWindow(const biz::IBizFacade& app, int start, int selected_rank,
+                                bool force = false);
+  bool moveFriendDropdownSelection(int direction);
+  int friendMeshIndexForSelection() const;
 #endif
   void updateConditionalVisibility(const biz::IBizFacade& app);
-  void rebuildKeypadGroup(const biz::IBizFacade& app);
   void syncSwitchesFromApp(const biz::IBizFacade& app);
   void syncControlsFromApp(const biz::IBizFacade& app);
   void refreshControls();
-  void ensureKeypadFocus();
-  void applyActionRowThemes();
 
   bool anyDropdownOpen() const;
   void setDropdownIndex(_lv_obj_t* dd, uint16_t index, bool fire_changed, bool force = false);
@@ -114,7 +112,6 @@ class SystemScreen : public AbstractScreen {
   const ChoiceRow* dropdownChoice(_lv_obj_t* dd) const;
   bool isDropdownRow(_lv_obj_t* obj) const;
   void setSwitchState(_lv_obj_t* sw, bool on);
-  void addKeypadWidget(_lv_obj_t* obj);
 #if defined(HAS_BUZZER_VOLUME_CONTROL) && HAS_BUZZER_VOLUME_CONTROL
   void setBuzzerVolumeSlider(uint8_t level);
   void setBuzzerVolumeLevel(uint8_t level, bool show_feedback);
@@ -123,10 +120,6 @@ class SystemScreen : public AbstractScreen {
   IFeedback& _feedback;
 
   _lv_obj_t* _swBle = nullptr;
-  _lv_obj_t* _swGps = nullptr;
-#if defined(HAS_LNA_CONTROL) && HAS_LNA_CONTROL
-  _lv_obj_t* _swLna = nullptr;
-#endif
 #ifdef PIN_BUZZER
   _lv_obj_t* _swBuzzer = nullptr;
 #endif
@@ -136,9 +129,6 @@ class SystemScreen : public AbstractScreen {
   _lv_obj_t* _btnBuzzerVolumeUp = nullptr;
 #endif
   _lv_obj_t* _swLocShare = nullptr;
-#if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
-  _lv_obj_t* _swGpsTrack = nullptr;
-#endif
 
   ChoiceRow _choice_region;
   ChoiceRow _choice_screen_off;
@@ -168,19 +158,23 @@ class SystemScreen : public AbstractScreen {
   SysAction _pending_action = SysAction::None;
   uint32_t _suppress_action_click_until_ms = 0;
 
-  _lv_obj_t* _focus_row = nullptr;
   _lv_obj_t* _open_dropdown = nullptr;
   uint16_t _open_dropdown_original_index = 0;
   _lv_obj_t* _waypoint_keyboard_return_focus = nullptr;
   bool _syncing_dropdown = false;
   bool _syncing_switch = false;
 #if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
+  static constexpr int kFriendWindowSize = 10;
+  static constexpr int kFriendWindowStep = 5;
   uint32_t _friend_dd_options_hash_applied = 0;
-  int16_t _friend_mesh_map[100] = {};
+  int16_t _friend_mesh_map[kFriendWindowSize] = {};
   int _friend_mesh_map_count = 0;
   int _friend_mesh_map_count_applied = -1;
+  int _friend_total = 0;
+  int _friend_window_start = 0;
+  int _friend_selected_rank = -1;
+  int _friend_open_original_mesh_idx = -1;
 #endif
-  uint8_t _keypad_group_mask = 0xFF;
 };
 
 }  // namespace heltec::meshcore::ui

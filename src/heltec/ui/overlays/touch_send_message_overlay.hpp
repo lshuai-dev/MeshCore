@@ -16,6 +16,8 @@ struct _lv_obj_t;
 
 namespace heltec::meshcore::ui {
 
+struct UiSendMessageTarget;
+
 /** V4 R8 touch-first send message overlay. */
 class SendMessageOverlay : public AbstractOverlay {
  public:
@@ -23,6 +25,7 @@ class SendMessageOverlay : public AbstractOverlay {
   using UiSurface::setTarget;
 
   void submitCustomMessage(const char* text);
+  void prepareTarget(const UiSendMessageTarget* target);
 
   lv_obj_t* focusedObject() const override { return _list ? _list : _root; }
   void onEnter() override;
@@ -72,6 +75,8 @@ class SendMessageOverlay : public AbstractOverlay {
   char _row_text[kMaxListItems][32] = {};
 
   SendMessageModel _model;
+  Target _pending_target{};
+  bool _pending_target_valid = false;
   bool _syncing_focus = false;
   bool _send_alert_ok = false;
   bool _send_alert_scheduled = false;

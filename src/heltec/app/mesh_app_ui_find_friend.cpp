@@ -4,6 +4,7 @@
 
 #include "HeltecMesh.h"
 #include "config/DataStore.h"
+#include "geodesic.hpp"
 #include "target.h"
 
 #include <helpers/BaseChatMesh.h>
@@ -26,13 +27,6 @@ namespace {
 constexpr uint32_t kAdvIntervalSec[] = {30, 60, 180, 300, 600};
 constexpr const char* kAdvIntervalLabels[] = {"30s", "1m", "3m", "5m", "10m"};
 
-constexpr double kPi = 3.14159265358979323846;
-constexpr double kDeg2Rad = kPi / 180.0;
-constexpr double kRad2Deg = 180.0 / kPi;
-constexpr double kWgs84A = 6378137.0;
-constexpr double kWgs84F = 1.0 / 298.257223563;
-constexpr double kWgs84B = (1.0 - kWgs84F) * kWgs84A;
-
 inline double microdeg_to_deg(int32_t micro) { return (double)micro * 1.0e-6; }
 
 float wrap_heading_360(float deg) {
@@ -41,107 +35,9 @@ float wrap_heading_360(float deg) {
   return deg;
 }
 
-double wrap_heading_360_d(double deg) {
-  deg = fmod(deg, 360.0);
-  if (deg < 0.0) deg += 360.0;
-  return deg;
-}
-
 float normalize_turn180(float deg) {
   deg = fmodf(deg + 540.0f, 360.0f) - 180.0f;
   return deg;
-}
-
-bool geodesic_inverse_spherical(double lat1_deg, double lon1_deg, double lat2_deg, double lon2_deg,
-                                double& distance_m, double& bearing_deg) {
-  const double phi1 = lat1_deg * kDeg2Rad;
-  const double phi2 = lat2_deg * kDeg2Rad;
-  const double dphi = (lat2_deg - lat1_deg) * kDeg2Rad;
-  const double dlambda = (lon2_deg - lon1_deg) * kDeg2Rad;
-  const double a =
-      sin(dphi / 2) * sin(dphi / 2) + cos(phi1) * cos(phi2) * sin(dlambda / 2) * sin(dlambda / 2);
-  const double c = 2.0 * atan2(sqrt(a), sqrt(1.0 - a));
-  distance_m = kWgs84A * c;
-
-  const double y = sin(dlambda) * cos(phi2);
-  const double x = cos(phi1) * sin(phi2) - sin(phi1) * cos(phi2) * cos(dlambda);
-  bearing_deg = wrap_heading_360_d(atan2(y, x) * kRad2Deg);
-  return true;
-}
-
-bool geodesic_inverse_wgs84(double lat1_deg, double lon1_deg, double lat2_deg, double lon2_deg,
-                            double& distance_m, double& bearing_deg) {
-  if (lat1_deg == lat2_deg && lon1_deg == lon2_deg) {
-    distance_m = 0.0;
-    bearing_deg = 0.0;
-    return true;
-  }
-
-  const double phi1 = lat1_deg * kDeg2Rad;
-  const double phi2 = lat2_deg * kDeg2Rad;
-  const double L = (lon2_deg - lon1_deg) * kDeg2Rad;
-
-  const double U1 = atan((1.0 - kWgs84F) * tan(phi1));
-  const double U2 = atan((1.0 - kWgs84F) * tan(phi2));
-  const double sinU1 = sin(U1);
-  const double cosU1 = cos(U1);
-  const double sinU2 = sin(U2);
-  const double cosU2 = cos(U2);
-
-  double lambda = L;
-  double lambda_prev = 0.0;
-  double sinSigma = 0.0;
-  double cosSigma = 0.0;
-  double sigma = 0.0;
-  double sinAlpha = 0.0;
-  double cosSqAlpha = 0.0;
-  double cos2SigmaM = 0.0;
-
-  for (int iter = 0; iter < 200; ++iter) {
-    const double sinLambda = sin(lambda);
-    const double cosLambda = cos(lambda);
-    const double t1 = cosU2 * sinLambda;
-    const double t2 = cosU1 * sinU2 - sinU1 * cosU2 * cosLambda;
-    sinSigma = sqrt(t1 * t1 + t2 * t2);
-    if (sinSigma == 0.0) {
-      distance_m = 0.0;
-      bearing_deg = wrap_heading_360_d(atan2(t1, t2) * kRad2Deg);
-      return true;
-    }
-    cosSigma = sinU1 * sinU2 + cosU1 * cosU2 * cosLambda;
-    sigma = atan2(sinSigma, cosSigma);
-    sinAlpha = cosU1 * cosU2 * sinLambda / sinSigma;
-    cosSqAlpha = 1.0 - sinAlpha * sinAlpha;
-    cos2SigmaM = cosSqAlpha != 0.0 ? cosSigma - 2.0 * sinU1 * sinU2 / cosSqAlpha : 0.0;
-    const double C = kWgs84F / 16.0 * cosSqAlpha * (4.0 + kWgs84F * (4.0 - 3.0 * cosSqAlpha));
-    lambda_prev = lambda;
-    lambda = L + (1.0 - C) * kWgs84F * sinAlpha *
-                     (sigma + C * sinSigma *
-                                  (cos2SigmaM + C * cosSigma *
-                                                    (-1.0 + 2.0 * cos2SigmaM * cos2SigmaM)));
-    if (fabs(lambda - lambda_prev) < 1e-14) break;
-  }
-
-  if (fabs(lambda - lambda_prev) >= 1e-12) {
-    return geodesic_inverse_spherical(lat1_deg, lon1_deg, lat2_deg, lon2_deg, distance_m, bearing_deg);
-  }
-
-  const double uSq = cosSqAlpha * (kWgs84A * kWgs84A - kWgs84B * kWgs84B) / (kWgs84B * kWgs84B);
-  const double A =
-      1.0 + uSq / 16384.0 * (4096.0 + uSq * (-768.0 + uSq * (320.0 - 175.0 * uSq)));
-  const double B = uSq / 1024.0 * (256.0 + uSq * (-128.0 + uSq * (74.0 - 47.0 * uSq)));
-  const double deltaSigma =
-      B * sinSigma *
-      (cos2SigmaM + B / 4.0 *
-                         (cosSigma * (-1.0 + 2.0 * cos2SigmaM * cos2SigmaM) -
-                          B / 6.0 * cos2SigmaM * (-3.0 + 4.0 * sinSigma * sinSigma) *
-                              (-3.0 + 4.0 * cos2SigmaM * cos2SigmaM)));
-  distance_m = kWgs84B * A * (sigma - deltaSigma);
-
-  bearing_deg =
-      wrap_heading_360_d(atan2(cosU2 * sin(lambda), cosU1 * sinU2 - sinU1 * cosU2 * cos(lambda)) *
-                         kRad2Deg);
-  return true;
 }
 
 int32_t deg_to_e6(double deg) {
@@ -401,10 +297,12 @@ bool MeshAppUi::findFriendContactLabel(int index, char* buf, size_t buf_len) con
   return true;
 }
 
-int MeshAppUi::buildFindFriendDropdownOptions(char* buf, size_t buf_len, int16_t* mesh_map,
-                                              int mesh_map_cap) const {
-  if (!buf || buf_len == 0) return 0;
-
+int MeshAppUi::fillFindFriendContacts(int offset, int selected_contact_index,
+                                      FindFriendContactItem* items, int max_items,
+                                      int* total_items, int* selected_rank) const {
+  if (total_items) *total_items = 0;
+  if (selected_rank) *selected_rank = -1;
+  if (!items || max_items <= 0) return 0;
   const int n = findFriendContactCount();
   int order[MAX_CONTACTS];
   uint32_t mods[MAX_CONTACTS];
@@ -433,24 +331,22 @@ int MeshAppUi::buildFindFriendDropdownOptions(char* buf, size_t buf_len, int16_t
     }
   }
 
-  const int prefix = lv_snprintf(buf, buf_len, "(none)");
-  if (prefix < 0 || (size_t)prefix >= buf_len) return 0;
-  if (count <= 0) return 0;
-
-  char* p = buf + prefix;
-  size_t rem = buf_len - (size_t)prefix;
-  int listed = 0;
+  if (total_items) *total_items = count;
   for (int k = 0; k < count; ++k) {
-    char lab[32];
-    if (!findFriendContactLabel(order[k], lab, sizeof(lab))) continue;
-    const int written = lv_snprintf(p, rem, "\n%s", lab);
-    if (written < 0 || (size_t)written >= rem) break;
-    if (mesh_map && listed < mesh_map_cap) mesh_map[listed] = static_cast<int16_t>(order[k]);
-    p += written;
-    rem -= (size_t)written;
-    ++listed;
+    if (order[k] == selected_contact_index && selected_rank) *selected_rank = k;
   }
-  return listed;
+
+  if (offset < 0) offset = 0;
+  if (offset > count) offset = count;
+  int filled = 0;
+  for (int k = offset; k < count && filled < max_items; ++k) {
+    FindFriendContactItem& item = items[filled];
+    item = FindFriendContactItem{};
+    item.contact_index = static_cast<int16_t>(order[k]);
+    if (!findFriendContactLabel(order[k], item.label, sizeof(item.label))) continue;
+    ++filled;
+  }
+  return filled;
 }
 
 bool MeshAppUi::findFriendContactHasGps(int index) const {
@@ -606,7 +502,8 @@ FindFriendUi MeshAppUi::findFriendUi() const {
     const double here_lat = u.here_lat;
     const double here_lon = u.here_lon;
     double geodesic_bearing = 0.0;
-    geodesic_inverse_wgs84(here_lat, here_lon, tgt_lat, tgt_lon, u.distance_m, geodesic_bearing);
+    geo::geodesic_inverse_wgs84(here_lat, here_lon, tgt_lat, tgt_lon,
+                                u.distance_m, &geodesic_bearing);
     u.arrived = u.distance_m < FF_NAV_ARRIVED_HINT_M;
     u.bearing_valid = true;
     u.bearing_to_waypoint_deg = (float)geodesic_bearing;

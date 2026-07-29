@@ -136,6 +136,13 @@ inline lv_color_t ui_color_switch_indicator() {
 inline uint8_t ui_widget_radius_px() {
   return ui_theme_colors().widget_radius_px;
 }
+constexpr lv_coord_t ui_settings_row_height() {
+#if defined(HELTEC_V4_R8_TFT)
+  return 40;
+#else
+  return LV_SIZE_CONTENT;
+#endif
+}
 inline lv_color_t ui_navigation_idle_color() {
   return ui_color_fg();
 }
@@ -143,12 +150,19 @@ inline lv_color_t ui_navigation_focus_color() {
   return ui_color_accent();
 }
 bool ui_theme_init(lv_disp_t* disp);
+/** Applies the platform-specific highlight used by a focused Screen row/control. */
+void ui_theme_apply_focus_frame(_lv_obj_t* frame);
+/** Removes the native focus border from a control whose parent row is highlighted. */
+void ui_theme_apply_focus_control(_lv_obj_t* control);
 /** Applies the active theme's row focus style for a row associated with a switch. */
 void ui_theme_apply_switch_row_focus(_lv_obj_t* row, _lv_obj_t* sw);
 /** Applies the active theme's popup dropdown list chrome/background/selection style. */
 void ui_theme_apply_dropdown_list(_lv_obj_t* list);
 /** Matches popup-list horizontal text padding to its closed dropdown control. */
 void ui_theme_match_dropdown_list_padding(_lv_obj_t* dropdown, _lv_obj_t* list);
+/** Keeps an opened dropdown list inside a viewport, scrolling its owner when possible. */
+void ui_dropdown_fit_list_to_viewport(_lv_obj_t* dropdown, _lv_obj_t* viewport,
+                                      _lv_obj_t* scroll_parent = nullptr);
 /** Vertically centers the closed dropdown value inside the current fixed height. */
 void ui_theme_center_dropdown_value(_lv_obj_t* dropdown);
 }  // namespace heltec::meshcore::ui

@@ -16,6 +16,8 @@ AdaptedInput dualKeyButton(uint8_t slot, ButtonGesture gesture) {
   } else if (gesture == ButtonGesture::Double) {
     out.command = InputCommand::CloseTopLayer;
     out.lv_key = LV_KEY_ESC;
+  } else if (gesture == ButtonGesture::Triple) {
+    out.command = InputCommand::OpenAction;
   } else if (gesture == ButtonGesture::Long) {
     out.lv_key = LV_KEY_ENTER;
   }
@@ -29,6 +31,8 @@ AdaptedInput singleKeyButton(ButtonGesture gesture) {
   } else if (gesture == ButtonGesture::Double) {
     out.command = InputCommand::CloseTopLayer;
     out.lv_key = LV_KEY_ESC;
+  } else if (gesture == ButtonGesture::Triple) {
+    out.command = InputCommand::OpenAction;
   } else if (gesture == ButtonGesture::Long) {
     out.lv_key = LV_KEY_ENTER;
   }

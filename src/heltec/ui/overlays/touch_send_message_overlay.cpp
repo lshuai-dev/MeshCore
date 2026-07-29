@@ -8,9 +8,10 @@
 
 #include "heltec/drivers/input/btn_debug.hpp"
 #include "heltec/ui/core/biz_facade.hpp"
-#include "ui/core/ui_events.h"
 #include "ui/core/ht_meta_data.hpp"
+#include "ui/core/operation_hints.hpp"
 #include "ui/core/ui_deferred_queue.hpp"
+#include "ui/core/ui_events.h"
 #include "keyboard_overlay.hpp"
 
 namespace heltec::meshcore::ui {
@@ -63,19 +64,15 @@ bool SendMessageOverlay::onKey(uint32_t key) {
   if (key == LV_KEY_PREV || key == LV_KEY_LEFT) {
     const int count = rowCount();
     if (count <= 0) return true;
-    int sel = selectedIndex() - 1;
-    if (sel < 0) sel = count - 1;
-    _model.setSelectedIndex(sel);
-    syncSelectionVisual();
+    _model.moveSelection(_biz, -1);
+    renderRows();
     return true;
   }
   if (key == LV_KEY_NEXT || key == LV_KEY_RIGHT) {
     const int count = rowCount();
     if (count <= 0) return true;
-    int sel = selectedIndex() + 1;
-    if (sel >= count) sel = 0;
-    _model.setSelectedIndex(sel);
-    syncSelectionVisual();
+    _model.moveSelection(_biz, 1);
+    renderRows();
     return true;
   }
   if (key == LV_KEY_ESC) {
@@ -127,7 +124,7 @@ _lv_obj_t* SendMessageOverlay::create(lv_obj_t* parent) {
   if (!_footer) return nullptr;
   lv_obj_set_width(_footer, lv_pct(100));
   lv_label_set_long_mode(_footer, LV_LABEL_LONG_CLIP);
-  lv_label_set_text_static(_footer, "Menu: select  Back: cancel");
+  lv_label_set_text_static(_footer, operation_hint::kMessageSelect);
 
   for (uint8_t i = 0; i < kMaxListItems; ++i) {
     if (!createTouchRow(i, "")) return nullptr;
@@ -144,6 +141,22 @@ void SendMessageOverlay::syncContacts() {
 
 void SendMessageOverlay::setTarget(const Target& t) {
   _model.setTarget(t);
+}
+
+void SendMessageOverlay::prepareTarget(const UiSendMessageTarget* target) {
+  _pending_target_valid = false;
+  if (!target) return;
+  Target pending{};
+  if (target->kind == UiMessageTargetKind::Channel) {
+    pending.kind = TargetKind::Group;
+    pending.channel_idx = target->channel_idx;
+  } else {
+    pending.kind = TargetKind::Personal;
+    memcpy(pending.pub_key_prefix, target->pub_key_prefix, sizeof(pending.pub_key_prefix));
+  }
+  SendMessageModel::safeCopy(pending.label, sizeof(pending.label), target->label);
+  _pending_target = pending;
+  _pending_target_valid = true;
 }
 
 void SendMessageOverlay::rebuildTargetCategories() {
@@ -283,13 +296,11 @@ void SendMessageOverlay::renderRows() {
   if (!_root) return;
 
   const char* title = "send message";
-  const char* footer = "Menu: select  Back: cancel";
+  const char* footer = operation_hint::kMessageSelect;
   if (_model.page() == Page::TargetCategory) {
     title = "to";
-    footer = "Menu: select  Back: back";
   } else if (_model.page() == Page::TargetList) {
     title = (_model.listKind() == 1) ? "group" : "personal";
-    footer = "Menu: select  Back: back";
   }
   lv_label_set_text_static(_title, title);
   lv_label_set_text_static(_footer, footer);
@@ -469,6 +480,11 @@ void SendMessageOverlay::onEnter() {
   fitToDisplay(lv_obj_get_parent(_root));
   fitToDisplay(_root);
   _model.reset(_biz);
+  if (_pending_target_valid) {
+    setTarget(_pending_target);
+    rebuildMainRows();
+    _pending_target_valid = false;
+  }
   renderRows();
   lv_obj_update_layout(_root);
   syncOverlayGroup();

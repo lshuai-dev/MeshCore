@@ -15,6 +15,7 @@ enum class AppStateEventType : uint8_t {
   // Invalidation-only domains; receivers read the current facade snapshot.
   RadioChanged,
   RecentHeardChanged,
+  MessageHistoryChanged,
   ContactLocationChanged,
   FindFriendChanged,
   ConfigChanged,

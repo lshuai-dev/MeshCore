@@ -4,6 +4,7 @@
 #include <helpers/ContactInfo.h>
 #include <helpers/ChannelDetails.h>
 #include "config/NodePrefs.h"
+#include "config/MessageHistory.h"
 #include <stddef.h>
 
 #if defined(ENV_INCLUDE_COMPASS) && (ENV_INCLUDE_COMPASS)
@@ -92,8 +93,25 @@ public:
   uint32_t getStorageUsedKb() const;
   uint32_t getStorageTotalKb() const;
 
+  bool appendMessage(const heltec::meshcore::history::ConversationKey& key,
+                     heltec::meshcore::history::MessageDirection direction,
+                     const char* text, size_t text_len);
+  int fillRecentConversations(int offset,
+                              heltec::meshcore::history::ConversationSummary* items,
+                              int max_items, int* total_items);
+  int fillConversationMessages(const heltec::meshcore::history::ConversationKey& key,
+                               int offset_from_latest,
+                               heltec::meshcore::history::MessageItem* items,
+                               int max_items, int* total_items);
+  bool markConversationRead(const heltec::meshcore::history::ConversationKey& key);
+  int countUnreadMessages();
+  bool clearMessageHistory();
+
 private:
   FILESYSTEM* _getContactsChannelsFS() const { if (_fsExtra) return _fsExtra; return _fs;};
+  bool ensureMessageHistory();
+  uint32_t _messageMaxSequence = 0;
+  bool _messageHistoryReady = false;
 #if defined(ENV_INCLUDE_COMPASS) && (ENV_INCLUDE_COMPASS)
 #if defined(NRF52_PLATFORM) || defined(STM32_PLATFORM)
   bool _allowGpsTrackFileOpen = false;

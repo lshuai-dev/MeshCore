@@ -3,6 +3,7 @@
 #include "calibration_overlay.hpp"
 
 #include "ui/core/ht_meta_data.hpp"
+#include "ui/core/operation_hints.hpp"
 #include "ui/core/ui_events.h"
 #include <Arduino.h>
 #include <lvgl.h>
@@ -73,7 +74,7 @@ _lv_obj_t* CalibrationOverlay::create(lv_obj_t* parent) {
   if (!_footer) return nullptr;
   lv_label_set_text_static(_footer, _footer_text);
   lv_obj_set_width(_footer, lv_pct(100));
-  lv_label_set_long_mode(_footer, LV_LABEL_LONG_WRAP);
+  lv_label_set_long_mode(_footer, LV_LABEL_LONG_CLIP);
 
   _timeout_timer = lv_timer_create(timeoutTimerCb, 250U, this);
   if (!_timeout_timer) return nullptr;
@@ -168,36 +169,39 @@ void CalibrationOverlay::render() {
                   "Compass calibration\nMove in a figure-8");
       if (_last_q >= 0) {
         lv_snprintf(_footer_text, sizeof(_footer_text),
-                    "Q:%d  %u/%u  %lus\nESC: cancel", (int)_last_q,
+                    "Q:%d %u/%u %lus %s", (int)_last_q,
                     (unsigned)_quality_streak, (unsigned)kStreakNeed,
-                    (unsigned long)remain_s);
+                    (unsigned long)remain_s, operation_hint::kCalibrationCancel);
       } else {
         lv_snprintf(_footer_text, sizeof(_footer_text),
-                    "Q:-  %u/%u  %lus\nESC: cancel", (unsigned)_quality_streak,
-                    (unsigned)kStreakNeed, (unsigned long)remain_s);
+                    "Q:- %u/%u %lus %s", (unsigned)_quality_streak,
+                    (unsigned)kStreakNeed, (unsigned long)remain_s,
+                    operation_hint::kCalibrationCancel);
       }
       break;
     }
 
     case Phase::Success:
       lv_snprintf(_body_text, sizeof(_body_text), "Calibration OK");
-      lv_snprintf(_footer_text, sizeof(_footer_text), "Enter/ESC: close");
+      lv_snprintf(_footer_text, sizeof(_footer_text), "%s",
+                  operation_hint::kCalibrationClose);
       break;
 
     case Phase::Fail:
       if (_no_sensor) {
         lv_snprintf(_body_text, sizeof(_body_text),
                     "No compass module\nHardware missing");
-        lv_snprintf(_footer_text, sizeof(_footer_text), "Enter/ESC: close");
+        lv_snprintf(_footer_text, sizeof(_footer_text), "%s",
+                    operation_hint::kCalibrationClose);
       } else if (_save_failed) {
         lv_snprintf(_body_text, sizeof(_body_text), "Quality OK\nSave failed");
-        lv_snprintf(_footer_text, sizeof(_footer_text),
-                    "Enter: retry  ESC: close");
+        lv_snprintf(_footer_text, sizeof(_footer_text), "%s",
+                    operation_hint::kCalibrationRetry);
       } else {
         lv_snprintf(_body_text, sizeof(_body_text),
                     "Calibration failed\nQuality still low");
-        lv_snprintf(_footer_text, sizeof(_footer_text),
-                    "Enter: retry  ESC: close");
+        lv_snprintf(_footer_text, sizeof(_footer_text), "%s",
+                    operation_hint::kCalibrationRetry);
       }
       break;
   }

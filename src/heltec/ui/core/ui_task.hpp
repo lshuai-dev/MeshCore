@@ -36,6 +36,7 @@ class UiTask final : public AbstractUITask {
   void playShutdownMelody();
 
   int msgCount() const { return _msg_count; }
+  void setMessageCount(int msgcount);
 
   // Preview state: Badge standalone dismisses via key (PreviewOverlay) or auto timeout in loop().
   bool isPreviewActive() const { return _preview_unread > 0; }

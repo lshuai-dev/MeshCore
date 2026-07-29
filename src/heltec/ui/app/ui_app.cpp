@@ -31,11 +31,8 @@
     Serial.printf("[alert] " fmt "\n", ##__VA_ARGS__); \
     Serial.flush(); \
   } while (0)
-#define UI_BOOT_LOG(fmt, ...) \
-  do { Serial.printf("[ui] " fmt "\n", ##__VA_ARGS__); } while (0)
 #else
 #define UI_ALERT_LOG(fmt, ...) ((void)0)
-#define UI_BOOT_LOG(...) ((void)0)
 #endif
 
 namespace heltec::meshcore::ui {
@@ -214,7 +211,6 @@ void UiApp::onTopPaneLongPress() {
 
 void UiApp::init() {
   _inited = false;
-  UI_BOOT_LOG("init begin this=%p", this);
   ui_events_init();
   ui_task().attachHost(this);
   _app_state_dispatcher.bindSurfaceManager(_surfaces);
@@ -331,18 +327,12 @@ void UiApp::init() {
   lv_obj_clear_flag(content, LV_OBJ_FLAG_SCROLLABLE);
   lv_obj_add_flag(content, LV_OBJ_FLAG_OVERFLOW_VISIBLE);
   if (!initScreens(content)) return;
-  UI_BOOT_LOG("initScreens done tileview=%p", _tileview);
   if (!initNavigationPane(_layerOverlay)) {
-    UI_BOOT_LOG("initNavigationPane failed");
     return;
   }
-  UI_BOOT_LOG("initNavigationPane done root=%p", _navigation.root());
   _navigation.setFrameRoot(_frame_root);
   _navigation.setTileView(_tileview);
-  UI_BOOT_LOG("navigation bindView done");
-  UI_BOOT_LOG("post-bind frame events begin");
   bindFrameEvents();
-  UI_BOOT_LOG("post-bind frame events done");
   if (_tileview) {
     lv_obj_add_event_cb(_tileview, [](lv_event_t* e) {
       auto* app = static_cast<UiApp*>(lv_event_get_user_data(e));
@@ -361,7 +351,7 @@ void UiApp::init() {
         }
         case UiEventType::TileCommit: {
           const auto* idx = static_cast<const uint8_t*>(event->payload);
-          if (idx) app->scheduleNavTileCommit(*idx);
+          if (idx) app->scheduleNavTileCommit(*idx, true);
           break;
         }
         default:
@@ -369,7 +359,6 @@ void UiApp::init() {
       }
     }, ui_event_code(), this);
   }
-  UI_BOOT_LOG("post-bind tileview events done");
   _previewOvl.setTarget(_frame_root);
   _alertOvl.setTarget(_frame_root);
   _radioParamSyncOvl.setTarget(_frame_root);
@@ -387,23 +376,18 @@ void UiApp::init() {
   _ctxCompassMenu.setTarget(_frame_root);
 #endif
 #endif
-  UI_BOOT_LOG("post-bind overlay targets done");
 
   _display_auto_off_ms = 0;
   _display_last_activity_ms = millis();
   _inited = true;
-  UI_BOOT_LOG("post-bind ready flag set");
   if (_tileview) {
     lv_obj_t* tile = lv_tileview_get_tile_act(_tileview);
     if (!tile) {
       tile = lv_obj_get_child(_tileview, 0);
       if (tile) lv_obj_set_tile(_tileview, tile, LV_ANIM_OFF);
     }
-    UI_BOOT_LOG("post-bind active tile=%p", tile);
   }
-  UI_BOOT_LOG("post-bind activate screen begin");
   activateActiveScreen();
-  UI_BOOT_LOG("post-bind activate screen done");
 }
 
 void UiApp::bindFrameEvents() {
@@ -429,6 +413,13 @@ void UiApp::handleFrameEvent(lv_event_t* e) {
     case UiEventType::NavActivity:
       notifyNavActivity(millis());
       break;
+    case UiEventType::ActionOpen:
+#if defined(HELTEC_V4_R8_TFT) && defined(HELTEC_HAS_TOUCH) && HELTEC_HAS_TOUCH
+      (void)ui_event_send(_frame_root, UiEventType::QuickPingOpen);
+#else
+      (void)ui_event_send(_frame_root, UiEventType::ContextOpen);
+#endif
+      break;
 #if !defined(HELTEC_V4_R8_TFT) || !defined(HELTEC_HAS_TOUCH) || !HELTEC_HAS_TOUCH
     case UiEventType::ContextOpen:
       (void)ui_defer(+[](void* user_data) {
@@ -452,6 +443,7 @@ void UiApp::handleFrameEvent(lv_event_t* e) {
       break;
 #endif
     case UiEventType::SendMessageOpen:
+      _sendMessageOvl.prepareTarget(static_cast<const UiSendMessageTarget*>(event->payload));
       (void)openSendMessageOverlay();
       break;
     case UiEventType::CalibrationOpen:
@@ -540,25 +532,10 @@ void UiApp::handleAppStateEvent(const AppStateEvent& event) {
 void UiApp::tick() {
   if (!_inited) return;
   lv_timer_handler();
-#if defined(HELTEC_LV_MEM_MONITOR) && HELTEC_LV_MEM_MONITOR
-  static uint32_t s_next_mem_log_ms = 0;
-  const uint32_t now = millis();
-  if ((int32_t)(now - s_next_mem_log_ms) >= 0) {
-    s_next_mem_log_ms = now + 10000U;
-    lv_mem_monitor_t mon{};
-    lv_mem_monitor(&mon);
-    Serial.printf("[lv_mem] total=%lu used=%u%% max=%lu free=%lu biggest=%lu frag=%u%%\n",
-                  (unsigned long)mon.total_size, (unsigned)mon.used_pct,
-                  (unsigned long)mon.max_used, (unsigned long)mon.free_size,
-                  (unsigned long)mon.free_biggest_size, (unsigned)mon.frag_pct);
-  }
-#endif
 }
 
 bool UiApp::initScreens(_lv_obj_t* content) {
   if (!content) return false;
-
-  UI_BOOT_LOG("initScreens begin content=%p", content);
 
   AbstractScreen* screens[static_cast<uint8_t>(eScreenId::kScreenCnt)];
   uint8_t screen_count = 0;
@@ -603,8 +580,6 @@ bool UiApp::initScreens(_lv_obj_t* content) {
     AbstractScreen* scr = screens[i];
     if (!scr) continue;
 
-    UI_BOOT_LOG("screen init begin index=%u screen=%p", (unsigned)i, scr);
-
     ht_set_meta_id(tile, meta_id::AppTile);
     ht_set_user_data(tile, scr);
     ui_widget_theme_apply(tile);
@@ -615,7 +590,6 @@ bool UiApp::initScreens(_lv_obj_t* content) {
     if (!scr->init(tile)) return false;
     lv_obj_t* scr_root = scr->root();
     if (!scr_root) return false;
-    UI_BOOT_LOG("screen init done index=%u root=%p", (unsigned)i, scr_root);
   }
 
   relayout_tileview_tiles(_tileview);
@@ -629,7 +603,6 @@ bool UiApp::initScreens(_lv_obj_t* content) {
 #endif
 
   if (AbstractScreen* home = screenAt(0)) _top_pane.setTitle(home->title());
-  UI_BOOT_LOG("initScreens done count=%u", (unsigned)screen_count);
   return true;
 }
 

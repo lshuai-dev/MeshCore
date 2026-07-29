@@ -150,8 +150,6 @@ static lv_style_t s_app_screen_root_style;
 static lv_style_t s_app_tileview_style;
 static lv_style_t s_app_tile_style;
 static lv_style_t s_active_screen_style;
-static lv_style_t s_gps_power_on_style;
-static lv_style_t s_gps_power_off_style;
 static bool s_active_screen_style_ready = false;
 static bool s_surface_app_styles_ready = false;
 static bool s_splash_overlay_text_style_ready = false;
@@ -766,12 +764,6 @@ static void init_surface_app_styles(lv_obj_t* obj = nullptr) {
 
   init_active_screen_style();
 
-  lv_style_init(&s_gps_power_on_style);
-  lv_style_set_text_color(&s_gps_power_on_style, ui_color_success());
-
-  lv_style_init(&s_gps_power_off_style);
-  lv_style_set_text_color(&s_gps_power_off_style, ui_color_error());
-
   s_surface_app_styles_ready = true;
 }
 
@@ -1016,8 +1008,14 @@ static void init_screen_system_styles() {
   lv_style_set_border_opa(&s_system_dropdown_style, LV_OPA_TRANSP);
   lv_style_set_border_side(&s_system_dropdown_style, LV_BORDER_SIDE_NONE);
 #endif
+#if defined(HELTEC_V4_R8_TFT)
+  // Screen focus is shown on the complete logical row. Keeping a permanent
+  // blue dropdown fill makes an unfocused row look selected as well.
+  lv_style_set_bg_opa(&s_system_dropdown_style, LV_OPA_TRANSP);
+#else
   lv_style_set_bg_color(&s_system_dropdown_style, ui_color_panel_bg());
   lv_style_set_bg_opa(&s_system_dropdown_style, LV_OPA_COVER);
+#endif
   lv_style_set_text_color(&s_system_dropdown_style, ui_color_fg());
   lv_style_set_text_align(&s_system_dropdown_style, LV_TEXT_ALIGN_CENTER);
   lv_style_set_outline_width(&s_system_dropdown_style, 0);
@@ -1653,6 +1651,7 @@ static bool apply_home_screen_child_theme(_lv_obj_t* obj) {
 static bool apply_gps_screen_child_theme(_lv_obj_t* obj) {
   switch (ht_id(obj)) {
     case meta_id::GpsPowerRow:
+    case meta_id::GpsTrackRow:
       style_plain_container(obj);
       return true;
 
@@ -1669,13 +1668,13 @@ static bool apply_gps_screen_child_theme(_lv_obj_t* obj) {
       return true;
 
     case meta_id::GpsPowerPrefix:
-    case meta_id::GpsPowerState:
+    case meta_id::GpsTrackLabel:
       style_screen_label(obj);
-      if (ht_id(obj) == meta_id::GpsPowerState) {
-        init_surface_app_styles(obj);
-        lv_obj_add_style(obj, &s_gps_power_off_style, LV_PART_MAIN);
-        lv_obj_add_style(obj, &s_gps_power_on_style, LV_PART_MAIN | LV_STATE_USER_3);
-      }
+      return true;
+
+    case meta_id::GpsPowerSwitch:
+    case meta_id::GpsTrackSwitch:
+      // The active UI theme owns all switch-part styling.
       return true;
 
     default:
@@ -1684,15 +1683,41 @@ static bool apply_gps_screen_child_theme(_lv_obj_t* obj) {
 }
 
 static bool apply_recent_screen_child_theme(_lv_obj_t* obj) {
-  if (ht_id(obj) != meta_id::RecentRowLabel) return false;
-  style_screen_label(obj);
-  return true;
+  switch (ht_id(obj)) {
+    case meta_id::RecentRowLabel:
+      style_screen_label(obj);
+      return true;
+    case meta_id::RecentSendButton:
+      return true;
+    case meta_id::RecentSendButtonLabel:
+      style_screen_label(obj, LV_TEXT_ALIGN_CENTER);
+      apply_no_chrome(obj);
+      return true;
+    case meta_id::RecentDetailContact:
+      style_screen_label(obj, LV_TEXT_ALIGN_CENTER);
+      return true;
+    case meta_id::RecentDetailMessage:
+      style_screen_label(obj);
+      return true;
+    default:
+      return false;
+  }
 }
 
 static bool apply_radio_screen_child_theme(_lv_obj_t* obj) {
-  if (ht_id(obj) != meta_id::RadioLineLabel) return false;
-  style_screen_label(obj);
-  return true;
+  switch (ht_id(obj)) {
+    case meta_id::RadioLineLabel:
+    case meta_id::RadioLnaLabel:
+      style_screen_label(obj);
+      return true;
+    case meta_id::RadioLnaRow:
+      style_plain_container(obj);
+      return true;
+    case meta_id::RadioLnaSwitch:
+      return true;
+    default:
+      return false;
+  }
 }
 
 static void style_system_row_common(_lv_obj_t* row, lv_style_t* style) {

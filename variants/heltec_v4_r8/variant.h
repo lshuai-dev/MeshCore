@@ -5,7 +5,7 @@
 // Profiles: HELTEC_V4_R8_TFT / HELTEC_V4_R8_OLED.
 
 #ifndef ESP32_CPU_FREQ
-#define ESP32_CPU_FREQ 240
+#define ESP32_CPU_FREQ 80
 #endif
 #ifndef RADIO_CLASS
 #define RADIO_CLASS CustomSX1262

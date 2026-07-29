@@ -1,6 +1,7 @@
 #include "radio_pram_sync_overlay.hpp"
 
 #include "ui/core/ht_meta_data.hpp"
+#include "ui/core/operation_hints.hpp"
 #include "ui/core/ui_events.h"
 #if defined(HELTEC_V4_R8_TFT)
 #include "ui/app/ui_theme.hpp"
@@ -111,7 +112,8 @@ _lv_obj_t* RadioParamSyncOverlay::create(lv_obj_t* parent) {
   _footer = ht_label_create(_root, meta_id::RadioParamSyncFooter);
   if (!_footer) return nullptr;
   lv_obj_set_width(_footer, lv_pct(100));
-  lv_label_set_text_static(_footer, "Enter: OK  Esc: back");
+  lv_label_set_long_mode(_footer, LV_LABEL_LONG_CLIP);
+  lv_label_set_text_static(_footer, operation_hint::kRadioPreset);
 
 #if !defined(HELTEC_V4_R8_TFT)
   lv_obj_add_flag(_root, LV_OBJ_FLAG_CLICKABLE);
@@ -299,6 +301,10 @@ void RadioParamSyncOverlay::rebuildRollerOptions() {
 
 void RadioParamSyncOverlay::onEnter() {
   if (!_root) return;
+  _applying = false;
+#if defined(HELTEC_V4_R8_TFT)
+  if (_roller) lv_obj_clear_state(_roller, LV_STATE_DISABLED);
+#endif
   AbstractOverlay::onEnter();
   syncFromPrefs();
   configureListLayout();
@@ -310,7 +316,11 @@ void RadioParamSyncOverlay::onExit() {
 }
 
 void RadioParamSyncOverlay::applySelection() {
-  if (_count == 0) return;
+  if (_count == 0 || _applying) return;
+  _applying = true;
+#if defined(HELTEC_V4_R8_TFT)
+  if (_roller) lv_obj_add_state(_roller, LV_STATE_DISABLED);
+#endif
   _biz.setLoRaBandPresetIndex((int)_select);
   _biz.showAlert("LoRa band set", 800);
   emitEvent(UiEventType::RadioSyncClose);

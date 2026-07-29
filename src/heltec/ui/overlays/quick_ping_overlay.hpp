@@ -16,6 +16,8 @@ constexpr MetaId QuickPingMessageInputLabel = ht_meta_id(MetaIdScope::Overlay, 0
 constexpr MetaId QuickPingKeyboard = ht_meta_id(MetaIdScope::Overlay, 0xB6);
 constexpr MetaId QuickPingMessageDropdown = ht_meta_id(MetaIdScope::Overlay, 0xB7);
 constexpr MetaId QuickPingBackdrop = ht_meta_id(MetaIdScope::Overlay, 0xBA);
+constexpr MetaId QuickPingIconBadge = ht_meta_id(MetaIdScope::Overlay, 0xBB);
+constexpr MetaId QuickPingIcon = ht_meta_id(MetaIdScope::Overlay, 0xBC);
 }
 
 #if defined(HELTEC_V4_R8_TFT) && defined(HELTEC_HAS_TOUCH) && HELTEC_HAS_TOUCH
@@ -66,17 +68,22 @@ class QuickPingOverlay final : public AbstractOverlay {
   };
 
   static constexpr int kMaxGroups = 12;
-  static constexpr int kMaxContacts = 12;
+  static constexpr int kMaxContacts = 10;
+  static constexpr int kContactWindowStep = 5;
   static constexpr int kMessagePresetCount = 5;
   static constexpr uint32_t kMaxMessageLength = 120;
 
   _lv_obj_t* createDropdownRow(_lv_obj_t* parent, const char* label_text,
+                               const lv_img_dsc_t* icon,
                                _lv_obj_t** out_dropdown);
   _lv_obj_t* createMessageRow(_lv_obj_t* parent);
   _lv_obj_t* createKeyboard(_lv_obj_t* parent);
   void applyState(bool keep_focus = true);
   void rebuildFocusGroup(_lv_obj_t* preferred = nullptr);
   void syncLists();
+  void loadContactWindow(int start);
+  void moveContactSelection(int delta);
+  void recenterContactWindow(int global_index, int direction);
   void syncDropdownOptions();
   void syncRecipientDropdown();
   void setRowVisible(_lv_obj_t* row, bool visible);
@@ -84,6 +91,7 @@ class QuickPingOverlay final : public AbstractOverlay {
   void closeDropdowns();
   bool closeDropdown(_lv_obj_t* dropdown);
   void syncDropdownListLayout(_lv_obj_t* dropdown);
+  void updateMessageTextPresentation(bool editing);
   void setKeyboardVisible(bool visible);
   bool keyboardVisible() const;
   bool dismissTransientControls();
@@ -140,10 +148,12 @@ class QuickPingOverlay final : public AbstractOverlay {
   CachedContact _contacts[kMaxContacts] = {};
   int _group_count = 0;
   int _contact_count = 0;
+  int _contact_total = 0;
+  int _contact_window_start = 0;
 
   uint8_t _target_index = static_cast<uint8_t>(TargetKind::Broadcast);
   uint8_t _group_index = 0;
-  uint8_t _contact_index = 0;
+  int _contact_index = 0;
   uint8_t _message_index = 0;
   bool _syncing_dropdowns = false;
   bool _rebuilding_focus_group = false;
@@ -158,7 +168,7 @@ class QuickPingOverlay final : public AbstractOverlay {
   uint16_t _repeat_index = 0;
   _lv_obj_t* _repeat_dropdown = nullptr;
 
-  char _recipient_options[512] = {};
+  char _recipient_options[384] = {};
   char _message_text[kMaxMessageLength + 1] = {};
 };
 

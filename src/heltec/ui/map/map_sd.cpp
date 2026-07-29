@@ -78,6 +78,15 @@ static uint32_t s_active_hz = 0;
 static uint8_t s_last_sd_error_code = 0;
 static uint8_t s_last_sd_error_data = 0;
 static uint8_t s_last_root_error = 0;
+static uint32_t s_tile_scan_deadline_ms = 0;
+
+#ifndef MAP_UI_SD_TILE_SCAN_BUDGET_MS
+#define MAP_UI_SD_TILE_SCAN_BUDGET_MS 250U
+#endif
+
+#ifndef MAP_UI_SD_CMD0_PROBE_MS
+#define MAP_UI_SD_CMD0_PROBE_MS 100U
+#endif
 
 constexpr int kExistCacheSize = 32;
 struct ExistCacheEntry {
@@ -156,6 +165,11 @@ static void prepareSdBus() {
 
 static bool sdUsable() { return s_sd_ready && !s_io_failed; }
 
+static bool tileScanBudgetExpired() {
+  return s_tile_scan_deadline_ms != 0 &&
+         (int32_t)(millis() - s_tile_scan_deadline_ms) >= 0;
+}
+
 /** ESP32-S3 SPI1 has no default pins after SdFat ends the shared bus. */
 static void ensureSdSpiBus(SPIClass& spi) {
 #if defined(SPI_INTERFACES_COUNT) && (SPI_INTERFACES_COUNT >= 2) && defined(PIN_SPI1_SCK) && \
@@ -206,6 +220,48 @@ static bool sdBeginAtHz(SPIClass& spi, uint32_t hz) {
     s_sd.end();
   }
   return ok;
+}
+
+/**
+ * Fast card-presence check before entering SdFat's two-second CMD0 timeout.
+ * CMD0 uses the SD-mandated initialization clock, so any valid R1 response is
+ * enough to justify the full mount/frequency fallback sequence.
+ */
+static bool cardAnswersCmd0(SPIClass& spi) {
+  ensureSdSpiBus(spi);
+  dal::spi1::prepareSdBus(spi);
+  const SPISettings init_settings(400000U, MSBFIRST, SPI_MODE0);
+  const uint32_t started_ms = millis();
+  bool answered = false;
+
+  spi.beginTransaction(init_settings);
+  digitalWrite(PIN_MAP_SD_CS, HIGH);
+  for (uint8_t i = 0; i < 10; ++i) spi.transfer(0xFF);
+
+  do {
+    digitalWrite(PIN_MAP_SD_CS, LOW);
+    spi.transfer(0x40);  // CMD0
+    spi.transfer(0x00);
+    spi.transfer(0x00);
+    spi.transfer(0x00);
+    spi.transfer(0x00);
+    spi.transfer(0x95);  // valid CMD0 CRC
+    for (uint8_t i = 0; i < 16; ++i) {
+      const uint8_t response = spi.transfer(0xFF);
+      if ((response & 0x80U) == 0) {
+        answered = true;
+        break;
+      }
+    }
+    digitalWrite(PIN_MAP_SD_CS, HIGH);
+    spi.transfer(0xFF);
+  } while (!answered && millis() - started_ms < (uint32_t)MAP_UI_SD_CMD0_PROBE_MS);
+
+  digitalWrite(PIN_MAP_SD_CS, HIGH);
+  spi.transfer(0xFF);
+  spi.endTransaction();
+  afterSdTransfer(spi);
+  return answered;
 }
 
 static SdLvFile* allocLvFile() {
@@ -483,11 +539,22 @@ bool map_sd_probe_once() {
     // Give cards a short power-up settling period without delaying every
     // frequency attempt.
     delay(10);
+    if (!cardAnswersCmd0(sdSpi())) {
+      s_probe_complete = true;
+      return true;
+    }
   }
 
   resetTileLookupState();
   if (!sdBeginAtHz(sdSpi(), hz)) {
     afterSdTransfer(sdSpi());
+    // SdFat always sends CMD0 at its fixed, conservative init clock.  If the
+    // card does not answer CMD0, retrying the same two-second init timeout at
+    // every data clock cannot help and makes an empty socket look frozen.
+    if (s_last_sd_error_code == SD_CARD_ERROR_CMD0) {
+      s_probe_complete = true;
+      return true;
+    }
     if (!probeHzPending()) {
       s_probe_complete = true;
       return true;
@@ -785,6 +852,10 @@ static bool tileTreeHasAnyTile(const char* root_name, bool allow_nested) {
   bool found = false;
   FsFile ent;
   while (ent.openNext(&root, O_RDONLY)) {
+    if (tileScanBudgetExpired()) {
+      ent.close();
+      break;
+    }
 #if defined(ESP_PLATFORM)
     esp_task_wdt_reset();
 #endif
@@ -843,6 +914,10 @@ void map_sd_resolve_style(char* style, size_t style_len) {
     FsFile ent;
     while (candidate_count < (int)(sizeof(candidates) / sizeof(candidates[0])) &&
            ent.openNext(&maps, O_RDONLY)) {
+      if (tileScanBudgetExpired()) {
+        ent.close();
+        break;
+      }
       if (ent.isDir()) {
         char candidate[24];
         const size_t name_len = ent.getName(candidate, sizeof(candidate));
@@ -860,6 +935,7 @@ void map_sd_resolve_style(char* style, size_t style_len) {
   afterSdTransfer(sdSpi());
 
   for (int i = 0; i < candidate_count; ++i) {
+    if (tileScanBudgetExpired()) return;
     if (strlen(candidates[i]) >= style_len || 0 == strcmp(candidates[i], style)) continue;
     if (!mapStyleHasAnyTile(candidates[i])) continue;
     strncpy(style, candidates[i], style_len - 1);
@@ -900,6 +976,7 @@ uint8_t map_sd_best_zoom(const char* style, uint8_t preferred) {
   // Search by distance from the requested zoom.  At equal distance prefer the
   // lower level, which normally provides broader coverage.
   for (int delta = 1; delta <= (int)kZoomMax - (int)kZoomMin; ++delta) {
+    if (tileScanBudgetExpired()) break;
     const int lower = (int)preferred - delta;
     if (lower >= (int)kZoomMin && tileZoomDirExists(style, (uint8_t)lower)) {
       return (uint8_t)lower;
@@ -914,8 +991,15 @@ uint8_t map_sd_best_zoom(const char* style, uint8_t preferred) {
 
 void map_sd_apply_tile_prefs(MapUiPrefs& prefs) {
   if (!sdUsable()) return;
+  // Auto-detection is optional convenience work.  A mounted card with an
+  // empty or malformed tile tree must never monopolise the LVGL loop while
+  // every directory entry is searched for a PNG.
+  s_tile_scan_deadline_ms = millis() + (uint32_t)MAP_UI_SD_TILE_SCAN_BUDGET_MS;
   map_sd_resolve_style(prefs.tile_style, sizeof(prefs.tile_style));
-  prefs.zoom = map_sd_best_zoom(prefs.tile_style, prefs.zoom);
+  if (!tileScanBudgetExpired()) {
+    prefs.zoom = map_sd_best_zoom(prefs.tile_style, prefs.zoom);
+  }
+  s_tile_scan_deadline_ms = 0;
 }
 
 static bool tileExistsAt(const char* style, uint8_t zoom, uint32_t x_tile, uint32_t y_tile) {
@@ -932,6 +1016,10 @@ static bool findFirstTileUnder(const char* base, uint8_t zoom, bool allow_nested
 
   FsFile xent;
   while (xent.openNext(&zdir, O_RDONLY)) {
+    if (tileScanBudgetExpired()) {
+      xent.close();
+      break;
+    }
 #if defined(ESP_PLATFORM)
     esp_task_wdt_reset();
 #endif
@@ -952,6 +1040,10 @@ static bool findFirstTileUnder(const char* base, uint8_t zoom, bool allow_nested
 
     FsFile yent;
     while (yent.openNext(&xdir, O_RDONLY)) {
+      if (tileScanBudgetExpired()) {
+        yent.close();
+        break;
+      }
 #if defined(ESP_PLATFORM)
       esp_task_wdt_reset();
 #endif

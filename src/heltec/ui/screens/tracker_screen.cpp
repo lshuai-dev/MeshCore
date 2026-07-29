@@ -797,7 +797,7 @@ _lv_obj_t* TrackerScreen::create(_lv_obj_t* parent) {
               });
             },
             LV_EVENT_CLICKED, this);
-        addFocusObject(_btn_zoom_out);
+        addFocusItem(_btn_zoom_out);
       }
       if (_btn_zoom_in) {
         (void)add_tool_btn_label(_btn_zoom_in, "+");
@@ -813,7 +813,7 @@ _lv_obj_t* TrackerScreen::create(_lv_obj_t* parent) {
               });
             },
             LV_EVENT_CLICKED, this);
-        addFocusObject(_btn_zoom_in);
+        addFocusItem(_btn_zoom_in);
       }
       if (_btn_gps) {
         (void)add_tool_btn_label(_btn_gps, "G");
@@ -825,7 +825,7 @@ _lv_obj_t* TrackerScreen::create(_lv_obj_t* parent) {
               self->runMapToolAction(+[](TrackerScreen& scr) { scr.center_map_on_current_gps(); });
             },
             LV_EVENT_CLICKED, this);
-        addFocusObject(_btn_gps);
+        addFocusItem(_btn_gps);
       }
       syncMapToolbarVisibility();
       raiseMapToolbar();

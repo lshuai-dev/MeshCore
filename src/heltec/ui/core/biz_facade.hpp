@@ -1,6 +1,7 @@
 #pragma once
 #include <stddef.h>
 #include <stdint.h>
+#include "config/MessageHistory.h"
 #include "ui_feedback.hpp"
 
 namespace heltec::meshcore::biz {
@@ -111,11 +112,29 @@ class IBizFacade : public ui::IFeedback {
   virtual bool hasCompanionConnection() const = 0;
   virtual uint32_t companionPairingPin() const = 0;
 
-  struct RecentHeardItem {
-    char name[32];
-    int32_t age_seconds;
+  using MessageConversationKey = heltec::meshcore::history::ConversationKey;
+
+  struct RecentConversationItem {
+    MessageConversationKey key{};
+    char label[32]{};
+    int32_t age_seconds = 0;
+    uint16_t unread = 0;
   };
-  virtual int fillRecentHeard(RecentHeardItem* items, int max_items) const = 0;
+  virtual int fillRecentConversations(int offset, RecentConversationItem* items,
+                                      int max_items, int* total_items) const = 0;
+
+  struct ConversationMessageItem {
+    uint32_t sequence = 0;
+    uint32_t timestamp = 0;
+    bool outgoing = false;
+    char text[heltec::meshcore::history::kMessageTextMax + 1]{};
+  };
+  virtual int fillConversationMessages(const MessageConversationKey& key,
+                                       int offset_from_latest,
+                                       ConversationMessageItem* items,
+                                       int max_items, int* total_items) const = 0;
+  virtual void markConversationRead(const MessageConversationKey& key) = 0;
+  virtual int deviceUnreadMessageCount() const = 0;
 
   virtual const CompassUi& compassUi() const = 0;
   virtual FindFriendUi findFriendUi() const = 0;
@@ -129,9 +148,14 @@ class IBizFacade : public ui::IFeedback {
   virtual void formatFindFriendWaypointInput(char* buf, size_t buf_len) const = 0;
   virtual int findFriendContactCount() const = 0;
   virtual bool findFriendContactLabel(int index, char* buf, size_t buf_len) const = 0;
-  /** Build dropdown text (recent first) and optional mesh-index map for each listed row. */
-  virtual int buildFindFriendDropdownOptions(char* buf, size_t buf_len, int16_t* mesh_map,
-                                             int mesh_map_cap) const = 0;
+  struct FindFriendContactItem {
+    int16_t contact_index = -1;
+    char label[32] = {};
+  };
+  /** Fill one recent-first page of contacts that have valid GPS coordinates. */
+  virtual int fillFindFriendContacts(int offset, int selected_contact_index,
+                                     FindFriendContactItem* items, int max_items,
+                                     int* total_items, int* selected_rank) const = 0;
   virtual bool findFriendContactHasGps(int index) const = 0;
   virtual int findFriendTargetContactIndex() const = 0;
 

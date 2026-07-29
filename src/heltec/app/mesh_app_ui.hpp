@@ -57,7 +57,14 @@ class MeshAppUi final : public IBizFacade {
   bool hasCompanionConnection() const override;
   uint32_t companionPairingPin() const override;
 
-  int fillRecentHeard(RecentHeardItem* items, int max_items) const override;
+  int fillRecentConversations(int offset, RecentConversationItem* items,
+                              int max_items, int* total_items) const override;
+  int fillConversationMessages(const MessageConversationKey& key,
+                               int offset_from_latest,
+                               ConversationMessageItem* items,
+                               int max_items, int* total_items) const override;
+  void markConversationRead(const MessageConversationKey& key) override;
+  int deviceUnreadMessageCount() const override;
 
   const CompassUi& compassUi() const override { return _compass_ui; }
   FindFriendUi findFriendUi() const override;
@@ -82,8 +89,9 @@ class MeshAppUi final : public IBizFacade {
 
   int findFriendContactCount() const override;
   bool findFriendContactLabel(int index, char* buf, size_t buf_len) const override;
-  int buildFindFriendDropdownOptions(char* buf, size_t buf_len, int16_t* mesh_map,
-                                     int mesh_map_cap) const override;
+  int fillFindFriendContacts(int offset, int selected_contact_index,
+                             FindFriendContactItem* items, int max_items,
+                             int* total_items, int* selected_rank) const override;
   bool findFriendContactHasGps(int index) const override;
   int findFriendTargetContactIndex() const override;
   void setFindFriendTargetContactIndex(int index) override;

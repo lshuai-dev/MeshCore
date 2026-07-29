@@ -47,6 +47,8 @@ bool MeshAppUi::factoryReset() {
 
 bool MeshAppUi::clearUserData() {
   if (!the_mesh.clearAllContacts()) return false;
+  DataStore* ds = the_mesh.getDataStore();
+  if (!ds || !ds->clearMessageHistory()) return false;
 
 #if defined(NRF52_PLATFORM) || defined(ESP32) || defined(ESP_PLATFORM)
   heltecLicenseClearStored();
@@ -55,6 +57,9 @@ bool MeshAppUi::clearUserData() {
 #if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
   _ff_target_contact_idx = -1;
 #endif
+
+  heltec::meshcore::ui::ui_task().setMessageCount(0);
+  notifyAppState(heltec::meshcore::ui::AppStateEventType::MessageHistoryChanged);
 
   return true;
 }

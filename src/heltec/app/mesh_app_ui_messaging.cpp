@@ -97,13 +97,15 @@ static bool isPublicBroadcastChannelName(const char* name) {
 }
 
 #ifdef MAX_GROUP_CHANNELS
-static bool resolvePublicChannel(mesh::GroupChannel& out_channel, const char** out_name) {
+static bool resolvePublicChannel(mesh::GroupChannel& out_channel, const char** out_name,
+                                 int* out_index = nullptr) {
   ChannelDetails ch;
   for (int idx = 0; idx < MAX_GROUP_CHANNELS; ++idx) {
     if (!the_mesh.getChannel(idx, ch) || ch.name[0] == '\0') continue;
     if (isPublicBroadcastChannelName(ch.name)) {
       out_channel = ch.channel;
       if (out_name) *out_name = ch.name;
+      if (out_index) *out_index = idx;
       return true;
     }
   }
@@ -221,6 +223,17 @@ bool MeshAppUi::sendDirectMessage(const uint8_t pub_key_prefix[6], const char* t
     the_mesh.trackExpectedAck(expected_ack, recipient);
   }
   showSendResult(rc);
+  if (rc != MSG_SEND_FAILED) {
+    heltec::meshcore::history::ConversationKey key{};
+    key.type = heltec::meshcore::history::ConversationType::Direct;
+    memcpy(key.peer_prefix, recipient->id.pub_key, sizeof(key.peer_prefix));
+    DataStore* store = the_mesh.getDataStore();
+    if (store && store->appendMessage(
+                     key, heltec::meshcore::history::MessageDirection::Outgoing,
+                     text, strlen(text))) {
+      notifyAppState(heltec::meshcore::ui::AppStateEventType::MessageHistoryChanged);
+    }
+  }
   return rc != MSG_SEND_FAILED;
 }
 
@@ -233,6 +246,7 @@ bool MeshAppUi::sendGroupMessage(int channel_idx, const char* text) {
 #else
   mesh::GroupChannel channel{};
   const char* channel_name = nullptr;
+  int resolved_channel_idx = channel_idx;
   bool found = false;
   if (channel_idx >= 0) {
     ChannelDetails ch;
@@ -242,7 +256,7 @@ bool MeshAppUi::sendGroupMessage(int channel_idx, const char* text) {
       found = true;
     }
   } else {
-    found = resolvePublicChannel(channel, &channel_name);
+    found = resolvePublicChannel(channel, &channel_name, &resolved_channel_idx);
   }
   if (!found) {
     heltec::meshcore::ui::ui_task().showAlert("No channel", 900);
@@ -251,6 +265,17 @@ bool MeshAppUi::sendGroupMessage(int channel_idx, const char* text) {
   const uint32_t ts = the_mesh.getRTCClock()->getCurrentTimeUnique();
   const int len = static_cast<int>(strlen(text));
   const bool ok = the_mesh.sendGroupMessage(ts, channel, the_mesh.getNodeName(), text, len);
+  if (ok) {
+    heltec::meshcore::history::ConversationKey key{};
+    key.type = heltec::meshcore::history::ConversationType::Channel;
+    key.channel_idx = static_cast<uint8_t>(resolved_channel_idx);
+    DataStore* store = the_mesh.getDataStore();
+    if (store && store->appendMessage(
+                     key, heltec::meshcore::history::MessageDirection::Outgoing,
+                     text, static_cast<size_t>(len))) {
+      notifyAppState(heltec::meshcore::ui::AppStateEventType::MessageHistoryChanged);
+    }
+  }
   heltec::meshcore::ui::ui_task().showAlert(ok ? "Queued" : "Failed", 900);
   return ok;
 #endif
@@ -265,11 +290,23 @@ bool MeshAppUi::sendBroadcast(const char* text, int len) {
   if (!text || len <= 0) return false;
   mesh::GroupChannel channel{};
   const char* channel_name = nullptr;
-  if (!resolvePublicChannel(channel, &channel_name)) {
+  int channel_idx = -1;
+  if (!resolvePublicChannel(channel, &channel_name, &channel_idx)) {
     return false;
   }
   const uint32_t ts = the_mesh.getRTCClock()->getCurrentTimeUnique();
   const bool ok = the_mesh.sendGroupMessage(ts, channel, the_mesh.getNodeName(), text, len);
+  if (ok) {
+    heltec::meshcore::history::ConversationKey key{};
+    key.type = heltec::meshcore::history::ConversationType::Channel;
+    key.channel_idx = static_cast<uint8_t>(channel_idx);
+    DataStore* store = the_mesh.getDataStore();
+    if (store && store->appendMessage(
+                     key, heltec::meshcore::history::MessageDirection::Outgoing,
+                     text, static_cast<size_t>(len))) {
+      notifyAppState(heltec::meshcore::ui::AppStateEventType::MessageHistoryChanged);
+    }
+  }
 #ifdef MESH_DEBUG
   char preview[20];
   logTextPreview(text, preview, sizeof(preview));

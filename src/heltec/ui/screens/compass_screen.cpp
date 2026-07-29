@@ -167,6 +167,7 @@ _lv_obj_t* CompassScreen::create(_lv_obj_t* parent) {
       }
     }
     lv_obj_move_foreground(info);
+
   }
 
   lv_obj_update_layout(_root);
@@ -278,7 +279,6 @@ void CompassScreen::onEnter() {
 
   if (_root) lv_obj_update_layout(_root);
   _dial.layoutSize();
-  if (_focus_group && _lbl_hdg) lv_group_focus_obj(_lbl_hdg);
 }
 
 void CompassScreen::onExit() {
