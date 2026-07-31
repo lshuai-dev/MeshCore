@@ -11,7 +11,6 @@
 #include "ui/overlays/quick_ping_overlay.hpp"
 #include "ui/overlays/alert_overlay.hpp"
 #include "ui/overlays/calibration_overlay.hpp"
-#include "ui/overlays/choice_picker_overlay.hpp"
 #include "ui/overlays/keyboard_overlay.hpp"
 #include "ui/overlays/preview_overlay.hpp"
 #include "ui/overlays/radio_pram_sync_overlay.hpp"
@@ -1183,7 +1182,6 @@ static bool is_overlay_root_id(MetaId id) {
     case meta_id::CalibrationOverlayRoot:
     case meta_id::KeyboardOverlayRoot:
     case meta_id::RadioParamSyncOverlayRoot:
-    case meta_id::ChoicePickerOverlayRoot:
     case meta_id::SendMessageOverlayRoot:
     case meta_id::SplashOverlayRoot:
       return true;
@@ -1357,7 +1355,6 @@ static bool apply_surface_root_theme(_lv_obj_t* obj) {
         apply_overlay_root_chrome(obj);
         break;
       case meta_id::RadioParamSyncOverlayRoot:
-      case meta_id::ChoicePickerOverlayRoot:
         apply_overlay_root_chrome(obj);
         break;
       case meta_id::SendMessageOverlayRoot:
@@ -1917,20 +1914,16 @@ static bool apply_radio_param_sync_overlay_child_theme(_lv_obj_t* obj) {
   switch (ht_id(obj)) {
     case meta_id::RadioParamSyncTitle:
     case meta_id::RadioParamSyncFooter:
-    case meta_id::ChoicePickerTitle:
-    case meta_id::ChoicePickerFooter:
       init_radio_sync_styles();
       lv_obj_add_style(obj, &s_radio_sync_overlay_label_style, LV_PART_MAIN);
       return true;
 
     case meta_id::RadioParamSyncList:
-    case meta_id::ChoicePickerList:
       init_radio_sync_styles();
       lv_obj_add_style(obj, &s_radio_sync_list_style, LV_PART_MAIN);
       return true;
 
     case meta_id::RadioParamSyncRow:
-    case meta_id::ChoicePickerRow:
       init_radio_sync_styles();
       lv_obj_add_style(obj, &s_radio_sync_row_main_style, LV_PART_MAIN);
       lv_obj_add_style(obj, &s_radio_sync_row_checked_style,

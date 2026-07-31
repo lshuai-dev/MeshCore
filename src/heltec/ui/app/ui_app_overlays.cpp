@@ -33,7 +33,6 @@ bool UiApp::initOverlay() {
   if (!_previewOvl.init(_layerOverlay)) return false;
   if (!_alertOvl.init(_layerOverlay)) return false;
   if (!_radioParamSyncOvl.init(_layerOverlay)) return false;
-  if (!_choicePickerOvl.init(_layerOverlay)) return false;
   if (!_keyboardOvl.init(_layerOverlay)) return false;
   if (!_sendMessageOvl.init(_layerOverlay)) return false;
 #if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
@@ -123,10 +122,6 @@ void UiApp::openRadioParamSyncOverlay() {
 
 void UiApp::closeRadioParamSyncOverlay() {
   (void)_surfaces.dismissBranch(&_radioParamSyncOvl);
-}
-
-void UiApp::closeChoicePickerOverlay() {
-  (void)_surfaces.dismissBranch(&_choicePickerOvl);
 }
 
 void UiApp::presentMessageKeyboard() {

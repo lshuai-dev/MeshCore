@@ -157,14 +157,6 @@ void UiApp::onTouchSwipe(uint8_t axis, int8_t dir, int16_t start_x, int16_t star
   }
 
 #if defined(HELTEC_V4_R8_TFT) && defined(HELTEC_HAS_TOUCH) && HELTEC_HAS_TOUCH
-  if (_surfaces.isActive(&_choicePickerOvl)) {
-    if (axis == static_cast<uint8_t>(heltec::meshcore::dal::touch_input::SwipeAxis::Vertical)) {
-      _choicePickerOvl.stepSelection(dir < 0 ? 1 : -1);
-    }
-    notifyDisplayActivity(millis());
-    return;
-  }
-
   if (_surfaces.isActive(&_radioParamSyncOvl)) {
     notifyDisplayActivity(millis());
     return;
@@ -287,10 +279,6 @@ bool UiApp::touchGestureBlockTrackerViewport(int16_t x, int16_t y) {
 
 bool UiApp::touchGestureBlockVerticalSwipe(int16_t x, int16_t y) {
   auto& app = UiApp::instance();
-  // ChoicePickerOverlay uses a virtualized, non-scrollable list and handles
-  // vertical swipes in onTouchSwipe(). Do not route those touches to the
-  // underlying system screen's scroll viewport.
-  if (app._surfaces.isActive(&app._choicePickerOvl)) return false;
   if (app._surfaces.isActive(&app._quickPingOverlay) &&
       app._quickPingOverlay.hitVerticalSwipeControl(x, y)) {
     return true;

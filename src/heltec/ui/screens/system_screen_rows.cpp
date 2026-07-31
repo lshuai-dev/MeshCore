@@ -2,12 +2,14 @@
 
 #include "ui/app/ui_theme.hpp"
 #include "ui/core/ht_meta_data.hpp"
+#include "ui/core/ui_deferred_queue.hpp"
 #include <Arduino.h>
 
 namespace heltec::meshcore::ui {
 namespace {
 #if defined(HELTEC_V4_R8_TFT)
 constexpr lv_coord_t kSystemDropdownHeight = 36;
+constexpr lv_coord_t kSystemDropdownListPadVer = 2;
 #endif
 void configure_system_row(_lv_obj_t* row, lv_flex_flow_t flow, lv_flex_align_t main,
                           lv_flex_align_t cross, bool single_line = true) {
@@ -63,6 +65,33 @@ bool point_hits_obj(const _lv_obj_t* obj, lv_coord_t x, lv_coord_t y) {
   return lv_obj_hit_test(const_cast<_lv_obj_t*>(obj), &point);
 }
 #endif
+#if LV_USE_DROPDOWN != 0
+bool cycle_open_dropdown(_lv_obj_t* dropdown, uint32_t key) {
+  if (!dropdown || !lv_obj_check_type(dropdown, &lv_dropdown_class) ||
+      !lv_dropdown_is_open(dropdown)) {
+    return false;
+  }
+  const uint16_t count = lv_dropdown_get_option_cnt(dropdown);
+  if (count <= 1) return false;
+
+  const uint16_t current = lv_dropdown_get_selected(dropdown);
+  uint16_t next = current;
+  if (key == LV_KEY_DOWN || key == LV_KEY_RIGHT || key == LV_KEY_NEXT) {
+    next = static_cast<uint16_t>((current + 1u) % count);
+  } else if (key == LV_KEY_UP || key == LV_KEY_LEFT || key == LV_KEY_PREV) {
+    next = current == 0 ? static_cast<uint16_t>(count - 1u)
+                        : static_cast<uint16_t>(current - 1u);
+  } else {
+    return false;
+  }
+
+  lv_dropdown_set_selected(dropdown, next);
+  if (_lv_obj_t* const list = lv_dropdown_get_list(dropdown)) {
+    lv_obj_invalidate(list);
+  }
+  return true;
+}
+#endif
 }  // namespace
 
 SystemScreen::SysAction SystemScreen::actionForRow(_lv_obj_t* obj) const {
@@ -116,7 +145,6 @@ _lv_obj_t* SystemScreen::addDropdownRow(_lv_obj_t* scroll, ChoiceRow& choice, co
   choice.row = row;
   choice.label = label;
   choice.dropdown = nullptr;
-  choice.title = title;
   if (label) {
     lv_label_set_text_static(label, title ? title : "");
   }
@@ -146,6 +174,8 @@ _lv_obj_t* SystemScreen::addDropdownRow(_lv_obj_t* scroll, ChoiceRow& choice, co
 
   bindWidget(dd);
   lv_obj_add_event_cb(dd, onDropdownValueChanged, LV_EVENT_VALUE_CHANGED, this);
+  lv_obj_add_event_cb(dd, onDropdownStateEvent, LV_EVENT_READY, this);
+  lv_obj_add_event_cb(dd, onDropdownStateEvent, LV_EVENT_CANCEL, this);
   return dd;
 }
 
@@ -201,8 +231,33 @@ void SystemScreen::scrollFocusedIntoView(_lv_obj_t* focused) const {
   lv_obj_scroll_to_y(_root, target, LV_ANIM_OFF);
 }
 
+void SystemScreen::closeOpenDropdown() {
+  if (!_open_dropdown) return;
+  _lv_obj_t* const closing = _open_dropdown;
+  _open_dropdown = nullptr;
+#if LV_USE_DROPDOWN != 0
+  if (lv_obj_is_valid(closing) &&
+      lv_obj_check_type(closing, &lv_dropdown_class) &&
+      lv_dropdown_is_open(closing)) {
+#if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
+    if (closing == _dd_friend) {
+      syncFriendDropdownFromApp(_biz, true);
+    } else
+#endif
+    {
+      lv_dropdown_set_selected(closing, _open_dropdown_original_index);
+    }
+    lv_dropdown_close(closing);
+  }
+#endif
+  if (lv_obj_is_valid(closing)) lv_obj_clear_state(closing, LV_STATE_EDITED);
+  if (group()) lv_group_set_editing(group(), false);
+}
+
 void SystemScreen::applyGroupFocus(_lv_obj_t* focused) {
   if (!focused) return;
+
+  if (!isDropdownRow(focused)) closeOpenDropdown();
 
   // Pointer focus must not snap the page after a drag or tap. Only physical
   // focus traversal is allowed to bring a row into the safe viewport.
@@ -233,6 +288,62 @@ void SystemScreen::clearGroupFocusVisual() {
   clear_group_widget_states(_root, g);
 }
 
+void SystemScreen::syncDropdownLayout(_lv_obj_t* dropdown) const {
+#if LV_USE_DROPDOWN != 0
+  if (!dropdown || !_root) return;
+  lv_obj_update_layout(_root);
+  for (_lv_obj_t* obj = dropdown; obj; obj = lv_obj_get_parent(obj)) {
+    lv_obj_update_layout(obj);
+  }
+#else
+  (void)dropdown;
+#endif
+}
+
+void SystemScreen::realignDropdownListAsync(void* user_data) {
+#if LV_USE_DROPDOWN != 0
+  _lv_obj_t* const dropdown = static_cast<_lv_obj_t*>(user_data);
+  if (!dropdown || !lv_obj_is_valid(dropdown)) return;
+
+  for (_lv_obj_t* obj = dropdown; obj; obj = lv_obj_get_parent(obj)) {
+    if (ht_id(obj) != meta_id::SystemRoot) continue;
+    auto* self = static_cast<SystemScreen*>(ht_user_data(obj));
+    if (self) self->realignDropdownList(dropdown);
+    return;
+  }
+#else
+  (void)user_data;
+#endif
+}
+
+void SystemScreen::realignDropdownList(_lv_obj_t* dropdown) {
+#if LV_USE_DROPDOWN != 0
+  if (!dropdown || !_root || !lv_obj_is_valid(dropdown) ||
+      !lv_dropdown_is_open(dropdown)) {
+    return;
+  }
+  _lv_obj_t* const list = lv_dropdown_get_list(dropdown);
+  if (!list || !lv_obj_is_valid(list)) return;
+
+  syncDropdownLayout(dropdown);
+  const lv_coord_t width = lv_obj_get_width(dropdown);
+  if (width > 0) lv_obj_set_width(list, width);
+  lv_obj_set_scrollbar_mode(list, LV_SCROLLBAR_MODE_OFF);
+  ui_theme_apply_dropdown_list(list);
+  ui_theme_match_dropdown_list_padding(dropdown, list);
+#if defined(HELTEC_V4_R8_TFT)
+  lv_obj_set_style_pad_top(list, kSystemDropdownListPadVer, LV_PART_MAIN);
+  lv_obj_set_style_pad_bottom(list, kSystemDropdownListPadVer, LV_PART_MAIN);
+  lv_obj_set_style_pad_top(list, kSystemDropdownListPadVer, LV_PART_SELECTED);
+  lv_obj_set_style_pad_bottom(list, kSystemDropdownListPadVer, LV_PART_SELECTED);
+#endif
+  _lv_obj_t* const viewport = tile();
+  ui_dropdown_fit_list_to_viewport(dropdown, viewport ? viewport : _root, _root);
+#else
+  (void)dropdown;
+#endif
+}
+
 void SystemScreen::onWidgetKeyPreprocess(lv_event_t* e) {
   if (lv_event_get_code(e) != LV_EVENT_KEY) return;
   auto* self = static_cast<SystemScreen*>(lv_event_get_user_data(e));
@@ -247,21 +358,74 @@ void SystemScreen::onWidgetKeyPreprocess(lv_event_t* e) {
     return;
   }
 
-  if (ChoiceRow* const choice = self->dropdownChoice(target)) {
-    if (key == LV_KEY_DOWN || key == LV_KEY_RIGHT) {
-      if (self->group()) lv_group_focus_next(self->group());
+#if LV_USE_DROPDOWN != 0
+#if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
+  if (target == self->_dd_friend && self->_open_dropdown == target &&
+      lv_dropdown_is_open(target)) {
+    int direction = 0;
+    if (key == LV_KEY_DOWN || key == LV_KEY_RIGHT || key == LV_KEY_NEXT) direction = 1;
+    if (key == LV_KEY_UP || key == LV_KEY_LEFT || key == LV_KEY_PREV) direction = -1;
+    if (direction != 0 && self->moveFriendDropdownSelection(direction)) {
+      if (!ui_defer(realignDropdownListAsync, target)) {
+        self->realignDropdownList(target);
+      }
       lv_event_stop_processing(e);
       lv_event_stop_bubbling(e);
       return;
     }
-    if (key == LV_KEY_UP || key == LV_KEY_LEFT) {
-      if (self->group()) lv_group_focus_prev(self->group());
+  }
+#endif
+
+  if (self->_open_dropdown == target && cycle_open_dropdown(target, key)) {
+    if (!ui_defer(realignDropdownListAsync, target)) {
+      self->realignDropdownList(target);
+    }
+    lv_event_stop_processing(e);
+    lv_event_stop_bubbling(e);
+    return;
+  }
+
+  // lv_dropdown_set_selected() also updates LVGL's internal original value.
+  // Compare with the value captured at open time so Enter still commits a
+  // keyboard change through the normal LV_EVENT_VALUE_CHANGED path.
+  if (key == LV_KEY_ENTER && self->_open_dropdown == target &&
+      lv_dropdown_is_open(target)) {
+    bool changed =
+        lv_dropdown_get_selected(target) != self->_open_dropdown_original_index;
+#if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
+    if (target == self->_dd_friend) {
+      changed = self->friendMeshIndexForSelection() !=
+                self->_friend_open_original_mesh_idx;
+    }
+#endif
+    self->_open_dropdown = nullptr;
+    lv_dropdown_close(target);
+    lv_obj_clear_state(target, LV_STATE_EDITED);
+    if (self->group()) lv_group_set_editing(self->group(), false);
+    if (changed) lv_event_send(target, LV_EVENT_VALUE_CHANGED, nullptr);
+    lv_event_stop_processing(e);
+    lv_event_stop_bubbling(e);
+    return;
+  }
+#endif
+
+  if (self->isDropdownRow(target)) {
+    if (key == LV_KEY_ESC && self->_open_dropdown == target) {
+      self->closeOpenDropdown();
       lv_event_stop_processing(e);
       lv_event_stop_bubbling(e);
       return;
     }
-    if (key == LV_KEY_ENTER) {
-      if (self->openChoicePicker(choice)) {
+
+    if (!self->_open_dropdown) {
+      if (key == LV_KEY_DOWN || key == LV_KEY_RIGHT) {
+        if (self->group()) lv_group_focus_next(self->group());
+        lv_event_stop_processing(e);
+        lv_event_stop_bubbling(e);
+        return;
+      }
+      if (key == LV_KEY_UP || key == LV_KEY_LEFT) {
+        if (self->group()) lv_group_focus_prev(self->group());
         lv_event_stop_processing(e);
         lv_event_stop_bubbling(e);
         return;
@@ -270,6 +434,12 @@ void SystemScreen::onWidgetKeyPreprocess(lv_event_t* e) {
   }
 
   if (key != LV_KEY_ESC) return;
+  if (self->_open_dropdown) {
+    self->closeOpenDropdown();
+    lv_event_stop_processing(e);
+    lv_event_stop_bubbling(e);
+    return;
+  }
   if (!keypad_suppresses_bubble(target)) return;
 
   lv_event_stop_processing(e);
@@ -310,6 +480,14 @@ void SystemScreen::onActionRowEvent(lv_event_t* e) {
 #if defined(HELTEC_V4_R8_TFT) && defined(HELTEC_HAS_TOUCH) && HELTEC_HAS_TOUCH
 
 bool SystemScreen::hitScrollableContent(lv_coord_t x, lv_coord_t y) const {
+#if LV_USE_DROPDOWN != 0
+  if (_open_dropdown && lv_obj_is_valid(_open_dropdown) &&
+      lv_dropdown_is_open(_open_dropdown)) {
+    _lv_obj_t* const list = lv_dropdown_get_list(_open_dropdown);
+    if (point_hits_obj(list, x, y)) return true;
+  }
+#endif
+
   // The tile is the stable, clipped viewport even while the top pane changes
   // the available content height, so it owns vertical-drag hit testing.
   _lv_obj_t* const viewport = tile();

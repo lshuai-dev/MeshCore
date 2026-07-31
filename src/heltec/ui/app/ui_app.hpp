@@ -36,7 +36,6 @@
 #include "ui/overlays/preview_overlay.hpp"
 #include "ui/overlays/alert_overlay.hpp"
 #include "ui/overlays/radio_pram_sync_overlay.hpp"
-#include "ui/overlays/choice_picker_overlay.hpp"
 #include "ui/overlays/send_message_overlay.hpp"
 #include "ui/overlays/keyboard_overlay.hpp"
 #if defined(HELTEC_V4_R8_TFT) && defined(HELTEC_HAS_TOUCH) && HELTEC_HAS_TOUCH
@@ -110,7 +109,6 @@ class UiApp final : public IUiHost, public InputHost {
   void dismissContextMenuStack();
 #endif
   void closeRadioParamSyncOverlay();
-  void closeChoicePickerOverlay();
 #if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
   void closeCalibrationOverlay();
 #endif
@@ -217,7 +215,6 @@ class UiApp final : public IUiHost, public InputHost {
   PreviewOverlay _previewOvl;
   AlertOverlay _alertOvl;
   RadioParamSyncOverlay _radioParamSyncOvl;
-  ChoicePickerOverlay _choicePickerOvl;
   SendMessageOverlay _sendMessageOvl;
   KeyboardOverlay _keyboardOvl;
 #if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
