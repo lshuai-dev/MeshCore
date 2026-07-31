@@ -35,11 +35,9 @@ _lv_obj_t* AbstractScreen::create(_lv_obj_t* parent) {
 #endif
   lv_obj_set_size(_root, lv_pct(100), lv_pct(100));
   lv_obj_set_flex_flow(_root, LV_FLEX_FLOW_COLUMN);
-  lv_obj_set_flex_align(_root, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_START,
-                        LV_FLEX_ALIGN_START);
+  lv_obj_set_flex_align(_root, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_START);
   lv_obj_set_style_pad_all(_root, 0, LV_PART_MAIN);
   lv_obj_set_style_pad_row(_root, gap, LV_PART_MAIN);
-  lv_obj_set_style_pad_column(_root, gap, LV_PART_MAIN);
   if (_root_scroll_focus) {
     lv_obj_add_flag(_root, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_set_scroll_dir(_root, LV_DIR_VER);
@@ -48,21 +46,14 @@ _lv_obj_t* AbstractScreen::create(_lv_obj_t* parent) {
     lv_obj_clear_flag(_root, LV_OBJ_FLAG_SCROLLABLE);
   }
   if (_focus_group) {
-    lv_group_set_wrap(_focus_group, false);
-    lv_group_set_edge_cb(_focus_group, onFocusGroupEdge);
-    lv_obj_add_flag(_root, LV_OBJ_FLAG_CLICKABLE | LV_OBJ_FLAG_CLICK_FOCUSABLE);
+    lv_group_set_wrap(_focus_group, true);
+    lv_obj_add_flag(_root, LV_OBJ_FLAG_CLICK_FOCUSABLE);
     if (_root_scroll_focus) lv_obj_add_flag(_root, LV_OBJ_FLAG_SCROLL_WITH_ARROW);
-    lv_obj_add_event_cb(_root, [](lv_event_t* e) {
-      if (LV_EVENT_KEY != lv_event_get_code(e)) return;
-      auto* self = static_cast<AbstractScreen*>(lv_event_get_user_data(e));
-      if (!self || !self->handlePageScrollKey(lv_event_get_key(e))) return;
-      lv_event_stop_processing(e);
-      lv_event_stop_bubbling(e);
-    }, static_cast<lv_event_code_t>(LV_EVENT_KEY | LV_EVENT_PREPROCESS), this);
-    addFocusObject(_root);
     ht_set_user_data(_root, this);
     _root_focus_fallback = true;
   }
+
+  addFocusObject(_root);
   return _root;
 }
 
@@ -95,7 +86,8 @@ _lv_obj_t* AbstractScreen::focusedObject() const {
   return firstAvailableFocusItem();
 }
 
-void AbstractScreen::addFocusItem(_lv_obj_t* object, _lv_obj_t* frame) {
+void AbstractScreen::addFocusItem(_lv_obj_t* object, _lv_obj_t* frame,
+                                  bool focus_on_pointer_press) {
   if (!object || !_focus_group || _focus_item_count >= kMaxFocusItems) return;
   for (uint8_t i = 0; i < _focus_item_count; ++i) {
     if (_focus_items[i] == object) return;
@@ -120,10 +112,35 @@ void AbstractScreen::addFocusItem(_lv_obj_t* object, _lv_obj_t* frame) {
     // lets pointer input focus the out-of-group frame while keypad focus stays
     // on another control, producing two highlighted rows.
     lv_obj_clear_flag(focus_frame, LV_OBJ_FLAG_CLICK_FOCUSABLE);
+    if (focus_on_pointer_press) {
+      lv_obj_add_event_cb(
+          focus_frame,
+          [](lv_event_t* e) {
+            if (lv_event_get_code(e) != LV_EVENT_PRESSED) return;
+            _lv_obj_t* const control =
+                static_cast<_lv_obj_t*>(lv_event_get_user_data(e));
+            if (!control || !lv_obj_is_valid(control) ||
+                lv_obj_has_state(control, LV_STATE_DISABLED) ||
+                lv_obj_has_flag(control, LV_OBJ_FLAG_HIDDEN)) {
+              return;
+            }
+            lv_group_t* const group = lv_obj_get_group(control);
+            if (group) lv_group_focus_obj(control);
+          },
+          static_cast<lv_event_code_t>(LV_EVENT_PRESSED | LV_EVENT_PREPROCESS), object);
+    }
+    ui_theme_apply_focus_control(object);
+    lv_obj_add_event_cb(object, onFocusItemChanged, LV_EVENT_ALL, focus_frame);
+  }
+  addFocusObject(object);
+  if (focus_on_pointer_press) {
+    lv_obj_add_flag(object, LV_OBJ_FLAG_CLICK_FOCUSABLE);
+  } else {
+    lv_obj_clear_flag(object, LV_OBJ_FLAG_CLICK_FOCUSABLE);
     lv_obj_add_event_cb(
         focus_frame,
         [](lv_event_t* e) {
-          if (lv_event_get_code(e) != LV_EVENT_PRESSED) return;
+          if (lv_event_get_code(e) != LV_EVENT_CLICKED) return;
           _lv_obj_t* const control =
               static_cast<_lv_obj_t*>(lv_event_get_user_data(e));
           if (!control || !lv_obj_is_valid(control) ||
@@ -134,12 +151,8 @@ void AbstractScreen::addFocusItem(_lv_obj_t* object, _lv_obj_t* frame) {
           lv_group_t* const group = lv_obj_get_group(control);
           if (group) lv_group_focus_obj(control);
         },
-        static_cast<lv_event_code_t>(LV_EVENT_PRESSED | LV_EVENT_PREPROCESS), object);
-    ui_theme_apply_focus_control(object);
-    lv_obj_add_event_cb(object, onFocusItemChanged, LV_EVENT_ALL, focus_frame);
+        static_cast<lv_event_code_t>(LV_EVENT_CLICKED | LV_EVENT_PREPROCESS), object);
   }
-  addFocusObject(object);
-  lv_obj_add_flag(object, LV_OBJ_FLAG_CLICK_FOCUSABLE);
   if (focus_frame != object && lv_obj_has_state(object, LV_STATE_FOCUSED)) {
     lv_obj_add_state(focus_frame, LV_STATE_FOCUSED | LV_STATE_FOCUS_KEY);
     lv_obj_invalidate(focus_frame);
@@ -179,59 +192,6 @@ void AbstractScreen::onFocusItemChanged(lv_event_t* e) {
     lv_obj_clear_state(frame, LV_STATE_FOCUSED | LV_STATE_FOCUS_KEY);
   }
   lv_obj_invalidate(frame);
-}
-
-bool AbstractScreen::scrollPage(bool forward) {
-  if (!_root_scroll_focus || !_root || !lv_obj_has_flag(_root, LV_OBJ_FLAG_SCROLLABLE)) {
-    return false;
-  }
-
-  lv_obj_update_layout(_root);
-  const lv_coord_t top = lv_obj_get_scroll_top(_root);
-  const lv_coord_t bottom = lv_obj_get_scroll_bottom(_root);
-  const lv_coord_t max_scroll = top + bottom;
-  if (max_scroll <= 0) return true;
-
-  const lv_coord_t viewport = lv_obj_get_height(_root);
-  const lv_coord_t overlap = viewport > 16 ? 12 : 4;
-  const lv_coord_t step = viewport > overlap ? viewport - overlap : 1;
-  const lv_coord_t target = forward
-                                ? (top + step > max_scroll ? max_scroll : top + step)
-                                : (top > step ? top - step : 0);
-  lv_obj_scroll_to_y(_root, target, LV_ANIM_OFF);
-  return true;
-}
-
-bool AbstractScreen::handlePageScrollKey(uint32_t key) {
-  if (!_focus_group || lv_group_get_focused(_focus_group) != _root) return false;
-
-  const bool forward = isScrollForwardKey(key);
-  const bool backward = isScrollBackwardKey(key);
-  if (!forward && !backward) return false;
-  return scrollPage(forward);
-}
-
-void AbstractScreen::onFocusGroupEdge(lv_group_t* group, bool forward) {
-  if (!group) return;
-  _lv_obj_t* focused = lv_group_get_focused(group);
-  for (_lv_obj_t* obj = focused; obj; obj = lv_obj_get_parent(obj)) {
-    switch (ht_id(obj)) {
-      case meta_id::HomeScreenRoot:
-      case meta_id::GpsScreenRoot:
-      case meta_id::RadioScreenRoot:
-      case meta_id::RecentScreenRoot:
-      case meta_id::CompassScreenRoot:
-      case meta_id::FindFriendScreenRoot:
-      case meta_id::TrackerScreenRoot:
-      case meta_id::SystemRoot: {
-        auto* self = static_cast<AbstractScreen*>(ht_user_data(obj));
-        if (self && self->_focus_group == group) (void)self->scrollPage(forward);
-        return;
-      }
-      default:
-        break;
-    }
-  }
 }
 
 bool AbstractScreen::onKey(uint32_t key) {

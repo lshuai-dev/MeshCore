@@ -36,15 +36,12 @@ class AbstractScreen : public UiSurface {
   _lv_obj_t* create(_lv_obj_t* parent) override;
   _lv_obj_t* createRoot(_lv_obj_t* parent) override;
   bool onKey(uint32_t key) override;
-  /** Adds one logical row/control to this screen's flat focus order. */
-  void addFocusItem(_lv_obj_t* object, _lv_obj_t* frame = nullptr);
+  void addFocusItem(_lv_obj_t* object, _lv_obj_t* frame = nullptr,bool focus_on_pointer_press = true);
 
  private:
   static constexpr uint8_t kMaxFocusItems = 16;
 
-  bool handlePageScrollKey(uint32_t key);
-  bool scrollPage(bool forward);
-  static void onFocusGroupEdge(lv_group_t* group, bool forward);
+
   bool isAvailableFocusItem(const _lv_obj_t* obj) const;
   _lv_obj_t* firstAvailableFocusItem() const;
   static void onFocusItemChanged(lv_event_t* e);

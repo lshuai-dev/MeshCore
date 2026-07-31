@@ -34,12 +34,12 @@ constexpr const char* kCalibrationRetry = "Hold:retry 2x:close";
 constexpr const char* kRecentDetail = "U/D:msg Hold:reply";
 constexpr const char* kMessageSelect = "U/D:move Hold:select";
 constexpr const char* kRadioPreset = "U/D:move Hold:apply";
-constexpr const char* kChoicePicker = "U/D:move Hold:ok 2x:back";
+constexpr const char* kChoicePicker = "U/D:move Hold:ok U2:back";
 constexpr const char* kPreviewClose = "Click/Hold:close";
-constexpr const char* kDestructiveConfirm = "Hold:confirm 2x:cancel";
-constexpr const char* kCalibrationCancel = "2x:cancel";
-constexpr const char* kCalibrationClose = "Hold/2x:close";
-constexpr const char* kCalibrationRetry = "Hold:retry 2x:close";
+constexpr const char* kDestructiveConfirm = "Hold:confirm U2:cancel";
+constexpr const char* kCalibrationCancel = "U2:cancel";
+constexpr const char* kCalibrationClose = "Hold/U2:close";
+constexpr const char* kCalibrationRetry = "Hold:retry U2:close";
 
 #endif
 

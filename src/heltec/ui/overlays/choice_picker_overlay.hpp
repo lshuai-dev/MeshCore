@@ -15,6 +15,9 @@ constexpr MetaId ChoicePickerTitle = ht_meta_id(MetaIdScope::Overlay, 0xD0);
 constexpr MetaId ChoicePickerList = ht_meta_id(MetaIdScope::Overlay, 0xD1);
 constexpr MetaId ChoicePickerRow = ht_meta_id(MetaIdScope::Overlay, 0xD2);
 constexpr MetaId ChoicePickerFooter = ht_meta_id(MetaIdScope::Overlay, 0xD3);
+constexpr MetaId ChoicePickerHeader = ht_meta_id(MetaIdScope::Overlay, 0xD4);
+constexpr MetaId ChoicePickerBackButton = ht_meta_id(MetaIdScope::Overlay, 0xD5);
+constexpr MetaId ChoicePickerBackIcon = ht_meta_id(MetaIdScope::Overlay, 0xD6);
 }  // namespace meta_id
 
 /** Lightweight data source used by the reusable, virtualized choice picker. */
@@ -50,7 +53,7 @@ class ChoicePickerOverlay final : public AbstractOverlay {
   bool onKey(uint32_t key) override;
 
   static void onRowClicked(lv_event_t* event);
-  static void onTitleClicked(lv_event_t* event);
+  static void onBackClicked(lv_event_t* event);
   void configureVisibleRows();
   void renderRows();
   void finish(bool commit, int selected_override = -1);

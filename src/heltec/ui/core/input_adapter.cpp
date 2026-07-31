@@ -14,10 +14,12 @@ AdaptedInput dualKeyButton(uint8_t slot, ButtonGesture gesture) {
   if (gesture == ButtonGesture::Click) {
     out.lv_key = (slot == 0) ? LV_KEY_PREV : LV_KEY_NEXT;
   } else if (gesture == ButtonGesture::Double) {
-    out.command = InputCommand::CloseTopLayer;
-    out.lv_key = LV_KEY_ESC;
-  } else if (gesture == ButtonGesture::Triple) {
-    out.command = InputCommand::OpenAction;
+    if (slot == 0) {
+      out.command = InputCommand::CloseTopLayer;
+      out.lv_key = LV_KEY_ESC;
+    } else {
+      out.command = InputCommand::OpenAction;
+    }
   } else if (gesture == ButtonGesture::Long) {
     out.lv_key = LV_KEY_ENTER;
   }

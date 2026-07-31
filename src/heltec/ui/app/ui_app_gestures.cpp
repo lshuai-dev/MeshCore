@@ -287,6 +287,10 @@ bool UiApp::touchGestureBlockTrackerViewport(int16_t x, int16_t y) {
 
 bool UiApp::touchGestureBlockVerticalSwipe(int16_t x, int16_t y) {
   auto& app = UiApp::instance();
+  // ChoicePickerOverlay uses a virtualized, non-scrollable list and handles
+  // vertical swipes in onTouchSwipe(). Do not route those touches to the
+  // underlying system screen's scroll viewport.
+  if (app._surfaces.isActive(&app._choicePickerOvl)) return false;
   if (app._surfaces.isActive(&app._quickPingOverlay) &&
       app._quickPingOverlay.hitVerticalSwipeControl(x, y)) {
     return true;

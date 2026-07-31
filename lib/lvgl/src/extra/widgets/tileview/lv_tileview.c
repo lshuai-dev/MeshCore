@@ -154,7 +154,10 @@ static void lv_tileview_tile_constructor(const lv_obj_class_t * class_p, lv_obj_
 static void tileview_event_cb(lv_event_t * e)
 {
     lv_event_code_t code = lv_event_get_code(e);
-    lv_obj_t * obj = lv_event_get_target(e);
+    lv_obj_t * obj = lv_event_get_current_target(e);
+    /* A child scroll can bubble into the TileView. Only the TileView's own
+     * scroll may update its active tile and allowed directions. */
+    if(lv_event_get_target(e) != obj) return;
     lv_tileview_t * tv = (lv_tileview_t *) obj;
 
     if(code == LV_EVENT_SCROLL_END) {

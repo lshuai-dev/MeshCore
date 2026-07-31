@@ -15,36 +15,10 @@
 #define HELTEC_BOARD_I2C_HZ 100000
 #endif
 
-#if defined(HELTEC_V4_R8_TFT)
-namespace {
-
-const char* resetReasonName(esp_reset_reason_t reason) {
-  switch (reason) {
-    case ESP_RST_POWERON: return "power-on";
-    case ESP_RST_EXT: return "external";
-    case ESP_RST_SW: return "software";
-    case ESP_RST_PANIC: return "panic";
-    case ESP_RST_INT_WDT: return "interrupt-wdt";
-    case ESP_RST_TASK_WDT: return "task-wdt";
-    case ESP_RST_WDT: return "other-wdt";
-    case ESP_RST_DEEPSLEEP: return "deep-sleep";
-    case ESP_RST_BROWNOUT: return "brownout";
-    case ESP_RST_SDIO: return "sdio";
-    default: return "unknown";
-  }
-}
-
-}  // namespace
-#endif
-
 void HeltecV4R8Board::begin() {
   ESP32Board::begin();
 
   const esp_reset_reason_t reason = esp_reset_reason();
-#if defined(HELTEC_V4_R8_TFT)
-  Serial.printf("[boot] reset reason=%d (%s)\n", (int)reason, resetReasonName(reason));
-#endif
-
   periph_power.begin();
   periph_power.claim();
   delay(10);

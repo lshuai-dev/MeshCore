@@ -129,15 +129,19 @@ void ui_theme_apply_focus_frame(_lv_obj_t* frame) {
     lv_style_set_border_width(&s_screen_focus_highlight, 0);
     lv_style_set_border_opa(&s_screen_focus_highlight, LV_OPA_TRANSP);
     lv_style_set_border_side(&s_screen_focus_highlight, LV_BORDER_SIDE_NONE);
+    lv_style_set_outline_width(&s_screen_focus_highlight, 1);
+    lv_style_set_outline_color(&s_screen_focus_highlight, ui_color_accent());
+    lv_style_set_outline_opa(&s_screen_focus_highlight, LV_OPA_COVER);
+    lv_style_set_outline_pad(&s_screen_focus_highlight, 0);
 #else
     lv_style_set_bg_opa(&s_screen_focus_highlight, LV_OPA_TRANSP);
     lv_style_set_border_width(&s_screen_focus_highlight, LV_DPX(1));
     lv_style_set_border_color(&s_screen_focus_highlight, ui_color_highlight_bg());
     lv_style_set_border_opa(&s_screen_focus_highlight, LV_OPA_COVER);
     lv_style_set_border_side(&s_screen_focus_highlight, LV_BORDER_SIDE_FULL);
-#endif
     lv_style_set_outline_width(&s_screen_focus_highlight, 0);
     lv_style_set_outline_opa(&s_screen_focus_highlight, LV_OPA_TRANSP);
+#endif
     lv_style_set_radius(&s_screen_focus_highlight, ui_widget_radius_px());
     s_screen_focus_highlight_ready = true;
   }

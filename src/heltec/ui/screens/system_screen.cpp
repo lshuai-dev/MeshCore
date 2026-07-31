@@ -164,11 +164,6 @@ void SystemScreen::updateConditionalVisibility(const biz::IBizFacade& app) {
 
 _lv_obj_t* SystemScreen::create(_lv_obj_t* parent) {
   if (!AbstractScreen::create(parent)) return nullptr;
-  if (group()) lv_group_set_wrap(group(), true);
-  lv_obj_add_flag(_root, LV_OBJ_FLAG_EVENT_BUBBLE | LV_OBJ_FLAG_SCROLLABLE);
-  lv_obj_set_scroll_dir(_root, LV_DIR_VER);
-  lv_obj_set_scrollbar_mode(_root, LV_SCROLLBAR_MODE_OFF);
-
   _dd_region = addDropdownRow(_root, _choice_region, "Region");
   if (_dd_region) {
     char* const options = radioParamPresetUiScratch();
@@ -212,26 +207,37 @@ _lv_obj_t* SystemScreen::create(_lv_obj_t* parent) {
   addActionRow(_root, "> Factory reset", &_row_factory_reset);
   addActionRow(_root, "> Clear data", &_row_clear_data);
 
-  addFocusItem(_dd_region, _choice_region.row);
-  addFocusItem(_dd_screen_off, _choice_screen_off.row);
-  addFocusItem(_swBle, _swBle ? lv_obj_get_parent(_swBle) : nullptr);
+#if defined(HELTEC_V4_R8_TFT) && defined(HELTEC_HAS_TOUCH) && HELTEC_HAS_TOUCH
+  // LVGL does not emit CLICKED after a drag, so defer pointer focus until the
+  // gesture has been classified as an actual tap.
+  constexpr bool kFocusOnPointerPress = false;
+#else
+  constexpr bool kFocusOnPointerPress = true;
+#endif
+
+  addFocusItem(_dd_region, _choice_region.row, kFocusOnPointerPress);
+  addFocusItem(_dd_screen_off, _choice_screen_off.row, kFocusOnPointerPress);
+  addFocusItem(_swBle, _swBle ? lv_obj_get_parent(_swBle) : nullptr,
+               kFocusOnPointerPress);
 #ifdef PIN_BUZZER
-  addFocusItem(_swBuzzer, _swBuzzer ? lv_obj_get_parent(_swBuzzer) : nullptr);
+  addFocusItem(_swBuzzer, _swBuzzer ? lv_obj_get_parent(_swBuzzer) : nullptr,
+               kFocusOnPointerPress);
 #endif
 #if defined(HAS_BUZZER_VOLUME_CONTROL) && HAS_BUZZER_VOLUME_CONTROL
-  addFocusItem(_btnBuzzerVolumeDown);
-  addFocusItem(_btnBuzzerVolumeUp);
+  addFocusItem(_btnBuzzerVolumeDown, nullptr, kFocusOnPointerPress);
+  addFocusItem(_btnBuzzerVolumeUp, nullptr, kFocusOnPointerPress);
 #endif
-  addFocusItem(_swLocShare, _swLocShare ? lv_obj_get_parent(_swLocShare) : nullptr);
-  addFocusItem(_dd_adv, _choice_adv.row);
+  addFocusItem(_swLocShare, _swLocShare ? lv_obj_get_parent(_swLocShare) : nullptr,
+               kFocusOnPointerPress);
+  addFocusItem(_dd_adv, _choice_adv.row, kFocusOnPointerPress);
 #if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
-  addFocusItem(_dd_ff_mode, _choice_ff_mode.row);
-  addFocusItem(_dd_friend, _choice_friend.row);
-  addFocusItem(_row_wp_gps);
-  addFocusItem(_row_wp_manual);
+  addFocusItem(_dd_ff_mode, _choice_ff_mode.row, kFocusOnPointerPress);
+  addFocusItem(_dd_friend, _choice_friend.row, kFocusOnPointerPress);
+  addFocusItem(_row_wp_gps, nullptr, kFocusOnPointerPress);
+  addFocusItem(_row_wp_manual, nullptr, kFocusOnPointerPress);
 #endif
-  addFocusItem(_row_factory_reset);
-  addFocusItem(_row_clear_data);
+  addFocusItem(_row_factory_reset, nullptr, kFocusOnPointerPress);
+  addFocusItem(_row_clear_data, nullptr, kFocusOnPointerPress);
 
   // System owns focus scrolling. Disable LVGL's implicit auto-scroll so focus
   // restore, pointer focus and modal transitions cannot move the page behind us.
