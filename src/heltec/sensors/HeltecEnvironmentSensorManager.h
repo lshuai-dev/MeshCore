@@ -10,6 +10,9 @@
 #ifndef GPS_NOTIFY_INTERVAL_SEC
 #define GPS_NOTIFY_INTERVAL_SEC 1
 #endif
+#ifndef GPS_FIX_VALID_WINDOW_MS
+#define GPS_FIX_VALID_WINDOW_MS 5000
+#endif
 
 class HeltecEnvironmentSensorManager : public SensorManager {
 protected:
@@ -33,12 +36,26 @@ protected:
   bool gps_detected = false;
   bool gps_active = false;
   uint32_t gps_update_interval_sec = GPS_NOTIFY_INTERVAL_SEC;
+  bool gps_fix_seen = false;
+  uint32_t gps_last_fix_ms = 0;
+  long gps_last_fix_timestamp = 0;
+  long gps_last_fix_lat = 0;
+  long gps_last_fix_lon = 0;
+  long gps_last_fix_alt = 0;
+  long gps_last_fix_sats = 0;
+  uint8_t gps_config_step = 0;
+  uint32_t gps_config_due_ms = 0;
+  bool gps_config_pending = false;
 
 #if ENV_INCLUDE_GPS
   LocationProvider* _location;
   void start_gps();
   void stop_gps();
   void initBasicGPS();
+  void beginGpsModuleConfiguration();
+  void pollGpsModuleConfiguration();
+  void clearGpsFixState();
+  void updateGpsFixState();
 #ifdef RAK_BOARD
   void rakGPSInit();
   bool gpsIsAwake(uint8_t ioPin);
@@ -65,6 +82,11 @@ public:
 
 #if ENV_INCLUDE_GPS
   LocationProvider* getLocationProvider() { return _location; }
+  bool isGpsActive() const { return gps_active; }
+  uint32_t gpsFixValidMs() const;
+  bool hasFreshGpsFix() const {
+    return gps_fix_seen && gpsFixValidMs() <= GPS_FIX_VALID_WINDOW_MS;
+  }
 #endif
 #if ENV_INCLUDE_COMPASS
   CompassProvider* getCompassProvider() { return _compass; }

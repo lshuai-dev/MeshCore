@@ -37,7 +37,7 @@ bool should_record_track_point(int32_t lat_e6, int32_t lon_e6, int32_t last_lat_
 }  // namespace
 
 bool MeshAppUi::gpsTrackRecording() const {
-#if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
+#if defined(ENV_INCLUDE_GPS) && ENV_INCLUDE_GPS
   return _gps_track_armed;
 #else
   return false;
@@ -45,7 +45,7 @@ bool MeshAppUi::gpsTrackRecording() const {
 }
 
 bool MeshAppUi::setGpsTrackRecording(bool enabled) {
-#if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
+#if defined(ENV_INCLUDE_GPS) && ENV_INCLUDE_GPS
   DataStore* ds = the_mesh.getDataStore();
   if (!ds) return false;
 
@@ -65,6 +65,7 @@ bool MeshAppUi::setGpsTrackRecording(bool enabled) {
         the_mesh.savePrefs();
       }
     }
+    reconcileGpsPower();
     notifyAppState(heltec::meshcore::ui::AppStateEventType::ConfigChanged);
     notifyAppState(heltec::meshcore::ui::AppStateEventType::FindFriendChanged);
     return true;
@@ -82,6 +83,7 @@ bool MeshAppUi::setGpsTrackRecording(bool enabled) {
       the_mesh.savePrefs();
     }
   }
+  reconcileGpsPower();
   notifyAppState(heltec::meshcore::ui::AppStateEventType::ConfigChanged);
   notifyAppState(heltec::meshcore::ui::AppStateEventType::FindFriendChanged);
   return true;
@@ -110,7 +112,7 @@ const char* MeshAppUi::gpsTrackIntervalOptionLabel(int index) const {
 }
 
 void MeshAppUi::pollGpsTrack() {
-#if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
+#if defined(ENV_INCLUDE_GPS) && ENV_INCLUDE_GPS
   if (!_gps_track_armed) return;
 
   DataStore* ds = the_mesh.getDataStore();

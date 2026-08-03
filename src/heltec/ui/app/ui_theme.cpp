@@ -20,6 +20,8 @@ namespace heltec::meshcore::ui {
 namespace {
 lv_style_t s_screen_focus_highlight;
 bool s_screen_focus_highlight_ready = false;
+lv_style_t s_screen_row_focus_highlight;
+bool s_screen_row_focus_highlight_ready = false;
 lv_style_t s_screen_focus_control;
 bool s_screen_focus_control_ready = false;
 static const UiThemeColors* s_active_colors = nullptr;
@@ -149,6 +151,32 @@ void ui_theme_apply_focus_frame(_lv_obj_t* frame) {
                    LV_PART_MAIN | LV_STATE_FOCUSED);
   lv_obj_add_style(frame, &s_screen_focus_highlight,
                    LV_PART_MAIN | LV_STATE_FOCUS_KEY);
+}
+
+void ui_theme_apply_focus_row(_lv_obj_t* row) {
+  if (!row) return;
+#if defined(HELTEC_V4_R8_TFT)
+  if (!s_screen_row_focus_highlight_ready) {
+    lv_style_init(&s_screen_row_focus_highlight);
+    lv_style_set_bg_color(&s_screen_row_focus_highlight, ui_color_accent());
+    lv_style_set_bg_opa(&s_screen_row_focus_highlight, LV_OPA_30);
+    lv_style_set_border_width(&s_screen_row_focus_highlight, 0);
+    lv_style_set_border_opa(&s_screen_row_focus_highlight, LV_OPA_TRANSP);
+    lv_style_set_border_side(&s_screen_row_focus_highlight, LV_BORDER_SIDE_NONE);
+    lv_style_set_outline_width(&s_screen_row_focus_highlight, 0);
+    lv_style_set_outline_opa(&s_screen_row_focus_highlight, LV_OPA_TRANSP);
+    lv_style_set_shadow_width(&s_screen_row_focus_highlight, 0);
+    lv_style_set_shadow_opa(&s_screen_row_focus_highlight, LV_OPA_TRANSP);
+    lv_style_set_radius(&s_screen_row_focus_highlight, ui_widget_radius_px());
+    s_screen_row_focus_highlight_ready = true;
+  }
+  lv_obj_add_style(row, &s_screen_row_focus_highlight,
+                   LV_PART_MAIN | LV_STATE_FOCUSED);
+  lv_obj_add_style(row, &s_screen_row_focus_highlight,
+                   LV_PART_MAIN | LV_STATE_FOCUS_KEY);
+#else
+  ui_theme_apply_focus_frame(row);
+#endif
 }
 
 void ui_theme_apply_focus_control(_lv_obj_t* control) {

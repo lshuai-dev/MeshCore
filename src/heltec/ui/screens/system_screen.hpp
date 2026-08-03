@@ -36,19 +36,14 @@ class SystemScreen : public AbstractScreen {
   eScreenId screenId() const override { return eScreenId::System; }
   void onEnter() override;
   void onExit() override;
-#if defined(HELTEC_V4_R8_TFT) && defined(HELTEC_HAS_TOUCH) && HELTEC_HAS_TOUCH
-  bool hitScrollableContent(lv_coord_t x, lv_coord_t y) const;
-#endif
-
  protected:
   _lv_obj_t* create(_lv_obj_t* parent) override;
 
  private:
-  void onUiEvent(const UiEvent& event) override;
   _lv_obj_t* createRoot(_lv_obj_t* parent) override;
   void onAppStateChanged(const AppStateEvent& event) override;
   void onRefreshRequested() override;
-  enum class SysAction : uint8_t { None, WpGps, WpManual, FactoryReset, ClearData };
+  enum class SysAction : uint8_t { None, FactoryReset, ClearData };
   struct ChoiceRow {
     _lv_obj_t* row = nullptr;
     _lv_obj_t* label = nullptr;
@@ -90,19 +85,11 @@ class SystemScreen : public AbstractScreen {
   void scrollFocusedIntoView(_lv_obj_t* focused) const;
   void closeOpenDropdown();
   void applyGroupFocus(_lv_obj_t* focused);
-  bool focusKeypadWidget(_lv_obj_t* obj);
   void syncDropdownsFromApp(const biz::IBizFacade& app);
-#if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
-  void syncFriendDropdownFromApp(const biz::IBizFacade& app, bool force = false);
-  void loadFriendDropdownWindow(const biz::IBizFacade& app, int start, int selected_rank,
-                                bool force = false);
-  bool moveFriendDropdownSelection(int direction);
-  int friendMeshIndexForSelection() const;
-#endif
-  void updateConditionalVisibility(const biz::IBizFacade& app);
   void syncSwitchesFromApp(const biz::IBizFacade& app);
   void syncControlsFromApp(const biz::IBizFacade& app);
   void refreshControls();
+  uint16_t regionDropdownIndex(const biz::IBizFacade& app) const;
 
   bool anyDropdownOpen() const;
   void setDropdownIndex(_lv_obj_t* dd, uint16_t index, bool fire_changed, bool force = false);
@@ -118,6 +105,7 @@ class SystemScreen : public AbstractScreen {
 
   IFeedback& _feedback;
 
+  _lv_obj_t* _swForwarding = nullptr;
   _lv_obj_t* _swBle = nullptr;
 #ifdef PIN_BUZZER
   _lv_obj_t* _swBuzzer = nullptr;
@@ -127,26 +115,10 @@ class SystemScreen : public AbstractScreen {
   _lv_obj_t* _sliderBuzzerVolume = nullptr;
   _lv_obj_t* _btnBuzzerVolumeUp = nullptr;
 #endif
-  _lv_obj_t* _swLocShare = nullptr;
-
   ChoiceRow _choice_region;
   ChoiceRow _choice_screen_off;
-  ChoiceRow _choice_adv;
-#if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
-  ChoiceRow _choice_ff_mode;
-  ChoiceRow _choice_friend;
-#endif
   _lv_obj_t* _dd_region = nullptr;
   _lv_obj_t* _dd_screen_off = nullptr;
-  _lv_obj_t* _row_adv = nullptr;
-  _lv_obj_t* _dd_adv = nullptr;
-#if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
-  _lv_obj_t* _dd_ff_mode = nullptr;
-  _lv_obj_t* _row_friend = nullptr;
-  _lv_obj_t* _dd_friend = nullptr;
-  _lv_obj_t* _row_wp_gps = nullptr;
-  _lv_obj_t* _row_wp_manual = nullptr;
-#endif
   _lv_obj_t* _row_factory_reset = nullptr;
   _lv_obj_t* _row_clear_data = nullptr;
   _lv_obj_t* _action_confirm_root = nullptr;
@@ -159,21 +131,8 @@ class SystemScreen : public AbstractScreen {
 
   _lv_obj_t* _open_dropdown = nullptr;
   uint16_t _open_dropdown_original_index = 0;
-  _lv_obj_t* _waypoint_keyboard_return_focus = nullptr;
   bool _syncing_dropdown = false;
   bool _syncing_switch = false;
-#if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
-  static constexpr int kFriendWindowSize = 10;
-  static constexpr int kFriendWindowStep = 5;
-  uint32_t _friend_dd_options_hash_applied = 0;
-  int16_t _friend_mesh_map[kFriendWindowSize] = {};
-  int _friend_mesh_map_count = 0;
-  int _friend_mesh_map_count_applied = -1;
-  int _friend_total = 0;
-  int _friend_window_start = 0;
-  int _friend_selected_rank = -1;
-  int _friend_open_original_mesh_idx = -1;
-#endif
 };
 
 }  // namespace heltec::meshcore::ui

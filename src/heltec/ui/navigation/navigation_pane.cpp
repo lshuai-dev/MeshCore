@@ -661,9 +661,8 @@ void NavigationPane::setIcon(uint8_t id, const lv_img_dsc_t* img) {
     if (LV_EVENT_CLICKED != lv_event_get_code(e)) return;
     if (!nav->panelVisible() || nav->_ring_fade_busy) return;
 #if defined(HELTEC_V4_R8_TFT) && defined(HELTEC_HAS_TOUCH) && HELTEC_HAS_TOUCH
-    // Crossing the swipe threshold suppresses LVGL's pointer path by
-    // delivering a synthetic release while the finger is still down. Do not
-    // turn that release into a navigation click/commit.
+    // Custom long-press or double-tap actions can hold LVGL at RELEASED while
+    // the finger is still down. Do not turn that transition into a nav commit.
     if (heltec::meshcore::dal::touch_port::isPressed()) return;
 #endif
     if (nav->_touch_dragged) {

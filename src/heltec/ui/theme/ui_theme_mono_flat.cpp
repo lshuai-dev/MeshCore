@@ -9,6 +9,7 @@
 #include "ui/menus/context_menu.hpp"
 #include "ui/menus/context_menu_metrics.hpp"
 #include "ui/navigation/ui_navigator.hpp"
+#include "ui/screens/find_friend_screen_ids.hpp"
 #include "ui/screens/gps_screen.hpp"
 #include "ui/screens/radio_screen.hpp"
 #include "ui/screens/system_screen.hpp"
@@ -273,8 +274,10 @@ extern "C" void ui_mono_flat_apply(lv_theme_t* th, lv_obj_t* obj) {
   const heltec::meshcore::ui::MetaId id = heltec::meshcore::ui::ht_id(obj);
   if (id == heltec::meshcore::ui::meta_id::SystemSwitch ||
       id == heltec::meshcore::ui::meta_id::GpsPowerSwitch ||
+      id == heltec::meshcore::ui::meta_id::GpsLocationShareSwitch ||
       id == heltec::meshcore::ui::meta_id::GpsTrackSwitch ||
-      id == heltec::meshcore::ui::meta_id::RadioLnaSwitch) {
+      id == heltec::meshcore::ui::meta_id::RadioLnaSwitch ||
+      id == heltec::meshcore::ui::meta_id::FindFriendSwitch) {
     mono_flat_apply_switch(obj);
     return;
   }

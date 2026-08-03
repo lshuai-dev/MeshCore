@@ -8,6 +8,18 @@
 
 namespace heltec::meshcore::ui {
 
+namespace {
+
+int round_nearest(float value) {
+  return static_cast<int>(value + (value >= 0.0f ? 0.5f : -0.5f));
+}
+
+int round_tenths(float value) {
+  return static_cast<int>(value * 10.0f + (value >= 0.0f ? 0.5f : -0.5f));
+}
+
+}  // namespace
+
 _lv_obj_t* RadioScreen::createRoot(_lv_obj_t* parent) {
   return ht_obj_create(parent, meta_id::RadioScreenRoot);
 }
@@ -44,6 +56,8 @@ _lv_obj_t* RadioScreen::create(_lv_obj_t* parent) {
       lv_obj_set_flex_align(_row_lna, LV_FLEX_ALIGN_SPACE_BETWEEN,
                             LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_START);
       lv_obj_set_style_pad_all(_row_lna, 0, LV_PART_MAIN);
+      lv_obj_set_style_pad_hor(_row_lna, ui_settings_row_pad_hor(), LV_PART_MAIN);
+      lv_obj_set_style_pad_ver(_row_lna, ui_settings_row_pad_ver(), LV_PART_MAIN);
       lv_obj_clear_flag(_row_lna, LV_OBJ_FLAG_SCROLLABLE);
       _lbl_lna = ht_label_create(_row_lna, meta_id::RadioLnaLabel, "LNA");
       _sw_lna = ht_switch_create(_row_lna, meta_id::RadioLnaSwitch);
@@ -134,11 +148,21 @@ void RadioScreen::updateRadio(const biz::IBizFacade::RadioStatus& s) {
     lv_label_set_text_static(_line2, _line_text[1]);
   }
   if (_line3) {
-    lv_snprintf(_line_text[2], sizeof(_line_text[2]), "TX: %ddBm", s.tx_power_dbm);
+    lv_snprintf(_line_text[2], sizeof(_line_text[2]), "TX:%ddBm  NF:%d",
+                s.tx_power_dbm, s.noise_floor_dbm);
     lv_label_set_text_static(_line3, _line_text[2]);
   }
   if (_line4) {
-    lv_snprintf(_line_text[3], sizeof(_line_text[3]), "Noise floor: %d", s.noise_floor_dbm);
+    if (s.rx_valid) {
+      const int rssi_dbm = round_nearest(s.last_rssi_dbm);
+      const int snr_tenths = round_tenths(s.last_snr_db);
+      const int snr_abs = snr_tenths < 0 ? -snr_tenths : snr_tenths;
+      lv_snprintf(_line_text[3], sizeof(_line_text[3]), "RSSI:%d SNR:%s%d.%d",
+                  rssi_dbm, snr_tenths < 0 ? "-" : "", snr_abs / 10,
+                  snr_abs % 10);
+    } else {
+      lv_snprintf(_line_text[3], sizeof(_line_text[3]), "RSSI:-- SNR:--");
+    }
     lv_label_set_text_static(_line4, _line_text[3]);
   }
 }

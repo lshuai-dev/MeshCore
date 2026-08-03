@@ -20,7 +20,7 @@
 #endif
 
 #ifndef FIRMWARE_VERSION
-#define FIRMWARE_VERSION "v1.16.0.1"
+#define FIRMWARE_VERSION "v1.16.0.3 alpha"
 #endif
 
 /* ---------------------------------- CONFIGURATION ------------------------------------- */
@@ -76,6 +76,20 @@ struct AdvertPath {
 
 class HeltecMesh : public BaseChatMesh, public DataStoreHost {
 public:
+  struct ClientRepeatFreqRange {
+    uint32_t lower_khz;
+    uint32_t upper_khz;
+  };
+
+  enum class RadioConfigApplyResult : uint8_t {
+    Ok,
+    InvalidFrequency,
+    InvalidBandwidth,
+    InvalidSpreadingFactor,
+    InvalidCodingRate,
+    UnsupportedForwardingFrequency,
+  };
+
   HeltecMesh(mesh::Radio &radio, mesh::RNG &rng, mesh::RTCClock &rtc, SimpleMeshTables &tables, DataStore& store,
              AbstractUITask* ui=nullptr);
 
@@ -102,15 +116,36 @@ public:
   /** Set carrier from a preset MHz value; optional immediate RF apply and prefs save. */
   static void applyLoRaCarrierMHz(HeltecMesh& mesh, float mhz, bool apply_radio_now, bool save_prefs);
 
+  bool clientRepeatEnabled() const { return _prefs.client_repeat != 0; }
+  size_t clientRepeatFrequencyCount() const;
+  bool clientRepeatFrequencyAt(size_t index, ClientRepeatFreqRange& range) const;
+  int currentClientRepeatFrequencyIndex() const;
+  /** Validate, apply and optionally persist one complete radio/forwarding state. */
+  RadioConfigApplyResult applyRadioConfig(uint32_t freq_khz, uint32_t bw_hz,
+                                          uint8_t sf, uint8_t cr,
+                                          bool forwarding,
+                                          bool persist_prefs = true);
+
   // Heltec-only: periodic GPS location advert (runtime-only interval).
   static void pollLocShareAdvert(HeltecMesh& mesh);
   static void resetLocShareAdvertSchedule();
   static uint32_t locShareAdvertIntervalSec();
+  static uint32_t locShareNextAdvertMillis();
   static void setLocShareAdvertIntervalSec(uint32_t sec);
 
   // Location sharing policy helpers.
   static bool isLocationShareEnabled(const NodePrefs* prefs);
   static void setLocationShareEnabled(HeltecMesh& mesh, bool enabled, bool persist_prefs = false);
+
+  struct LastRxMetrics {
+    bool valid = false;
+    float rssi_dbm = 0.0f;
+    float snr_db = 0.0f;
+    uint32_t received_ms = 0;
+  };
+
+  /** Signal quality of the most recent successfully read LoRa packet. */
+  LastRxMetrics lastRxMetrics() const { return _last_rx_metrics; }
 
 protected:
   float getAirtimeBudgetFactor() const override;
@@ -220,6 +255,7 @@ private:
   uint32_t _iter_filter_since;
   uint32_t _most_recent_lastmod;
   uint32_t _active_ble_pin;
+  LastRxMetrics _last_rx_metrics{};
   bool _iter_started;
   bool _cli_rescue;
   char cli_command[80];

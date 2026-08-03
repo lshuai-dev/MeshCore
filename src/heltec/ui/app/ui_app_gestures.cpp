@@ -1,7 +1,7 @@
 #include "ui/app/ui_app.hpp"
 
 #include "heltec/drivers/display/display_port.hpp"
-#include "heltec/drivers/input/touch_input.hpp"
+#include "heltec/drivers/input/touch_port.hpp"
 #include <Arduino.h>
 
 #ifndef HELTEC_TOUCH_EDGE_PX
@@ -38,30 +38,30 @@ bool is_in_top_action_x_band(int16_t start_x) {
   const lv_coord_t margin = (w * HELTEC_TOUCH_TOP_ACTION_SIDE_MARGIN_PCT) / 100;
   return start_x >= margin && start_x <= (w - margin);
 }
-bool is_left_edge_right_swipe(uint8_t axis, int8_t dir, int16_t start_x) {
-  return axis == static_cast<uint8_t>(heltec::meshcore::dal::touch_input::SwipeAxis::Horizontal) &&
-         dir < 0 && start_x <= HELTEC_TOUCH_ACTION_EDGE_PX;
+bool is_left_edge_right_swipe(lv_dir_t direction, int16_t start_x) {
+  return direction == LV_DIR_RIGHT && start_x <= HELTEC_TOUCH_ACTION_EDGE_PX;
 }
-bool is_top_edge_down_swipe(uint8_t axis, int8_t dir, int16_t start_y) {
-  return axis == static_cast<uint8_t>(heltec::meshcore::dal::touch_input::SwipeAxis::Vertical) &&
-         dir > 0 && start_y <= HELTEC_TOUCH_ACTION_EDGE_PX;
+bool is_top_edge_down_swipe(lv_dir_t direction, int16_t start_y) {
+  return direction == LV_DIR_BOTTOM && start_y <= HELTEC_TOUCH_ACTION_EDGE_PX;
 }
 #if defined(HELTEC_V4_R8_TFT) && defined(HELTEC_HAS_TOUCH) && HELTEC_HAS_TOUCH
-bool is_right_edge_left_swipe(uint8_t axis, int8_t dir, int16_t start_x) {
+bool is_right_edge_left_swipe(lv_dir_t direction, int16_t start_x) {
   const lv_coord_t w = current_display_width();
   if (w <= HELTEC_TOUCH_ACTION_EDGE_PX) return false;
-  return axis == static_cast<uint8_t>(heltec::meshcore::dal::touch_input::SwipeAxis::Horizontal) &&
-         dir > 0 && start_x >= (w - HELTEC_TOUCH_ACTION_EDGE_PX);
+  return direction == LV_DIR_LEFT &&
+         start_x >= (w - HELTEC_TOUCH_ACTION_EDGE_PX);
 }
-bool is_bottom_edge_up_swipe(uint8_t axis, int8_t dir, int16_t start_y) {
+bool is_bottom_edge_up_swipe(lv_dir_t direction, int16_t start_y) {
   const lv_coord_t h = current_display_height();
   if (h <= HELTEC_TOUCH_ACTION_EDGE_PX) return false;
-  return axis == static_cast<uint8_t>(heltec::meshcore::dal::touch_input::SwipeAxis::Vertical) &&
-         dir < 0 && start_y >= (h - HELTEC_TOUCH_ACTION_EDGE_PX);
+  return direction == LV_DIR_TOP &&
+         start_y >= (h - HELTEC_TOUCH_ACTION_EDGE_PX);
 }
 #endif
-bool is_top_action_down_swipe(uint8_t axis, int8_t dir, int16_t start_x, int16_t start_y) {
-  return is_top_edge_down_swipe(axis, dir, start_y) && is_in_top_action_x_band(start_x);
+bool is_top_action_down_swipe(lv_dir_t direction, int16_t start_x,
+                              int16_t start_y) {
+  return is_top_edge_down_swipe(direction, start_y) &&
+         is_in_top_action_x_band(start_x);
 }
 bool point_inside_obj(const _lv_obj_t* obj, int16_t x, int16_t y) {
   if (!obj || !lv_obj_is_valid(obj) || lv_obj_has_flag(obj, LV_OBJ_FLAG_HIDDEN)) return false;
@@ -149,15 +149,16 @@ void UiApp::deferredTouchActionTimerCb(lv_timer_t* timer) {
 
 #endif
 
-void UiApp::onTouchSwipe(uint8_t axis, int8_t dir, int16_t start_x, int16_t start_y) {
-  if (!_inited || 0 == dir) return;
+void UiApp::onTouchSwipe(lv_dir_t direction, int16_t start_x, int16_t start_y) {
+  if (!_inited || direction == LV_DIR_NONE) return;
   if (!heltec::meshcore::dal::display_port::isBacklightOn()) {
     notifyDisplayActivity(millis());
     return;
   }
 
 #if defined(HELTEC_V4_R8_TFT) && defined(HELTEC_HAS_TOUCH) && HELTEC_HAS_TOUCH
-  if (_surfaces.isActive(&_radioParamSyncOvl)) {
+  if (_surfaces.isActive(&_radioParamSyncOvl) ||
+      _surfaces.isActive(&_repeatModeOvl)) {
     notifyDisplayActivity(millis());
     return;
   }
@@ -170,8 +171,8 @@ void UiApp::onTouchSwipe(uint8_t axis, int8_t dir, int16_t start_x, int16_t star
   // Open from an edge, dismiss in the direction the pane leaves the screen.
   // Pane dismissal owns the reverse swipe before normal page navigation does.
   if (nav_open &&
-      axis == static_cast<uint8_t>(heltec::meshcore::dal::touch_input::SwipeAxis::Horizontal) &&
-      dir > 0 && point_inside_obj(_navigation.root(), start_x, start_y) &&
+      direction == LV_DIR_LEFT &&
+      point_inside_obj(_navigation.root(), start_x, start_y) &&
       (w <= 0 || start_x < (w - HELTEC_TOUCH_ACTION_EDGE_PX))) {
     notifyDisplayActivity(millis());
     deferTouchAction(DeferredTouchAction::CloseNavigation);
@@ -179,22 +180,22 @@ void UiApp::onTouchSwipe(uint8_t axis, int8_t dir, int16_t start_x, int16_t star
   }
 
   if (quick_ping_open &&
-      axis == static_cast<uint8_t>(heltec::meshcore::dal::touch_input::SwipeAxis::Vertical) &&
-      dir < 0 && _quickPingOverlay.hitSwipeDismissRegion(start_x, start_y) &&
+      direction == LV_DIR_TOP &&
+      _quickPingOverlay.hitSwipeDismissRegion(start_x, start_y) &&
       (h <= 0 || start_y < (h - HELTEC_TOUCH_ACTION_EDGE_PX))) {
     notifyDisplayActivity(millis());
     deferTouchAction(DeferredTouchAction::CloseQuickPing);
     return;
   }
 
-  if (is_right_edge_left_swipe(axis, dir, start_x) ||
-      is_bottom_edge_up_swipe(axis, dir, start_y)) {
+  if (is_right_edge_left_swipe(direction, start_x) ||
+      is_bottom_edge_up_swipe(direction, start_y)) {
     notifyDisplayActivity(millis());
     return;
   }
 #endif
 
-  if (is_left_edge_right_swipe(axis, dir, start_x)) {
+  if (is_left_edge_right_swipe(direction, start_x)) {
     const lv_coord_t h = current_display_height();
     if (start_y <= HELTEC_TOUCH_ACTION_EDGE_PX ||
         (h > 0 && start_y >= (h - HELTEC_TOUCH_ACTION_EDGE_PX))) {
@@ -217,7 +218,7 @@ void UiApp::onTouchSwipe(uint8_t axis, int8_t dir, int16_t start_x, int16_t star
     return;
   }
 
-  if (is_top_action_down_swipe(axis, dir, start_x, start_y)) {
+  if (is_top_action_down_swipe(direction, start_x, start_y)) {
     notifyDisplayActivity(millis());
 #if defined(HELTEC_V4_R8_TFT) && defined(HELTEC_HAS_TOUCH) && HELTEC_HAS_TOUCH
     if (!_surfaces.contains(&_quickPingOverlay)) {
@@ -234,25 +235,20 @@ void UiApp::onTouchSwipe(uint8_t axis, int8_t dir, int16_t start_x, int16_t star
     return;
   }
 
-  if (axis != static_cast<uint8_t>(heltec::meshcore::dal::touch_input::SwipeAxis::Horizontal)) {
-    return;
-  }
+  if (direction != LV_DIR_LEFT && direction != LV_DIR_RIGHT) return;
   if (_surfaces.contains(&_navigation)) return;
 #if defined(HELTEC_V4_R8_TFT) && defined(HELTEC_HAS_TOUCH) && HELTEC_HAS_TOUCH
   if (_surfaces.contains(&_quickPingOverlay)) return;
 #else
   if (_surfaces.contains(&_contextMenu)) return;
 #endif
+  const int8_t step = direction == LV_DIR_LEFT ? 1 : -1;
   if (_surfaces.isActive(&_radioParamSyncOvl)) {
-    _radioParamSyncOvl.stepSelection(dir);
+    _radioParamSyncOvl.stepSelection(step);
     notifyDisplayActivity(millis());
     return;
   }
-  if (_surfaces.isActive(&_scrRecent) && _scrRecent.handleHorizontalSwipe(dir)) {
-    notifyDisplayActivity(millis());
-    return;
-  }
-  (void)switchAdjacentTile(dir);
+  (void)switchAdjacentTile(step);
 }
 
 bool UiApp::hitActiveTrackerViewport(lv_coord_t x, lv_coord_t y) const {
@@ -266,9 +262,65 @@ bool UiApp::hitActiveTrackerViewport(lv_coord_t x, lv_coord_t y) const {
 #endif
 }
 
+#if defined(HELTEC_V4_R8_TFT) && defined(HELTEC_HAS_TOUCH) && HELTEC_HAS_TOUCH
+
+void UiApp::nativeTouchGestureEvent(lv_event_t* e) {
+  auto* app = static_cast<UiApp*>(lv_event_get_user_data(e));
+  if (app) app->handleNativeTouchGesture(e);
+}
+
+void UiApp::handleNativeTouchGesture(lv_event_t* e) {
+  if (!_inited || !e || lv_event_get_code(e) != LV_EVENT_GESTURE) return;
+  lv_indev_t* indev = lv_event_get_indev(e);
+  if (!indev) indev = lv_indev_get_act();
+  if (!indev || lv_indev_get_type(indev) != LV_INDEV_TYPE_POINTER) return;
+
+  const lv_dir_t direction = lv_indev_get_gesture_dir(indev);
+  if (direction != LV_DIR_LEFT && direction != LV_DIR_RIGHT &&
+      direction != LV_DIR_TOP && direction != LV_DIR_BOTTOM) {
+    return;
+  }
+
+  int16_t start_x = 0;
+  int16_t start_y = 0;
+  if (!heltec::meshcore::dal::touch_port::getPressStart(start_x, start_y)) {
+    lv_point_t point{};
+    lv_indev_get_point(indev, &point);
+    start_x = point.x;
+    start_y = point.y;
+  }
+
+  if (_surfaces.isActive(&_radioParamSyncOvl) &&
+      _radioParamSyncOvl.hitRoller(start_x, start_y)) {
+    return;
+  }
+  if (_surfaces.isActive(&_repeatModeOvl) &&
+      _repeatModeOvl.hitRoller(start_x, start_y)) {
+    return;
+  }
+  if (_surfaces.isActive(&_quickPingOverlay) &&
+      (direction == LV_DIR_TOP || direction == LV_DIR_BOTTOM) &&
+      _quickPingOverlay.hitVerticalSwipeControl(start_x, start_y)) {
+    return;
+  }
+#if defined(ENV_INCLUDE_MAP) && ENV_INCLUDE_MAP
+  if (inputOnActiveScreen() && hitActiveTrackerViewport(start_x, start_y)) return;
+#endif
+
+  // Native LVGL scrolling wins before LV_EVENT_GESTURE is emitted. Once a
+  // non-scroll gesture reaches here, consume its release so it cannot become
+  // a click on the object where the swipe started.
+  lv_indev_wait_release(indev);
+  lv_event_stop_processing(e);
+  lv_event_stop_bubbling(e);
+  onTouchSwipe(direction, start_x, start_y);
+}
+
+#endif
+
 #if defined(HELTEC_TOUCH_GESTURE_INPUT) && HELTEC_TOUCH_GESTURE_INPUT
 
-bool UiApp::touchGestureBlockTrackerViewport(int16_t x, int16_t y) {
+bool UiApp::touchGestureBlockTrackerLongPress(int16_t x, int16_t y) {
   if (x <= HELTEC_TOUCH_EDGE_PX || y <= HELTEC_TOUCH_EDGE_PX) return false;
   auto& app = UiApp::instance();
   if (!app.inputOnActiveScreen()) return false;
@@ -276,19 +328,6 @@ bool UiApp::touchGestureBlockTrackerViewport(int16_t x, int16_t y) {
 }
 
 #if defined(HELTEC_V4_R8_TFT) && defined(HELTEC_HAS_TOUCH) && HELTEC_HAS_TOUCH
-
-bool UiApp::touchGestureBlockVerticalSwipe(int16_t x, int16_t y) {
-  auto& app = UiApp::instance();
-  if (app._surfaces.isActive(&app._quickPingOverlay) &&
-      app._quickPingOverlay.hitVerticalSwipeControl(x, y)) {
-    return true;
-  }
-#if defined(ENV_INCLUDE_MAP) && ENV_INCLUDE_MAP
-  if (app.inputOnActiveScreen() && app.hitActiveTrackerViewport(x, y)) return true;
-#endif
-  return app.inputOnActiveScreen() && app.activeScreen() == &app._scrSystem &&
-         app._scrSystem.hitScrollableContent(x, y);
-}
 
 bool UiApp::touchGestureRawPointerPassthrough(int16_t x, int16_t y) {
   auto& app = UiApp::instance();

@@ -71,46 +71,23 @@ inline float compass_screen_heading(float sensor_heading_deg, int heading_offset
 
 inline void compass_format_distance_m(char* buf, size_t len, double meters) {
   if (meters < 0.0) {
-    lv_snprintf(buf, len, "Dist:--");
+    lv_snprintf(buf, len, "--");
     return;
   }
   const uint64_t cm = (uint64_t)(meters * 100.0 + 0.5);
   if (meters > 1000.0) {
     const uint64_t km_centi = (cm + 500U) / 1000U;
-    lv_snprintf(buf, len, "Dist:%lu.%02lukm", (unsigned long)(km_centi / 100U),
+    lv_snprintf(buf, len, "%lu.%02lukm", (unsigned long)(km_centi / 100U),
                 (unsigned long)(km_centi % 100U));
   } else if (meters >= 100.0) {
-    lv_snprintf(buf, len, "Dist:%lum", (unsigned long)((cm + 50U) / 100U));
+    lv_snprintf(buf, len, "%lum", (unsigned long)((cm + 50U) / 100U));
   } else if (meters >= 10.0) {
     const uint64_t dm = (cm + 5U) / 10U;
-    lv_snprintf(buf, len, "Dist:%lu.%lum", (unsigned long)(dm / 10U),
+    lv_snprintf(buf, len, "%lu.%lum", (unsigned long)(dm / 10U),
                 (unsigned long)(dm % 10U));
   } else {
-    lv_snprintf(buf, len, "Dist:%lu.%02lum", (unsigned long)(cm / 100U),
+    lv_snprintf(buf, len, "%lu.%02lum", (unsigned long)(cm / 100U),
                 (unsigned long)(cm % 100U));
-  }
-}
-
-inline void compass_format_find_friend_status(char* buf, size_t len, int mode, bool arrived,
-                                              bool relative_valid, float turn_deg, bool target_valid,
-                                              bool gps_fix, bool heading_valid, bool bearing_valid,
-                                              float bearing_to_waypoint_deg) {
-  if (arrived) {
-    lv_snprintf(buf, len, "Arrived");
-  } else if (relative_valid) {
-    const int turn_t = (int)(turn_deg * 10.0f + (turn_deg >= 0.f ? 0.5f : -0.5f));
-    lv_snprintf(buf, len, "Turn %+d.%d", turn_t / 10, (turn_t < 0 ? -turn_t : turn_t) % 10);
-  } else if (!target_valid) {
-    lv_snprintf(buf, len, mode == 0 ? "Pick friend" : "Set camp");
-  } else if (!gps_fix) {
-    lv_snprintf(buf, len, "Need GPS");
-  } else if (!heading_valid) {
-    lv_snprintf(buf, len, "Heading...");
-  } else if (bearing_valid) {
-    const int brg_t = (int)(bearing_to_waypoint_deg * 10.0 + 0.5);
-    lv_snprintf(buf, len, "Brg %d.%d", brg_t / 10, brg_t % 10);
-  } else {
-    buf[0] = '\0';
   }
 }
 

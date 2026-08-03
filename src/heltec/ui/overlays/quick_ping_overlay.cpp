@@ -106,6 +106,34 @@ bool focusable(_lv_obj_t* obj) {
   return true;
 }
 
+void syncControlFocusToRow(lv_event_t* event) {
+  if (!event) return;
+  const lv_event_code_t code = lv_event_get_code(event);
+  if (code != LV_EVENT_FOCUSED && code != LV_EVENT_DEFOCUSED) return;
+
+  _lv_obj_t* control = lv_event_get_target(event);
+  _lv_obj_t* row = control ? lv_obj_get_parent(control) : nullptr;
+  if (!row || ht_id(row) != meta_id::QuickPingRow) return;
+
+  if (code == LV_EVENT_FOCUSED) {
+    lv_obj_add_state(row, LV_STATE_FOCUSED | LV_STATE_FOCUS_KEY);
+  } else {
+    lv_obj_clear_state(row, LV_STATE_FOCUSED | LV_STATE_FOCUS_KEY);
+  }
+  if (ht_id(control) == meta_id::QuickPingMessageInput) {
+    _lv_obj_t* label = lv_textarea_get_label(control);
+    if (label) {
+      if (code == LV_EVENT_FOCUSED) {
+        lv_obj_add_state(label, LV_STATE_FOCUSED | LV_STATE_FOCUS_KEY);
+      } else {
+        lv_obj_clear_state(label, LV_STATE_FOCUSED | LV_STATE_FOCUS_KEY);
+      }
+      lv_obj_invalidate(label);
+    }
+  }
+  lv_obj_invalidate(row);
+}
+
 void centerSingleLineTextarea(_lv_obj_t* textarea) {
   if (!textarea) return;
   lv_obj_update_layout(textarea);
@@ -430,6 +458,7 @@ _lv_obj_t* QuickPingOverlay::createDropdownRow(_lv_obj_t* parent, const char* la
   lv_obj_add_event_cb(dropdown, onDropdownConfirmPreprocess,
                       static_cast<lv_event_code_t>(LV_EVENT_RELEASED | LV_EVENT_PREPROCESS), this);
   lv_obj_add_event_cb(dropdown, onDropdownEvent, LV_EVENT_ALL, this);
+  lv_obj_add_event_cb(dropdown, syncControlFocusToRow, LV_EVENT_ALL, nullptr);
   if (out_dropdown) *out_dropdown = dropdown;
   return row;
 }
@@ -499,6 +528,7 @@ _lv_obj_t* QuickPingOverlay::createMessageRow(_lv_obj_t* parent) {
     lv_obj_add_event_cb(_ta_message, onMessageInputEvent,
                         static_cast<lv_event_code_t>(LV_EVENT_KEY | LV_EVENT_PREPROCESS), this);
     lv_obj_add_event_cb(_ta_message, onMessageInputEvent, LV_EVENT_CLICKED, this);
+    lv_obj_add_event_cb(_ta_message, syncControlFocusToRow, LV_EVENT_ALL, nullptr);
   }
 
   _dd_message = ht_dropdown_create(controls, meta_id::QuickPingMessageDropdown);
@@ -518,6 +548,7 @@ _lv_obj_t* QuickPingOverlay::createMessageRow(_lv_obj_t* parent) {
     lv_obj_add_event_cb(_dd_message, onDropdownConfirmPreprocess,
                         static_cast<lv_event_code_t>(LV_EVENT_RELEASED | LV_EVENT_PREPROCESS), this);
     lv_obj_add_event_cb(_dd_message, onDropdownEvent, LV_EVENT_ALL, this);
+    lv_obj_add_event_cb(_dd_message, syncControlFocusToRow, LV_EVENT_ALL, nullptr);
   }
   return row;
 }

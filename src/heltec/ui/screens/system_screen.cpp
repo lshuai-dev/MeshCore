@@ -18,11 +18,8 @@ _lv_obj_t* SystemScreen::createRoot(_lv_obj_t* parent) {
 
 namespace {
 
-char s_adv_dd_options[64];
+char s_region_options[kRadioParamPresetUiScratchSize + 32];
 char s_screen_off_options[64];
-#if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
-char s_friend_dd_options[384];
-#endif
 
 int append_options(char* buf, size_t cap, const biz::IBizFacade& app, int count,
                    bool (*label_fn)(const biz::IBizFacade&, int, char*, size_t)) {
@@ -39,32 +36,17 @@ int append_options(char* buf, size_t cap, const biz::IBizFacade& app, int count,
   return (int)(p - buf);
 }
 
-bool adv_label(const biz::IBizFacade& app, int i, char* lab, size_t cap) {
-  const char* s = app.locShareIntervalOptionLabel(i);
-  lv_snprintf(lab, cap, "%s", s ? s : "?");
-  return true;
-}
-
 bool screen_off_label(const biz::IBizFacade& app, int i, char* lab, size_t cap) {
   const char* s = app.displayAutoOffOptionLabel(i);
   lv_snprintf(lab, cap, "%s", s ? s : "?");
   return true;
 }
 
-uint32_t options_hash(const char* text) {
-  uint32_t hash = 2166136261UL;
-  if (!text) return hash;
-  for (const uint8_t* p = reinterpret_cast<const uint8_t*>(text); *p; ++p) {
-    hash ^= *p;
-    hash *= 16777619UL;
-  }
-  return hash;
-}
-
-void set_row_hidden(_lv_obj_t* row, bool hidden) {
-  if (!row) return;
-  if (hidden) lv_obj_add_flag(row, LV_OBJ_FLAG_HIDDEN);
-  else lv_obj_clear_flag(row, LV_OBJ_FLAG_HIDDEN);
+void build_region_options() {
+  char* const presets = radioParamPresetUiScratch();
+  radioParamPresetDropdownOptions(presets, kRadioParamPresetUiScratchSize);
+  lv_snprintf(s_region_options, sizeof(s_region_options),
+              "Custom/fwd\n%s", presets);
 }
 
 }  // namespace
@@ -74,151 +56,15 @@ bool SystemScreen::onKey(uint32_t key) {
   return AbstractScreen::onKey(key);
 }
 
-#if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
-void SystemScreen::syncFriendDropdownFromApp(const biz::IBizFacade& app, bool force) {
-  if (!_dd_friend) return;
-  biz::IBizFacade::FindFriendContactItem probe[kFriendWindowSize]{};
-  int total = 0;
-  int selected_rank = -1;
-  (void)app.fillFindFriendContacts(_friend_window_start, app.findFriendTargetContactIndex(),
-                                   probe, kFriendWindowSize, &total, &selected_rank);
-
-  const int max_start = total > kFriendWindowSize ? total - kFriendWindowSize : 0;
-  int start = _friend_window_start;
-  if (start > max_start) start = max_start;
-  if (selected_rank >= 0) {
-    const int local = selected_rank - start;
-    if (local < 0 || local >= kFriendWindowSize) {
-      start = (selected_rank / kFriendWindowStep) * kFriendWindowStep;
-    } else if (local >= kFriendWindowSize - 2 && start < max_start) {
-      start += kFriendWindowStep;
-    } else if (local <= 1 && start > 0) {
-      start -= kFriendWindowStep;
-    }
-  }
-  if (start < 0) start = 0;
-  if (start > max_start) start = max_start;
-  loadFriendDropdownWindow(app, start, selected_rank, force);
-}
-
-void SystemScreen::loadFriendDropdownWindow(const biz::IBizFacade& app, int start,
-                                            int selected_rank, bool force) {
-  if (!_dd_friend) return;
-  biz::IBizFacade::FindFriendContactItem items[kFriendWindowSize]{};
-  int total = 0;
-  int ignored_rank = -1;
-  _friend_mesh_map_count = app.fillFindFriendContacts(
-      start, -1, items, kFriendWindowSize, &total, &ignored_rank);
-  _friend_total = total;
-  const int max_start = total > kFriendWindowSize ? total - kFriendWindowSize : 0;
-  if (start < 0) start = 0;
-  if (start > max_start) start = max_start;
-  _friend_window_start = start;
-  _friend_selected_rank = selected_rank;
-
-  lv_snprintf(s_friend_dd_options, sizeof(s_friend_dd_options), "(none)");
-  for (int i = 0; i < _friend_mesh_map_count; ++i) {
-    _friend_mesh_map[i] = items[i].contact_index;
-    const size_t used = strlen(s_friend_dd_options);
-    if (used >= sizeof(s_friend_dd_options) - 1) break;
-    lv_snprintf(s_friend_dd_options + used, sizeof(s_friend_dd_options) - used,
-                "\n%s", items[i].label[0] ? items[i].label : "?");
-  }
-
-  const uint32_t hash = options_hash(s_friend_dd_options);
-  const bool options_changed = force || _friend_mesh_map_count != _friend_mesh_map_count_applied ||
-                               hash != _friend_dd_options_hash_applied;
-
-  if (options_changed) {
-    _friend_dd_options_hash_applied = hash;
-    _friend_mesh_map_count_applied = _friend_mesh_map_count;
-    setDropdownOptions(_dd_friend, s_friend_dd_options);
-  }
-  int local_selection = 0;
-  if (selected_rank >= _friend_window_start &&
-      selected_rank < _friend_window_start + _friend_mesh_map_count) {
-    local_selection = selected_rank - _friend_window_start + 1;
-  }
-  setDropdownIndex(_dd_friend, (uint16_t)local_selection, false, options_changed);
-}
-
-int SystemScreen::friendMeshIndexForSelection() const {
-  if (!_dd_friend) return -1;
-  const int selected = (int)lv_dropdown_get_selected(_dd_friend);
-  if (selected <= 0 || selected - 1 >= _friend_mesh_map_count) return -1;
-  return _friend_mesh_map[selected - 1];
-}
-
-bool SystemScreen::moveFriendDropdownSelection(int direction) {
-  if (!_dd_friend || direction == 0 || _friend_total <= 0) return false;
-  const int selected = static_cast<int>(lv_dropdown_get_selected(_dd_friend));
-  int position = 0;
-  if (selected > 0 && selected - 1 < _friend_mesh_map_count) {
-    position = _friend_window_start + selected;
-  }
-
-  const int option_total = _friend_total + 1;
-  position =
-      (position + (direction > 0 ? 1 : -1) + option_total) % option_total;
-  const int rank = position - 1;
-  if (rank < 0) {
-    _friend_selected_rank = -1;
-    setDropdownIndex(_dd_friend, 0, false, true);
-    return true;
-  }
-
-  int start = _friend_window_start;
-  const int max_start =
-      _friend_total > kFriendWindowSize ? _friend_total - kFriendWindowSize : 0;
-  const int local = rank - start;
-  if (rank == 0 && direction > 0) {
-    start = 0;
-  } else if (rank == _friend_total - 1 && direction < 0) {
-    start = max_start;
-  } else if ((local < 0 || (direction < 0 && local <= 1)) && start > 0) {
-    start -= kFriendWindowStep;
-  } else if ((local >= kFriendWindowSize ||
-              (direction > 0 && local >= kFriendWindowSize - 2)) &&
-             start < max_start) {
-    start += kFriendWindowStep;
-  }
-  if (start < 0) start = 0;
-  if (start > max_start) start = max_start;
-
-  _friend_selected_rank = rank;
-  if (start != _friend_window_start) {
-    loadFriendDropdownWindow(_biz, start, rank, true);
-  } else {
-    setDropdownIndex(
-        _dd_friend,
-        static_cast<uint16_t>(rank - _friend_window_start + 1), false, true);
-  }
-  return true;
-}
-
-#endif
-
-void SystemScreen::updateConditionalVisibility(const biz::IBizFacade& app) {
-  const bool loc_share = app.locationShareEnabled();
-  set_row_hidden(_row_adv, !loc_share);
-  if (!loc_share && _open_dropdown == _dd_adv) closeOpenDropdown();
-#if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
-  const bool friend_mode = app.findFriendMode() == 0;
-  set_row_hidden(_row_friend, !friend_mode);
-  set_row_hidden(_row_wp_gps, friend_mode);
-  set_row_hidden(_row_wp_manual, friend_mode);
-  if (!friend_mode && _open_dropdown == _dd_friend) closeOpenDropdown();
-#endif
-}
-
 _lv_obj_t* SystemScreen::create(_lv_obj_t* parent) {
   if (!AbstractScreen::create(parent)) return nullptr;
   _dd_region = addDropdownRow(_root, _choice_region, "Region");
   if (_dd_region) {
-    char* const options = radioParamPresetUiScratch();
-    radioParamPresetDropdownOptions(options, kRadioParamPresetUiScratchSize);
-    setDropdownOptions(_dd_region, options);
+    build_region_options();
+    setDropdownOptions(_dd_region, s_region_options);
   }
+
+  addSwitchRow(_root, "Enable Repeat Mode", &_swForwarding);
 
   _dd_screen_off = addDropdownRow(_root, _choice_screen_off, "Screen off");
   if (_dd_screen_off) {
@@ -234,25 +80,6 @@ _lv_obj_t* SystemScreen::create(_lv_obj_t* parent) {
 #if defined(HAS_BUZZER_VOLUME_CONTROL) && HAS_BUZZER_VOLUME_CONTROL
   addBuzzerVolumeRow(_root);
 #endif
-  addSwitchRow(_root, "Location share", &_swLocShare);
-
-  _dd_adv = addDropdownRow(_root, _choice_adv, "Adv interval");
-  _row_adv = _choice_adv.row;
-  if (_dd_adv) {
-    append_options(s_adv_dd_options, sizeof(s_adv_dd_options), _biz, _biz.locShareIntervalOptionCount(), adv_label);
-    setDropdownOptions(_dd_adv, s_adv_dd_options);
-  }
-
-#if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
-  _dd_ff_mode = addDropdownRow(_root, _choice_ff_mode, "Find mode");
-  if (_dd_ff_mode) setDropdownOptions(_dd_ff_mode, "Friend\nWaypoint");
-
-  _dd_friend = addDropdownRow(_root, _choice_friend, "Friend");
-  _row_friend = _choice_friend.row;
-  addActionRow(_root, "> Use current GPS", &_row_wp_gps);
-  addActionRow(_root, "> Enter lat,lon", &_row_wp_manual);
-#endif
-
   addActionRow(_root, "> Factory reset", &_row_factory_reset);
   addActionRow(_root, "> Clear data", &_row_clear_data);
 
@@ -265,6 +92,9 @@ _lv_obj_t* SystemScreen::create(_lv_obj_t* parent) {
 #endif
 
   addFocusItem(_dd_region, _choice_region.row, kFocusOnPointerPress);
+  addFocusItem(_swForwarding,
+               _swForwarding ? lv_obj_get_parent(_swForwarding) : nullptr,
+               kFocusOnPointerPress);
   addFocusItem(_dd_screen_off, _choice_screen_off.row, kFocusOnPointerPress);
   addFocusItem(_swBle, _swBle ? lv_obj_get_parent(_swBle) : nullptr,
                kFocusOnPointerPress);
@@ -276,22 +106,14 @@ _lv_obj_t* SystemScreen::create(_lv_obj_t* parent) {
   addFocusItem(_btnBuzzerVolumeDown, nullptr, kFocusOnPointerPress);
   addFocusItem(_btnBuzzerVolumeUp, nullptr, kFocusOnPointerPress);
 #endif
-  addFocusItem(_swLocShare, _swLocShare ? lv_obj_get_parent(_swLocShare) : nullptr,
-               kFocusOnPointerPress);
-  addFocusItem(_dd_adv, _choice_adv.row, kFocusOnPointerPress);
-#if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
-  addFocusItem(_dd_ff_mode, _choice_ff_mode.row, kFocusOnPointerPress);
-  addFocusItem(_dd_friend, _choice_friend.row, kFocusOnPointerPress);
-  addFocusItem(_row_wp_gps, nullptr, kFocusOnPointerPress);
-  addFocusItem(_row_wp_manual, nullptr, kFocusOnPointerPress);
-#endif
-  addFocusItem(_row_factory_reset, nullptr, kFocusOnPointerPress);
-  addFocusItem(_row_clear_data, nullptr, kFocusOnPointerPress);
+  addFocusItem(_row_factory_reset, nullptr, kFocusOnPointerPress, FocusVisual::Row);
+  addFocusItem(_row_clear_data, nullptr, kFocusOnPointerPress, FocusVisual::Row);
 
   // System owns focus scrolling. Disable LVGL's implicit auto-scroll so focus
   // restore, pointer focus and modal transitions cannot move the page behind us.
   _lv_obj_t* const focus_controls[] = {
       _dd_region,
+      _swForwarding,
       _dd_screen_off,
       _swBle,
 #ifdef PIN_BUZZER
@@ -300,14 +122,6 @@ _lv_obj_t* SystemScreen::create(_lv_obj_t* parent) {
 #if defined(HAS_BUZZER_VOLUME_CONTROL) && HAS_BUZZER_VOLUME_CONTROL
       _btnBuzzerVolumeDown,
       _btnBuzzerVolumeUp,
-#endif
-      _swLocShare,
-      _dd_adv,
-#if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
-      _dd_ff_mode,
-      _dd_friend,
-      _row_wp_gps,
-      _row_wp_manual,
 #endif
       _row_factory_reset,
       _row_clear_data,
@@ -342,28 +156,5 @@ void SystemScreen::onEnter() {
   AbstractScreen::onEnter();
   closeOpenDropdown();
 }
-
-void SystemScreen::onUiEvent(const UiEvent& event) {
-  if (event.type == UiEventType::WaypointKeyboardClosed) {
-    _lv_obj_t* const return_focus = _waypoint_keyboard_return_focus;
-    _waypoint_keyboard_return_focus = nullptr;
-    if (focusKeypadWidget(return_focus)) return;
-    applyGroupFocus(group() ? lv_group_get_focused(group()) : nullptr);
-    return;
-  }
-
-  if (event.type != UiEventType::WaypointKeyboardSubmit || !event.payload) return;
-  const auto* submit = static_cast<const UiWaypointKeyboardSubmit*>(event.payload);
-  if (_biz.setFindFriendWaypoint(submit->lat, submit->lon)) {
-    _feedback.showAlert("Waypoint saved", 2000);
-  } else {
-    _feedback.showAlert("Save failed", 2000);
-  }
-}
-
-/*
- * Waypoint keyboard results are delivered through onUiEvent so the generic
- * AbstractScreen contract does not need waypoint-specific callbacks.
- */
 
 }  // namespace heltec::meshcore::ui

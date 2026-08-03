@@ -33,6 +33,7 @@ bool UiApp::initOverlay() {
   if (!_previewOvl.init(_layerOverlay)) return false;
   if (!_alertOvl.init(_layerOverlay)) return false;
   if (!_radioParamSyncOvl.init(_layerOverlay)) return false;
+  if (!_repeatModeOvl.init(_layerOverlay)) return false;
   if (!_keyboardOvl.init(_layerOverlay)) return false;
   if (!_sendMessageOvl.init(_layerOverlay)) return false;
 #if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
@@ -48,9 +49,10 @@ bool UiApp::initOverlay() {
   return true;
 }
 
-void UiApp::openPreviewOverlay(uint8_t unread, uint32_t age_sec, const char* origin, const char* text) {
+void UiApp::openPreviewOverlay(uint8_t unread, uint32_t received_ms,
+                               const char* origin, const char* text) {
   if (!_inited) return;
-  _previewOvl.applyContent(unread, age_sec, origin, text);
+  _previewOvl.applyContent(unread, received_ms, origin, text);
   if (_surfaces.isActive(&_previewOvl)) return;
   (void)_surfaces.present(&_previewOvl, nullptr);
 }
@@ -122,6 +124,18 @@ void UiApp::openRadioParamSyncOverlay() {
 
 void UiApp::closeRadioParamSyncOverlay() {
   (void)_surfaces.dismissBranch(&_radioParamSyncOvl);
+}
+
+void UiApp::openRepeatModeOverlay() {
+  if (!_inited || _surfaces.isActive(&_repeatModeOvl)) return;
+  notifyDisplayActivity(millis());
+  if (!_surfaces.present(&_repeatModeOvl)) {
+    _biz.showAlert("Unable to open frequency picker", 2000);
+  }
+}
+
+void UiApp::closeRepeatModeOverlay() {
+  (void)_surfaces.dismissBranch(&_repeatModeOvl);
 }
 
 void UiApp::presentMessageKeyboard() {

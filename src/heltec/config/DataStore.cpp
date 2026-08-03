@@ -46,7 +46,7 @@ static File openWrite(FILESYSTEM* fs, const char* filename) {
 }
 
 void DataStore::notifyBootRegionMapStorageDone() {
-#if defined(ENV_INCLUDE_COMPASS) && (ENV_INCLUDE_COMPASS) && (defined(NRF52_PLATFORM) || defined(STM32_PLATFORM))
+#if defined(ENV_INCLUDE_GPS) && (ENV_INCLUDE_GPS) && (defined(NRF52_PLATFORM) || defined(STM32_PLATFORM))
   _allowGpsTrackFileOpen = true;
 #endif
 }
@@ -55,7 +55,6 @@ void DataStore::notifyBootRegionMapStorageDone() {
 
 static const char kCompassCfgPath[] = "/compass_cfg";
 static const char kCompassMagCalPath[] = "/compass_mag_cal";
-static const char kGpsTrackPath[] = "/gps_track.csv";
 
 /** nth comma-separated field (0-based); nullptr if missing. */
 static const char* compass_cfg_field(const char* line, int index) {
@@ -98,7 +97,8 @@ static long deg_to_e6(double deg) {
 
 bool DataStore::loadFindFriendCompassSettings(int& mode, int& wpValid, double& wpLat, double& wpLon,
                                               uint16_t& trackMinDistCm, int* friendIdx,
-                                              uint32_t* advSec, uint16_t* trackIntervalMin) {
+                                              uint32_t* advSec, uint16_t* trackIntervalMin,
+                                              bool* enabled) {
   if (!_fs || !_fs->exists(kCompassCfgPath)) return false;
 #if defined(RP2040_PLATFORM)
   File f = _fs->open(kCompassCfgPath, "r");
@@ -143,12 +143,21 @@ bool DataStore::loadFindFriendCompassSettings(int& mode, int& wpValid, double& w
       *trackIntervalMin = 1;
     }
   }
+  if (enabled) {
+    int enabled_i = 0;
+    if (parse_int_field(compass_cfg_field(buf, 8), &enabled_i)) {
+      *enabled = enabled_i != 0;
+    } else {
+      *enabled = false;
+    }
+  }
   return true;
 }
 
 void DataStore::saveFindFriendCompassSettings(int mode, int wpValid, double wpLat, double wpLon,
                                               uint16_t trackMinDistCm, int friendIdx,
-                                              uint32_t advSec, uint16_t trackIntervalMin) {
+                                              uint32_t advSec, uint16_t trackIntervalMin,
+                                              bool enabled) {
   if (!_fs) return;
 #if defined(RP2040_PLATFORM)
   File f = _fs->open(kCompassCfgPath, "w");
@@ -164,9 +173,9 @@ void DataStore::saveFindFriendCompassSettings(int mode, int wpValid, double wpLa
   if (!f) return;
   if (trackIntervalMin < 1) trackIntervalMin = 1;
   char buf[128];
-  snprintf(buf, sizeof(buf), "%d,%d,%ld,%ld,%u,%d,%u,%u\n", mode, wpValid,
+  snprintf(buf, sizeof(buf), "%d,%d,%ld,%ld,%u,%d,%u,%u,%u\n", mode, wpValid,
            (long)deg_to_e6(wpLat), (long)deg_to_e6(wpLon), (unsigned)trackMinDistCm, friendIdx,
-           (unsigned)advSec, (unsigned)trackIntervalMin);
+           (unsigned)advSec, (unsigned)trackIntervalMin, enabled ? 1u : 0u);
   f.print(buf);
   f.close();
 }
@@ -219,6 +228,12 @@ bool DataStore::saveCompassMagCal(const float hmm[4]) {
   float verify[4];
   return loadCompassMagCal(verify);
 }
+
+#endif  // ENV_INCLUDE_COMPASS
+
+#if defined(ENV_INCLUDE_GPS) && (ENV_INCLUDE_GPS)
+
+static const char kGpsTrackPath[] = "/gps_track.csv";
 
 bool DataStore::isGpsTrackRecordingOpen() const {
 #if defined(NRF52_PLATFORM) || defined(STM32_PLATFORM)
@@ -467,7 +482,7 @@ GpsTrackExportResult DataStore::readGpsTrackExportPage(uint32_t point_offset, ui
   return GpsTrackExportResult::Ok;
 }
 
-#endif // ENV_INCLUDE_COMPASS
+#endif  // ENV_INCLUDE_GPS
 
 #if defined(NRF52_PLATFORM) || defined(STM32_PLATFORM)
   static uint32_t _ContactsChannelsTotalBlocks = 0;
@@ -489,7 +504,6 @@ void DataStore::begin() {
   _fs->mkdir("/bl");
 #endif
 
-  (void)ensureMessageHistory();
 }
 
 #if defined(ESP32)
@@ -590,6 +604,14 @@ bool DataStore::removeFile(const char* filename) {
 
 bool DataStore::removeFile(FILESYSTEM* fs, const char* filename) {
   return fs->remove(filename);
+}
+
+bool DataStore::clearLegacyMessageFiles() {
+  FILESYSTEM* fs = _getContactsChannelsFS();
+  if (!fs) return false;
+  const bool messages_ok = !fs->exists("/messages1") || fs->remove("/messages1");
+  const bool reads_ok = !fs->exists("/msg_read1") || fs->remove("/msg_read1");
+  return messages_ok && reads_ok;
 }
 
 bool DataStore::formatFileSystem() {

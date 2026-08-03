@@ -8,7 +8,8 @@
 namespace heltec::meshcore::ui {
 namespace {
 #if defined(HELTEC_V4_R8_TFT)
-constexpr lv_coord_t kSystemDropdownHeight = 36;
+constexpr lv_coord_t kSystemDropdownHeight =
+    ui_settings_row_height() - 2 * ui_settings_row_pad_ver();
 constexpr lv_coord_t kSystemDropdownListPadVer = 2;
 #endif
 void configure_system_row(_lv_obj_t* row, lv_flex_flow_t flow, lv_flex_align_t main,
@@ -23,10 +24,13 @@ void configure_system_row(_lv_obj_t* row, lv_flex_flow_t flow, lv_flex_align_t m
   lv_obj_set_style_pad_row(row, 0, LV_PART_MAIN);
   lv_obj_set_style_pad_column(row, 2, LV_PART_MAIN);
 #else
-  lv_obj_set_style_pad_all(row, 2, LV_PART_MAIN);
 #if defined(HELTEC_V4_R8_TFT)
+  lv_obj_set_style_pad_hor(row, ui_settings_row_pad_hor(), LV_PART_MAIN);
+  lv_obj_set_style_pad_ver(row, ui_settings_row_pad_ver(), LV_PART_MAIN);
   lv_obj_set_style_pad_row(row, LV_DPX(10), LV_PART_MAIN);
   lv_obj_set_style_pad_column(row, LV_DPX(10), LV_PART_MAIN);
+#else
+  lv_obj_set_style_pad_all(row, 2, LV_PART_MAIN);
 #endif
 #endif
   lv_obj_clear_flag(row, LV_OBJ_FLAG_SCROLLABLE);
@@ -58,13 +62,6 @@ void clear_group_widget_states(_lv_obj_t* obj, lv_group_t* g) {
   if (lv_obj_get_group(obj) == g) { lv_obj_clear_state(obj, LV_STATE_FOCUSED); lv_obj_clear_state(obj, LV_STATE_FOCUS_KEY); lv_obj_invalidate(obj); }
   const uint32_t n=lv_obj_get_child_cnt(obj); for(uint32_t i=0;i<n;++i) clear_group_widget_states(lv_obj_get_child(obj,i),g);
 }
-#if defined(HELTEC_V4_R8_TFT) && defined(HELTEC_HAS_TOUCH) && HELTEC_HAS_TOUCH
-bool point_hits_obj(const _lv_obj_t* obj, lv_coord_t x, lv_coord_t y) {
-  if (!obj || !lv_obj_is_valid(obj) || !lv_obj_is_visible(obj)) return false;
-  lv_point_t point{x, y};
-  return lv_obj_hit_test(const_cast<_lv_obj_t*>(obj), &point);
-}
-#endif
 #if LV_USE_DROPDOWN != 0
 bool cycle_open_dropdown(_lv_obj_t* dropdown, uint32_t key) {
   if (!dropdown || !lv_obj_check_type(dropdown, &lv_dropdown_class) ||
@@ -96,10 +93,6 @@ bool cycle_open_dropdown(_lv_obj_t* dropdown, uint32_t key) {
 
 SystemScreen::SysAction SystemScreen::actionForRow(_lv_obj_t* obj) const {
   if (!obj) return SysAction::None;
-#if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
-  if (obj == _row_wp_gps) return SysAction::WpGps;
-  if (obj == _row_wp_manual) return SysAction::WpManual;
-#endif
   if (obj == _row_factory_reset) return SysAction::FactoryReset;
   if (obj == _row_clear_data) return SysAction::ClearData;
   return SysAction::None;
@@ -239,14 +232,7 @@ void SystemScreen::closeOpenDropdown() {
   if (lv_obj_is_valid(closing) &&
       lv_obj_check_type(closing, &lv_dropdown_class) &&
       lv_dropdown_is_open(closing)) {
-#if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
-    if (closing == _dd_friend) {
-      syncFriendDropdownFromApp(_biz, true);
-    } else
-#endif
-    {
-      lv_dropdown_set_selected(closing, _open_dropdown_original_index);
-    }
+    lv_dropdown_set_selected(closing, _open_dropdown_original_index);
     lv_dropdown_close(closing);
   }
 #endif
@@ -267,17 +253,6 @@ void SystemScreen::applyGroupFocus(_lv_obj_t* focused) {
   if (type == LV_INDEV_TYPE_KEYPAD || type == LV_INDEV_TYPE_ENCODER) {
     scrollFocusedIntoView(focused);
   }
-}
-
-bool SystemScreen::focusKeypadWidget(_lv_obj_t* obj) {
-  if (!obj || !group() || !lv_obj_is_valid(obj)) return false;
-  if (lv_obj_has_flag(obj, LV_OBJ_FLAG_HIDDEN)) return false;
-  if (lv_obj_get_group(obj) != group()) return false;
-
-  lv_obj_clear_state(obj, LV_STATE_PRESSED);
-  lv_group_focus_obj(obj);
-  applyGroupFocus(obj);
-  return true;
 }
 
 void SystemScreen::clearGroupFocusVisual() {
@@ -359,23 +334,6 @@ void SystemScreen::onWidgetKeyPreprocess(lv_event_t* e) {
   }
 
 #if LV_USE_DROPDOWN != 0
-#if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
-  if (target == self->_dd_friend && self->_open_dropdown == target &&
-      lv_dropdown_is_open(target)) {
-    int direction = 0;
-    if (key == LV_KEY_DOWN || key == LV_KEY_RIGHT || key == LV_KEY_NEXT) direction = 1;
-    if (key == LV_KEY_UP || key == LV_KEY_LEFT || key == LV_KEY_PREV) direction = -1;
-    if (direction != 0 && self->moveFriendDropdownSelection(direction)) {
-      if (!ui_defer(realignDropdownListAsync, target)) {
-        self->realignDropdownList(target);
-      }
-      lv_event_stop_processing(e);
-      lv_event_stop_bubbling(e);
-      return;
-    }
-  }
-#endif
-
   if (self->_open_dropdown == target && cycle_open_dropdown(target, key)) {
     if (!ui_defer(realignDropdownListAsync, target)) {
       self->realignDropdownList(target);
@@ -392,12 +350,6 @@ void SystemScreen::onWidgetKeyPreprocess(lv_event_t* e) {
       lv_dropdown_is_open(target)) {
     bool changed =
         lv_dropdown_get_selected(target) != self->_open_dropdown_original_index;
-#if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
-    if (target == self->_dd_friend) {
-      changed = self->friendMeshIndexForSelection() !=
-                self->_friend_open_original_mesh_idx;
-    }
-#endif
     self->_open_dropdown = nullptr;
     lv_dropdown_close(target);
     lv_obj_clear_state(target, LV_STATE_EDITED);
@@ -469,32 +421,10 @@ void SystemScreen::onActionRowEvent(lv_event_t* e) {
 
   if (action == SysAction::None) return;
 
-  if (action == SysAction::WpManual) {
-    self->_waypoint_keyboard_return_focus = lv_event_get_target(e);
-  }
   self->handleAction(action);
   lv_event_stop_processing(e);
   lv_event_stop_bubbling(e);
 }
-
-#if defined(HELTEC_V4_R8_TFT) && defined(HELTEC_HAS_TOUCH) && HELTEC_HAS_TOUCH
-
-bool SystemScreen::hitScrollableContent(lv_coord_t x, lv_coord_t y) const {
-#if LV_USE_DROPDOWN != 0
-  if (_open_dropdown && lv_obj_is_valid(_open_dropdown) &&
-      lv_dropdown_is_open(_open_dropdown)) {
-    _lv_obj_t* const list = lv_dropdown_get_list(_open_dropdown);
-    if (point_hits_obj(list, x, y)) return true;
-  }
-#endif
-
-  // The tile is the stable, clipped viewport even while the top pane changes
-  // the available content height, so it owns vertical-drag hit testing.
-  _lv_obj_t* const viewport = tile();
-  return point_hits_obj(viewport ? viewport : _root, x, y);
-}
-
-#endif
 
 #if defined(HAS_BUZZER_VOLUME_CONTROL) && HAS_BUZZER_VOLUME_CONTROL
 

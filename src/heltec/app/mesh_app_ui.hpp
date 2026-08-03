@@ -13,6 +13,7 @@ namespace heltec::meshcore::biz {
 class MeshAppUi final : public IBizFacade {
  public:
   void pollRuntime();
+  void reconcileGpsPower();
 
   bool sendAdvert() override;
   void sendAdvertWithFeedback() override;
@@ -40,8 +41,16 @@ class MeshAppUi final : public IBizFacade {
   bool sendMessageGroupAt(int index, int* channel_idx, char* label, size_t label_len) const override;
   void setLoRaBandPresetIndex(int preset_index) override;
   int currentLoRaBandPresetIndex() const override;
+  int currentExactLoRaBandPresetIndex() const override;
   int loRaBandPresetCount() const override;
   const char* loRaBandPresetName(int preset_index) const override;
+  bool forwardingEnabled() const override;
+  int forwardingFrequencyCount() const override;
+  bool forwardingFrequencyRange(int index, uint32_t* lower_khz,
+                                uint32_t* upper_khz) const override;
+  int currentForwardingFrequencyIndex() const override;
+  ForwardingApplyResult setForwardingEnabled(bool enabled,
+                                              int frequency_index) override;
 
   void requestHibernate() override;
 
@@ -57,14 +66,8 @@ class MeshAppUi final : public IBizFacade {
   bool hasCompanionConnection() const override;
   uint32_t companionPairingPin() const override;
 
-  int fillRecentConversations(int offset, RecentConversationItem* items,
-                              int max_items, int* total_items) const override;
-  int fillConversationMessages(const MessageConversationKey& key,
-                               int offset_from_latest,
-                               ConversationMessageItem* items,
-                               int max_items, int* total_items) const override;
-  void markConversationRead(const MessageConversationKey& key) override;
-  int deviceUnreadMessageCount() const override;
+  int fillRecentlyHeard(RecentlyHeardItem* items,
+                        int max_items) const override;
 
   const CompassUi& compassUi() const override { return _compass_ui; }
   FindFriendUi findFriendUi() const override;
@@ -75,6 +78,11 @@ class MeshAppUi final : public IBizFacade {
   void setLocShareIntervalIndex(int index) override;
   int locShareIntervalOptionCount() const override;
   const char* locShareIntervalOptionLabel(int index) const override;
+  bool findFriendEnabled() const override;
+  bool setFindFriendEnabled(bool enabled) override;
+  void setGpsForegroundActive(bool active) override;
+  void setMapForegroundActive(bool active) override;
+  void setFindFriendForegroundActive(bool active) override;
 
   int displayAutoOffIndex() const override;
   void setDisplayAutoOffIndex(int index) override;
@@ -126,6 +134,9 @@ class MeshAppUi final : public IBizFacade {
   static void notifyAppState(heltec::meshcore::ui::AppStateEventType type);
   static void notifyCompanionChanged();
   void notifyRadioChanged();
+  bool applyGpsPowerPolicy(bool* changed = nullptr);
+  bool externalPowerForGps();
+  void notifyGpsChanged();
   void pollGpsTrack();
   void pollRadioStatus();
   void ensureFindFriendPrefsLoaded() const;
@@ -142,6 +153,7 @@ class MeshAppUi final : public IBizFacade {
   mutable int32_t _ff_wp_lat_e6 = 0;
   mutable int32_t _ff_wp_lon_e6 = 0;
   mutable uint16_t _ff_gps_track_interval_min = 1;
+  mutable bool _ff_enabled = false;
 
   RadioStatus _radio_status_cache{};
   uint32_t _radio_status_poll_ms = 0;
@@ -153,6 +165,21 @@ class MeshAppUi final : public IBizFacade {
   int32_t _gps_track_last_lon_e6 = 0;
   uint16_t _gps_track_point_count = 0;
   uint32_t _gps_track_start_ms = 0;
+
+  bool _gps_external_power_known = false;
+  bool _gps_external_powered = false;
+  uint32_t _gps_external_power_next_poll_ms = 0;
+  bool _gps_display_state_known = false;
+  bool _gps_display_was_on = false;
+  uint32_t _gps_display_off_since_ms = 0;
+  bool _gps_foreground_active = false;
+  bool _map_foreground_active = false;
+  bool _find_friend_foreground_active = false;
+  mutable bool _gps_speed_sample_valid = false;
+  mutable int32_t _gps_speed_sample_lat_e6 = 0;
+  mutable int32_t _gps_speed_sample_lon_e6 = 0;
+  mutable uint32_t _gps_speed_sample_ms = 0;
+  mutable float _gps_speed_kph = -1.0f;
 
 #if defined(ENV_INCLUDE_MAP) && ENV_INCLUDE_MAP
   mutable MapPlotUi _map_plot_cache{};

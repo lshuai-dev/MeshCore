@@ -14,9 +14,11 @@
 #include "ui/overlays/keyboard_overlay.hpp"
 #include "ui/overlays/preview_overlay.hpp"
 #include "ui/overlays/radio_pram_sync_overlay.hpp"
+#include "ui/overlays/repeat_mode_overlay.hpp"
 #include "ui/overlays/send_message_overlay_ids.hpp"
 #include "ui/overlays/splash_overlay.hpp"
 #include "ui/screens/compass_dial_widget.hpp"
+#include "ui/screens/find_friend_screen_ids.hpp"
 #include "ui/screens/gps_screen.hpp"
 #include "ui/screens/home_screen.hpp"
 #include "ui/screens/radio_screen.hpp"
@@ -161,6 +163,7 @@ static lv_style_t s_quick_ping_title_bar_style;
 static lv_style_t s_quick_ping_content_style;
 static lv_style_t s_quick_ping_title_style;
 static lv_style_t s_quick_ping_row_style;
+static lv_style_t s_quick_ping_row_focus_style;
 static lv_style_t s_quick_ping_label_style;
 static lv_style_t s_quick_ping_dropdown_style;
 static lv_style_t s_quick_ping_message_dropdown_style;
@@ -819,6 +822,16 @@ static void init_quick_ping_styles() {
   lv_style_set_radius(&s_quick_ping_row_style, 6);
   lv_style_set_clip_corner(&s_quick_ping_row_style, true);
 
+  lv_style_init(&s_quick_ping_row_focus_style);
+  lv_style_set_bg_color(&s_quick_ping_row_focus_style, lv_color_hex(0xE2F2FF));
+  lv_style_set_bg_opa(&s_quick_ping_row_focus_style, LV_OPA_COVER);
+  lv_style_set_border_width(&s_quick_ping_row_focus_style, 1);
+  lv_style_set_border_color(&s_quick_ping_row_focus_style, ui_color_accent());
+  lv_style_set_border_opa(&s_quick_ping_row_focus_style, LV_OPA_COVER);
+  lv_style_set_outline_width(&s_quick_ping_row_focus_style, 0);
+  lv_style_set_shadow_width(&s_quick_ping_row_focus_style, 0);
+  lv_style_set_radius(&s_quick_ping_row_focus_style, 6);
+
   lv_style_init(&s_quick_ping_label_style);
   lv_style_set_text_color(&s_quick_ping_label_style, ui_color_fg());
   lv_style_set_text_align(&s_quick_ping_label_style, LV_TEXT_ALIGN_LEFT);
@@ -842,13 +855,13 @@ static void init_quick_ping_styles() {
   lv_style_set_bg_opa(&s_quick_ping_message_dropdown_style, LV_OPA_COVER);
 
   lv_style_init(&s_quick_ping_dropdown_focus_style);
-  lv_style_set_bg_color(&s_quick_ping_dropdown_focus_style, control_bg);
+  lv_style_set_bg_color(&s_quick_ping_dropdown_focus_style, lv_color_hex(0xBDE1FF));
   lv_style_set_bg_opa(&s_quick_ping_dropdown_focus_style, LV_OPA_COVER);
   lv_style_set_border_width(&s_quick_ping_dropdown_focus_style, 0);
   lv_style_set_border_opa(&s_quick_ping_dropdown_focus_style, LV_OPA_TRANSP);
   lv_style_set_outline_width(&s_quick_ping_dropdown_focus_style, 0);
   lv_style_set_shadow_width(&s_quick_ping_dropdown_focus_style, 0);
-  lv_style_set_text_color(&s_quick_ping_dropdown_focus_style, ui_color_highlight_fg());
+  lv_style_set_text_color(&s_quick_ping_dropdown_focus_style, ui_color_fg());
 
   lv_style_init(&s_quick_ping_dropdown_disabled_style);
   lv_style_set_text_color(&s_quick_ping_dropdown_disabled_style, ui_color_fg());
@@ -858,7 +871,7 @@ static void init_quick_ping_styles() {
   lv_style_set_text_color(&s_quick_ping_dropdown_indicator_style, ui_color_fg());
 
   lv_style_init(&s_quick_ping_dropdown_indicator_focus_style);
-  lv_style_set_text_color(&s_quick_ping_dropdown_indicator_focus_style, ui_color_highlight_fg());
+  lv_style_set_text_color(&s_quick_ping_dropdown_indicator_focus_style, ui_color_fg());
 
   lv_style_init(&s_quick_ping_message_input_style);
   lv_style_set_radius(&s_quick_ping_message_input_style, 6);
@@ -873,17 +886,17 @@ static void init_quick_ping_styles() {
   lv_style_set_text_color(&s_quick_ping_message_input_style, ui_color_fg());
 
   lv_style_init(&s_quick_ping_message_input_focus_style);
-  lv_style_set_bg_color(&s_quick_ping_message_input_focus_style, ui_color_highlight_bg());
+  lv_style_set_bg_color(&s_quick_ping_message_input_focus_style, lv_color_hex(0xBDE1FF));
   lv_style_set_bg_opa(&s_quick_ping_message_input_focus_style, LV_OPA_COVER);
   lv_style_set_border_width(&s_quick_ping_message_input_focus_style, 0);
   lv_style_set_border_opa(&s_quick_ping_message_input_focus_style, LV_OPA_TRANSP);
   lv_style_set_outline_width(&s_quick_ping_message_input_focus_style, 0);
   lv_style_set_shadow_width(&s_quick_ping_message_input_focus_style, 0);
-  lv_style_set_text_color(&s_quick_ping_message_input_focus_style, ui_color_highlight_fg());
+  lv_style_set_text_color(&s_quick_ping_message_input_focus_style, ui_color_fg());
 
   lv_style_init(&s_quick_ping_message_input_label_focus_style);
   lv_style_set_text_color(&s_quick_ping_message_input_label_focus_style,
-                          ui_color_highlight_fg());
+                          ui_color_fg());
   set_overlay_text_spacing(&s_quick_ping_message_input_label_focus_style);
 
   lv_style_init(&s_quick_ping_message_input_label_style);
@@ -911,13 +924,14 @@ static void init_quick_ping_styles() {
 
   lv_style_init(&s_quick_ping_keyboard_items_selected_style);
   lv_style_set_pad_all(&s_quick_ping_keyboard_items_selected_style, 0);
-  lv_style_set_bg_color(&s_quick_ping_keyboard_items_selected_style, ui_color_highlight_bg());
+  lv_style_set_bg_color(&s_quick_ping_keyboard_items_selected_style,
+                        lv_color_hex(0xBDE1FF));
   lv_style_set_bg_opa(&s_quick_ping_keyboard_items_selected_style, LV_OPA_COVER);
   lv_style_set_border_width(&s_quick_ping_keyboard_items_selected_style, 0);
   lv_style_set_outline_width(&s_quick_ping_keyboard_items_selected_style, 0);
   lv_style_set_shadow_width(&s_quick_ping_keyboard_items_selected_style, 0);
   lv_style_set_text_color(&s_quick_ping_keyboard_items_selected_style,
-                          ui_color_highlight_fg());
+                          ui_color_fg());
 
   s_quick_ping_styles_ready = true;
 }
@@ -1182,6 +1196,7 @@ static bool is_overlay_root_id(MetaId id) {
     case meta_id::CalibrationOverlayRoot:
     case meta_id::KeyboardOverlayRoot:
     case meta_id::RadioParamSyncOverlayRoot:
+    case meta_id::RepeatModeOverlayRoot:
     case meta_id::SendMessageOverlayRoot:
     case meta_id::SplashOverlayRoot:
       return true;
@@ -1355,6 +1370,7 @@ static bool apply_surface_root_theme(_lv_obj_t* obj) {
         apply_overlay_root_chrome(obj);
         break;
       case meta_id::RadioParamSyncOverlayRoot:
+      case meta_id::RepeatModeOverlayRoot:
         apply_overlay_root_chrome(obj);
         break;
       case meta_id::SendMessageOverlayRoot:
@@ -1547,6 +1563,10 @@ static bool apply_quick_ping_overlay_theme(_lv_obj_t* obj) {
       init_quick_ping_styles();
       reset_touch_object(obj);
       lv_obj_add_style(obj, &s_quick_ping_row_style, LV_PART_MAIN);
+      lv_obj_add_style(obj, &s_quick_ping_row_focus_style,
+                       LV_PART_MAIN | LV_STATE_FOCUSED);
+      lv_obj_add_style(obj, &s_quick_ping_row_focus_style,
+                       LV_PART_MAIN | LV_STATE_FOCUS_KEY);
       return true;
 
     case meta_id::QuickPingLabel:
@@ -1651,6 +1671,8 @@ static bool apply_home_screen_child_theme(_lv_obj_t* obj) {
 static bool apply_gps_screen_child_theme(_lv_obj_t* obj) {
   switch (ht_id(obj)) {
     case meta_id::GpsPowerRow:
+    case meta_id::GpsLocationShareRow:
+    case meta_id::GpsAdvIntervalRow:
     case meta_id::GpsTrackRow:
       style_plain_container(obj);
       return true;
@@ -1659,6 +1681,7 @@ static bool apply_gps_screen_child_theme(_lv_obj_t* obj) {
     case meta_id::GpsSatLabel:
     case meta_id::GpsLatLonLabel:
     case meta_id::GpsAltLabel:
+    case meta_id::GpsSpeedLabel:
     case meta_id::GpsRawLabel:
       style_screen_label(obj);
       if (ht_id(obj) == meta_id::GpsRawLabel) {
@@ -1668,13 +1691,27 @@ static bool apply_gps_screen_child_theme(_lv_obj_t* obj) {
       return true;
 
     case meta_id::GpsPowerPrefix:
+    case meta_id::GpsLocationShareLabel:
+    case meta_id::GpsAdvIntervalLabel:
     case meta_id::GpsTrackLabel:
       style_screen_label(obj);
       return true;
 
     case meta_id::GpsPowerSwitch:
+    case meta_id::GpsLocationShareSwitch:
     case meta_id::GpsTrackSwitch:
       // The active UI theme owns all switch-part styling.
+      return true;
+
+    case meta_id::GpsAdvIntervalDropdown:
+      init_screen_system_styles();
+      apply_system_control_no_chrome(obj);
+      lv_obj_add_style(obj, &s_system_dropdown_style, LV_PART_MAIN);
+      lv_obj_add_style(obj, &s_system_dropdown_focus_style,
+                       LV_PART_MAIN | LV_STATE_FOCUS_KEY);
+      lv_obj_add_style(obj, &s_system_dropdown_focus_style,
+                       LV_PART_MAIN | LV_STATE_FOCUSED);
+      hide_scrollbar_chrome(obj);
       return true;
 
     default:
@@ -1684,20 +1721,14 @@ static bool apply_gps_screen_child_theme(_lv_obj_t* obj) {
 
 static bool apply_recent_screen_child_theme(_lv_obj_t* obj) {
   switch (ht_id(obj)) {
-    case meta_id::RecentRowLabel:
+    case meta_id::RecentRow:
+      style_plain_container(obj);
+      return true;
+    case meta_id::RecentName:
       style_screen_label(obj);
       return true;
-    case meta_id::RecentSendButton:
-      return true;
-    case meta_id::RecentSendButtonLabel:
-      style_screen_label(obj, LV_TEXT_ALIGN_CENTER);
-      apply_no_chrome(obj);
-      return true;
-    case meta_id::RecentDetailContact:
-      style_screen_label(obj, LV_TEXT_ALIGN_CENTER);
-      return true;
-    case meta_id::RecentDetailMessage:
-      style_screen_label(obj);
+    case meta_id::RecentAge:
+      style_screen_label(obj, LV_TEXT_ALIGN_RIGHT);
       return true;
     default:
       return false;
@@ -1715,6 +1746,38 @@ static bool apply_radio_screen_child_theme(_lv_obj_t* obj) {
       return true;
     case meta_id::RadioLnaSwitch:
       return true;
+    default:
+      return false;
+  }
+}
+
+static bool apply_find_friend_screen_child_theme(_lv_obj_t* obj) {
+  switch (ht_id(obj)) {
+    case meta_id::FindFriendDialRow:
+    case meta_id::FindFriendSettingRow:
+    case meta_id::FindFriendActionRow:
+      style_plain_container(obj);
+      return true;
+
+    case meta_id::FindFriendSettingLabel:
+    case meta_id::FindFriendActionLabel:
+      style_screen_label(obj);
+      return true;
+
+    case meta_id::FindFriendSwitch:
+      return true;
+
+    case meta_id::FindFriendDropdown:
+      init_screen_system_styles();
+      apply_system_control_no_chrome(obj);
+      lv_obj_add_style(obj, &s_system_dropdown_style, LV_PART_MAIN);
+      lv_obj_add_style(obj, &s_system_dropdown_focus_style,
+                       LV_PART_MAIN | LV_STATE_FOCUS_KEY);
+      lv_obj_add_style(obj, &s_system_dropdown_focus_style,
+                       LV_PART_MAIN | LV_STATE_FOCUSED);
+      hide_scrollbar_chrome(obj);
+      return true;
+
     default:
       return false;
   }
@@ -1791,6 +1854,7 @@ static bool apply_screen_child_theme(_lv_obj_t* obj) {
          apply_gps_screen_child_theme(obj) ||
          apply_recent_screen_child_theme(obj) ||
          apply_radio_screen_child_theme(obj) ||
+         apply_find_friend_screen_child_theme(obj) ||
          apply_system_screen_child_theme(obj);
 }
 

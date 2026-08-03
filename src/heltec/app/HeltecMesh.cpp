@@ -75,7 +75,10 @@ uint8_t pathHashSizeForPrefs(const NodePrefs& prefs) {
 #if defined(ENV_INCLUDE_GPS) && ENV_INCLUDE_GPS
 bool locShareCurrentGps(double* lat, double* lon) {
   LocationProvider* loc = sensors.getLocationProvider();
-  if (!loc || !loc->isValid()) return false;
+  if (!loc || !loc->isEnabled() || !loc->isValid()) return false;
+#if defined(HELTEC_SENSOR_MANAGER) && HELTEC_SENSOR_MANAGER
+  if (!sensors.hasFreshGpsFix()) return false;
+#endif
   *lat = sensors.node_lat;
   *lon = sensors.node_lon;
   return true;
@@ -226,6 +229,10 @@ void HeltecMesh::applyLoRaCarrierMHz(HeltecMesh& mesh, float mhz, bool apply_rad
 
 uint32_t HeltecMesh::locShareAdvertIntervalSec() {
   return s_interval_sec;
+}
+
+uint32_t HeltecMesh::locShareNextAdvertMillis() {
+  return s_next_advert_millis;
 }
 
 void HeltecMesh::setLocShareAdvertIntervalSec(uint32_t sec) {
@@ -559,6 +566,11 @@ uint8_t HeltecMesh::getExtraAckTransmitCount() const {
 }
 
 void HeltecMesh::logRxRaw(float snr, float rssi, const uint8_t raw[], int len) {
+  _last_rx_metrics.valid = true;
+  _last_rx_metrics.rssi_dbm = rssi;
+  _last_rx_metrics.snr_db = snr;
+  _last_rx_metrics.received_ms = millis();
+
   if (_serial->isConnected() && len + 3 <= MAX_FRAME_SIZE) {
     int i = 0;
     out_frame[i++] = PUSH_CODE_LOG_RX_DATA;
@@ -888,17 +900,7 @@ void HeltecMesh::queueMessage(const ContactInfo &from, uint8_t txt_type, mesh::P
   // we only want to show text messages on display, not cli data
   bool should_display = txt_type == TXT_TYPE_PLAIN || txt_type == TXT_TYPE_SIGNED_PLAIN;
   if (should_display) {
-    heltec::meshcore::history::ConversationKey key{};
-    key.type = heltec::meshcore::history::ConversationType::Direct;
-    memcpy(key.peer_prefix, from.id.pub_key, sizeof(key.peer_prefix));
-    const size_t history_len = static_cast<size_t>(tlen);
-    const bool stored = _store->appendMessage(
-        key, heltec::meshcore::history::MessageDirection::Incoming, text, history_len);
-    const int unread = _store->countUnreadMessages();
-    if (_ui) _ui->newMsg(path_len, from.name, text, unread);
-    if (stored) {
-      notifyUiDomain(heltec::meshcore::ui::AppStateEventType::MessageHistoryChanged);
-    }
+    if (_ui) _ui->newMsg(path_len, from.name, text, offline_queue_len);
     if (_ui) _ui->notify(UIEventType::contactMessage);
   }
 }
@@ -997,17 +999,7 @@ void HeltecMesh::onChannelMessageRecv(const mesh::GroupChannel &channel, mesh::P
   if (getChannel(channel_idx, channel_details)) {
     channel_name = channel_details.name;
   }
-  heltec::meshcore::history::ConversationKey key{};
-  key.type = heltec::meshcore::history::ConversationType::Channel;
-  key.channel_idx = channel_idx;
-  const size_t history_len = static_cast<size_t>(tlen);
-  const bool stored = _store->appendMessage(
-      key, heltec::meshcore::history::MessageDirection::Incoming, text, history_len);
-  const int unread = _store->countUnreadMessages();
-  if (_ui) _ui->newMsg(path_len, channel_name, text, unread);
-  if (stored) {
-    notifyUiDomain(heltec::meshcore::ui::AppStateEventType::MessageHistoryChanged);
-  }
+  if (_ui) _ui->newMsg(path_len, channel_name, text, offline_queue_len);
 }
 
 uint8_t HeltecMesh::onContactRequest(const ContactInfo &contact, uint32_t sender_timestamp, const uint8_t *data,
@@ -1277,6 +1269,7 @@ HeltecMesh::HeltecMesh(mesh::Radio &radio, mesh::RNG &rng, mesh::RTCClock &rtc, 
   _prefs.tx_power_dbm = LORA_TX_POWER;
   _prefs.gps_enabled = 0;       // GPS disabled by default
   _prefs.gps_interval = 0;      // No automatic GPS updates by default
+  _prefs.companion_link_enabled = 1; // BLE/USB companion enabled by default
   _prefs.buzzer_volume_level = 3; // Preserve the legacy fixed 3x buzzer drive by default
   //_prefs.rx_delay_base = 10.0f;  enable once new algo fixed
 }
@@ -1312,6 +1305,7 @@ void HeltecMesh::begin(bool has_display) {
   }
 
   // sanitise bad pref values
+  bool repaired_client_repeat = false;
   _prefs.rx_delay_base = constrain(_prefs.rx_delay_base, 0, 20.0f);
   _prefs.airtime_factor = constrain(_prefs.airtime_factor, 0, 9.0f);
   _prefs.freq = constrain(_prefs.freq, 400.0f, 2500.0f);
@@ -1343,6 +1337,20 @@ void HeltecMesh::begin(bool has_display) {
     }
   }
   _prefs.companion_link_enabled = constrain(_prefs.companion_link_enabled, 0, 1);
+  const uint8_t normalized_client_repeat = _prefs.client_repeat ? 1 : 0;
+  if (_prefs.client_repeat != normalized_client_repeat) {
+    _prefs.client_repeat = normalized_client_repeat;
+    repaired_client_repeat = true;
+  }
+  if (_prefs.client_repeat != 0) {
+    const uint32_t freq_khz = (uint32_t)lroundf(_prefs.freq * 1000.0f);
+    if (!isValidClientRepeatFreq(freq_khz)) {
+      MESH_DEBUG_PRINTLN("[forwarding] invalid persisted frequency %u kHz; forwarding disabled",
+                         (unsigned)freq_khz);
+      _prefs.client_repeat = 0;
+      repaired_client_repeat = true;
+    }
+  }
   _prefs.path_hash_mode = constrain(_prefs.path_hash_mode, 0, 2);
   _prefs.gps_track_armed = constrain(_prefs.gps_track_armed, 0, 1);
   _prefs.lna_enabled = constrain(_prefs.lna_enabled, 0, 1);
@@ -1355,6 +1363,7 @@ void HeltecMesh::begin(bool has_display) {
   }
   _prefs.loc_share_adv_sec = clampIntervalSec(_prefs.loc_share_adv_sec == 0 ? 60 : _prefs.loc_share_adv_sec);
   s_interval_sec = _prefs.loc_share_adv_sec;
+  if (repaired_client_repeat) savePrefs();
 
 #ifdef BLE_PIN_CODE // 123456 by default
   if (_prefs.ble_pin == 0) {
@@ -1391,22 +1400,82 @@ uint32_t HeltecMesh::getBLEPin() {
   return _active_ble_pin;
 }
 
-struct FreqRange {
-  uint32_t lower_freq, upper_freq;
-};
-
-static FreqRange repeat_freq_ranges[] = {
+static constexpr HeltecMesh::ClientRepeatFreqRange repeat_freq_ranges[] = {
   { 433000, 433000 },
   { 869000, 869000 },
   { 918000, 918000 }
 };
 
 bool HeltecMesh::isValidClientRepeatFreq(uint32_t f) const {
-  for (int i = 0; i < sizeof(repeat_freq_ranges)/sizeof(repeat_freq_ranges[0]); i++) {
-    auto r = &repeat_freq_ranges[i];
-    if (f >= r->lower_freq && f <= r->upper_freq) return true;
+  for (const auto& range : repeat_freq_ranges) {
+    if (f >= range.lower_khz && f <= range.upper_khz) return true;
   }
   return false;
+}
+
+size_t HeltecMesh::clientRepeatFrequencyCount() const {
+  return sizeof(repeat_freq_ranges) / sizeof(repeat_freq_ranges[0]);
+}
+
+bool HeltecMesh::clientRepeatFrequencyAt(size_t index, ClientRepeatFreqRange& range) const {
+  if (index >= clientRepeatFrequencyCount()) return false;
+  range = repeat_freq_ranges[index];
+  return true;
+}
+
+int HeltecMesh::currentClientRepeatFrequencyIndex() const {
+  const uint32_t freq_khz = (uint32_t)lroundf(_prefs.freq * 1000.0f);
+  for (size_t i = 0; i < clientRepeatFrequencyCount(); ++i) {
+    const auto& range = repeat_freq_ranges[i];
+    if (freq_khz >= range.lower_khz && freq_khz <= range.upper_khz) {
+      return (int)i;
+    }
+  }
+  return -1;
+}
+
+HeltecMesh::RadioConfigApplyResult HeltecMesh::applyRadioConfig(
+    uint32_t freq_khz, uint32_t bw_hz, uint8_t sf, uint8_t cr,
+    bool forwarding, bool persist_prefs) {
+  if (freq_khz < 300000 || freq_khz > 2500000) {
+    return RadioConfigApplyResult::InvalidFrequency;
+  }
+  if (bw_hz < 7000 || bw_hz > 500000) {
+    return RadioConfigApplyResult::InvalidBandwidth;
+  }
+  if (sf < 5 || sf > 12) {
+    return RadioConfigApplyResult::InvalidSpreadingFactor;
+  }
+  if (cr < 5 || cr > 8) {
+    return RadioConfigApplyResult::InvalidCodingRate;
+  }
+  if (forwarding && !isValidClientRepeatFreq(freq_khz)) {
+    return RadioConfigApplyResult::UnsupportedForwardingFrequency;
+  }
+
+  const uint32_t old_freq_khz = (uint32_t)lroundf(_prefs.freq * 1000.0f);
+  const uint32_t old_bw_hz = (uint32_t)lroundf(_prefs.bw * 1000.0f);
+  const bool old_forwarding = _prefs.client_repeat != 0;
+  const bool radio_changed = old_freq_khz != freq_khz || old_bw_hz != bw_hz ||
+                             _prefs.sf != sf || _prefs.cr != cr;
+
+  _prefs.freq = (float)freq_khz / 1000.0f;
+  _prefs.bw = (float)bw_hz / 1000.0f;
+  _prefs.sf = sf;
+  _prefs.cr = cr;
+  _prefs.client_repeat = forwarding ? 1 : 0;
+
+  if (radio_changed) {
+    radio_set_params(_prefs.freq, _prefs.bw, _prefs.sf, _prefs.cr);
+  }
+  if (persist_prefs) savePrefs();
+
+  if (old_forwarding != forwarding || (forwarding && old_freq_khz != freq_khz)) {
+    MESH_DEBUG_PRINTLN("[forwarding] enabled=%u freq=%u kHz bw=%u Hz sf=%u cr=%u",
+                       forwarding ? 1u : 0u, (unsigned)freq_khz, (unsigned)bw_hz,
+                       (unsigned)sf, (unsigned)cr);
+  }
+  return RadioConfigApplyResult::Ok;
 }
 
 void HeltecMesh::startInterface(BaseSerialInterface &serial) {
@@ -1727,6 +1796,11 @@ void HeltecMesh::handleCmdFrame(size_t len) {
       _serial->writeFrame(out_frame, 1);
     }
   } else if (cmd_frame[0] == CMD_SET_RADIO_PARAMS) {
+    if (len < 11) {
+      MESH_DEBUG_PRINTLN("Error: CMD_SET_RADIO_PARAMS: frame too short: %u", (unsigned)len);
+      writeErrFrame(ERR_CODE_ILLEGAL_ARG);
+      return;
+    }
     int i = 1;
     uint32_t freq;
     memcpy(&freq, &cmd_frame[i], 4);
@@ -1741,25 +1815,17 @@ void HeltecMesh::handleCmdFrame(size_t len) {
       repeat = cmd_frame[i++];   // FIRMWARE_VER_CODE  9+
     }
 
-    if (repeat && !isValidClientRepeatFreq(freq)) {
-      writeErrFrame(ERR_CODE_ILLEGAL_ARG);
-    } else if (freq >= 300000 && freq <= 2500000 && sf >= 5 && sf <= 12 && cr >= 5 && cr <= 8 && bw >= 7000 &&
-        bw <= 500000) {
-      _prefs.sf = sf;
-      _prefs.cr = cr;
-      _prefs.freq = (float)freq / 1000.0;
-      _prefs.bw = (float)bw / 1000.0;
-      _prefs.client_repeat = repeat;
-      savePrefs();
-
-      radio_set_params(_prefs.freq, _prefs.bw, _prefs.sf, _prefs.cr);
-      MESH_DEBUG_PRINTLN("OK: CMD_SET_RADIO_PARAMS: f=%d, bw=%d, sf=%d, cr=%d", freq, bw, (uint32_t)sf,
-                         (uint32_t)cr);
-
+    const RadioConfigApplyResult result =
+        applyRadioConfig(freq, bw, sf, cr, repeat != 0, true);
+    if (result == RadioConfigApplyResult::Ok) {
+      MESH_DEBUG_PRINTLN("OK: CMD_SET_RADIO_PARAMS: f=%u, bw=%u, sf=%u, cr=%u, repeat=%u",
+                         (unsigned)freq, (unsigned)bw, (unsigned)sf, (unsigned)cr,
+                         repeat ? 1u : 0u);
       writeOKFrame();
     } else {
-      MESH_DEBUG_PRINTLN("Error: CMD_SET_RADIO_PARAMS: f=%d, bw=%d, sf=%d, cr=%d", freq, bw, (uint32_t)sf,
-                         (uint32_t)cr);
+      MESH_DEBUG_PRINTLN("Error: CMD_SET_RADIO_PARAMS: result=%u f=%u, bw=%u, sf=%u, cr=%u, repeat=%u",
+                         (unsigned)result, (unsigned)freq, (unsigned)bw, (unsigned)sf,
+                         (unsigned)cr, repeat ? 1u : 0u);
       writeErrFrame(ERR_CODE_ILLEGAL_ARG);
     }
   } else if (cmd_frame[0] == CMD_SET_RADIO_TX_POWER) {
@@ -2298,10 +2364,11 @@ void HeltecMesh::handleCmdFrame(size_t len) {
   } else if (cmd_frame[0] == CMD_GET_ALLOWED_REPEAT_FREQ) {
     int i = 0;
     out_frame[i++] = RESP_ALLOWED_REPEAT_FREQ;
-    for (int k = 0; k < sizeof(repeat_freq_ranges)/sizeof(repeat_freq_ranges[0]) && i + 8 < sizeof(out_frame); k++) {
-      auto r = &repeat_freq_ranges[k];
-      memcpy(&out_frame[i], &r->lower_freq, 4); i += 4;
-      memcpy(&out_frame[i], &r->upper_freq, 4); i += 4;
+    for (size_t k = 0; k < clientRepeatFrequencyCount() && i + 8 <= (int)sizeof(out_frame); ++k) {
+      ClientRepeatFreqRange range{};
+      if (!clientRepeatFrequencyAt(k, range)) continue;
+      memcpy(&out_frame[i], &range.lower_khz, 4); i += 4;
+      memcpy(&out_frame[i], &range.upper_khz, 4); i += 4;
     }
     _serial->writeFrame(out_frame, i);
   } else {
@@ -2676,7 +2743,7 @@ void HeltecMesh::handleCompanionJsonCmdLineTo(BaseSerialInterface* outSerial, Pr
     return;
   }
 
-#if defined(ENV_INCLUDE_COMPASS) && (ENV_INCLUDE_COMPASS)
+#if defined(ENV_INCLUDE_GPS) && (ENV_INCLUDE_GPS)
   if (strcmp(cmd, "gps_track_export_req") == 0) {
     const uint32_t rsp_ts = getRTCClock()->getCurrentTime();
 

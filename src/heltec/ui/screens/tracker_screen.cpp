@@ -422,6 +422,7 @@ void TrackerScreen::runMapToolAction(void (*action)(TrackerScreen& self)) {
 
 void TrackerScreen::onEnter() {
   AbstractScreen::onEnter();
+  _biz.setMapForegroundActive(true);
   using namespace heltec::meshcore::ui::map;
   map_sd_on_screen_enter();
   if (!_map_work_timer || _panel.poolBuildFailed()) {
@@ -454,6 +455,7 @@ void TrackerScreen::onEnter() {
 }
 
 void TrackerScreen::onExit() {
+  _biz.setMapForegroundActive(false);
   if (_panel_attached) {
     if (_pan_active || _panel.panDragging()) {
       _panel.finish_pan();

@@ -38,12 +38,16 @@ class UiTask final : public AbstractUITask {
   int msgCount() const { return _msg_count; }
   void setMessageCount(int msgcount);
 
-  // Preview state: Badge standalone dismisses via key (PreviewOverlay) or auto timeout in loop().
-  bool isPreviewActive() const { return _preview_unread > 0; }
-  const char* previewOrigin() const { return _preview_origin; }
-  const char* previewText() const { return _preview_text; }
-  uint8_t previewUnread() const { return _preview_unread; }
+  // Preview state mirrors the original MeshCore 32-entry volatile queue.
+  bool isPreviewActive() const { return _preview_count > 0; }
+  const char* previewOrigin() const { return _preview_entries[_preview_head].origin; }
+  const char* previewText() const { return _preview_entries[_preview_head].text; }
+  uint8_t previewUnread() const { return _preview_count; }
+  uint32_t previewReceivedMillis() const {
+    return _preview_entries[_preview_head].received_ms;
+  }
   uint32_t previewAgeSeconds() const;
+  bool advancePreview();
   void dismissPreview();
 
   // Alert state (compatible with legacy overlay behavior)
@@ -63,11 +67,15 @@ class UiTask final : public AbstractUITask {
   char _alert[80] = {0};
   uint32_t _alert_expiry_ms = 0;
 
-  uint32_t _preview_timestamp_ms = 0;
-  uint32_t _preview_dismiss_at_ms = 0;
-  uint8_t _preview_unread = 0;
-  char _preview_origin[48] = {0};
-  char _preview_text[80] = {0};
+  static constexpr uint8_t kPreviewCapacity = 32;
+  struct PreviewEntry {
+    uint32_t received_ms = 0;
+    char origin[62] = {};
+    char text[78] = {};
+  };
+  PreviewEntry _preview_entries[kPreviewCapacity]{};
+  uint8_t _preview_head = kPreviewCapacity - 1;
+  uint8_t _preview_count = 0;
 
   uint16_t _batt_mv = 0;
   uint32_t _batt_last_read_ms = 0;

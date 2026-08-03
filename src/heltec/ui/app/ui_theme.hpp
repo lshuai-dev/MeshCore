@@ -138,9 +138,23 @@ inline uint8_t ui_widget_radius_px() {
 }
 constexpr lv_coord_t ui_settings_row_height() {
 #if defined(HELTEC_V4_R8_TFT)
-  return 40;
+  return 32;
 #else
   return LV_SIZE_CONTENT;
+#endif
+}
+constexpr lv_coord_t ui_settings_row_pad_hor() {
+#if defined(HELTEC_V4_R8_TFT)
+  return 2;
+#else
+  return 0;
+#endif
+}
+constexpr lv_coord_t ui_settings_row_pad_ver() {
+#if defined(HELTEC_V4_R8_TFT)
+  return 2;
+#else
+  return 0;
 #endif
 }
 inline lv_color_t ui_navigation_idle_color() {
@@ -152,6 +166,8 @@ inline lv_color_t ui_navigation_focus_color() {
 bool ui_theme_init(lv_disp_t* disp);
 /** Applies the platform-specific highlight used by a focused Screen row/control. */
 void ui_theme_apply_focus_frame(_lv_obj_t* frame);
+/** Applies a borderless row highlight on TFT while preserving legacy themes elsewhere. */
+void ui_theme_apply_focus_row(_lv_obj_t* row);
 /** Removes the native focus border from a control whose parent row is highlighted. */
 void ui_theme_apply_focus_control(_lv_obj_t* control);
 /** Applies the active theme's row focus style for a row associated with a switch. */

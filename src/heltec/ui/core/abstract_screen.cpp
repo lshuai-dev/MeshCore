@@ -5,17 +5,6 @@
 #include "ui/core/ui_events.h"
 
 namespace heltec::meshcore::ui {
-namespace {
-
-bool isScrollForwardKey(uint32_t key) {
-  return key == LV_KEY_DOWN || key == LV_KEY_NEXT || key == LV_KEY_RIGHT;
-}
-
-bool isScrollBackwardKey(uint32_t key) {
-  return key == LV_KEY_UP || key == LV_KEY_PREV || key == LV_KEY_LEFT;
-}
-
-}  // namespace
 
 AbstractScreen::AbstractScreen(biz::IBizFacade& biz, const char* title, const lv_img_dsc_t* icon,
                                bool root_scroll_focus)
@@ -87,7 +76,8 @@ _lv_obj_t* AbstractScreen::focusedObject() const {
 }
 
 void AbstractScreen::addFocusItem(_lv_obj_t* object, _lv_obj_t* frame,
-                                  bool focus_on_pointer_press) {
+                                  bool focus_on_pointer_press,
+                                  FocusVisual visual) {
   if (!object || !_focus_group || _focus_item_count >= kMaxFocusItems) return;
   for (uint8_t i = 0; i < _focus_item_count; ++i) {
     if (_focus_items[i] == object) return;
@@ -105,7 +95,12 @@ void AbstractScreen::addFocusItem(_lv_obj_t* object, _lv_obj_t* frame,
     lv_obj_set_flex_align(focus_frame, LV_FLEX_ALIGN_SPACE_BETWEEN,
                           LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
   }
-  ui_theme_apply_focus_frame(focus_frame);
+  const bool row_visual = visual == FocusVisual::Row || focus_frame != object;
+  if (row_visual) {
+    ui_theme_apply_focus_row(focus_frame);
+  } else {
+    ui_theme_apply_focus_frame(focus_frame);
+  }
   if (focus_frame != object) {
     // A frame is only the visual focus surface for its child control. Generic
     // LVGL objects are CLICK_FOCUSABLE by default; leaving that flag enabled

@@ -28,6 +28,7 @@ public:
   bool setLNAEnable(bool enabled);
   void enterDeepSleep(uint32_t secs, int pin_wake_btn = -1);
   void powerOff() override;
+  bool isExternalPowered() override;
   uint16_t getBattMilliVolts() override;
   bool setAdcMultiplier(float multiplier) override {
     if (multiplier == 0.0f) {

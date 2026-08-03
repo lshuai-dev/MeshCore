@@ -17,7 +17,10 @@ namespace {
 
 bool radio_status_changed(const IBizFacade::RadioStatus& a, const IBizFacade::RadioStatus& b) {
   return a.freq_mhz != b.freq_mhz || a.bw_khz != b.bw_khz || a.cr != b.cr || a.sf != b.sf ||
-         a.tx_power_dbm != b.tx_power_dbm || a.noise_floor_dbm != b.noise_floor_dbm;
+         a.tx_power_dbm != b.tx_power_dbm || a.noise_floor_dbm != b.noise_floor_dbm ||
+         a.rx_valid != b.rx_valid || a.last_rssi_dbm != b.last_rssi_dbm ||
+         a.last_snr_db != b.last_snr_db || a.last_rx_at_ms != b.last_rx_at_ms ||
+         a.forwarding_enabled != b.forwarding_enabled;
 }
 
 }  // namespace
@@ -77,6 +80,12 @@ IBizFacade::RadioStatus MeshAppUi::radioStatus() const {
   s.sf = (int)p->sf;
   s.tx_power_dbm = (int)p->tx_power_dbm;
   s.noise_floor_dbm = (int)radio_driver.getNoiseFloor();
+  const HeltecMesh::LastRxMetrics rx = the_mesh.lastRxMetrics();
+  s.rx_valid = rx.valid;
+  s.last_rssi_dbm = rx.rssi_dbm;
+  s.last_snr_db = rx.snr_db;
+  s.last_rx_at_ms = rx.received_ms;
+  s.forwarding_enabled = p->client_repeat != 0;
   return s;
 }
 

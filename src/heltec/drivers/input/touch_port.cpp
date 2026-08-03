@@ -60,6 +60,9 @@ static int16_t s_last_y = 0;
 static bool s_last_pressed = false;
 static bool s_touch_down = false;
 static bool s_hw_pressed = false;
+static int16_t s_press_start_x = 0;
+static int16_t s_press_start_y = 0;
+static bool s_press_start_valid = false;
 
 enum class ReleaseBarrier : uint8_t {
   Inactive,
@@ -218,6 +221,7 @@ static void readCb(lv_indev_drv_t* drv, lv_indev_data_t* data) {
       resetGestureHook();
       s_touch_down = false;
       s_last_pressed = false;
+      s_press_start_valid = false;
       deliverReleased(data, s_last_x, s_last_y);
       return;
     }
@@ -230,6 +234,7 @@ static void readCb(lv_indev_drv_t* drv, lv_indev_data_t* data) {
       release.y = (uint16_t)s_last_y;
       // s_last_x/s_last_y are already mapped display coordinates.
       deliverPointer(data, release, false);
+      s_press_start_valid = false;
     } else {
       Sample idle;
       idle.pressed = false;
@@ -252,6 +257,11 @@ static void readCb(lv_indev_drv_t* drv, lv_indev_data_t* data) {
     return;
   }
   s_touch_down = true;
+  if (!s_press_start_valid) {
+    s_press_start_x = (int16_t)sample.x;
+    s_press_start_y = (int16_t)sample.y;
+    s_press_start_valid = true;
+  }
   deliverPointer(data, sample, true);
 }
 
@@ -259,6 +269,9 @@ static bool registerPointerIndev() {
   lv_indev_drv_init(&s_indev_drv);
   s_indev_drv.type = LV_INDEV_TYPE_POINTER;
   s_indev_drv.read_cb = readCb;
+#ifdef HELTEC_TOUCH_GESTURE_SWIPE_PX
+  s_indev_drv.gesture_limit = HELTEC_TOUCH_GESTURE_SWIPE_PX;
+#endif
   s_indev = lv_indev_drv_register(&s_indev_drv);
   s_ready = (s_indev != nullptr);
   return s_ready;
@@ -272,6 +285,7 @@ bool init(uint16_t hor_res, uint16_t ver_res) {
   s_hw_pressed = false;
   s_touch_down = false;
   s_last_pressed = false;
+  s_press_start_valid = false;
   s_release_barrier = ReleaseBarrier::Inactive;
   s_hor_res = hor_res;
   s_ver_res = ver_res;
@@ -290,6 +304,17 @@ bool isReady() { return s_ready; }
 // event in this window even though the controller has already reported no
 // contact; callers must not treat that event as a tap.
 bool isPressed() { return s_hw_pressed || release_barrier_active(); }
+
+bool isNativeScrolling() {
+  return s_indev && lv_indev_get_scroll_obj(s_indev) != nullptr;
+}
+
+bool getPressStart(int16_t& x, int16_t& y) {
+  if (!s_press_start_valid) return false;
+  x = s_press_start_x;
+  y = s_press_start_y;
+  return true;
+}
 
 void requestReleaseBarrier() { request_release_barrier(); }
 

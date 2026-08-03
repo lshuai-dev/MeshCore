@@ -19,25 +19,6 @@ void SystemScreen::handleAction(SysAction action) {
 void SystemScreen::executeAction(SysAction action) {
   biz::IBizFacade& app = _biz;
   switch (action) {
-    case SysAction::WpGps:
-#if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
-    {
-      const biz::IBizFacade::GpsStatus gps = app.gpsStatus();
-      if (gps.fix_valid && app.setFindFriendWaypoint(gps.lat_deg, gps.lon_deg)) {
-        char buf[48];
-        app.formatFindFriendWaypointInput(buf, sizeof(buf));
-        _feedback.showAlert(buf[0] ? buf : "Saved", 3000);
-      } else if (!gps.fix_valid) {
-        _feedback.showAlert("Need GPS fix", 3000);
-      }
-    }
-#endif
-      break;
-    case SysAction::WpManual:
-#if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
-        emitEvent(UiEventType::WaypointKeyboardOpen);
-#endif
-      break;
     case SysAction::FactoryReset:
       if (app.factoryReset()) {
         _feedback.showAlert("Factory reset complete\nRestarting...", 1600);

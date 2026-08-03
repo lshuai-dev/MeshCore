@@ -2,6 +2,9 @@
 
 #include <MeshCore.h>
 #include <Wire.h>
+#if defined(ARDUINO_USB_MODE) && ARDUINO_USB_MODE
+#include <HWCDC.h>
+#endif
 
 #if defined(HELTEC_MESH_UI) && HELTEC_MESH_UI
 #include <SPI.h>
@@ -22,6 +25,11 @@ void HeltecV4R8Board::begin() {
   periph_power.begin();
   periph_power.claim();
   delay(10);
+
+#if defined(PIN_GPS_EN) && PIN_GPS_EN >= 0
+  pinMode(PIN_GPS_EN, OUTPUT);
+  digitalWrite(PIN_GPS_EN, !PIN_GPS_EN_ACTIVE);
+#endif
 
 #if defined(PIN_BOARD_SDA) && defined(PIN_BOARD_SCL)
 #if PIN_BOARD_SDA >= 0 && PIN_BOARD_SCL >= 0
@@ -137,6 +145,15 @@ void HeltecV4R8Board::enterDeepSleep(uint32_t secs, int pin_wake_btn) {
 
 void HeltecV4R8Board::powerOff() {
   enterDeepSleep(0);
+}
+
+bool HeltecV4R8Board::isExternalPowered() {
+#if defined(ARDUINO_USB_MODE) && ARDUINO_USB_MODE
+  // ESP32-S3 exposes host SOF state but has no separate charger-only VBUS input.
+  return HWCDC::isPlugged();
+#else
+  return false;
+#endif
 }
 
 uint16_t HeltecV4R8Board::getBattMilliVolts() {

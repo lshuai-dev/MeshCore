@@ -12,12 +12,6 @@ namespace heltec::meshcore::dal::touch_input {
 
 using WakeFn = bool (*)();
 using GestureBlockFn = bool (*)(int16_t x, int16_t y);
-enum class SwipeAxis : uint8_t {
-  Horizontal = 0,
-  Vertical = 1,
-};
-/** Horizontal dir: +1 next tile, -1 previous tile. Vertical dir: +1 down, -1 up. */
-using SwipeFn = void (*)(SwipeAxis axis, int8_t dir, int16_t start_x, int16_t start_y);
 
 struct UiHooks {
   WakeFn wake = nullptr;
@@ -25,11 +19,8 @@ struct UiHooks {
   /** Return true to route the complete touch sequence directly to LVGL. */
   GestureBlockFn raw_pointer_passthrough = nullptr;
 #endif
-  GestureBlockFn block_horizontal_swipe = nullptr;
-  GestureBlockFn block_vertical_swipe = nullptr;
   GestureBlockFn block_long_enter = nullptr;
   GestureBlockFn block_double_tap = nullptr;
-  SwipeFn on_swipe = nullptr;
 };
 
 #if HELTEC_TOUCH_INPUT

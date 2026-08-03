@@ -4,10 +4,9 @@
 #include <helpers/ContactInfo.h>
 #include <helpers/ChannelDetails.h>
 #include "config/NodePrefs.h"
-#include "config/MessageHistory.h"
 #include <stddef.h>
 
-#if defined(ENV_INCLUDE_COMPASS) && (ENV_INCLUDE_COMPASS)
+#if defined(ENV_INCLUDE_GPS) && (ENV_INCLUDE_GPS)
 struct GpsTrackExportPoint {
   uint32_t t_ms;
   int32_t lat_e6;
@@ -56,14 +55,18 @@ public:
 #if defined(ENV_INCLUDE_COMPASS) && (ENV_INCLUDE_COMPASS)
   bool loadFindFriendCompassSettings(int& mode, int& wpValid, double& wpLat, double& wpLon,
                                      uint16_t& trackMinDistCm, int* friendIdx = nullptr,
-                                     uint32_t* advSec = nullptr, uint16_t* trackIntervalMin = nullptr);
+                                     uint32_t* advSec = nullptr, uint16_t* trackIntervalMin = nullptr,
+                                     bool* enabled = nullptr);
   void saveFindFriendCompassSettings(int mode, int wpValid, double wpLat, double wpLon,
                                      uint16_t trackMinDistCm, int friendIdx = -1,
-                                     uint32_t advSec = 60, uint16_t trackIntervalMin = 1);
+                                     uint32_t advSec = 60, uint16_t trackIntervalMin = 1,
+                                     bool enabled = false);
   /** Memsic soft-iron Hmm[4] from figure-8 calibration (/compass_mag_cal). */
   bool hasCompassMagCal() const;
   bool loadCompassMagCal(float hmm[4]) const;
   bool saveCompassMagCal(const float hmm[4]);
+#endif
+#if defined(ENV_INCLUDE_GPS) && (ENV_INCLUDE_GPS)
   bool isGpsTrackRecordingOpen() const;
   bool beginGpsTrackRecording(uint32_t startUtcEpoch);
   void endGpsTrackRecording(uint32_t endUtcEpoch);
@@ -90,29 +93,13 @@ public:
   File openRead(FILESYSTEM* fs, const char* filename);
   bool removeFile(const char* filename);
   bool removeFile(FILESYSTEM* fs, const char* filename);
+  bool clearLegacyMessageFiles();
   uint32_t getStorageUsedKb() const;
   uint32_t getStorageTotalKb() const;
 
-  bool appendMessage(const heltec::meshcore::history::ConversationKey& key,
-                     heltec::meshcore::history::MessageDirection direction,
-                     const char* text, size_t text_len);
-  int fillRecentConversations(int offset,
-                              heltec::meshcore::history::ConversationSummary* items,
-                              int max_items, int* total_items);
-  int fillConversationMessages(const heltec::meshcore::history::ConversationKey& key,
-                               int offset_from_latest,
-                               heltec::meshcore::history::MessageItem* items,
-                               int max_items, int* total_items);
-  bool markConversationRead(const heltec::meshcore::history::ConversationKey& key);
-  int countUnreadMessages();
-  bool clearMessageHistory();
-
 private:
   FILESYSTEM* _getContactsChannelsFS() const { if (_fsExtra) return _fsExtra; return _fs;};
-  bool ensureMessageHistory();
-  uint32_t _messageMaxSequence = 0;
-  bool _messageHistoryReady = false;
-#if defined(ENV_INCLUDE_COMPASS) && (ENV_INCLUDE_COMPASS)
+#if defined(ENV_INCLUDE_GPS) && (ENV_INCLUDE_GPS)
 #if defined(NRF52_PLATFORM) || defined(STM32_PLATFORM)
   bool _allowGpsTrackFileOpen = false;
   File* _gpsTrackFile = nullptr;

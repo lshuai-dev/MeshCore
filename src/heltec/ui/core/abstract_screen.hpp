@@ -20,6 +20,11 @@ namespace heltec::meshcore::ui {
 
 class AbstractScreen : public UiSurface {
  public:
+  enum class FocusVisual : uint8_t {
+    Control,
+    Row,
+  };
+
   AbstractScreen(biz::IBizFacade& biz, const char* title, const lv_img_dsc_t* icon,
                  bool root_scroll_focus = true);
   virtual ~AbstractScreen() = default;
@@ -36,7 +41,9 @@ class AbstractScreen : public UiSurface {
   _lv_obj_t* create(_lv_obj_t* parent) override;
   _lv_obj_t* createRoot(_lv_obj_t* parent) override;
   bool onKey(uint32_t key) override;
-  void addFocusItem(_lv_obj_t* object, _lv_obj_t* frame = nullptr,bool focus_on_pointer_press = true);
+  void addFocusItem(_lv_obj_t* object, _lv_obj_t* frame = nullptr,
+                    bool focus_on_pointer_press = true,
+                    FocusVisual visual = FocusVisual::Control);
 
  private:
   static constexpr uint8_t kMaxFocusItems = 16;

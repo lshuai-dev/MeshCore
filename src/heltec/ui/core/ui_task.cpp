@@ -51,10 +51,6 @@ static void ensure_buzzer_hw() {
 }
 #endif
 
-#ifndef PREVIEW_AUTO_DISMISS_MS
-#define PREVIEW_AUTO_DISMISS_MS 15000
-#endif
-
 #ifndef UI_BATT_POLL_MS
 #define UI_BATT_POLL_MS 10000
 #endif
@@ -170,9 +166,7 @@ void UiTask::begin(NodePrefs* node_prefs) {
 }
 
 void UiTask::msgRead(int msgcount) {
-  // This callback tracks the companion app's volatile offline queue. Device
-  // unread state is maintained separately by the persistent message history.
-  (void)msgcount;
+  setMessageCount(msgcount);
 }
 
 void UiTask::setMessageCount(int msgcount) {
@@ -184,26 +178,22 @@ void UiTask::setMessageCount(int msgcount) {
 }
 
 void UiTask::newMsg(uint8_t path_len, const char* from_name, const char* text, int msgcount) {
-  _msg_count = msgcount;
-  // Minimal preview capture for overlay. Keep short and ASCII-safe.
-  _preview_timestamp_ms = millis();
-  _preview_dismiss_at_ms = _preview_timestamp_ms + PREVIEW_AUTO_DISMISS_MS;
-  if (_preview_unread < 255) _preview_unread++;
+  setMessageCount(msgcount);
+  _preview_head = static_cast<uint8_t>((_preview_head + 1U) % kPreviewCapacity);
+  if (_preview_count < kPreviewCapacity) ++_preview_count;
+  PreviewEntry& entry = _preview_entries[_preview_head];
+  entry.received_ms = millis();
   if (!from_name) from_name = "";
   if (!text) text = "";
   if (path_len == 0xFF) {
-    snprintf(_preview_origin, sizeof(_preview_origin), "(D) %s:", from_name);
+    snprintf(entry.origin, sizeof(entry.origin), "(D) %s:", from_name);
   } else {
-    snprintf(_preview_origin, sizeof(_preview_origin), "(%u) %s:", (unsigned)path_len, from_name);
+    snprintf(entry.origin, sizeof(entry.origin), "(%u) %s:", (unsigned)path_len, from_name);
   }
-  snprintf(_preview_text, sizeof(_preview_text), "%s", text);
-
-  AppStateEvent ev{};
-  ev.type = AppStateEventType::UnreadMessageCountChanged;
-  ev.unread.count = (msgcount < 0) ? 0 : (msgcount > 255 ? 255 : (uint8_t)msgcount);
-  app_state_notifier().notify(ev);
+  snprintf(entry.text, sizeof(entry.text), "%s", text);
   if (_ui_host && _ui_host->isReady()) {
-    _ui_host->openPreviewOverlay(_preview_unread, previewAgeSeconds(), _preview_origin, _preview_text);
+    _ui_host->openPreviewOverlay(_preview_count, entry.received_ms,
+                                 entry.origin, entry.text);
   }
 }
 
@@ -254,10 +244,6 @@ void UiTask::loop() {
     digitalWrite(PIN_BUZZER, LOW);
   }
 #endif
-  if (_preview_unread > 0 && _preview_dismiss_at_ms != 0 &&
-      (int32_t)(millis() - _preview_dismiss_at_ms) >= 0) {
-    if (_ui_host) _ui_host->closePreviewOverlay();
-  }
   const uint32_t alert_now = millis();
   if (_alert_expiry_ms != 0 && (int32_t)(alert_now - _alert_expiry_ms) >= 0) {
     UI_TASK_ALERT_LOG("expiry now=%lu expiry=%lu text=%s host=%p",
@@ -428,17 +414,24 @@ void UiTask::dismissAlert() {
 }
 
 uint32_t UiTask::previewAgeSeconds() const {
-  if (_preview_timestamp_ms == 0) return 0;
-  const uint32_t age_ms = millis() - _preview_timestamp_ms;
+  if (_preview_count == 0) return 0;
+  const uint32_t age_ms = millis() - _preview_entries[_preview_head].received_ms;
   return age_ms / 1000U;
 }
 
+bool UiTask::advancePreview() {
+  if (_preview_count == 0) return false;
+  --_preview_count;
+  if (_preview_count == 0) return false;
+  _preview_head = static_cast<uint8_t>((_preview_head + kPreviewCapacity - 1U) %
+                                       kPreviewCapacity);
+  return true;
+}
+
 void UiTask::dismissPreview() {
-  _preview_unread = 0;
-  _preview_timestamp_ms = 0;
-  _preview_dismiss_at_ms = 0;
-  _preview_origin[0] = '\0';
-  _preview_text[0] = '\0';
+  _preview_count = 0;
+  _preview_head = kPreviewCapacity - 1;
+  for (PreviewEntry& entry : _preview_entries) entry = PreviewEntry{};
 }
 
 }  // namespace heltec::meshcore::ui

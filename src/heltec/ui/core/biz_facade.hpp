@@ -1,7 +1,6 @@
 #pragma once
 #include <stddef.h>
 #include <stdint.h>
-#include "config/MessageHistory.h"
 #include "ui_feedback.hpp"
 
 namespace heltec::meshcore::biz {
@@ -63,6 +62,14 @@ class IBizFacade : public ui::IFeedback {
  public:
   virtual ~IBizFacade() = default;
 
+  enum class ForwardingApplyResult : uint8_t {
+    Ok,
+    InvalidSelection,
+    InvalidRadioParams,
+    UnsupportedFrequency,
+    Unavailable,
+  };
+
   // Snapshot types returned to screens. Keep the facade as the single UI/business
   // boundary; these groups are organizational and are not separate interfaces.
   struct RadioStatus {
@@ -72,18 +79,28 @@ class IBizFacade : public ui::IFeedback {
     int sf = 0;
     int tx_power_dbm = 0;
     int noise_floor_dbm = 0;
+    bool rx_valid = false;
+    float last_rssi_dbm = 0.0f;
+    float last_snr_db = 0.0f;
+    uint32_t last_rx_at_ms = 0;
+    bool forwarding_enabled = false;
   };
 
   struct GpsStatus {
     bool enabled = false;
     bool available = false;
+    bool powered = false;
     bool fix_valid = false;
+    /** Milliseconds since the most recent valid GPS fix was received. */
+    uint32_t fix_valid_ms = 0;
     uint8_t satellites = 0;
     long lat_micro = 0;  // millionths of a degree (MicroNMEA raw)
     long lon_micro = 0;
     double lat_deg = 0.0;
     double lon_deg = 0.0;
     double alt_m = 0.0;
+    /** GPS ground speed in km/h, or a negative value when unavailable. */
+    float speed_kph = -1.0f;
   };
 
   // Messaging data and commands.
@@ -95,8 +112,14 @@ class IBizFacade : public ui::IFeedback {
   virtual int sendMessageGroupCount() const = 0;
   virtual bool sendMessageGroupAt(int index, int* channel_idx, char* label, size_t label_len) const = 0;
   virtual int currentLoRaBandPresetIndex() const = 0;
+  virtual int currentExactLoRaBandPresetIndex() const = 0;
   virtual int loRaBandPresetCount() const = 0;
   virtual const char* loRaBandPresetName(int preset_index) const = 0;
+  virtual bool forwardingEnabled() const = 0;
+  virtual int forwardingFrequencyCount() const = 0;
+  virtual bool forwardingFrequencyRange(int index, uint32_t* lower_khz,
+                                        uint32_t* upper_khz) const = 0;
+  virtual int currentForwardingFrequencyIndex() const = 0;
 
   // Read-only device and screen state.
   virtual RadioStatus radioStatus() const = 0;
@@ -112,29 +135,12 @@ class IBizFacade : public ui::IFeedback {
   virtual bool hasCompanionConnection() const = 0;
   virtual uint32_t companionPairingPin() const = 0;
 
-  using MessageConversationKey = heltec::meshcore::history::ConversationKey;
-
-  struct RecentConversationItem {
-    MessageConversationKey key{};
-    char label[32]{};
+  struct RecentlyHeardItem {
+    char name[32]{};
     int32_t age_seconds = 0;
-    uint16_t unread = 0;
   };
-  virtual int fillRecentConversations(int offset, RecentConversationItem* items,
-                                      int max_items, int* total_items) const = 0;
-
-  struct ConversationMessageItem {
-    uint32_t sequence = 0;
-    uint32_t timestamp = 0;
-    bool outgoing = false;
-    char text[heltec::meshcore::history::kMessageTextMax + 1]{};
-  };
-  virtual int fillConversationMessages(const MessageConversationKey& key,
-                                       int offset_from_latest,
-                                       ConversationMessageItem* items,
-                                       int max_items, int* total_items) const = 0;
-  virtual void markConversationRead(const MessageConversationKey& key) = 0;
-  virtual int deviceUnreadMessageCount() const = 0;
+  virtual int fillRecentlyHeard(RecentlyHeardItem* items,
+                                int max_items) const = 0;
 
   virtual const CompassUi& compassUi() const = 0;
   virtual FindFriendUi findFriendUi() const = 0;
@@ -144,6 +150,7 @@ class IBizFacade : public ui::IFeedback {
   virtual int locShareIntervalIndex() const = 0;
   virtual int locShareIntervalOptionCount() const = 0;
   virtual const char* locShareIntervalOptionLabel(int index) const = 0;
+  virtual bool findFriendEnabled() const = 0;
   virtual int findFriendMode() const = 0;
   virtual void formatFindFriendWaypointInput(char* buf, size_t buf_len) const = 0;
   virtual int findFriendContactCount() const = 0;
@@ -170,6 +177,8 @@ class IBizFacade : public ui::IFeedback {
   virtual bool sendDirectMessage(const uint8_t pub_key_prefix[6], const char* text) = 0;
   virtual bool sendGroupMessage(int channel_idx, const char* text) = 0;
   virtual void setLoRaBandPresetIndex(int preset_index) = 0;
+  virtual ForwardingApplyResult setForwardingEnabled(bool enabled,
+                                                       int frequency_index) = 0;
   virtual void requestHibernate() = 0;
   virtual void setBuzzerEnabled(bool enabled) = 0;
   virtual void setBuzzerVolumeLevel(uint8_t level) { (void)level; }
@@ -177,6 +186,10 @@ class IBizFacade : public ui::IFeedback {
   virtual void setCompanionLinkEnabled(bool enabled) = 0;
   virtual void setLocationShareEnabled(bool enabled) = 0;
   virtual void setLocShareIntervalIndex(int index) = 0;
+  virtual bool setFindFriendEnabled(bool enabled) = 0;
+  virtual void setGpsForegroundActive(bool active) { (void)active; }
+  virtual void setMapForegroundActive(bool active) { (void)active; }
+  virtual void setFindFriendForegroundActive(bool active) { (void)active; }
   virtual int displayAutoOffIndex() const { return 0; }
   virtual void setDisplayAutoOffIndex(int index) { (void)index; }
   virtual int displayAutoOffOptionCount() const { return 0; }

@@ -5,9 +5,6 @@
 #if ENV_INCLUDE_GPS
 #include <stdio.h>
 #endif
-#if ENV_INCLUDE_GPS && defined(GPS_UC6580) && defined(GPS_UC6580_CONFIGURE) && GPS_UC6580_CONFIGURE
-#include "Uc6580Config.h"
-#endif
 #if defined(HELTEC_MESH_UI) && HELTEC_MESH_UI
 #include "heltec/ui/core/app_state_notifier.hpp"
 #endif
@@ -584,62 +581,132 @@ void initGpsSerial() {
   #endif
 }
 
-void waitForGps(LocationProvider* location, uint16_t wait_ms) {
-  if (!location || wait_ms == 0) return;
+#if defined(GPS_UC6580) && defined(GPS_UC6580_CONFIGURE) && GPS_UC6580_CONFIGURE
+constexpr uint8_t kUcConfigLastStep = 13;
 
-  const uint32_t started_at = millis();
-  while ((uint32_t)(millis() - started_at) < wait_ms) {
-    location->loop();
-    delay(10);
+void sendUcConfigStep(LocationProvider* location, uint8_t step, uint32_t& settle_ms) {
+  if (!location) return;
+  char cmd[40] = {0};
+  settle_ms = 100;
+  switch (step) {
+    case 1:
+      location->sendSentence("$CFGSYS,h35155");
+      settle_ms = 750;
+      break;
+    case 2:
+      snprintf(cmd, sizeof(cmd), "$CFGNAV,%u,%u,100", (unsigned)kGpsNmeaIntervalMs,
+               (unsigned)kGpsNmeaIntervalMs);
+      location->sendSentence(cmd);
+      settle_ms = 250;
+      break;
+    case 3: location->sendSentence("$CFGMSG,0,1,0"); break;
+    case 4: location->sendSentence("$CFGMSG,0,2,0"); break;
+    case 5: location->sendSentence("$CFGMSG,0,3,0"); break;
+    case 6: location->sendSentence("$CFGMSG,0,5,0"); break;
+    case 7: location->sendSentence("$CFGMSG,0,6,0"); break;
+    case 8: location->sendSentence("$CFGMSG,0,7,0"); break;
+    case 9: location->sendSentence("$CFGMSG,0,8,0"); break;
+    case 10: location->sendSentence("$CFGMSG,6,0,0"); break;
+    case 11: location->sendSentence("$CFGMSG,6,1,0"); break;
+    case 12: location->sendSentence("$CFGMSG,0,0,1"); break;
+    case 13: location->sendSentence("$CFGMSG,0,4,1"); break;
+    default: break;
   }
 }
-
-void sendGpsCommand(LocationProvider* location, const char* label, const char* sentence,
-                    uint16_t settle_ms) {
-  if (!location || !label || !sentence) return;
-  MESH_DEBUG_PRINTLN("[gps] L76K %s TX", label);
-  location->sendSentence(sentence);
-  waitForGps(location, settle_ms);
-  MESH_DEBUG_PRINTLN("[gps] L76K %s settled", label);
-}
-
-#if defined(GPS_L76K)
-void configureL76K(LocationProvider* location) {
-  if (!location || !location->isEnabled()) return;
-
-  char interval_cmd[24] = {0};
-  snprintf(interval_cmd, sizeof(interval_cmd), "$PCAS02,%u", (unsigned)kGpsNmeaIntervalMs);
-
-  MESH_DEBUG_PRINTLN("[gps] configure L76K: GGA+RMC %uHz interval=%ums",
-                     (unsigned)kGpsNmeaRateHz, (unsigned)kGpsNmeaIntervalMs);
-
-  // V4 R8 TFT powers the L76K immediately before this call. The bounded GPS
-  // poll keeps startup noise from monopolising the ESP32 task while the CASIC
-  // command parser becomes ready.
-  MESH_DEBUG_PRINTLN("[gps] L76K startup wait begin");
-  waitForGps(location, 1200);
-  MESH_DEBUG_PRINTLN("[gps] L76K startup wait done");
-
-  // Only configure the requested update interval and sentence set. Constellation
-  // and navigation-mode commands are intentionally left untouched.
-  sendGpsCommand(location, "PCAS02", interval_cmd, 100);
-  sendGpsCommand(location, "PCAS03", "$PCAS03,1,0,0,0,1,0,0,0,0,0,,,0,0", 100);
-
-  MESH_DEBUG_PRINTLN("[gps] L76K config sequence sent");
-}
-#endif
-
-void configureGpsModule(LocationProvider* location) {
-#if defined(GPS_UC6580) && defined(GPS_UC6580_CONFIGURE) && GPS_UC6580_CONFIGURE
-  Uc6580Config::apply(location);
 #elif defined(GPS_L76K)
-  configureL76K(location);
-#else
-  (void)location;
+constexpr uint8_t kL76KConfigLastStep = 2;
 #endif
-}
 
 }  // namespace
+
+void HeltecEnvironmentSensorManager::beginGpsModuleConfiguration() {
+  // Step commands from loop() so a screen wake never blocks on module startup delays.
+  gps_config_pending = false;
+  gps_config_step = 0;
+
+#if defined(GPS_UC6580) && defined(GPS_UC6580_CONFIGURE) && GPS_UC6580_CONFIGURE
+  gps_config_pending = true;
+  gps_config_due_ms = millis() + 1200;
+  MESH_DEBUG_PRINTLN("[gps] configure UC6580: GGA+RMC %uHz nav_rate=%ums",
+                     (unsigned)kGpsNmeaRateHz, (unsigned)kGpsNmeaIntervalMs);
+#elif defined(GPS_L76K)
+  gps_config_pending = true;
+  gps_config_due_ms = millis() + 1200;
+  MESH_DEBUG_PRINTLN("[gps] configure L76K: GGA+RMC %uHz interval=%ums",
+                     (unsigned)kGpsNmeaRateHz, (unsigned)kGpsNmeaIntervalMs);
+#endif
+}
+
+void HeltecEnvironmentSensorManager::pollGpsModuleConfiguration() {
+  if (!gps_config_pending || !gps_active || !_location || !_location->isEnabled()) return;
+
+  const uint32_t now_ms = millis();
+  if ((int32_t)(now_ms - gps_config_due_ms) < 0) return;
+
+  ++gps_config_step;
+  uint32_t settle_ms = 100;
+#if defined(GPS_UC6580) && defined(GPS_UC6580_CONFIGURE) && GPS_UC6580_CONFIGURE
+  sendUcConfigStep(_location, gps_config_step, settle_ms);
+  if (gps_config_step >= kUcConfigLastStep) {
+    gps_config_pending = false;
+    MESH_DEBUG_PRINTLN("[gps] UC6580 config sequence sent");
+    return;
+  }
+#elif defined(GPS_L76K)
+  if (gps_config_step == 1) {
+    char interval_cmd[24] = {0};
+    snprintf(interval_cmd, sizeof(interval_cmd), "$PCAS02,%u", (unsigned)kGpsNmeaIntervalMs);
+    _location->sendSentence(interval_cmd);
+  } else if (gps_config_step == 2) {
+    _location->sendSentence("$PCAS03,1,0,0,0,1,0,0,0,0,0,,,0,0");
+  }
+  if (gps_config_step >= kL76KConfigLastStep) {
+    gps_config_pending = false;
+    MESH_DEBUG_PRINTLN("[gps] L76K config sequence sent");
+    return;
+  }
+#else
+  gps_config_pending = false;
+  return;
+#endif
+  gps_config_due_ms = now_ms + settle_ms;
+}
+
+void HeltecEnvironmentSensorManager::clearGpsFixState() {
+  gps_fix_seen = false;
+  gps_last_fix_ms = 0;
+  gps_last_fix_timestamp = 0;
+  gps_last_fix_lat = 0;
+  gps_last_fix_lon = 0;
+  gps_last_fix_alt = 0;
+  gps_last_fix_sats = 0;
+}
+
+void HeltecEnvironmentSensorManager::updateGpsFixState() {
+  if (!gps_active || !_location || !_location->isEnabled() || !_location->isValid()) return;
+
+  const long timestamp = _location->getTimestamp();
+  const long lat = _location->getLatitude();
+  const long lon = _location->getLongitude();
+  const long alt = _location->getAltitude();
+  const long sats = _location->satellitesCount();
+  if (gps_fix_seen && timestamp == gps_last_fix_timestamp && lat == gps_last_fix_lat &&
+      lon == gps_last_fix_lon && alt == gps_last_fix_alt && sats == gps_last_fix_sats) {
+    return;
+  }
+
+  gps_fix_seen = true;
+  gps_last_fix_ms = millis();
+  gps_last_fix_timestamp = timestamp;
+  gps_last_fix_lat = lat;
+  gps_last_fix_lon = lon;
+  gps_last_fix_alt = alt;
+  gps_last_fix_sats = sats;
+}
+
+uint32_t HeltecEnvironmentSensorManager::gpsFixValidMs() const {
+  return gps_fix_seen ? (millis() - gps_last_fix_ms) : 0;
+}
 
 void HeltecEnvironmentSensorManager::initBasicGPS() {
 
@@ -648,6 +715,8 @@ void HeltecEnvironmentSensorManager::initBasicGPS() {
   // Try to detect if GPS is physically connected to determine if we should expose the setting
   _location->begin();
   _location->reset();
+  gps_active = true;
+  clearGpsFixState();
 
   #ifndef PIN_GPS_EN
     MESH_DEBUG_PRINTLN("No GPS wake/reset pin found for this board. Continuing on...");
@@ -656,13 +725,11 @@ void HeltecEnvironmentSensorManager::initBasicGPS() {
 #ifdef ENV_SKIP_GPS_DETECT
   gps_detected = true;
   #ifdef PERSISTANT_GPS
-  gps_active = true;
-  configureGpsModule(_location);
+  beginGpsModuleConfiguration();
   MESH_DEBUG_PRINTLN("GPS detected (ENV_SKIP_GPS_DETECT)");
   return;
   #endif
-  _location->stop();
-  gps_active = false;
+  stop_gps();
   MESH_DEBUG_PRINTLN("GPS detected (ENV_SKIP_GPS_DETECT)");
   return;
 #endif
@@ -681,15 +748,13 @@ void HeltecEnvironmentSensorManager::initBasicGPS() {
   if (gps_detected) {
     MESH_DEBUG_PRINTLN("GPS detected");
     #ifdef PERSISTANT_GPS
-      configureGpsModule(_location);
-      gps_active = true;
+      beginGpsModuleConfiguration();
       return;
     #endif
   } else {
     MESH_DEBUG_PRINTLN("No GPS detected");
   }
-  _location->stop();
-  gps_active = false; //Set GPS visibility off until setting is changed
+  stop_gps();  // Set GPS visibility off until setting is changed.
 }
 
 // gps code for rak might be moved to MicroNMEALoactionProvider
@@ -779,6 +844,10 @@ bool HeltecEnvironmentSensorManager::gpsIsAwake(uint8_t ioPin){
 #endif
 
 void HeltecEnvironmentSensorManager::start_gps() {
+  if (gps_active && _location && _location->isEnabled()) return;
+
+  clearGpsFixState();
+  gps_config_pending = false;
   gps_active = true;
   #ifdef RAK_WISBLOCK_GPS
     pinMode(gpsResetPin, OUTPUT);
@@ -787,24 +856,29 @@ void HeltecEnvironmentSensorManager::start_gps() {
   #endif
 
   initGpsSerial();
+  _location->syncTime();
   _location->begin();
   _location->reset();
 
 #ifndef PIN_GPS_RESET
   MESH_DEBUG_PRINTLN("Start GPS is N/A on this board. Actual GPS state unchanged");
 #endif
-  configureGpsModule(_location);
+  beginGpsModuleConfiguration();
 }
 
 void HeltecEnvironmentSensorManager::stop_gps() {
   gps_active = false;
+  gps_config_pending = false;
+  clearGpsFixState();
   #ifdef RAK_WISBLOCK_GPS
     pinMode(gpsResetPin, OUTPUT);
     digitalWrite(gpsResetPin, LOW);
     return;
   #endif
 
+  _location->syncTime();
   _location->stop();
+  Serial1.end();
 
   #ifndef PIN_GPS_EN
   MESH_DEBUG_PRINTLN("Stop GPS is N/A on this board. Actual GPS state unchanged");
@@ -822,8 +896,11 @@ void HeltecEnvironmentSensorManager::loop() {
   static long last_lon = 0;
   static long last_alt = 0;
   static long last_sats = 0;
+  static uint32_t last_fix_valid_ms = 0;
   if (_location) {
     _location->loop();
+    pollGpsModuleConfiguration();
+    updateGpsFixState();
   }
   if (millis() > next_gps_update) {
     if (gps_active) {
@@ -845,15 +922,17 @@ void HeltecEnvironmentSensorManager::loop() {
 #if defined(HELTEC_MESH_UI) && HELTEC_MESH_UI
     if (_location) {
       const bool enabled = gps_active && _location->isEnabled();
-      const bool fix = enabled && _location->isValid();
+      const bool fix = enabled && hasFreshGpsFix() && _location->isValid();
+      const uint32_t fix_valid_ms = gps_fix_seen ? gpsFixValidMs() : 0;
       const long lat = fix ? _location->getLatitude() : 0;
       const long lon = fix ? _location->getLongitude() : 0;
       const long alt = fix ? _location->getAltitude() : 0;
       const long sats = enabled ? _location->satellitesCount() : 0;
       if (enabled != last_enabled || fix != last_fix || lat != last_lat || lon != last_lon ||
-          alt != last_alt || sats != last_sats) {
+          alt != last_alt || sats != last_sats || fix_valid_ms != last_fix_valid_ms) {
         last_enabled = enabled;
         last_fix = fix;
+        last_fix_valid_ms = fix_valid_ms;
         last_lat = lat;
         last_lon = lon;
         last_alt = alt;
@@ -862,13 +941,16 @@ void HeltecEnvironmentSensorManager::loop() {
         ev.type = heltec::meshcore::ui::AppStateEventType::GpsChanged;
         ev.gps.enabled = enabled;
         ev.gps.available = true;
+        ev.gps.powered = enabled;
         ev.gps.fix_valid = fix;
+        ev.gps.fix_valid_ms = fix_valid_ms;
         ev.gps.satellites = (sats < 0) ? 0 : (sats > 255 ? 255 : (uint8_t)sats);
         ev.gps.lat_micro = lat;
         ev.gps.lon_micro = lon;
         ev.gps.lat_deg = lat / 1000000.0;
         ev.gps.lon_deg = lon / 1000000.0;
         ev.gps.alt_m = alt / 1000.0;
+        ev.gps.speed_kph = -1.0f;
         heltec::meshcore::ui::app_state_notifier().notify(ev);
       }
     }

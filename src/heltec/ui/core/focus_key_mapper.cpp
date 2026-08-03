@@ -72,23 +72,17 @@ uint32_t FocusKeyMapper::translateForObject(lv_obj_t* obj, uint32_t lv_key) {
   }
 
   if (ht_id(obj) == meta_id::PreviewText) {
-    if (lv_key == LV_KEY_NEXT || lv_key == LV_KEY_PREV) return LV_KEY_ENTER;
+    if (lv_key == LV_KEY_NEXT) return LV_KEY_RIGHT;
+    if (lv_key == LV_KEY_PREV) return LV_KEY_LEFT;
     return lv_key;
   }
 
-  if (ht_id(obj) == meta_id::RecentRowLabel) {
-    // Recent owns a sliding contact window, so it must receive the navigation
-    // key and update its logical index before moving visual focus.
+  if (ht_id(obj) == meta_id::RecentRow) {
+    // NEXT/PREV normally move LVGL group focus without delivering a key event.
+    // Recent owns a reusable data window, so deliver directional keys to the
+    // screen and let it move the logical selection across window boundaries.
     if (lv_key == LV_KEY_NEXT) return LV_KEY_DOWN;
     if (lv_key == LV_KEY_PREV) return LV_KEY_UP;
-    return lv_key;
-  }
-
-  if (ht_id(obj) == meta_id::RecentSendButton) {
-    // The detail page has a single focusable control. Convert focus traversal
-    // keys into page navigation so one-key boards can browse older messages.
-    if (lv_key == LV_KEY_NEXT) return LV_KEY_UP;
-    if (lv_key == LV_KEY_PREV) return LV_KEY_DOWN;
     return lv_key;
   }
 

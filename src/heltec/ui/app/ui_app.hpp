@@ -36,6 +36,7 @@
 #include "ui/overlays/preview_overlay.hpp"
 #include "ui/overlays/alert_overlay.hpp"
 #include "ui/overlays/radio_pram_sync_overlay.hpp"
+#include "ui/overlays/repeat_mode_overlay.hpp"
 #include "ui/overlays/send_message_overlay.hpp"
 #include "ui/overlays/keyboard_overlay.hpp"
 #if defined(HELTEC_V4_R8_TFT) && defined(HELTEC_HAS_TOUCH) && HELTEC_HAS_TOUCH
@@ -81,7 +82,8 @@ class UiApp final : public IUiHost, public InputHost {
 
   static constexpr uint8_t kNoScheduledTile = 0xFF;
 
-  void openPreviewOverlay(uint8_t unread, uint32_t age_sec, const char* origin, const char* text) override;
+  void openPreviewOverlay(uint8_t unread, uint32_t received_ms,
+                          const char* origin, const char* text) override;
   void openAlertOverlay(const char* text) override;
   void closeAlertOverlay() override;
 
@@ -109,6 +111,8 @@ class UiApp final : public IUiHost, public InputHost {
   void dismissContextMenuStack();
 #endif
   void closeRadioParamSyncOverlay();
+  void openRepeatModeOverlay();
+  void closeRepeatModeOverlay();
 #if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
   void closeCalibrationOverlay();
 #endif
@@ -117,9 +121,8 @@ class UiApp final : public IUiHost, public InputHost {
 
   bool hitActiveTrackerViewport(lv_coord_t x, lv_coord_t y) const;
 #if defined(HELTEC_TOUCH_GESTURE_INPUT) && HELTEC_TOUCH_GESTURE_INPUT
-  static bool touchGestureBlockTrackerViewport(int16_t x, int16_t y);
+  static bool touchGestureBlockTrackerLongPress(int16_t x, int16_t y);
 #if defined(HELTEC_V4_R8_TFT) && defined(HELTEC_HAS_TOUCH) && HELTEC_HAS_TOUCH
-  static bool touchGestureBlockVerticalSwipe(int16_t x, int16_t y);
   static bool touchGestureRawPointerPassthrough(int16_t x, int16_t y);
   static bool touchGestureBlockQuickPingDoubleTap(int16_t x, int16_t y);
 #endif
@@ -136,6 +139,9 @@ class UiApp final : public IUiHost, public InputHost {
   void bindScreen(AbstractScreen* scr);
   void activateActiveScreen();
 #if defined(HELTEC_V4_R8_TFT) && defined(HELTEC_HAS_TOUCH) && HELTEC_HAS_TOUCH
+  static void nativeTouchGestureEvent(lv_event_t* e);
+  void handleNativeTouchGesture(lv_event_t* e);
+
   enum class DeferredTouchAction : uint8_t {
     None = 0,
     OpenNavigation,
@@ -153,7 +159,7 @@ class UiApp final : public IUiHost, public InputHost {
   static void deferredTouchActionTimerCb(lv_timer_t* timer);
 #endif
   /** Touch swipe: edge gestures first, then page switching. */
-  void onTouchSwipe(uint8_t axis, int8_t dir, int16_t start_x, int16_t start_y);
+  void onTouchSwipe(lv_dir_t direction, int16_t start_x, int16_t start_y);
   void restartNavigationAutoCommitTimer();
   void stopNavigationAutoCommitTimer();
   void restartDisplayAutoOffTimer();
@@ -215,6 +221,7 @@ class UiApp final : public IUiHost, public InputHost {
   PreviewOverlay _previewOvl;
   AlertOverlay _alertOvl;
   RadioParamSyncOverlay _radioParamSyncOvl;
+  RepeatModeOverlay _repeatModeOvl;
   SendMessageOverlay _sendMessageOvl;
   KeyboardOverlay _keyboardOvl;
 #if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS

@@ -109,6 +109,7 @@ UiApp::UiApp(biz::IBizFacade& biz)
       _previewOvl(_biz),
       _alertOvl(_biz),
       _radioParamSyncOvl(_biz),
+      _repeatModeOvl(_biz),
       _sendMessageOvl(_biz),
       _keyboardOvl(_biz)
 #if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
@@ -186,13 +187,6 @@ void UiApp::setTopPaneTitle(const char* title) {
 
 void UiApp::onTopPaneShortPress() {
   if (!_inited) return;
-#if defined(HELTEC_V4_R8_TFT) && defined(HELTEC_HAS_TOUCH) && HELTEC_HAS_TOUCH
-  // Once a swipe crosses the gesture threshold the pointer path is hidden from
-  // LVGL as a synthetic release, while the finger is still physically down.
-  // Do not interpret that release as a top-pane tap; the swipe handler will
-  // consume the gesture when the finger is actually released.
-  if (heltec::meshcore::dal::touch_port::isPressed()) return;
-#endif
   notifyDisplayActivity(millis());
   if (_surfaces.contains(&_navigation)) {
     closeNavigationPane();
@@ -236,21 +230,12 @@ void UiApp::init() {
   };
 #if defined(HELTEC_TOUCH_GESTURE_INPUT) && HELTEC_TOUCH_GESTURE_INPUT
 #if defined(ENV_INCLUDE_MAP) && ENV_INCLUDE_MAP
-  touch_hooks.block_horizontal_swipe = UiApp::touchGestureBlockTrackerViewport;
-#if !defined(HELTEC_V4_R8_TFT) || !defined(HELTEC_HAS_TOUCH) || !HELTEC_HAS_TOUCH
-  touch_hooks.block_vertical_swipe = UiApp::touchGestureBlockTrackerViewport;
-#endif
-  touch_hooks.block_long_enter = UiApp::touchGestureBlockTrackerViewport;
+  touch_hooks.block_long_enter = UiApp::touchGestureBlockTrackerLongPress;
 #endif
 #if defined(HELTEC_V4_R8_TFT) && defined(HELTEC_HAS_TOUCH) && HELTEC_HAS_TOUCH
-  touch_hooks.block_vertical_swipe = UiApp::touchGestureBlockVerticalSwipe;
   touch_hooks.raw_pointer_passthrough = UiApp::touchGestureRawPointerPassthrough;
   touch_hooks.block_double_tap = UiApp::touchGestureBlockQuickPingDoubleTap;
 #endif
-  touch_hooks.on_swipe = +[](heltec::meshcore::dal::touch_input::SwipeAxis axis, int8_t dir,
-                             int16_t start_x, int16_t start_y) {
-    UiApp::instance().onTouchSwipe(static_cast<uint8_t>(axis), dir, start_x, start_y);
-  };
 #endif
   heltec::meshcore::dal::touch_input::bindUi(touch_hooks);
 #endif
@@ -362,6 +347,7 @@ void UiApp::init() {
   _previewOvl.setTarget(_frame_root);
   _alertOvl.setTarget(_frame_root);
   _radioParamSyncOvl.setTarget(_frame_root);
+  _repeatModeOvl.setTarget(_frame_root);
   _keyboardOvl.setTarget(_frame_root);
   _sendMessageOvl.setTarget(_frame_root);
 #if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
@@ -379,6 +365,13 @@ void UiApp::init() {
 
   _display_auto_off_ms = 0;
   _display_last_activity_ms = millis();
+#if defined(HELTEC_V4_R8_TFT) && defined(HELTEC_HAS_TOUCH) && HELTEC_HAS_TOUCH && \
+    defined(HELTEC_TOUCH_GESTURE_INPUT) && HELTEC_TOUCH_GESTURE_INPUT
+  lv_obj_add_event_cb(scr, nativeTouchGestureEvent, LV_EVENT_GESTURE, this);
+  if (lv_obj_t* const top_layer = lv_layer_top()) {
+    lv_obj_add_event_cb(top_layer, nativeTouchGestureEvent, LV_EVENT_GESTURE, this);
+  }
+#endif
   _inited = true;
   if (_tileview) {
     lv_obj_t* tile = lv_tileview_get_tile_act(_tileview);
@@ -451,6 +444,9 @@ void UiApp::handleFrameEvent(lv_event_t* e) {
       (void)openCalibrationOverlay();
 #endif
       break;
+    case UiEventType::RepeatModeOpen:
+      openRepeatModeOverlay();
+      break;
 #if defined(HELTEC_V4_R8_TFT) && defined(HELTEC_HAS_TOUCH) && HELTEC_HAS_TOUCH
     case UiEventType::QuickPingOpen:
       if (!_surfaces.contains(&_quickPingOverlay) && inputOnActiveScreen()) {
@@ -463,6 +459,16 @@ void UiApp::handleFrameEvent(lv_event_t* e) {
       }
       break;
 #endif
+    case UiEventType::PreviewNext:
+      if (ui_task().advancePreview()) {
+        openPreviewOverlay(ui_task().previewUnread(),
+                           ui_task().previewReceivedMillis(),
+                           ui_task().previewOrigin(),
+                           ui_task().previewText());
+      } else {
+        closePreviewOverlay();
+      }
+      break;
     case UiEventType::PreviewClose:
       closePreviewOverlay();
       break;
@@ -475,6 +481,9 @@ void UiApp::handleFrameEvent(lv_event_t* e) {
       break;
     case UiEventType::RadioSyncClose:
       closeRadioParamSyncOverlay();
+      break;
+    case UiEventType::RepeatModeClose:
+      closeRepeatModeOverlay();
       break;
     case UiEventType::CalibrationClose:
 #if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
@@ -698,7 +707,8 @@ void UiApp::handleDisplayAutoOffTimeout() {
   if (BacklightPolicy::mode() == BacklightMode::ManualToggle) return;
   if (!_display_auto_off_ms || !_display_last_activity_ms) return;
   if (!heltec::meshcore::dal::display_port::isBacklightOn()) return;
-  if (_surfaces.isActive(&_radioParamSyncOvl)) {
+  if (_surfaces.isActive(&_radioParamSyncOvl) ||
+      _surfaces.isActive(&_repeatModeOvl)) {
     _display_last_activity_ms = millis();
     restartDisplayAutoOffTimer();
     return;
