@@ -20,7 +20,7 @@
 #endif
 
 #ifndef FIRMWARE_VERSION
-#define FIRMWARE_VERSION "v1.16.0.3"
+#define FIRMWARE_VERSION "v1.16.0.3_alpha"
 #endif
 
 /* ---------------------------------- CONFIGURATION ------------------------------------- */

@@ -34,7 +34,7 @@ class SplashOverlay {
   _lv_obj_t* _ver = nullptr;
   _lv_obj_t* _date = nullptr;
   _lv_obj_t* _attribution = nullptr;
-  char _version_text[12] = {};
+  char _version_text[32] = {};
   bool _visible = false;
 };
 
