@@ -6,6 +6,10 @@
 #include "ui/core/ui_events.h"
 #include <Arduino.h>
 
+#if defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213
+#include "heltec/drivers/display/e213_lvgl_port.hpp"
+#endif
+
 namespace heltec::meshcore::ui {
 
 void SystemScreen::handleAction(SysAction action) {
@@ -75,7 +79,11 @@ bool SystemScreen::createActionConfirmation() {
   lv_obj_clear_flag(_action_confirm_box, LV_OBJ_FLAG_SCROLLABLE);
   lv_obj_set_style_bg_color(_action_confirm_box, ui_color_overlay_bg(), LV_PART_MAIN);
   lv_obj_set_style_bg_opa(_action_confirm_box, LV_OPA_COVER, LV_PART_MAIN);
+#if defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213
+  lv_obj_set_style_border_color(_action_confirm_box, lv_color_black(), LV_PART_MAIN);
+#else
   lv_obj_set_style_border_color(_action_confirm_box, ui_color_overlay_fg(), LV_PART_MAIN);
+#endif
   lv_obj_set_style_border_width(_action_confirm_box, 1, LV_PART_MAIN);
   lv_obj_set_style_radius(_action_confirm_box, compact ? 2 : LV_DPX(8), LV_PART_MAIN);
   lv_obj_set_style_pad_all(_action_confirm_box, dialog_pad, LV_PART_MAIN);
@@ -193,12 +201,20 @@ void SystemScreen::openActionConfirmation(SysAction action) {
   lv_obj_move_foreground(_action_confirm_root);
   lv_obj_update_layout(_action_confirm_root);
   lv_obj_center(_action_confirm_box);
+#if defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213
+  heltec::meshcore::dal::e213::requestRefresh("system-confirm-open");
+#endif
 }
 
 void SystemScreen::closeActionConfirmation() {
   _pending_action = SysAction::None;
-  if (_action_confirm_root && lv_obj_is_valid(_action_confirm_root))
+  if (_action_confirm_root && lv_obj_is_valid(_action_confirm_root) &&
+      !lv_obj_has_flag(_action_confirm_root, LV_OBJ_FLAG_HIDDEN)) {
     lv_obj_add_flag(_action_confirm_root, LV_OBJ_FLAG_HIDDEN);
+#if defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213
+    heltec::meshcore::dal::e213::requestRefresh("system-confirm-close");
+#endif
+  }
 }
 
 void SystemScreen::acceptActionConfirmation() {
@@ -207,6 +223,9 @@ void SystemScreen::acceptActionConfirmation() {
   const SysAction action = _pending_action;
   _pending_action = SysAction::None;
   lv_obj_add_flag(_action_confirm_root, LV_OBJ_FLAG_HIDDEN);
+#if defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213
+  heltec::meshcore::dal::e213::requestRefresh("system-confirm-accept");
+#endif
   executeAction(action);
 }
 

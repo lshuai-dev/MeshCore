@@ -52,11 +52,20 @@ static bool navIconUsesRecolor(const lv_img_dsc_t* img) {
     case LV_IMG_CF_ALPHA_2BIT:
     case LV_IMG_CF_ALPHA_4BIT:
     case LV_IMG_CF_ALPHA_8BIT:
+      return true;
     case LV_IMG_CF_INDEXED_1BIT:
     case LV_IMG_CF_INDEXED_2BIT:
     case LV_IMG_CF_INDEXED_4BIT:
     case LV_IMG_CF_INDEXED_8BIT:
+#if defined(UI_EINK_DISPLAY) && UI_EINK_DISPLAY && \
+    defined(UI_NAV_USE_SCREEN_ICONS) && UI_NAV_USE_SCREEN_ICONS
+      // E213 screen icons already contain a black/white palette. Recoloring an
+      // indexed image at full opacity collapses both palette entries to one
+      // color and can make the icon look blank.
+      return false;
+#else
       return true;
+#endif
     default:
       return false;
   }

@@ -34,7 +34,9 @@ bool UiApp::initOverlay() {
   if (!_alertOvl.init(_layerOverlay)) return false;
   if (!_radioParamSyncOvl.init(_layerOverlay)) return false;
   if (!_repeatModeOvl.init(_layerOverlay)) return false;
+#if UI_INCLUDE_KEYBOARD_OVERLAY
   if (!_keyboardOvl.init(_layerOverlay)) return false;
+#endif
   if (!_sendMessageOvl.init(_layerOverlay)) return false;
 #if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
   if (!_calibrationOvl.init(_layerOverlay)) return false;
@@ -139,28 +141,34 @@ void UiApp::closeRepeatModeOverlay() {
 }
 
 void UiApp::presentMessageKeyboard() {
+#if UI_INCLUDE_KEYBOARD_OVERLAY
   if (!_inited) return;
   const bool send_active = _surfaces.isActive(&_sendMessageOvl);
   if (!send_active) return;
   if (_surfaces.isActive(&_keyboardOvl)) return;
   (void)_surfaces.present(&_keyboardOvl, &_sendMessageOvl);
+#endif
 }
 
 void UiApp::openWaypointKeyboard() {
+#if UI_INCLUDE_KEYBOARD_OVERLAY
   if (!_inited) return;
   UiSurface* const owner = _surfaces.active();
   if (!_keyboardOvl.prepareWaypointInput()) return;
   if (_surfaces.isActive(&_keyboardOvl)) return;
   (void)_surfaces.present(&_keyboardOvl, owner);
+#endif
 }
 
 void UiApp::closeKeyboardOverlay() {
+#if UI_INCLUDE_KEYBOARD_OVERLAY
   if (!_surfaces.isActive(&_keyboardOvl)) return;
   const bool waypoint = _keyboardOvl.isWaypointCompose();
   (void)_surfaces.dismiss(&_keyboardOvl);
   if (waypoint) {
     _surfaces.dispatchEventToActive(UiEventType::WaypointKeyboardClosed);
   }
+#endif
 }
 
 #if !defined(HELTEC_V4_R8_TFT) || !defined(HELTEC_HAS_TOUCH) || !HELTEC_HAS_TOUCH

@@ -19,7 +19,9 @@ _lv_obj_t* SystemScreen::createRoot(_lv_obj_t* parent) {
 namespace {
 
 char s_region_options[kRadioParamPresetUiScratchSize + 32];
+#if UI_DISPLAY_BACKLIGHT
 char s_screen_off_options[64];
+#endif
 
 int append_options(char* buf, size_t cap, const biz::IBizFacade& app, int count,
                    bool (*label_fn)(const biz::IBizFacade&, int, char*, size_t)) {
@@ -36,11 +38,13 @@ int append_options(char* buf, size_t cap, const biz::IBizFacade& app, int count,
   return (int)(p - buf);
 }
 
+#if UI_DISPLAY_BACKLIGHT
 bool screen_off_label(const biz::IBizFacade& app, int i, char* lab, size_t cap) {
   const char* s = app.displayAutoOffOptionLabel(i);
   lv_snprintf(lab, cap, "%s", s ? s : "?");
   return true;
 }
+#endif
 
 void build_region_options() {
   char* const presets = radioParamPresetUiScratch();
@@ -66,12 +70,14 @@ _lv_obj_t* SystemScreen::create(_lv_obj_t* parent) {
 
   addSwitchRow(_root, "Enable Repeat Mode", &_swForwarding);
 
+#if UI_DISPLAY_BACKLIGHT
   _dd_screen_off = addDropdownRow(_root, _choice_screen_off, "Screen off");
   if (_dd_screen_off) {
     append_options(s_screen_off_options, sizeof(s_screen_off_options), _biz, _biz.displayAutoOffOptionCount(),
                    screen_off_label);
     setDropdownOptions(_dd_screen_off, s_screen_off_options);
   }
+#endif
 
   addSwitchRow(_root, "Bluetooth", &_swBle);
 #ifdef PIN_BUZZER
@@ -95,7 +101,9 @@ _lv_obj_t* SystemScreen::create(_lv_obj_t* parent) {
   addFocusItem(_swForwarding,
                _swForwarding ? lv_obj_get_parent(_swForwarding) : nullptr,
                kFocusOnPointerPress);
+#if UI_DISPLAY_BACKLIGHT
   addFocusItem(_dd_screen_off, _choice_screen_off.row, kFocusOnPointerPress);
+#endif
   addFocusItem(_swBle, _swBle ? lv_obj_get_parent(_swBle) : nullptr,
                kFocusOnPointerPress);
 #ifdef PIN_BUZZER
@@ -114,7 +122,9 @@ _lv_obj_t* SystemScreen::create(_lv_obj_t* parent) {
   _lv_obj_t* const focus_controls[] = {
       _dd_region,
       _swForwarding,
+#if UI_DISPLAY_BACKLIGHT
       _dd_screen_off,
+#endif
       _swBle,
 #ifdef PIN_BUZZER
       _swBuzzer,

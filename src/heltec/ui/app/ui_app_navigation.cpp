@@ -7,7 +7,20 @@
 #include "ui/theme/ui_theme_metrics.hpp"
 #include <Arduino.h>
 
+#if defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213
+#include "heltec/drivers/display/e213_lvgl_port.hpp"
+#endif
+
 namespace heltec::meshcore::ui {
+
+#if defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213
+bool UiApp::closeNavigationIfOpen() {
+  if (!_surfaces.contains(&_navigation)) return false;
+  Serial.println("[e213][nav] direct close from button gesture");
+  closeNavigationPane();
+  return true;
+}
+#endif
 
 void UiApp::openNavigationPane() {
   if (!_inited || _surfaces.contains(&_navigation)) return;
@@ -17,7 +30,28 @@ void UiApp::openNavigationPane() {
 
   _navigation.setSelectedIndex(activeTileIndex(), true);
   notifyNavActivity(millis());
-  (void)_surfaces.present(&_navigation);
+#if defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213
+  heltec::meshcore::dal::e213::beginNavigationSession();
+#endif
+  if (!_surfaces.present(&_navigation)) {
+#if defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213
+    heltec::meshcore::dal::e213::endNavigationSession();
+#endif
+    return;
+  }
+#if defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213
+  // Commit the complete ring as one settled frame without invalidating the
+  // transparent full-width overlay root.
+  if (lv_obj_t* const nav_ring = _navigation.navFocusWidget()) {
+    lv_obj_update_layout(nav_ring);
+    lv_obj_invalidate(nav_ring);
+    Serial.printf("[e213][nav] invalidate ring pos=(%d,%d) size=%dx%d\n",
+                  static_cast<int>(lv_obj_get_x(nav_ring)),
+                  static_cast<int>(lv_obj_get_y(nav_ring)),
+                  static_cast<int>(lv_obj_get_width(nav_ring)),
+                  static_cast<int>(lv_obj_get_height(nav_ring)));
+  }
+#endif
 }
 
 void UiApp::scheduleNavTileCommit(uint8_t tile_idx, bool user_commit) {
@@ -88,7 +122,10 @@ void UiApp::closeNavigationPane() {
   if (!_surfaces.contains(&_navigation)) return;
   _nav_last_activity_ms = 0;
   stopNavigationAutoCommitTimer();
-  (void)_surfaces.dismissBranch(&_navigation);
+  const bool dismissed = _surfaces.dismissBranch(&_navigation);
+#if defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213
+  if (dismissed) heltec::meshcore::dal::e213::endNavigationSession();
+#endif
   if (AbstractScreen* scr = activeScreen()) {
     setTopPaneTitle(scr->title());
   }
@@ -104,7 +141,7 @@ bool UiApp::initNavigationPane(_lv_obj_t* parent) {
       {static_cast<uint8_t>(eScreenId::Recent), _scrRecent.title(), _scrRecent.icon(), false},
 #if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
       {static_cast<uint8_t>(eScreenId::Compass), _scrCompass.title(), _scrCompass.icon(), false},
-#else
+#elif UI_INCLUDE_GPS_SCREEN
       {static_cast<uint8_t>(eScreenId::GPS), _scrGPS.title(), _scrGPS.icon(), false},
 #endif
 #if defined(ENV_INCLUDE_MAP) && ENV_INCLUDE_MAP
@@ -121,7 +158,9 @@ bool UiApp::initNavigationPane(_lv_obj_t* parent) {
       {static_cast<uint8_t>(eScreenId::Compass), _scrCompass.title(), _scrCompass.icon(), false},
       {static_cast<uint8_t>(eScreenId::FindFriend), _scrFindFriend.title(), _scrFindFriend.icon(), false},
 #endif
+#if UI_INCLUDE_GPS_SCREEN
       {static_cast<uint8_t>(eScreenId::GPS), _scrGPS.title(), _scrGPS.icon(), false},
+#endif
 #if defined(ENV_INCLUDE_MAP) && ENV_INCLUDE_MAP
       {static_cast<uint8_t>(eScreenId::Tracker), _scrTracker.title(), _scrTracker.icon(), false},
 #endif
@@ -150,6 +189,11 @@ void UiApp::notifyNavActivity(uint32_t now_ms) {
   _nav_last_activity_ms = now_ms;
   restartNavigationAutoCommitTimer();
   notifyDisplayActivity(now_ms);
+#if defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213
+  if (_surfaces.contains(&_navigation)) {
+    heltec::meshcore::dal::e213::navigationActivity();
+  }
+#endif
 }
 
 void UiApp::ensureTileKeypadFocus() {
@@ -203,7 +247,10 @@ void UiApp::onTileActiveChanged() {
 void UiApp::closeNavigationImmediate() {
   _nav_last_activity_ms = 0;
   stopNavigationAutoCommitTimer();
-  (void)_surfaces.dismissBranch(&_navigation);
+  const bool dismissed = _surfaces.dismissBranch(&_navigation);
+#if defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213
+  if (dismissed) heltec::meshcore::dal::e213::endNavigationSession();
+#endif
 }
 
 void UiApp::restartNavigationAutoCommitTimer() {
@@ -232,6 +279,18 @@ void UiApp::handleNavigationAutoCommitTimeout() {
   stopNavigationAutoCommitTimer();
   if (!heltec::meshcore::dal::display_port::isBacklightOn()) return;
   if (!_surfaces.isActive(&_navigation) || _navigation.isTransitioning()) return;
+#if defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213
+  // A full E-paper update blocks the LVGL task for several seconds. Rebase
+  // the navigation timeout after that physical frame completes, otherwise
+  // the first frame can be hidden immediately after it appears.
+  if (heltec::meshcore::dal::e213::navigationRefreshPending() ||
+      heltec::meshcore::dal::e213::consumeNavigationCommitCompleted()) {
+    _nav_last_activity_ms = millis();
+    Serial.println("[e213][nav] auto-hide rebased after physical refresh");
+    restartNavigationAutoCommitTimer();
+    return;
+  }
+#endif
   const uint16_t auto_hide_ms = ui_navigation_metrics(_navigation.root()).auto_hide_ms;
   if (!auto_hide_ms || !_nav_last_activity_ms) return;
   if ((millis() - _nav_last_activity_ms) < auto_hide_ms) {

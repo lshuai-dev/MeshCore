@@ -25,6 +25,10 @@
 #include <cstring>
 #include <lvgl.h>
 
+#if defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213
+#include "heltec/drivers/display/e213_lvgl_port.hpp"
+#endif
+
 #if defined(MESH_DEBUG) && MESH_DEBUG
 #define UI_ALERT_LOG(fmt, ...) \
   do { \
@@ -70,6 +74,38 @@ static void tileview_size_changed_cb(lv_event_t* e) {
   relayout_tileview_tiles(lv_event_get_target(e));
 }
 
+#if defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213
+static bool e213NeedsCriticalCommit(UiEventType type) {
+  switch (type) {
+    case UiEventType::ContextOpen:
+    case UiEventType::ContextClose:
+    case UiEventType::SendMessageOpen:
+    case UiEventType::CalibrationOpen:
+    case UiEventType::RepeatModeOpen:
+    case UiEventType::QuickPingOpen:
+    case UiEventType::QuickPingClose:
+    case UiEventType::PreviewNext:
+    case UiEventType::PreviewClose:
+    case UiEventType::AlertClose:
+    case UiEventType::RadioSyncClose:
+    case UiEventType::RepeatModeClose:
+    case UiEventType::CalibrationClose:
+    case UiEventType::KeyboardClose:
+    case UiEventType::SendMessageClose:
+    case UiEventType::MessageKeyboardOpen:
+    case UiEventType::WaypointKeyboardOpen:
+    case UiEventType::WaypointKeyboardClosed:
+    case UiEventType::MessageKeyboardSubmit:
+    case UiEventType::WaypointKeyboardSubmit:
+    case UiEventType::RebindInput:
+    case UiEventType::SurfaceRefresh:
+      return true;
+    default:
+      return false;
+  }
+}
+#endif
+
 }  // namespace
 
 UiApp& UiApp::instance() {
@@ -88,7 +124,9 @@ UiApp::UiApp(biz::IBizFacade& biz)
       _scrCompass(_biz, "Compass", &icon_compass_img),
       _scrFindFriend(_biz, "Find Friend", &icon_findfriend_img),
 #endif
+#if UI_INCLUDE_GPS_SCREEN
       _scrGPS(_biz, "GPS", &icon_gps_img),
+#endif
 #if defined(ENV_INCLUDE_MAP) && ENV_INCLUDE_MAP
       _scrTracker(_biz, "Tracker", &icon_map_img),
 #endif
@@ -110,8 +148,11 @@ UiApp::UiApp(biz::IBizFacade& biz)
       _alertOvl(_biz),
       _radioParamSyncOvl(_biz),
       _repeatModeOvl(_biz),
-      _sendMessageOvl(_biz),
+      _sendMessageOvl(_biz)
+#if UI_INCLUDE_KEYBOARD_OVERLAY
+      ,
       _keyboardOvl(_biz)
+#endif
 #if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
       ,
       _calibrationOvl(_biz)
@@ -348,7 +389,9 @@ void UiApp::init() {
   _alertOvl.setTarget(_frame_root);
   _radioParamSyncOvl.setTarget(_frame_root);
   _repeatModeOvl.setTarget(_frame_root);
+#if UI_INCLUDE_KEYBOARD_OVERLAY
   _keyboardOvl.setTarget(_frame_root);
+#endif
   _sendMessageOvl.setTarget(_frame_root);
 #if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
   _calibrationOvl.setTarget(_frame_root);
@@ -373,6 +416,12 @@ void UiApp::init() {
   }
 #endif
   _inited = true;
+#if defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213
+  // The Splash frame has already been committed synchronously. Remove it
+  // before arming the normal asynchronous commit for the completed app UI.
+  splash.hide();
+  heltec::meshcore::dal::e213::requestRefresh("initial-frame");
+#endif
   if (_tileview) {
     lv_obj_t* tile = lv_tileview_get_tile_act(_tileview);
     if (!tile) {
@@ -497,6 +546,7 @@ void UiApp::handleFrameEvent(lv_event_t* e) {
       closeSendMessageOverlay();
       break;
     case UiEventType::MessageKeyboardOpen: {
+#if UI_INCLUDE_KEYBOARD_OVERLAY
       auto* req = static_cast<const UiMessageKeyboardRequest*>(event->payload);
       if (!req || !_surfaces.isActive(&_sendMessageOvl)) break;
       if (!_keyboardOvl.prepareMessageInput(req->title ? req->title : "broadcast")) break;
@@ -505,6 +555,7 @@ void UiApp::handleFrameEvent(lv_event_t* e) {
         if (!app || !app->_surfaces.isActive(&app->_sendMessageOvl)) return;
         app->presentMessageKeyboard();
       }, this);
+#endif
       break;
     }
     case UiEventType::WaypointKeyboardOpen:
@@ -530,12 +581,20 @@ void UiApp::handleFrameEvent(lv_event_t* e) {
     default:
       break;
   }
+#if defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213
+  if (e213NeedsCriticalCommit(event->type)) {
+    heltec::meshcore::dal::e213::requestRefresh("surface-event");
+  }
+#endif
 }
 
 void UiApp::handleAppStateEvent(const AppStateEvent& event) {
   if (event.type == AppStateEventType::BatteryChanged) {
     _top_pane.setBatteryMilliVolts(event.battery.millivolts);
   }
+#if defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213
+  heltec::meshcore::dal::e213::requestDeferredRefresh("app-state");
+#endif
 }
 
 void UiApp::tick() {
@@ -555,7 +614,9 @@ bool UiApp::initScreens(_lv_obj_t* content) {
   screens[screen_count++] = &_scrCompass;
   screens[screen_count++] = &_scrFindFriend;
 #endif
+#if UI_INCLUDE_GPS_SCREEN
   screens[screen_count++] = &_scrGPS;
+#endif
 #if defined(ENV_INCLUDE_MAP) && ENV_INCLUDE_MAP
   screens[screen_count++] = &_scrTracker;
 #endif
@@ -625,12 +686,14 @@ bool UiApp::initTimers() {
     lv_timer_set_repeat_count(_nav_auto_commit_timer, -1);
     lv_timer_pause(_nav_auto_commit_timer);
   }
+#if UI_DISPLAY_BACKLIGHT
   if (!_display_auto_off_timer) {
     _display_auto_off_timer = lv_timer_create(displayAutoOffTimerCb, 1U, this);
     if (!_display_auto_off_timer) return false;
     lv_timer_set_repeat_count(_display_auto_off_timer, -1);
     lv_timer_pause(_display_auto_off_timer);
   }
+#endif
 #if defined(HELTEC_V4_R8_TFT) && defined(HELTEC_HAS_TOUCH) && HELTEC_HAS_TOUCH
   if (!_deferred_touch_timer) {
     _deferred_touch_timer = lv_timer_create(deferredTouchActionTimerCb, 40U, this);
@@ -666,6 +729,11 @@ void UiApp::onBacklightTurnedOn() {
 }
 
 void UiApp::setDisplayAutoOffMs(uint32_t ms) {
+#if !UI_DISPLAY_BACKLIGHT
+  // Ignore persisted auto-off values on displays without a backlight. This
+  // also prevents older E213 preferences from powering the panel off.
+  ms = 0;
+#endif
   if (BacklightPolicy::mode() == BacklightMode::ManualToggle) {
     ms = 0;
   }

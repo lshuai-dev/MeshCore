@@ -5,6 +5,10 @@
 #include "ui/core/ht_meta_data.hpp"
 #include "ui/core/ui_events.h"
 
+#if defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213
+#include "heltec/drivers/display/e213_lvgl_port.hpp"
+#endif
+
 #include <lvgl.h>
 
 namespace heltec::meshcore::ui {
@@ -90,6 +94,14 @@ void style_item(_lv_obj_t* item) {
   }
   lv_obj_center(label);
 }
+
+#if defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213
+void request_frequency_selection_refresh(lv_event_t* event) {
+  if (!event || lv_event_get_code(event) != LV_EVENT_FOCUSED) return;
+  heltec::meshcore::dal::e213::requestSelectionRefresh(
+      "repeat-frequency-selection");
+}
+#endif
 #endif
 
 }  // namespace
@@ -165,6 +177,12 @@ _lv_obj_t* RepeatModeOverlay::create(_lv_obj_t* parent) {
     _frequency_buttons[_frequency_count] = button;
     style_item(button);
     lv_obj_add_event_cb(button, onItemClicked, LV_EVENT_CLICKED, this);
+#if defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213
+    // ButtonRoller installs its focus callback first, so this request is made
+    // after the new highlight and item positions have reached their final state.
+    lv_obj_add_event_cb(button, request_frequency_selection_refresh,
+                        LV_EVENT_FOCUSED, nullptr);
+#endif
 #endif
     _frequency_indices[_frequency_count] = static_cast<int8_t>(index);
     ++_frequency_count;

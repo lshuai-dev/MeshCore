@@ -4,6 +4,10 @@
 #include "ui/core/ui_deferred_queue.hpp"
 #include <Arduino.h>
 
+#if defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213
+#include "heltec/drivers/display/e213_lvgl_port.hpp"
+#endif
+
 namespace heltec::meshcore::ui {
 namespace {
 void sync_switch(_lv_obj_t* sw,bool on,bool* syncing){if(!sw)return;const bool cur=lv_obj_has_state(sw,LV_STATE_CHECKED);if(cur==on)return;if(syncing)*syncing=true;if(on)lv_obj_add_state(sw,LV_STATE_CHECKED);else lv_obj_clear_state(sw,LV_STATE_CHECKED);if(syncing)*syncing=false;}
@@ -124,10 +128,16 @@ void SystemScreen::onDropdownStateEvent(lv_event_t* e) {
     if (!ui_defer(realignDropdownListAsync, dropdown)) {
       self->realignDropdownList(dropdown);
     }
+#if defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213
+    heltec::meshcore::dal::e213::requestSelectionRefresh("dropdown-open");
+#endif
   } else if (code == LV_EVENT_CANCEL) {
     if (self->_open_dropdown == dropdown) self->_open_dropdown = nullptr;
     lv_obj_clear_state(dropdown, LV_STATE_EDITED);
     if (self->group()) lv_group_set_editing(self->group(), false);
+#if defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213
+    heltec::meshcore::dal::e213::requestSelectionRefresh("dropdown-close");
+#endif
   }
 }
 
@@ -141,6 +151,10 @@ void SystemScreen::onDropdownValueChanged(lv_event_t* e) {
   const auto* choice = self->dropdownChoice(dd);
   if (!choice) return;
   const int sel = (int)lv_dropdown_get_selected(dd);
+
+#if defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213
+  heltec::meshcore::dal::e213::requestSelectionRefresh("dropdown-commit");
+#endif
 
   if (dd == self->_dd_region) {
     if (sel <= 0) {

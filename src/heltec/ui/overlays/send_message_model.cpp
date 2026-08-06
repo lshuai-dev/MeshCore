@@ -4,6 +4,7 @@
 #include <cstring>
 
 #include "heltec/ui/core/biz_facade.hpp"
+#include "heltec/ui/core/ui_capabilities.hpp"
 
 namespace heltec::meshcore::ui {
 
@@ -136,8 +137,13 @@ void SendMessageModel::rebuildMainRows() {
   safeCopy(_main_rows[3], sizeof(_main_rows[0]), "yes");
   safeCopy(_main_rows[4], sizeof(_main_rows[0]), "no");
   safeCopy(_main_rows[5], sizeof(_main_rows[0]), "ok");
+#if UI_INCLUDE_KEYBOARD_OVERLAY
   safeCopy(_main_rows[6], sizeof(_main_rows[0]), "custom...");
   _row_count = kMainRowCount;
+#else
+  _main_rows[6][0] = '\0';
+  _row_count = kMainRowCount - 1;
+#endif
 }
 
 void SendMessageModel::setPage(Page page) {

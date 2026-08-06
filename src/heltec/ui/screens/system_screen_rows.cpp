@@ -5,6 +5,10 @@
 #include "ui/core/ui_deferred_queue.hpp"
 #include <Arduino.h>
 
+#if defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213
+#include "heltec/drivers/display/e213_lvgl_port.hpp"
+#endif
+
 namespace heltec::meshcore::ui {
 namespace {
 #if defined(HELTEC_V4_R8_TFT)
@@ -86,6 +90,9 @@ bool cycle_open_dropdown(_lv_obj_t* dropdown, uint32_t key) {
   if (_lv_obj_t* const list = lv_dropdown_get_list(dropdown)) {
     lv_obj_invalidate(list);
   }
+#if defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213
+  heltec::meshcore::dal::e213::requestSelectionRefresh("dropdown-selection");
+#endif
   return true;
 }
 #endif
@@ -135,6 +142,15 @@ _lv_obj_t* SystemScreen::addDropdownRow(_lv_obj_t* scroll, ChoiceRow& choice, co
                        LV_FLEX_ALIGN_CENTER);
   _lv_obj_t* label = ht_label_create(row, meta_id::SystemDropdownLabel);
   configure_system_label(label, LV_SIZE_CONTENT);
+#if defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213
+  if (label) {
+    // Match the 12 px dropdown box explicitly. Both texts then start at y=2:
+    // the label through padding, and the dropdown through border + padding.
+    lv_obj_set_height(label, 12);
+    lv_obj_set_style_pad_top(label, 2, LV_PART_MAIN);
+    lv_obj_set_style_pad_bottom(label, 2, LV_PART_MAIN);
+  }
+#endif
   choice.row = row;
   choice.label = label;
   choice.dropdown = nullptr;
@@ -152,6 +168,7 @@ _lv_obj_t* SystemScreen::addDropdownRow(_lv_obj_t* scroll, ChoiceRow& choice, co
   lv_obj_set_flex_grow(dd, 1);
 #if LV_COLOR_DEPTH == 1
   lv_obj_set_height(dd, 12);
+  ui_theme_center_dropdown_value(dd);
 #else
 #if defined(HELTEC_V4_R8_TFT)
   lv_obj_set_height(dd, kSystemDropdownHeight);

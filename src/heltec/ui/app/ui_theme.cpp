@@ -93,7 +93,9 @@ bool ui_theme_init(lv_disp_t* disp) {
 #else
       LV_FONT_DEFAULT;
 #endif
-#if (defined(UI_THEME_SSD1306) && UI_THEME_SSD1306) || \
+#if defined(UI_EINK_DISPLAY) && UI_EINK_DISPLAY
+  return init_ui_mono_flat_theme(disp, ui_font) != nullptr;
+#elif (defined(UI_THEME_SSD1306) && UI_THEME_SSD1306) || \
     (defined(HELTEC_DISPLAY_SSD1306) && HELTEC_DISPLAY_SSD1306) || LV_COLOR_DEPTH == 1
   return init_ui_ssd1306_theme(disp, ui_font) != nullptr;
 #else
@@ -181,6 +183,11 @@ void ui_theme_apply_focus_row(_lv_obj_t* row) {
 
 void ui_theme_apply_focus_control(_lv_obj_t* control) {
   if (!control) return;
+#if defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213 && LV_USE_SWITCH
+  // An E213 OFF switch has a white track on a white row. Its main border is
+  // therefore part of the control itself, not redundant focus chrome.
+  if (lv_obj_check_type(control, &lv_switch_class)) return;
+#endif
   if (!s_screen_focus_control_ready) {
     lv_style_init(&s_screen_focus_control);
     lv_style_set_border_width(&s_screen_focus_control, 0);
@@ -377,7 +384,8 @@ void ui_dropdown_fit_list_to_viewport(_lv_obj_t* dropdown, _lv_obj_t* viewport,
 
 void ui_theme_center_dropdown_value(_lv_obj_t* dropdown) {
   if (!dropdown) return;
-#if defined(HELTEC_V4_R8_TFT)
+#if defined(HELTEC_V4_R8_TFT) || \
+    (defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213)
   // Fixed-height dropdowns can still have stale coordinates while their Flex
   // parent is being built. Resolve the layout before deriving vertical pads.
   lv_obj_update_layout(dropdown);

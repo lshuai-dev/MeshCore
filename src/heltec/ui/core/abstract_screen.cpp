@@ -4,6 +4,10 @@
 #include "ht_meta_data.hpp"
 #include "ui/core/ui_events.h"
 
+#if defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213
+#include "heltec/drivers/display/e213_lvgl_port.hpp"
+#endif
+
 namespace heltec::meshcore::ui {
 
 AbstractScreen::AbstractScreen(biz::IBizFacade& biz, const char* title, const lv_img_dsc_t* icon,
@@ -127,6 +131,19 @@ void AbstractScreen::addFocusItem(_lv_obj_t* object, _lv_obj_t* frame,
     ui_theme_apply_focus_control(object);
     lv_obj_add_event_cb(object, onFocusItemChanged, LV_EVENT_ALL, focus_frame);
   }
+#if defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213
+  // The E213 renders LVGL changes into a cache and updates the physical panel
+  // only at semantic commit points. Commit after the new focus state (and its
+  // visual frame above) has been applied so old and new selection boxes are
+  // transferred together in one differential refresh.
+  lv_obj_add_event_cb(
+      object,
+      [](lv_event_t* e) {
+        if (lv_event_get_code(e) != LV_EVENT_FOCUSED) return;
+        heltec::meshcore::dal::e213::requestSelectionRefresh("screen-selection");
+      },
+      LV_EVENT_FOCUSED, nullptr);
+#endif
   addFocusObject(object);
   if (focus_on_pointer_press) {
     lv_obj_add_flag(object, LV_OBJ_FLAG_CLICK_FOCUSABLE);

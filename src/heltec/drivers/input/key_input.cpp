@@ -9,6 +9,7 @@ namespace {
 
 static lv_indev_drv_t s_drv;
 static lv_indev_t* s_indev = nullptr;
+static lv_group_t* s_group = nullptr;
 static bool s_drv_registered = false;
 static DownStateFn s_down_state_provider = nullptr;
 static PollFn s_poll_hook = nullptr;
@@ -112,8 +113,12 @@ static void read_cb(lv_indev_drv_t* drv, lv_indev_data_t* data) {
   if (s_state == DeliveryState::Idle) {
     QueuedKey queued;
     if (dequeue_key(queued)) {
-      BTN_UI_LOG("key_input press key=0x%lX delivery=%u",
-                 (unsigned long)queued.key, (unsigned)queued.delivery);
+      lv_group_t* group = s_group;
+      BTN_UI_LOG("key_input press key=0x%lX delivery=%u group=%p focus_before=%p queued=%u",
+                 (unsigned long)queued.key, (unsigned)queued.delivery,
+                 static_cast<void*>(group),
+                 group ? static_cast<void*>(lv_group_get_focused(group)) : nullptr,
+                 (unsigned)s_queue_count);
       s_current_key = queued.key;
       data->key = s_current_key;
       data->state = LV_INDEV_STATE_PRESSED;
@@ -134,7 +139,10 @@ static void read_cb(lv_indev_drv_t* drv, lv_indev_data_t* data) {
     return;
   }
 
-  BTN_UI_LOG("key_input tracked release key=0x%lX", (unsigned long)s_current_key);
+  lv_group_t* group = s_group;
+  BTN_UI_LOG("key_input tracked release key=0x%lX group=%p focus_after=%p",
+             (unsigned long)s_current_key, static_cast<void*>(group),
+             group ? static_cast<void*>(lv_group_get_focused(group)) : nullptr);
   data->state = LV_INDEV_STATE_RELEASED;
   s_state = DeliveryState::Idle;
   data->continue_reading = s_queue_count > 0;
@@ -157,6 +165,10 @@ bool initialize() {
 void set_group(_lv_group_t* group) {
   if (!s_indev) return;
   lv_indev_set_group(s_indev, group);
+  s_group = group;
+  BTN_UI_LOG("key_input group=%p count=%u focus=%p", static_cast<void*>(group),
+             group ? static_cast<unsigned>(lv_group_get_obj_count(group)) : 0U,
+             group ? static_cast<void*>(lv_group_get_focused(group)) : nullptr);
 }
 
 void set_down_state_provider(DownStateFn fn) {

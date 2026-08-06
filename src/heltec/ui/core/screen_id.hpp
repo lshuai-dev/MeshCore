@@ -2,6 +2,7 @@
 #include <stdint.h>
 
 #include "ht_meta_data.hpp"
+#include "ui_capabilities.hpp"
 
 namespace heltec::meshcore::ui {
 
@@ -26,12 +27,19 @@ enum class eScreenId : uint8_t {
   Compass,
   FindFriend,
 #endif
+#if UI_INCLUDE_GPS_SCREEN
   GPS,
+#endif
 #if defined(ENV_INCLUDE_MAP) && ENV_INCLUDE_MAP
   Tracker,
 #endif
   System,
   kScreenCnt,
+#if !UI_INCLUDE_GPS_SCREEN
+  // Keep the symbol available to shared theme/header code without counting it
+  // as a navigable tile in device builds that omit the GPS screen.
+  GPS = 0xFE,
+#endif
   None = 0xFF
 };
 

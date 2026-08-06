@@ -73,7 +73,51 @@ static const heltec::meshcore::ui::UiThemeColors kMonoFlatColors = {
     2,         // widget_radius_px
 };
 
+// E-ink uses paper white as the resting surface. Keeping large areas white
+// reduces ghosting and panel energy while preserving black focus inversions.
+static const heltec::meshcore::ui::UiThemeColors kEinkColors = {
+    0x000000,  // fg
+    0xFFFFFF,  // bg
+    0xFFFFFF,  // fg_inv
+    0xFFFFFF,  // fg_on_dark
+    0x000000,  // panel_dark_bg
+    0x000000,  // success
+    0x000000,  // error
+    0x000000,  // warning
+    0x000000,  // bat_high
+    0x000000,  // bat_mid
+    0x000000,  // bat_low
+    0x000000,  // accent
+    0x000000,  // accent_alt
+    0xFFFFFF,  // overlay_bg
+    0x000000,  // overlay_fg
+    0x000000,  // highlight_bg
+    0xFFFFFF,  // highlight_fg
+    0xFFFFFF,  // switch_bg
+    0x000000,  // switch_indicator
+    0xFFFFFF,  // panel_bg
+    0x000000,  // panel_border
+    0x000000,  // top_pane_bg
+    0xFFFFFF,  // top_pane_fg
+    LV_OPA_COVER,
+    0xFFFFFF,  // frame_bg
+    LV_OPA_COVER,
+    2,         // widget_radius_px
+};
+
+static const heltec::meshcore::ui::UiThemeColors& active_mono_colors() {
+#if defined(UI_EINK_DISPLAY) && UI_EINK_DISPLAY
+  return kEinkColors;
+#else
+  return kMonoFlatColors;
+#endif
+}
+
 static constexpr uint16_t kContextMenuPageAnimMs = 0;
+
+#ifndef UI_NAV_RING_ANIM_MS
+#define UI_NAV_RING_ANIM_MS 560
+#endif
 
 static void init_device_styles(bool ssd1306) {
   using namespace heltec::meshcore::ui;
@@ -89,7 +133,7 @@ static void init_device_styles(bool ssd1306) {
       {12, 1, 1, 1, 1, 3, kContextMenuPageAnimMs},
       {100, 100, 8, 104},
       {0, 2, 12},
-      {5000, 560, 380, 4, 2, 2, 2, 3, 6, 0, 16, 8, 36},
+      {5000, UI_NAV_RING_ANIM_MS, 380, 4, 2, 2, 2, 3, 6, 0, 16, 8, 36},
   };
   static const UiThemeMetrics kSsd1306ThemeMetrics = {
       {2, 0, 0, 0, 0, 0},
@@ -97,7 +141,7 @@ static void init_device_styles(bool ssd1306) {
       {12, 0, 1, 1, 1, 2, kContextMenuPageAnimMs},
       {100, 100, 8, 104},
       {0, 0, 10},
-      {5000, 560, 380, 4, 2, 2, 2, 3, 6, 0, 16, 8, 36},
+      {5000, UI_NAV_RING_ANIM_MS, 380, 4, 2, 2, 2, 3, 6, 0, 16, 8, 36},
   };
 
   if (!s_device_styles_inited) {
@@ -330,7 +374,8 @@ void ui_mono_flat_apply_switch_row_focus(lv_obj_t* row, lv_obj_t* sw) {
 static lv_theme_t* init_mono_flat_theme_variant(lv_disp_t* disp, const lv_font_t* font,
                                                 bool ssd1306,
                                                 UiTheme& theme_storage) {
-  ui_set_active_theme_colors(&kMonoFlatColors);
+  const UiThemeColors& colors = active_mono_colors();
+  ui_set_active_theme_colors(&colors);
   init_device_styles(ssd1306);
   init_widget_styles();
 
@@ -345,7 +390,7 @@ static lv_theme_t* init_mono_flat_theme_variant(lv_disp_t* disp, const lv_font_t
   theme_storage.theme.font_normal = font;
   theme_storage.theme.font_large = font;
   theme_storage.theme.apply_cb = ui_mono_flat_apply;
-  ui_set_active_theme_colors(&kMonoFlatColors);
+  ui_set_active_theme_colors(&colors);
   lv_disp_set_theme(disp, &theme_storage.theme);
   return &theme_storage.theme;
 }

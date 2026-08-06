@@ -1,6 +1,8 @@
 #include "group_manager.hpp"
 
 #include "heltec/drivers/input/key_input.hpp"
+#include "heltec/drivers/input/btn_debug.hpp"
+#include "ht_meta_data.hpp"
 
 #include <lvgl.h>
 
@@ -52,6 +54,13 @@ void GroupManager::enterBinding(const GroupBinding& binding) {
   }
   if (preserve_editing) lv_group_set_editing(binding.group, true);
   _current = binding;
+  lv_obj_t* focused = lv_group_get_focused(binding.group);
+  BTN_UI_LOG("group bind=%p count=%u focus=%p meta=0x%04X editing=%u",
+             static_cast<void*>(binding.group),
+             static_cast<unsigned>(lv_group_get_obj_count(binding.group)),
+             static_cast<void*>(focused),
+             focused ? static_cast<unsigned>(ht_id(focused)) : 0U,
+             static_cast<unsigned>(lv_group_get_editing(binding.group)));
 }
 
 void GroupManager::bind(lv_group_t* group, lv_obj_t* default_focus) {
@@ -67,6 +76,7 @@ void GroupManager::bind(lv_group_t* group, lv_obj_t* default_focus) {
 void GroupManager::clear() {
   leaveGroup(_current.group);
   heltec::meshcore::dal::key_input::set_group(nullptr);
+  BTN_UI_LOG("group clear old=%p", static_cast<void*>(_current.group));
   _current = {};
 }
 

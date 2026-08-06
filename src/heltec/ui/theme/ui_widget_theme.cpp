@@ -1135,7 +1135,14 @@ static void init_navigation_styles(lv_obj_t* obj = nullptr) {
 
   lv_style_init(&s_nav_root_ring_style);
   lv_style_set_bg_color(&s_nav_root_ring_style, ui_color_bg());
+#if defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213
+  // The radial navigator is an overlay on E213. ui_effective_opa() promotes
+  // every non-zero opacity to COVER at 1-bit color depth, which otherwise
+  // blanks the whole content area whenever navigation is opened.
+  lv_style_set_bg_opa(&s_nav_root_ring_style, LV_OPA_TRANSP);
+#else
   lv_style_set_bg_opa(&s_nav_root_ring_style, ui_effective_opa(LV_OPA_50));
+#endif
 
   lv_style_init(&s_nav_ring_style);
   lv_style_set_border_width(&s_nav_ring_style, 0);

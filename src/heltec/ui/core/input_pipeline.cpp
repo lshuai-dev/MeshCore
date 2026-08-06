@@ -29,6 +29,13 @@ void dispatchAdapted(InputHost& host, const InputEvent& event, const AdaptedInpu
     if (BacklightPolicy::handleCommand(host, input.command, event.timestamp_ms)) return;
   }
 
+#if defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213
+  if (input.command == InputCommand::CloseTopLayer &&
+      UiApp::instance().closeNavigationIfOpen()) {
+    return;
+  }
+#endif
+
   if (input.command != InputCommand::None) {
     if (InputDispatcher::dispatch(host, input.command, event.timestamp_ms)) return;
   }

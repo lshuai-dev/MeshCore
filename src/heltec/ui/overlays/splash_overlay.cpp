@@ -7,6 +7,9 @@
 #if defined(HELTEC_V4_R8_TFT)
 #include "heltec/drivers/display/display_port.hpp"
 #endif
+#if defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213
+#include "heltec/drivers/display/e213_lvgl_port.hpp"
+#endif
 
 #include <string.h>
 
@@ -31,6 +34,13 @@ bool SplashOverlay::create(_lv_obj_t* parent) {
 
   _root = ht_obj_create(parent, meta_id::SplashOverlayRoot);
   if (!_root) return false;
+#if defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213
+  // Keep the boot frame independent from any retained or subsequently built
+  // application content. Local styles take precedence over the shared theme.
+  lv_obj_set_style_opa(_root, LV_OPA_COVER, LV_PART_MAIN);
+  lv_obj_set_style_bg_color(_root, lv_color_white(), LV_PART_MAIN);
+  lv_obj_set_style_bg_opa(_root, LV_OPA_COVER, LV_PART_MAIN);
+#endif
   const lv_coord_t gap =
 #if defined(HELTEC_V4_R8_TFT)
       LV_DPX(10);
@@ -54,6 +64,13 @@ bool SplashOverlay::create(_lv_obj_t* parent) {
 #else
   lv_img_set_src(_logo, &icon_meshcore_log_img);
 #endif
+#if defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213
+  // The E213 asset has an opaque indexed palette: black ink on white paper.
+  // Keep recolor disabled so both palette entries remain intact.
+  lv_obj_set_style_img_recolor_opa(_logo, LV_OPA_TRANSP, LV_PART_MAIN);
+  lv_obj_set_style_bg_color(_logo, lv_color_white(), LV_PART_MAIN);
+  lv_obj_set_style_bg_opa(_logo, LV_OPA_COVER, LV_PART_MAIN);
+#endif
 
   _ver = ht_label_create(_root, meta_id::SplashVersion);
   if (!_ver) return false;
@@ -71,17 +88,33 @@ bool SplashOverlay::create(_lv_obj_t* parent) {
   lv_label_set_long_mode(_attribution, LV_LABEL_LONG_CLIP);
   lv_label_set_text_static(_attribution, "Heltec MeshCore FW");
 
+#if defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213
+  lv_obj_t* const labels[] = {_ver, _date, _attribution};
+  for (lv_obj_t* label : labels) {
+    lv_obj_set_style_text_color(label, lv_color_black(), LV_PART_MAIN);
+    lv_obj_set_style_text_opa(label, LV_OPA_COVER, LV_PART_MAIN);
+    lv_obj_set_style_bg_color(label, lv_color_white(), LV_PART_MAIN);
+    lv_obj_set_style_bg_opa(label, LV_OPA_COVER, LV_PART_MAIN);
+  }
+#endif
+
   printInfo();
 
   _visible = true;
 
   lv_disp_t* disp = lv_disp_get_default();
   if (disp) {
+#if defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213
+    lv_obj_update_layout(_root);
+    lv_obj_invalidate(_root);
+    heltec::meshcore::dal::e213::commitBootFrame("splash", true);
+#else
 #if defined(HELTEC_V4_R8_TFT)
     heltec::meshcore::dal::display_port::setBacklightOn(true);
 #endif
     lv_timer_handler();
     lv_refr_now(disp);
+#endif
   }
 
   return true;

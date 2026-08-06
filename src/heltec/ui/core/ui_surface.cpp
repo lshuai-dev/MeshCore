@@ -3,6 +3,7 @@
 #include "group_manager.hpp"
 #include "ui_events.h"
 #include "ht_meta_data.hpp"
+#include "heltec/drivers/input/btn_debug.hpp"
 #include <lvgl.h>
 
 namespace heltec::meshcore::ui {
@@ -35,7 +36,15 @@ _lv_obj_t* UiSurface::create(_lv_obj_t* parent) {
   lv_obj_add_event_cb(_root, [](lv_event_t* e) {
     if (LV_EVENT_KEY != lv_event_get_code(e)) return;
     auto* self = static_cast<UiSurface*>(lv_event_get_user_data(e));
-    if (!self || !self->onKey(lv_event_get_key(e))) return;
+    if (!self) return;
+    const uint32_t key = lv_event_get_key(e);
+    lv_obj_t* target = lv_event_get_target(e);
+    const bool handled = self->onKey(key);
+    BTN_UI_LOG("surface key root=%p target=%p meta=0x%04X key=0x%lX handled=%u",
+               static_cast<void*>(self->root()), static_cast<void*>(target),
+               target ? static_cast<unsigned>(ht_id(target)) : 0U,
+               static_cast<unsigned long>(key), static_cast<unsigned>(handled));
+    if (!handled) return;
     lv_event_stop_processing(e);
     lv_event_stop_bubbling(e);
   }, LV_EVENT_KEY, this);

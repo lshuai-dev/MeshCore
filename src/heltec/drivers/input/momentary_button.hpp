@@ -35,6 +35,9 @@ struct Config {
   uint32_t debounce_ms = 30;
   uint32_t multi_click_window_ms = 350;
   uint32_t long_press_ms = 1000;
+  // When enabled, a new GPIO level must remain unchanged for debounce_ms
+  // before it becomes a press/release. Disabled by default for compatibility.
+  bool stable_level_debounce = false;
   ButtonConfig buttons[MOMENTARY_BUTTON_MAX];
 };
 
