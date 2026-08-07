@@ -144,7 +144,6 @@ _lv_obj_t* CompassScreen::create(_lv_obj_t* parent) {
       lv_obj_set_flex_flow(_lbl_q_row, LV_FLEX_FLOW_ROW);
       lv_obj_set_flex_align(_lbl_q_row, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER,
                             LV_FLEX_ALIGN_START);
-      lv_obj_set_style_pad_all(_lbl_q_row, 0, LV_PART_MAIN);
       lv_obj_clear_flag(_lbl_q_row, LV_OBJ_FLAG_SCROLLABLE);
       lv_obj_add_flag(_lbl_q_row, LV_OBJ_FLAG_OVERFLOW_VISIBLE);
     }

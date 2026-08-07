@@ -56,7 +56,6 @@ _lv_obj_t* AlertOverlay::create(lv_obj_t* parent) {
   _box = ht_obj_create(_root, meta_id::AlertBox);
   if (!_box) return nullptr;
   lv_obj_set_size(_box, lv_pct(92), LV_SIZE_CONTENT);
-  lv_obj_set_style_pad_all(_box, 8, LV_PART_MAIN);
   lv_obj_clear_flag(_box, LV_OBJ_FLAG_SCROLLABLE);
   lv_obj_add_flag(_box, LV_OBJ_FLAG_CLICKABLE);
   lv_obj_add_event_cb(_box, [](lv_event_t* e) {

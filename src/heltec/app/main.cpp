@@ -218,7 +218,6 @@ void setup() {
 #endif
   the_mesh.startInterface(serial_interface);
   if (NodePrefs* p = the_mesh.getNodePrefs()) {
-    HeltecMesh::setLocShareAdvertIntervalSec(p->loc_share_adv_sec);
     if (0 == p->companion_link_enabled) {
       heltec::meshcore::ui::ui_task().disableSerial();
     }
@@ -268,7 +267,6 @@ void setup() {
 #endif
   the_mesh.startInterface(serial_interface);
   if (NodePrefs* p = the_mesh.getNodePrefs()) {
-    HeltecMesh::setLocShareAdvertIntervalSec(p->loc_share_adv_sec);
     if (0 == p->companion_link_enabled) {
       heltec::meshcore::ui::ui_task().disableSerial();
     }
@@ -316,6 +314,12 @@ void loop() {
   the_mesh.loop();
   HeltecMesh::pollLocShareAdvert(the_mesh);
   sensors.loop();
+#if defined(ENV_INCLUDE_GPS) && ENV_INCLUDE_GPS
+  // Sample the stable GPS layer after the provider has consumed this loop's
+  // NMEA data, so non-UI consumers do not depend on a page being open.
+  HeltecMesh::StableGpsFixSnapshot stable_gps{};
+  (void)the_mesh.getStableGpsFix(stable_gps);
+#endif
   runtime.pollBackend();
   heltec::meshcore::ui::ui_task().loop();
   runtime.ui.tick();

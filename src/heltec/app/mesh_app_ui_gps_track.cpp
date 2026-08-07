@@ -7,8 +7,6 @@
 #include "target.h"
 
 #include <Arduino.h>
-#include <helpers/SensorManager.h>
-#include <helpers/sensors/LocationProvider.h>
 
 namespace heltec::meshcore::biz {
 namespace {
@@ -18,9 +16,9 @@ uint32_t current_utc_epoch_s() {
 }
 
 uint32_t gps_utc_epoch_s() {
-  LocationProvider* nmea = sensors.getLocationProvider();
-  if (!nmea || !nmea->isValid()) return 0;
-  const long ts = nmea->getTimestamp();
+  HeltecMesh::StableGpsFixSnapshot snapshot{};
+  if (!the_mesh.getStableGpsFix(snapshot)) return 0;
+  const long ts = snapshot.timestamp;
   return ts > 0 ? static_cast<uint32_t>(ts) : 0;
 }
 

@@ -2,18 +2,16 @@
 
 #if LV_USE_THEME_MONO
 #include "ui_theme_mono_flat.hpp"
+#include "ui/app/ui_behavior_profile.hpp"
 #include "ui/app/ui_app_ids.hpp"
-#include "ui/app/ui_app_frame_metrics.hpp"
 #include "ui/app/ui_theme.hpp"
 #include "ui/core/ht_meta_data.hpp"
 #include "ui/menus/context_menu.hpp"
-#include "ui/menus/context_menu_metrics.hpp"
 #include "ui/navigation/ui_navigator.hpp"
 #include "ui/screens/find_friend_screen_ids.hpp"
 #include "ui/screens/gps_screen.hpp"
 #include "ui/screens/radio_screen.hpp"
 #include "ui/screens/system_screen.hpp"
-#include "ui/theme/ui_theme_metrics.hpp"
 #include "ui/theme/ui_widget_theme.hpp"
 #include "ui/widgets/button_roller.hpp"
 #include "ui/widgets/top_pane.hpp"
@@ -35,13 +33,15 @@ static lv_style_t s_switch_main;
 static lv_style_t s_switch_main_focus;
 static lv_style_t s_switch_indicator;
 static lv_style_t s_switch_indicator_checked;
+#if defined(HELTEC_LORA_V4_OLED) && LV_COLOR_DEPTH == 1
+static lv_style_t s_switch_indicator_focus;
+static lv_style_t s_switch_indicator_focus_checked;
+#endif
 static lv_style_t s_switch_knob;
 static lv_style_t s_switch_knob_checked;
 
 static lv_style_t s_row_focus_key;
 static bool s_row_focus_key_ready = false;
-static lv_style_t s_metrics_style;
-static bool s_device_styles_inited = false;
 
 static const heltec::meshcore::ui::UiThemeColors kMonoFlatColors = {
     0xFFFFFF,  // fg
@@ -74,53 +74,30 @@ static const heltec::meshcore::ui::UiThemeColors kMonoFlatColors = {
 };
 
 static constexpr uint16_t kContextMenuPageAnimMs = 0;
+static const heltec::meshcore::ui::UiBehaviorProfile kMonoBehaviorProfile = {
+    {kContextMenuPageAnimMs},
+    {5000, 560, 380, 4, 2},
+};
 
 static void init_device_styles(bool ssd1306) {
   using namespace heltec::meshcore::ui;
-  ui_theme_metrics_init();
+  ui_set_behavior_profile(&kMonoBehaviorProfile);
+  ui_widget_theme_set_app_frame_style({2, 0, 0, 0, 0, 0});
+  ui_widget_theme_set_quick_ping_style({104});
+  ui_widget_theme_set_navigation_style({2, 3, 6, 0, 18, 8, 36, 2});
 
-  static const UiThemeMetrics kMonoThemeMetrics = {
-      {2, 0, 0, 0, 0, 0},
+  if (ssd1306) {
+    ui_widget_theme_set_context_menu_style({12, 0, 1, 1, 2, 8, 6});
+    ui_widget_theme_set_top_pane_style({10, 2, 2, 2, 0, 15, 7, 4});
+    ui_widget_theme_set_button_roller_style({0, 0, 10});
+  } else {
+    ui_widget_theme_set_context_menu_style({12, 1, 1, 1, 3, 8, 6});
 #if defined(HELTEC_T114_WITH_DISPLAY)
-      {18, 4, 24, 0, -1, 0},
+    ui_widget_theme_set_top_pane_style({18, 4, 4, 4, 0, 24, 13, 6});
 #else
-      {12, 4, 18, 0, -1, 0},
+    ui_widget_theme_set_top_pane_style({12, 4, 4, 4, 0, 18, 8, 4});
 #endif
-      {12, 1, 1, 1, 1, 3, kContextMenuPageAnimMs},
-      {100, 100, 8, 104},
-      {0, 2, 12},
-      {5000, 560, 380, 4, 2, 2, 2, 3, 6, 0, 16, 8, 36},
-  };
-  static const UiThemeMetrics kSsd1306ThemeMetrics = {
-      {2, 0, 0, 0, 0, 0},
-      {10, 2, 15, 0, -1, 0},
-      {12, 0, 1, 1, 1, 2, kContextMenuPageAnimMs},
-      {100, 100, 8, 104},
-      {0, 0, 10},
-      {5000, 560, 380, 4, 2, 2, 2, 3, 6, 0, 16, 8, 36},
-  };
-
-  if (!s_device_styles_inited) {
-    lv_style_init(&s_metrics_style);
-    s_device_styles_inited = true;
-  }
-
-  lv_style_value_t value{};
-  value.ptr = ssd1306 ? static_cast<const void*>(&kSsd1306ThemeMetrics)
-                      : static_cast<const void*>(&kMonoThemeMetrics);
-  lv_style_set_prop(&s_metrics_style, UI_PROP_THEME_METRICS, value);
-}
-
-static void apply_device_styles(lv_obj_t* obj) {
-  using namespace heltec::meshcore::ui;
-  if (!obj) return;
-  switch (ht_id(obj)) {
-    case meta_id::AppOverlayLayer:
-    case meta_id::AppFrameLayout:
-      lv_obj_add_style(obj, &s_metrics_style, LV_PART_MAIN);
-      break;
-    default:
-      break;
+    ui_widget_theme_set_button_roller_style({0, 2, 12});
   }
 }
 
@@ -215,6 +192,25 @@ static void init_widget_styles() {
   lv_style_set_radius(&s_switch_indicator_checked, 8);
 #endif
 
+#if defined(HELTEC_LORA_V4_OLED) && LV_COLOR_DEPTH == 1
+  lv_style_init(&s_switch_indicator_focus);
+  // Use an outline for the focused OFF state. A border is drawn inward by
+  // LVGL and makes the 1-bit indicator look smaller when it gains focus.
+  lv_style_set_border_width(&s_switch_indicator_focus, 0);
+  lv_style_set_border_opa(&s_switch_indicator_focus, LV_OPA_TRANSP);
+  lv_style_set_outline_width(&s_switch_indicator_focus, 1);
+  lv_style_set_outline_color(&s_switch_indicator_focus, s_color_border);
+  lv_style_set_outline_opa(&s_switch_indicator_focus, LV_OPA_COVER);
+  lv_style_set_outline_pad(&s_switch_indicator_focus, 0);
+  lv_style_set_radius(&s_switch_indicator_focus, LV_RADIUS_CIRCLE);
+
+  lv_style_init(&s_switch_indicator_focus_checked);
+  lv_style_set_border_width(&s_switch_indicator_focus_checked, 0);
+  lv_style_set_border_opa(&s_switch_indicator_focus_checked, LV_OPA_TRANSP);
+  lv_style_set_outline_width(&s_switch_indicator_focus_checked, 0);
+  lv_style_set_outline_opa(&s_switch_indicator_focus_checked, LV_OPA_TRANSP);
+#endif
+
   lv_style_init(&s_switch_knob);
   lv_style_set_bg_color(&s_switch_knob, s_color_fg);
   lv_style_set_bg_opa(&s_switch_knob, LV_OPA_COVER);
@@ -255,6 +251,12 @@ static void mono_flat_apply_switch(lv_obj_t* obj) {
   lv_obj_add_style(obj, &s_switch_main_focus, LV_PART_MAIN | LV_STATE_FOCUS_KEY);
   lv_obj_add_style(obj, &s_switch_indicator, LV_PART_INDICATOR);
   lv_obj_add_style(obj, &s_switch_indicator_checked, LV_PART_INDICATOR | LV_STATE_CHECKED);
+#if defined(HELTEC_LORA_V4_OLED) && LV_COLOR_DEPTH == 1
+  lv_obj_add_style(obj, &s_switch_indicator_focus,
+                   LV_PART_INDICATOR | LV_STATE_FOCUS_KEY);
+  lv_obj_add_style(obj, &s_switch_indicator_focus_checked,
+                   LV_PART_INDICATOR | LV_STATE_FOCUS_KEY | LV_STATE_CHECKED);
+#endif
   lv_obj_add_style(obj, &s_switch_knob, LV_PART_KNOB);
 #if LV_COLOR_DEPTH == 1
   lv_obj_add_style(obj, &s_switch_knob_checked, LV_PART_KNOB | LV_STATE_CHECKED);
@@ -266,7 +268,6 @@ extern "C" void ui_mono_flat_apply(lv_theme_t* th, lv_obj_t* obj) {
   if (!obj) return;
   (void)th;
 
-  apply_device_styles(obj);
   const bool custom_applied =
       heltec::meshcore::ui::ui_widget_theme_apply(obj);
 

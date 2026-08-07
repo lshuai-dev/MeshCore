@@ -12,12 +12,6 @@ constexpr MetaId ButtonRollerItem = ht_meta_id(MetaIdScope::ButtonRoller, 0x01);
 constexpr MetaId ButtonRollerLabel = ht_meta_id(MetaIdScope::ButtonRoller, 0x02);
 }
 
-struct UiButtonRollerMetrics {
-  lv_coord_t border_width;
-  lv_coord_t pad;
-  lv_coord_t button_px;
-};
-
 class ButtonRoller {
  public:
   bool create(lv_obj_t* parent, lv_group_t* group);

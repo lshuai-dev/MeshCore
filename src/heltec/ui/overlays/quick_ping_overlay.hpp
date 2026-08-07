@@ -18,6 +18,12 @@ constexpr MetaId QuickPingMessageDropdown = ht_meta_id(MetaIdScope::Overlay, 0xB
 constexpr MetaId QuickPingBackdrop = ht_meta_id(MetaIdScope::Overlay, 0xBA);
 constexpr MetaId QuickPingIconBadge = ht_meta_id(MetaIdScope::Overlay, 0xBB);
 constexpr MetaId QuickPingIcon = ht_meta_id(MetaIdScope::Overlay, 0xBC);
+constexpr MetaId QuickPingMessageDropdownList = ht_meta_id(MetaIdScope::Overlay, 0xBD);
+constexpr MetaId QuickPingMessageRow = ht_meta_id(MetaIdScope::Overlay, 0xBE);
+constexpr MetaId QuickPingMessageHeader = ht_meta_id(MetaIdScope::Overlay, 0xBF);
+constexpr MetaId QuickPingMessageControls = ht_meta_id(MetaIdScope::Overlay, 0xF0);
+constexpr MetaId QuickPingKeyboardEditor = ht_meta_id(MetaIdScope::Overlay, 0xF1);
+constexpr MetaId QuickPingKeyboardCounter = ht_meta_id(MetaIdScope::Overlay, 0xF2);
 }
 
 #if defined(HELTEC_V4_R8_TFT) && defined(HELTEC_HAS_TOUCH) && HELTEC_HAS_TOUCH
@@ -92,6 +98,8 @@ class QuickPingOverlay final : public AbstractOverlay {
   bool closeDropdown(_lv_obj_t* dropdown);
   void syncDropdownListLayout(_lv_obj_t* dropdown);
   void updateMessageTextPresentation(bool editing);
+  void updateKeyboardCounter();
+  void syncKeyboardEditorToMessage();
   void setKeyboardVisible(bool visible);
   bool keyboardVisible() const;
   bool dismissTransientControls();
@@ -123,6 +131,7 @@ class QuickPingOverlay final : public AbstractOverlay {
   static void finishRepeatSelectionAsync(void* user_data);
   static void openPendingKeyboardAsync(void* user_data);
   static void onMessageInputEvent(lv_event_t* e);
+  static void onKeyboardEditorEvent(lv_event_t* e);
   static void onKeyboardEvent(lv_event_t* e);
   static void onKeyboardValuePre(lv_event_t* e);
   static void onOutsideEvent(lv_event_t* e);
@@ -143,6 +152,8 @@ class QuickPingOverlay final : public AbstractOverlay {
   _lv_obj_t* _dd_message = nullptr;
   _lv_obj_t* _ta_message = nullptr;
   _lv_obj_t* _keyboard = nullptr;
+  _lv_obj_t* _keyboard_editor = nullptr;
+  _lv_obj_t* _keyboard_counter = nullptr;
 
   CachedGroup _groups[kMaxGroups] = {};
   CachedContact _contacts[kMaxContacts] = {};
@@ -170,6 +181,7 @@ class QuickPingOverlay final : public AbstractOverlay {
 
   char _recipient_options[384] = {};
   char _message_text[kMaxMessageLength + 1] = {};
+  char _keyboard_count_text[8] = {};
 };
 
 }  // namespace heltec::meshcore::ui

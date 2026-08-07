@@ -51,11 +51,6 @@ void build_region_options() {
 
 }  // namespace
 
-bool SystemScreen::onKey(uint32_t key) {
-  if (handleConfirmationKey(key)) return true;
-  return AbstractScreen::onKey(key);
-}
-
 _lv_obj_t* SystemScreen::create(_lv_obj_t* parent) {
   if (!AbstractScreen::create(parent)) return nullptr;
   _dd_region = addDropdownRow(_root, _choice_region, "Region");
@@ -130,7 +125,6 @@ _lv_obj_t* SystemScreen::create(_lv_obj_t* parent) {
     if (control) lv_obj_clear_flag(control, LV_OBJ_FLAG_SCROLL_ON_FOCUS);
   }
 
-  (void)createActionConfirmation();
   ht_set_user_data(_root, this);
 
   lv_group_set_focus_cb(

@@ -50,8 +50,6 @@ static _lv_obj_t* ui_navigator_create_with_layout(_lv_obj_t* parent, uint8_t lay
   lv_obj_clear_flag(obj, LV_OBJ_FLAG_SCROLLABLE | LV_OBJ_FLAG_CLICKABLE);
   lv_obj_add_flag(obj, LV_OBJ_FLAG_FLOATING | LV_OBJ_FLAG_OVERFLOW_VISIBLE |
                            LV_OBJ_FLAG_HIDDEN);
-  lv_obj_set_style_pad_all(obj, 0, LV_PART_MAIN);
-
   if (layout == kNavigatorLayoutGrid) {
     w->content = heltec::meshcore::ui::ht_obj_create(
         obj, heltec::meshcore::ui::meta_id::NavigationContent);
@@ -61,7 +59,6 @@ static _lv_obj_t* ui_navigator_create_with_layout(_lv_obj_t* parent, uint8_t lay
     }
     lv_obj_set_pos(w->content, 0, 0);
     lv_obj_set_size(w->content, lv_pct(100), lv_pct(100));
-    lv_obj_set_style_pad_all(w->content, 0, LV_PART_MAIN);
     lv_obj_clear_flag(w->content, LV_OBJ_FLAG_SCROLLABLE | LV_OBJ_FLAG_CLICKABLE);
     lv_obj_add_flag(w->content, LV_OBJ_FLAG_OVERFLOW_VISIBLE);
   }

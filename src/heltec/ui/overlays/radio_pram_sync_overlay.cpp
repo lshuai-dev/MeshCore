@@ -3,9 +3,7 @@
 #include "ui/core/ht_meta_data.hpp"
 #include "ui/core/operation_hints.hpp"
 #include "ui/core/ui_events.h"
-#if defined(HELTEC_V4_R8_TFT)
-#include "ui/app/ui_theme.hpp"
-#endif
+#include "ui/theme/ui_widget_theme.hpp"
 
 #include <lvgl.h>
 
@@ -31,15 +29,6 @@ static int wrapIndex(int idx, int count) {
 
 _lv_obj_t* RadioParamSyncOverlay::create(lv_obj_t* parent) {
   if (!AbstractOverlay::create(parent)) return nullptr;
-  const lv_coord_t gap =
-#if defined(HELTEC_V4_R8_TFT)
-      LV_DPX(10);
-#else
-      3;
-#endif
-  lv_obj_set_style_pad_hor(_root, 6, LV_PART_MAIN);
-  lv_obj_set_style_pad_ver(_root, 4, LV_PART_MAIN);
-  lv_obj_set_style_pad_row(_root, gap, LV_PART_MAIN);
 
   _title = ht_label_create(_root, meta_id::RadioParamSyncTitle);
   if (!_title) return nullptr;
@@ -53,8 +42,6 @@ _lv_obj_t* RadioParamSyncOverlay::create(lv_obj_t* parent) {
   lv_obj_set_flex_flow(_list, LV_FLEX_FLOW_COLUMN);
   lv_obj_set_flex_align(_list, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER,
                         LV_FLEX_ALIGN_CENTER);
-  lv_obj_set_style_pad_all(_list, 0, LV_PART_MAIN);
-  lv_obj_set_style_pad_row(_list, gap, LV_PART_MAIN);
   lv_obj_clear_flag(_list, LV_OBJ_FLAG_SCROLLABLE);
 
   const int preset_count = _biz.loRaBandPresetCount();
@@ -64,22 +51,9 @@ _lv_obj_t* RadioParamSyncOverlay::create(lv_obj_t* parent) {
 #if LV_USE_ROLLER == 0
 #error "HELTEC_V4_R8_TFT radio preset overlay requires LV_USE_ROLLER=1"
 #endif
-  _roller = lv_roller_create(_list);
+  _roller = ht_roller_create(_list, meta_id::RadioParamSyncRoller);
   if (!_roller) return nullptr;
-  lv_obj_remove_style_all(_roller);
   lv_obj_set_width(_roller, lv_pct(100));
-  lv_obj_set_style_bg_opa(_roller, LV_OPA_TRANSP, LV_PART_MAIN);
-  lv_obj_set_style_border_width(_roller, 0, LV_PART_MAIN);
-  lv_obj_set_style_outline_width(_roller, 0, LV_PART_MAIN);
-  lv_obj_set_style_shadow_width(_roller, 0, LV_PART_MAIN);
-  lv_obj_set_style_text_color(_roller, ui_color_overlay_fg(), LV_PART_MAIN);
-  lv_obj_set_style_text_align(_roller, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
-  lv_obj_set_style_text_line_space(_roller, LV_DPX(18), LV_PART_MAIN);
-  lv_obj_set_style_anim_time(_roller, 220, LV_PART_MAIN);
-  lv_obj_set_style_bg_color(_roller, ui_color_highlight_bg(), LV_PART_SELECTED);
-  lv_obj_set_style_bg_opa(_roller, LV_OPA_COVER, LV_PART_SELECTED);
-  lv_obj_set_style_text_color(_roller, ui_color_highlight_fg(), LV_PART_SELECTED);
-  lv_obj_set_style_radius(_roller, LV_DPX(4), LV_PART_SELECTED);
   lv_obj_add_event_cb(
       _roller,
       [](lv_event_t* e) {
@@ -182,14 +156,12 @@ void RadioParamSyncOverlay::configureListLayout() {
 
   // Measure from the actual laid-out list area. The vertical breathing room
   // scales with the display instead of being tied to a particular board size.
-  lv_obj_set_style_pad_top(_list, 0, LV_PART_MAIN);
-  lv_obj_set_style_pad_bottom(_list, 0, LV_PART_MAIN);
+  ui_theme_set_radio_sync_list_margin(_list, 0);
   lv_obj_update_layout(_root);
 
   const lv_coord_t list_height = lv_obj_get_height(_list);
   const lv_coord_t margin = list_height > 0 ? list_height / 14 : 0;
-  lv_obj_set_style_pad_top(_list, margin, LV_PART_MAIN);
-  lv_obj_set_style_pad_bottom(_list, margin, LV_PART_MAIN);
+  ui_theme_set_radio_sync_list_margin(_list, margin);
   lv_obj_update_layout(_root);
 
   const lv_coord_t usable_height = lv_obj_get_content_height(_list);

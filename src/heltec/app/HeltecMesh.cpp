@@ -16,6 +16,12 @@
 
 namespace {
 
+#if defined(GPS_FIX_VALID_WINDOW_MS)
+constexpr uint32_t kStableGpsFixWindowMs = GPS_FIX_VALID_WINDOW_MS;
+#else
+constexpr uint32_t kStableGpsFixWindowMs = 5000UL;
+#endif
+
 uint32_t clampIntervalSec(uint32_t v) {
   static const uint32_t kAllowed[] = {30, 60, 180, 300, 600};
   for (uint32_t a : kAllowed) {
@@ -74,13 +80,10 @@ uint8_t pathHashSizeForPrefs(const NodePrefs& prefs) {
 
 #if defined(ENV_INCLUDE_GPS) && ENV_INCLUDE_GPS
 bool locShareCurrentGps(double* lat, double* lon) {
-  LocationProvider* loc = sensors.getLocationProvider();
-  if (!loc || !loc->isEnabled() || !loc->isValid()) return false;
-#if defined(HELTEC_SENSOR_MANAGER) && HELTEC_SENSOR_MANAGER
-  if (!sensors.hasFreshGpsFix()) return false;
-#endif
-  *lat = sensors.node_lat;
-  *lon = sensors.node_lon;
+  HeltecMesh::StableGpsFixSnapshot snapshot{};
+  if (!the_mesh.getStableGpsFix(snapshot)) return false;
+  *lat = snapshot.lat_micro / 1000000.0;
+  *lon = snapshot.lon_micro / 1000000.0;
   return true;
 }
 #else
@@ -1274,6 +1277,79 @@ HeltecMesh::HeltecMesh(mesh::Radio &radio, mesh::RNG &rng, mesh::RTCClock &rtc, 
   //_prefs.rx_delay_base = 10.0f;  enable once new algo fixed
 }
 
+bool HeltecMesh::getStableGpsFix(StableGpsFixSnapshot& out) const {
+  out = StableGpsFixSnapshot{};
+#if defined(ENV_INCLUDE_GPS) && ENV_INCLUDE_GPS
+  LocationProvider* const location = sensors.getLocationProvider();
+  if (!location || !location->isEnabled()) {
+    _stable_gps_fix_seen = false;
+    _stable_gps_raw_valid = false;
+    _stable_gps_last_fix_ms = 0;
+    return false;
+  }
+
+#if defined(HELTEC_SENSOR_MANAGER) && HELTEC_SENSOR_MANAGER
+  // The Heltec manager samples the provider from its sensor loop and already
+  // holds the last accepted fix across transient invalid NMEA sentences.
+  HeltecGpsFixSnapshot source{};
+  if (!sensors.getGpsFixSnapshot(source)) return false;
+  out.valid = source.valid;
+  out.age_ms = source.age_ms;
+  out.timestamp = source.timestamp;
+  out.lat_micro = source.lat_micro;
+  out.lon_micro = source.lon_micro;
+  out.alt_milli = source.alt_milli;
+  out.satellites = source.satellites;
+  sensors.node_lat = out.lat_micro / 1000000.0;
+  sensors.node_lon = out.lon_micro / 1000000.0;
+  sensors.node_altitude = out.alt_milli / 1000.0;
+  return true;
+#else
+  const bool raw_valid = location->isValid();
+  if (raw_valid) {
+    const long timestamp = location->getTimestamp();
+    const long lat = location->getLatitude();
+    const long lon = location->getLongitude();
+    const long alt = location->getAltitude();
+    const long sats = location->satellitesCount();
+    const bool changed = !_stable_gps_fix_seen || !_stable_gps_raw_valid ||
+                         timestamp != _stable_gps_last_timestamp ||
+                         lat != _stable_gps_last_lat || lon != _stable_gps_last_lon ||
+                         alt != _stable_gps_last_alt || sats != _stable_gps_last_sats;
+    if (changed) {
+      _stable_gps_fix_seen = true;
+      _stable_gps_last_fix_ms = millis();
+      _stable_gps_last_timestamp = timestamp;
+      _stable_gps_last_lat = lat;
+      _stable_gps_last_lon = lon;
+      _stable_gps_last_alt = alt;
+      _stable_gps_last_sats = sats;
+    }
+  }
+  _stable_gps_raw_valid = raw_valid;
+
+  if (!_stable_gps_fix_seen) return false;
+  out.age_ms = millis() - _stable_gps_last_fix_ms;
+  out.timestamp = _stable_gps_last_timestamp;
+  out.lat_micro = _stable_gps_last_lat;
+  out.lon_micro = _stable_gps_last_lon;
+  out.alt_milli = _stable_gps_last_alt;
+  out.satellites = _stable_gps_last_sats;
+  out.valid = out.age_ms <= kStableGpsFixWindowMs;
+  if (!out.valid) return false;
+
+  // Keep the existing advert/telemetry coordinate source in sync with the
+  // same accepted sample. No coordinates are cleared while the fix is held.
+  sensors.node_lat = out.lat_micro / 1000000.0;
+  sensors.node_lon = out.lon_micro / 1000000.0;
+  sensors.node_altitude = out.alt_milli / 1000.0;
+  return true;
+#endif
+#else
+  return false;
+#endif
+}
+
 void HeltecMesh::begin(bool has_display) {
   BaseChatMesh::begin();
 
@@ -1520,6 +1596,8 @@ void HeltecMesh::handleCmdFrame(size_t len) {
     memcpy(&out_frame[i], self_id.pub_key, PUB_KEY_SIZE);
     i += PUB_KEY_SIZE;
 
+    StableGpsFixSnapshot stable_gps{};
+    (void)getStableGpsFix(stable_gps);
     int32_t lat, lon;
     lat = (sensors.node_lat * 1000000.0);
     lon = (sensors.node_lon * 1000000.0);
@@ -1669,6 +1747,8 @@ void HeltecMesh::handleCmdFrame(size_t len) {
       writeErrFrame(ERR_CODE_ILLEGAL_ARG);
     }
   } else if (cmd_frame[0] == CMD_SEND_SELF_ADVERT) {
+    StableGpsFixSnapshot stable_gps{};
+    (void)getStableGpsFix(stable_gps);
     mesh::Packet* pkt;
     if (_prefs.advert_loc_policy == ADVERT_LOC_NONE) {
       pkt = createSelfAdvert(_prefs.node_name);
@@ -1753,6 +1833,8 @@ void HeltecMesh::handleCmdFrame(size_t len) {
   } else if (cmd_frame[0] == CMD_EXPORT_CONTACT) {
     if (len < 1 + PUB_KEY_SIZE) {
       // export SELF
+      StableGpsFixSnapshot stable_gps{};
+      (void)getStableGpsFix(stable_gps);
       mesh::Packet* pkt;
       if (_prefs.advert_loc_policy == ADVERT_LOC_NONE) {
         pkt = createSelfAdvert(_prefs.node_name);
@@ -2877,7 +2959,10 @@ void HeltecMesh::loop() {
 }
 
 bool HeltecMesh::advert() {
-  mesh::Packet* const pkt = (_prefs.advert_loc_policy == ADVERT_LOC_NONE)
+  const bool has_gps_fields = _prefs.advert_loc_policy != ADVERT_LOC_NONE;
+  StableGpsFixSnapshot stable_gps{};
+  (void)getStableGpsFix(stable_gps);
+  mesh::Packet* const pkt = !has_gps_fields
                                 ? createSelfAdvert(_prefs.node_name)
                                 : createSelfAdvert(_prefs.node_name, sensors.node_lat, sensors.node_lon);
   if (!pkt) return false;

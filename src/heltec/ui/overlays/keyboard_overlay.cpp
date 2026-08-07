@@ -74,16 +74,6 @@ void install_waypoint_keyboard_map(lv_obj_t* kb) {
   lv_keyboard_set_map(kb, LV_KEYBOARD_MODE_USER_1, kWaypointKbMap, kWaypointKbCtrl);
 }
 
-const lv_font_t* waypoint_keyboard_font() {
-#if defined(LV_FONT_MONTSERRAT_12) && LV_FONT_MONTSERRAT_12
-  return &lv_font_montserrat_12;
-#elif defined(LV_FONT_UNSCII_16) && LV_FONT_UNSCII_16
-  return &lv_font_unscii_16;
-#else
-  return LV_FONT_DEFAULT;
-#endif
-}
-
 bool compact_keyboard_display() {
   lv_disp_t* disp = lv_disp_get_default();
   return disp && lv_disp_get_ver_res(disp) <= 80;
@@ -91,104 +81,6 @@ bool compact_keyboard_display() {
 
 lv_keyboard_mode_t message_keyboard_mode() {
   return compact_keyboard_display() ? LV_KEYBOARD_MODE_USER_2 : LV_KEYBOARD_MODE_TEXT_LOWER;
-}
-
-static lv_style_t s_kb_root_message_style;
-static lv_style_t s_kb_root_waypoint_style;
-static lv_style_t s_kb_message_main_style;
-static lv_style_t s_kb_message_items_style;
-static lv_style_t s_kb_waypoint_main_style;
-static lv_style_t s_kb_waypoint_items_style;
-static lv_style_t s_textarea_message_style;
-static lv_style_t s_textarea_waypoint_style;
-static bool s_keyboard_layout_styles_ready = false;
-
-void init_keyboard_layout_styles() {
-  if (s_keyboard_layout_styles_ready) return;
-  const bool compact = compact_keyboard_display();
-
-  lv_style_init(&s_kb_root_message_style);
-  lv_style_set_flex_main_place(&s_kb_root_message_style, LV_FLEX_ALIGN_START);
-  lv_style_set_flex_cross_place(&s_kb_root_message_style, LV_FLEX_ALIGN_CENTER);
-  lv_style_set_flex_track_place(&s_kb_root_message_style, LV_FLEX_ALIGN_START);
-  if (compact) {
-    lv_style_set_pad_ver(&s_kb_root_message_style, 1);
-    lv_style_set_pad_row(&s_kb_root_message_style, 1);
-  }
-
-  lv_style_init(&s_kb_root_waypoint_style);
-  lv_style_set_flex_main_place(&s_kb_root_waypoint_style, LV_FLEX_ALIGN_START);
-  lv_style_set_flex_cross_place(&s_kb_root_waypoint_style, LV_FLEX_ALIGN_CENTER);
-  lv_style_set_flex_track_place(&s_kb_root_waypoint_style, LV_FLEX_ALIGN_START);
-  lv_style_set_pad_ver(&s_kb_root_waypoint_style, compact ? 1 : 2);
-  lv_style_set_pad_row(&s_kb_root_waypoint_style, compact ? 1 : 2);
-
-  lv_style_init(&s_kb_message_main_style);
-  lv_style_set_flex_grow(&s_kb_message_main_style, compact ? 0 : 1);
-  lv_style_set_width(&s_kb_message_main_style, lv_pct(100));
-  lv_style_set_height(&s_kb_message_main_style, compact ? 36 : LV_SIZE_CONTENT);
-  lv_style_set_min_height(&s_kb_message_main_style, compact ? 36 : 40);
-  if (compact) {
-    lv_style_set_pad_all(&s_kb_message_main_style, 0);
-    lv_style_set_pad_row(&s_kb_message_main_style, 0);
-    lv_style_set_pad_column(&s_kb_message_main_style, 0);
-  }
-
-  lv_style_init(&s_kb_message_items_style);
-  lv_style_set_text_font(&s_kb_message_items_style, LV_FONT_DEFAULT);
-  lv_style_set_pad_all(&s_kb_message_items_style, compact ? 0 : 1);
-
-  lv_style_init(&s_kb_waypoint_main_style);
-  lv_style_set_flex_grow(&s_kb_waypoint_main_style, 0);
-  lv_style_set_width(&s_kb_waypoint_main_style, lv_pct(100));
-  lv_style_set_height(&s_kb_waypoint_main_style, compact ? 36 : 40);
-  lv_style_set_min_height(&s_kb_waypoint_main_style, compact ? 36 : 40);
-
-  lv_style_init(&s_kb_waypoint_items_style);
-  lv_style_set_text_font(&s_kb_waypoint_items_style, waypoint_keyboard_font());
-  lv_style_set_pad_all(&s_kb_waypoint_items_style, compact ? 1 : 2);
-
-  lv_style_init(&s_textarea_message_style);
-  lv_style_set_text_font(&s_textarea_message_style, LV_FONT_DEFAULT);
-  lv_style_set_height(&s_textarea_message_style, compact ? 16 : 18);
-  if (compact) {
-    lv_style_set_min_height(&s_textarea_message_style, 16);
-    lv_style_set_pad_hor(&s_textarea_message_style, 1);
-    lv_style_set_pad_ver(&s_textarea_message_style, 1);
-  }
-
-  lv_style_init(&s_textarea_waypoint_style);
-  lv_style_set_text_font(&s_textarea_waypoint_style, LV_FONT_DEFAULT);
-  lv_style_set_height(&s_textarea_waypoint_style, compact ? 16 : 18);
-  if (compact) {
-    lv_style_set_min_height(&s_textarea_waypoint_style, 16);
-    lv_style_set_pad_hor(&s_textarea_waypoint_style, 1);
-    lv_style_set_pad_ver(&s_textarea_waypoint_style, 1);
-  }
-
-  s_keyboard_layout_styles_ready = true;
-}
-
-void install_keyboard_layout_styles(lv_obj_t* root, lv_obj_t* kb, lv_obj_t* textarea) {
-  init_keyboard_layout_styles();
-  if (root) {
-    lv_obj_add_style(root, &s_kb_root_message_style, LV_PART_MAIN);
-    lv_obj_add_style(root, &s_kb_root_waypoint_style,
-                     LV_PART_MAIN | LV_STATE_USER_1);
-  }
-  if (kb) {
-    lv_obj_add_style(kb, &s_kb_message_main_style, LV_PART_MAIN);
-    lv_obj_add_style(kb, &s_kb_waypoint_main_style,
-                     LV_PART_MAIN | LV_STATE_USER_1);
-    lv_obj_add_style(kb, &s_kb_message_items_style, LV_PART_ITEMS);
-    lv_obj_add_style(kb, &s_kb_waypoint_items_style,
-                     LV_PART_ITEMS | LV_STATE_USER_1);
-  }
-  if (textarea) {
-    lv_obj_add_style(textarea, &s_textarea_message_style, LV_PART_MAIN);
-    lv_obj_add_style(textarea, &s_textarea_waypoint_style,
-                     LV_PART_MAIN | LV_STATE_USER_1);
-  }
 }
 
 void set_keyboard_layout_state(lv_obj_t* root, lv_obj_t* kb, lv_obj_t* textarea,
@@ -205,7 +97,6 @@ void set_keyboard_layout_state(lv_obj_t* root, lv_obj_t* kb, lv_obj_t* textarea,
 }
 
 void apply_message_keyboard_layout(lv_obj_t* root, lv_obj_t* kb, lv_obj_t* textarea) {
-  init_keyboard_layout_styles();
   set_keyboard_layout_state(root, kb, textarea, false);
   if (root) {
     lv_obj_clear_flag(root, LV_OBJ_FLAG_SCROLLABLE);
@@ -214,7 +105,6 @@ void apply_message_keyboard_layout(lv_obj_t* root, lv_obj_t* kb, lv_obj_t* texta
 }
 
 void apply_waypoint_keyboard_layout(lv_obj_t* root, lv_obj_t* kb, lv_obj_t* textarea) {
-  init_keyboard_layout_styles();
   set_keyboard_layout_state(root, kb, textarea, true);
   if (root) {
     lv_obj_clear_flag(root, LV_OBJ_FLAG_SCROLLABLE);
@@ -496,14 +386,11 @@ bool KeyboardOverlay::ensureContent() {
   lv_textarea_set_max_length(_textarea, kMaxText);
   lv_textarea_set_text_buffer(_textarea, _text_buffer, sizeof(_text_buffer));
   lv_obj_set_scrollbar_mode(_textarea, LV_SCROLLBAR_MODE_OFF);
-  _vertical_spacer = lv_obj_create(_root);
+  _vertical_spacer = ht_obj_create(_root, meta_id::KeyboardSpacer);
   if (!_vertical_spacer) return false;
   lv_obj_set_width(_vertical_spacer, lv_pct(100));
   lv_obj_set_height(_vertical_spacer, 0);
   lv_obj_set_flex_grow(_vertical_spacer, 1);
-  lv_obj_set_style_bg_opa(_vertical_spacer, LV_OPA_TRANSP, LV_PART_MAIN);
-  lv_obj_set_style_border_width(_vertical_spacer, 0, LV_PART_MAIN);
-  lv_obj_set_style_pad_all(_vertical_spacer, 0, LV_PART_MAIN);
   lv_obj_clear_flag(_vertical_spacer, LV_OBJ_FLAG_CLICKABLE | LV_OBJ_FLAG_SCROLLABLE);
   lv_obj_add_flag(_vertical_spacer, LV_OBJ_FLAG_HIDDEN);
   _keyboard = ht_keyboard_create(_root, meta_id::KeyboardKeyboard);
@@ -526,7 +413,6 @@ bool KeyboardOverlay::ensureContent() {
   lv_obj_add_event_cb(_keyboard, &KeyboardOverlay::on_keyboard_key_pre,
                       static_cast<lv_event_code_t>(LV_EVENT_KEY | LV_EVENT_PREPROCESS), this);
   lv_obj_add_event_cb(_keyboard, &KeyboardOverlay::on_keyboard_key_post, LV_EVENT_KEY, this);
-  install_keyboard_layout_styles(_root, _keyboard, _textarea);
   apply_message_keyboard_layout(_root, _keyboard, _textarea);
   lv_obj_update_layout(_root);
   return true;

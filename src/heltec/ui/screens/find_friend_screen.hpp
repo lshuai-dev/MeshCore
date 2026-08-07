@@ -94,6 +94,7 @@ class FindFriendScreen : public AbstractScreen {
   float _turn_show_deg = 0.f;
   bool _gps_fix = false;
   bool _on_target = false;
+  bool _direction_valid = false;
   bool _defer_cycle_target = false;
   static constexpr int kFriendWindowSize = 10;
   static constexpr int kFriendWindowStep = 5;

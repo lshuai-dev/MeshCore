@@ -22,10 +22,6 @@ _lv_obj_t* SendMessageOverlay::createRoot(_lv_obj_t* parent) {
 
 namespace {
 
-lv_coord_t componentGap() {
-  return LV_DPX(10);
-}
-
 lv_coord_t sendRowHeight() {
 #if defined(HELTEC_DISPLAY_ST7789) && HELTEC_DISPLAY_ST7789
   return 16;
@@ -87,10 +83,6 @@ _lv_obj_t* SendMessageOverlay::create(lv_obj_t* parent) {
 
   fitToDisplay(_root);
   lv_obj_add_flag(_root, LV_OBJ_FLAG_CLICKABLE);
-  lv_obj_set_style_pad_hor(_root, 2, LV_PART_MAIN);
-  lv_obj_set_style_pad_ver(_root, 1, LV_PART_MAIN);
-  lv_obj_set_style_pad_row(_root, 0, LV_PART_MAIN);
-
   _title = ht_label_create(_root, meta_id::SendMessageTitle);
   if (!_title) return nullptr;
   lv_obj_set_width(_title, lv_pct(100));
@@ -104,8 +96,6 @@ _lv_obj_t* SendMessageOverlay::create(lv_obj_t* parent) {
   lv_obj_set_flex_flow(_list_mid, LV_FLEX_FLOW_COLUMN);
   lv_obj_set_flex_align(_list_mid, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER,
                         LV_FLEX_ALIGN_CENTER);
-  lv_obj_set_style_pad_all(_list_mid, 0, LV_PART_MAIN);
-  lv_obj_set_style_pad_row(_list_mid, componentGap(), LV_PART_MAIN);
   lv_obj_clear_flag(_list_mid, LV_OBJ_FLAG_SCROLLABLE);
   lv_obj_add_flag(_list_mid, LV_OBJ_FLAG_CLICKABLE);
 
@@ -116,8 +106,6 @@ _lv_obj_t* SendMessageOverlay::create(lv_obj_t* parent) {
   lv_obj_set_flex_flow(_list, LV_FLEX_FLOW_COLUMN);
   lv_obj_set_flex_align(_list, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER,
                         LV_FLEX_ALIGN_CENTER);
-  lv_obj_set_style_pad_all(_list, 0, LV_PART_MAIN);
-  lv_obj_set_style_pad_row(_list, componentGap(), LV_PART_MAIN);
   lv_obj_clear_flag(_list, LV_OBJ_FLAG_SCROLLABLE);
 
   _footer = ht_label_create(_root, meta_id::SendMessageFooter);
@@ -204,7 +192,6 @@ _lv_obj_t* SendMessageOverlay::createTouchRow(uint8_t index, const char* text) {
   lv_obj_set_flex_flow(row, LV_FLEX_FLOW_ROW);
   lv_obj_set_flex_align(row, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER,
                         LV_FLEX_ALIGN_CENTER);
-  lv_obj_set_style_pad_all(row, 0, LV_PART_MAIN);
   lv_obj_clear_flag(row, LV_OBJ_FLAG_SCROLLABLE);
   lv_obj_set_scrollbar_mode(row, LV_SCROLLBAR_MODE_OFF);
   lv_obj_add_flag(row, LV_OBJ_FLAG_CLICKABLE);

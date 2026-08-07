@@ -17,8 +17,8 @@
 #define COMPASS_HEADING_OFFSET_DEG 0
 #endif
 
-#ifndef FF_NAV_ARRIVED_HINT_M
-#define FF_NAV_ARRIVED_HINT_M 3.0
+#ifndef FF_NAV_MIN_DIRECTION_DISTANCE_M
+#define FF_NAV_MIN_DIRECTION_DISTANCE_M 10.0
 #endif
 
 namespace heltec::meshcore::biz {
@@ -73,14 +73,13 @@ int adv_interval_index(uint32_t sec) {
 }
 
 bool load_ff_settings(int& mode, int& wp_valid, double& wp_lat, double& wp_lon, uint16_t& track_cm,
-                      int* friend_idx_out = nullptr, uint32_t* adv_sec_out = nullptr,
-                      uint16_t* track_interval_min_out = nullptr,
+                      int* friend_idx_out = nullptr, uint16_t* track_interval_min_out = nullptr,
                       bool* enabled_out = nullptr) {
 #if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
   DataStore* ds = the_mesh.getDataStore();
   if (!ds) return false;
   return ds->loadFindFriendCompassSettings(mode, wp_valid, wp_lat, wp_lon, track_cm, friend_idx_out,
-                                           adv_sec_out, track_interval_min_out, enabled_out);
+                                           track_interval_min_out, enabled_out);
 #else
   (void)mode;
   (void)wp_valid;
@@ -88,7 +87,6 @@ bool load_ff_settings(int& mode, int& wp_valid, double& wp_lat, double& wp_lon, 
   (void)wp_lon;
   (void)track_cm;
   (void)friend_idx_out;
-  (void)adv_sec_out;
   (void)track_interval_min_out;
   (void)enabled_out;
   return false;
@@ -102,8 +100,7 @@ void MeshAppUi::persistFfPrefs(int mode, int wp_valid, double wp_lat, double wp_
   DataStore* ds = the_mesh.getDataStore();
   if (!ds) return;
   ds->saveFindFriendCompassSettings(mode, wp_valid, wp_lat, wp_lon, HELTEC_GPS_TRACK_MIN_DIST_CM,
-                                    findFriendTargetContactIndex(),
-                                    HeltecMesh::locShareAdvertIntervalSec(), _ff_gps_track_interval_min,
+                                    findFriendTargetContactIndex(), _ff_gps_track_interval_min,
                                     _ff_enabled);
 #else
   (void)mode;
@@ -122,7 +119,7 @@ void MeshAppUi::syncFfCacheFromStore() const {
   double lo = 0;
   uint16_t track_cm = 100;
   bool enabled = false;
-  if (load_ff_settings(mode, wp_valid, la, lo, track_cm, nullptr, nullptr, nullptr, &enabled)) {
+  if (load_ff_settings(mode, wp_valid, la, lo, track_cm, nullptr, nullptr, &enabled)) {
     _ff_mode = mode;
     _ff_wp_valid = wp_valid;
     _ff_wp_lat_e6 = deg_to_e6(la);
@@ -150,11 +147,10 @@ void MeshAppUi::ensureFindFriendPrefsLoaded() const {
   uint16_t track_cm = 100;
   uint16_t track_interval_min = 1;
   int friend_idx = -1;
-  uint32_t adv_sec = 0;
   bool enabled = false;
   const bool loaded =
-      load_ff_settings(mode, wp_valid, la, lo, track_cm, &friend_idx, &adv_sec,
-                       &track_interval_min, &enabled);
+      load_ff_settings(mode, wp_valid, la, lo, track_cm, &friend_idx, &track_interval_min,
+                       &enabled);
   if (!loaded) return;
 
   _ff_mode = mode;
@@ -170,7 +166,6 @@ void MeshAppUi::ensureFindFriendPrefsLoaded() const {
   } else {
     _ff_target_contact_idx = -1;
   }
-  if (adv_sec > 0) HeltecMesh::setLocShareAdvertIntervalSec(adv_sec);
 }
 
 bool MeshAppUi::locationShareEnabled() const {
@@ -186,12 +181,10 @@ void MeshAppUi::setLocationShareEnabled(bool enabled) {
 }
 
 int MeshAppUi::locShareIntervalIndex() const {
-  ensureFindFriendPrefsLoaded();
   return adv_interval_index(HeltecMesh::locShareAdvertIntervalSec());
 }
 
 void MeshAppUi::setLocShareIntervalIndex(int index) {
-  ensureFindFriendPrefsLoaded();
   if (index < 0) index = 0;
   if (index > 4) index = 4;
   const uint32_t sec = kAdvIntervalSec[index];
@@ -202,16 +195,6 @@ void MeshAppUi::setLocShareIntervalIndex(int index) {
     p->loc_share_adv_sec = sec;
     the_mesh.savePrefs();
   }
-
-#if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
-  int mode = 0;
-  int wp_valid = 0;
-  double la = 0;
-  double lo = 0;
-  uint16_t track_cm = 100;
-  load_ff_settings(mode, wp_valid, la, lo, track_cm);
-  persistFfPrefs(mode, wp_valid, la, lo);
-#endif
   reconcileGpsPower();
   notifyAppState(heltec::meshcore::ui::AppStateEventType::ConfigChanged);
   notifyAppState(heltec::meshcore::ui::AppStateEventType::FindFriendChanged);
@@ -522,7 +505,7 @@ FindFriendUi MeshAppUi::findFriendUi() const {
     double geodesic_bearing = 0.0;
     geo::geodesic_inverse_wgs84(here_lat, here_lon, tgt_lat, tgt_lon,
                                 u.distance_m, &geodesic_bearing);
-    u.arrived = u.distance_m < FF_NAV_ARRIVED_HINT_M;
+    u.near_target = u.distance_m < FF_NAV_MIN_DIRECTION_DISTANCE_M;
     u.bearing_valid = true;
     u.bearing_to_waypoint_deg = (float)geodesic_bearing;
 
@@ -530,7 +513,7 @@ FindFriendUi MeshAppUi::findFriendUi() const {
       const float device_hdg =
           wrap_heading_360(u.heading_deg + (float)COMPASS_HEADING_OFFSET_DEG);
       u.turn_deg = normalize_turn180((float)geodesic_bearing - device_hdg);
-      u.relative_valid = !u.arrived;
+      u.relative_valid = !u.near_target;
     }
   }
 #endif

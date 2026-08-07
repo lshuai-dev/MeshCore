@@ -16,17 +16,9 @@ _lv_obj_t* AbstractScreen::createRoot(_lv_obj_t* parent) {
 
 _lv_obj_t* AbstractScreen::create(_lv_obj_t* parent) {
   if (!UiSurface::create(parent)) return nullptr;
-  const lv_coord_t gap =
-#if defined(HELTEC_V4_R8_TFT)
-      LV_DPX(10);
-#else
-      3;
-#endif
   lv_obj_set_size(_root, lv_pct(100), lv_pct(100));
   lv_obj_set_flex_flow(_root, LV_FLEX_FLOW_COLUMN);
   lv_obj_set_flex_align(_root, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_START);
-  lv_obj_set_style_pad_all(_root, 0, LV_PART_MAIN);
-  lv_obj_set_style_pad_row(_root, gap, LV_PART_MAIN);
   if (_root_scroll_focus) {
     lv_obj_add_flag(_root, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_set_scroll_dir(_root, LV_DIR_VER);

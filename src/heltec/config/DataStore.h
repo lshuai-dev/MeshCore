@@ -55,11 +55,11 @@ public:
 #if defined(ENV_INCLUDE_COMPASS) && (ENV_INCLUDE_COMPASS)
   bool loadFindFriendCompassSettings(int& mode, int& wpValid, double& wpLat, double& wpLon,
                                      uint16_t& trackMinDistCm, int* friendIdx = nullptr,
-                                     uint32_t* advSec = nullptr, uint16_t* trackIntervalMin = nullptr,
+                                     uint16_t* trackIntervalMin = nullptr,
                                      bool* enabled = nullptr);
   void saveFindFriendCompassSettings(int mode, int wpValid, double wpLat, double wpLon,
                                      uint16_t trackMinDistCm, int friendIdx = -1,
-                                     uint32_t advSec = 60, uint16_t trackIntervalMin = 1,
+                                     uint16_t trackIntervalMin = 1,
                                      bool enabled = false);
   /** Memsic soft-iron Hmm[4] from figure-8 calibration (/compass_mag_cal). */
   bool hasCompassMagCal() const;

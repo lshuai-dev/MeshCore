@@ -106,13 +106,8 @@ bool FindFriendScreen::createDial() {
   lv_obj_set_size(_dial_row, lv_pct(100), lv_pct(100));
   lv_obj_set_flex_grow(_dial_row, 1);
 #if defined(HELTEC_T1)
-  // The T1 viewport is only 64px high. The generic color-display minimum
-  // LV_DPX(96) resolves to about 78px and would overflow this screen.
-  lv_obj_set_style_min_height(_dial_row, 0, LV_PART_MAIN);
   compass_init_dial_row(_dial_row, 0);
 #else
-  lv_obj_set_style_min_height(
-      _dial_row, LV_COLOR_DEPTH == 1 ? LV_DPX(32) : LV_DPX(96), LV_PART_MAIN);
   compass_init_dial_row(_dial_row, (lv_coord_t)FF_INFO_COL_MARGIN_RIGHT);
 #endif
 
@@ -174,8 +169,8 @@ void FindFriendScreen::render(const biz::FindFriendUi& u) {
   if (!u.heading_valid) {
     if (!u.target_valid) {
       showInfoOnly("");
-    } else if (u.arrived) {
-      showInfoOnly("arrived");
+    } else if (u.near_target) {
+      showInfoOnly("nearby");
     } else if (!u.gps_fix) {
       showInfoOnly("need gps");
     } else {
@@ -192,26 +187,30 @@ void FindFriendScreen::render(const biz::FindFriendUi& u) {
   const float new_turn = (u.bearing_valid && u.heading_valid) ? u.turn_deg : 0.f;
   const bool new_gps = u.gps_fix;
   const bool new_on_target = u.relative_valid && compass_turn_on_target_deg(u.turn_deg);
+  const bool new_direction_valid = u.relative_valid;
 
   if (new_ring != _ring_heading_tenths) {
     _ring_heading_tenths = new_ring;
     _dial.ring_heading_tenths = new_ring;
     _dial.invalidateRing();
   }
-  if (new_turn != _turn_show_deg || new_gps != _gps_fix || new_on_target != _on_target) {
+  if (new_turn != _turn_show_deg || new_gps != _gps_fix || new_on_target != _on_target ||
+      new_direction_valid != _direction_valid) {
     _turn_show_deg = new_turn;
     _gps_fix = new_gps;
     _on_target = new_on_target;
+    _direction_valid = new_direction_valid;
     _dial.friend_turn_deg = new_turn;
     _dial.friend_gps_fix = new_gps;
     _dial.friend_on_target = new_on_target;
+    _dial.friend_direction_valid = new_direction_valid;
     _dial.invalidateNeedle();
   }
 
   if (!u.target_valid) {
     setInfoText("");
-  } else if (u.arrived) {
-    setInfoText("arrived");
+  } else if (u.near_target) {
+    setInfoText("nearby");
   } else if (!u.gps_fix) {
     setInfoText("need gps");
   } else if (u.bearing_valid) {
@@ -264,6 +263,15 @@ void FindFriendScreen::refresh() {
 }
 
 void FindFriendScreen::onAppStateChanged(const AppStateEvent& event) {
+  if (event.type == AppStateEventType::ContactLocationChanged) {
+    _biz.syncFindFriendContactList();
+    if (_biz.findFriendEnabled() && _biz.findFriendMode() == 0 &&
+        _biz.findFriendTargetContactIndex() < 0) {
+      (void)_biz.tryAutoPickFindFriendTarget();
+    }
+    refresh();
+    return;
+  }
   if (event.type == AppStateEventType::CompassChanged ||
       event.type == AppStateEventType::GpsChanged ||
       event.type == AppStateEventType::FindFriendChanged ||

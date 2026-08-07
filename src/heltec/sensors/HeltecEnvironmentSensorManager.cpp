@@ -708,6 +708,24 @@ uint32_t HeltecEnvironmentSensorManager::gpsFixValidMs() const {
   return gps_fix_seen ? (millis() - gps_last_fix_ms) : 0;
 }
 
+bool HeltecEnvironmentSensorManager::hasFreshGpsFix() const {
+  return gps_fix_seen && gpsFixValidMs() <= GPS_FIX_VALID_WINDOW_MS;
+}
+
+bool HeltecEnvironmentSensorManager::getGpsFixSnapshot(HeltecGpsFixSnapshot& out) const {
+  out = HeltecGpsFixSnapshot{};
+  if (!gps_fix_seen) return false;
+
+  out.age_ms = gpsFixValidMs();
+  out.timestamp = gps_last_fix_timestamp;
+  out.lat_micro = gps_last_fix_lat;
+  out.lon_micro = gps_last_fix_lon;
+  out.alt_milli = gps_last_fix_alt;
+  out.satellites = gps_last_fix_sats;
+  out.valid = out.age_ms <= GPS_FIX_VALID_WINDOW_MS;
+  return out.valid;
+}
+
 void HeltecEnvironmentSensorManager::initBasicGPS() {
 
   initGpsSerial();
@@ -896,7 +914,6 @@ void HeltecEnvironmentSensorManager::loop() {
   static long last_lon = 0;
   static long last_alt = 0;
   static long last_sats = 0;
-  static uint32_t last_fix_valid_ms = 0;
   if (_location) {
     _location->loop();
     pollGpsModuleConfiguration();
@@ -904,35 +921,36 @@ void HeltecEnvironmentSensorManager::loop() {
   }
   if (millis() > next_gps_update) {
     if (gps_active) {
+      HeltecGpsFixSnapshot snapshot{};
+      const bool fix = getGpsFixSnapshot(snapshot);
 #ifdef RAK_WISBLOCK_GPS
-      if ((i2cGPSFlag || serialGPSFlag) && _location->isValid()) {
-        node_lat = ((double)_location->getLatitude()) / 1000000.;
-        node_lon = ((double)_location->getLongitude()) / 1000000.;
+      if ((i2cGPSFlag || serialGPSFlag) && fix) {
+        node_lat = ((double)snapshot.lat_micro) / 1000000.;
+        node_lon = ((double)snapshot.lon_micro) / 1000000.;
         MESH_DEBUG_PRINTLN("lat %f lon %f", node_lat, node_lon);
-        node_altitude = ((double)_location->getAltitude()) / 1000.0;
+        node_altitude = ((double)snapshot.alt_milli) / 1000.0;
       }
 #else
-      if (_location->isValid()) {
-        node_lat = ((double)_location->getLatitude()) / 1000000.;
-        node_lon = ((double)_location->getLongitude()) / 1000000.;
-        node_altitude = ((double)_location->getAltitude()) / 1000.0;
+      if (fix) {
+        node_lat = ((double)snapshot.lat_micro) / 1000000.;
+        node_lon = ((double)snapshot.lon_micro) / 1000000.;
+        node_altitude = ((double)snapshot.alt_milli) / 1000.0;
       }
 #endif
     }
 #if defined(HELTEC_MESH_UI) && HELTEC_MESH_UI
     if (_location) {
       const bool enabled = gps_active && _location->isEnabled();
-      const bool fix = enabled && hasFreshGpsFix() && _location->isValid();
-      const uint32_t fix_valid_ms = gps_fix_seen ? gpsFixValidMs() : 0;
-      const long lat = fix ? _location->getLatitude() : 0;
-      const long lon = fix ? _location->getLongitude() : 0;
-      const long alt = fix ? _location->getAltitude() : 0;
-      const long sats = enabled ? _location->satellitesCount() : 0;
+      HeltecGpsFixSnapshot snapshot{};
+      const bool fix = enabled && getGpsFixSnapshot(snapshot);
+      const long lat = fix ? snapshot.lat_micro : 0;
+      const long lon = fix ? snapshot.lon_micro : 0;
+      const long alt = fix ? snapshot.alt_milli : 0;
+      const long sats = fix ? snapshot.satellites : 0;
       if (enabled != last_enabled || fix != last_fix || lat != last_lat || lon != last_lon ||
-          alt != last_alt || sats != last_sats || fix_valid_ms != last_fix_valid_ms) {
+          alt != last_alt || sats != last_sats) {
         last_enabled = enabled;
         last_fix = fix;
-        last_fix_valid_ms = fix_valid_ms;
         last_lat = lat;
         last_lon = lon;
         last_alt = alt;
@@ -943,7 +961,7 @@ void HeltecEnvironmentSensorManager::loop() {
         ev.gps.available = true;
         ev.gps.powered = enabled;
         ev.gps.fix_valid = fix;
-        ev.gps.fix_valid_ms = fix_valid_ms;
+        ev.gps.fix_valid_ms = snapshot.age_ms;
         ev.gps.satellites = (sats < 0) ? 0 : (sats > 255 ? 255 : (uint8_t)sats);
         ev.gps.lat_micro = lat;
         ev.gps.lon_micro = lon;

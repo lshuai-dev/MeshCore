@@ -14,6 +14,17 @@
 #define GPS_FIX_VALID_WINDOW_MS 5000
 #endif
 
+/** Last accepted GPS fix, held briefly across transient invalid NMEA reports. */
+struct HeltecGpsFixSnapshot {
+  bool valid = false;
+  uint32_t age_ms = 0;
+  long timestamp = 0;
+  long lat_micro = 0;
+  long lon_micro = 0;
+  long alt_milli = 0;
+  long satellites = 0;
+};
+
 class HeltecEnvironmentSensorManager : public SensorManager {
 protected:
   int next_available_channel = TELEM_CHANNEL_SELF + 1;
@@ -84,9 +95,8 @@ public:
   LocationProvider* getLocationProvider() { return _location; }
   bool isGpsActive() const { return gps_active; }
   uint32_t gpsFixValidMs() const;
-  bool hasFreshGpsFix() const {
-    return gps_fix_seen && gpsFixValidMs() <= GPS_FIX_VALID_WINDOW_MS;
-  }
+  bool hasFreshGpsFix() const;
+  bool getGpsFixSnapshot(HeltecGpsFixSnapshot& out) const;
 #endif
 #if ENV_INCLUDE_COMPASS
   CompassProvider* getCompassProvider() { return _compass; }

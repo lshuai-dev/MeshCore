@@ -20,22 +20,6 @@ constexpr MetaId NavigationRing = ht_meta_id(MetaIdScope::Navigation, 0x08);
 constexpr MetaId NavigationRingItem = ht_meta_id(MetaIdScope::Navigation, 0x09);
 }
 
-struct UiNavigationMetrics {
-  uint16_t auto_hide_ms;
-  uint16_t ring_anim_ms;
-  uint16_t open_anim_ms;
-  lv_coord_t min_touch_pad;
-  lv_coord_t focus_extra;
-  lv_coord_t ring_edge_pad;
-  uint8_t grid_cols;
-  uint8_t grid_rows;
-  lv_coord_t grid_gap;
-  lv_coord_t grid_pad;
-  lv_coord_t grid_label_h;
-  lv_coord_t grid_cell_radius;
-  lv_coord_t grid_footer_h;
-};
-
 /**
  * Static navigation item description used during UI construction.
  *

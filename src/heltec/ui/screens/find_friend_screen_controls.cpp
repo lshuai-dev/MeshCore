@@ -6,6 +6,7 @@
 #include "ui/core/ht_meta_data.hpp"
 #include "ui/core/ui_deferred_queue.hpp"
 #include "ui/core/ui_events.h"
+#include "ui/theme/ui_widget_theme.hpp"
 
 #include <lvgl.h>
 #include <string.h>
@@ -18,7 +19,6 @@ constexpr lv_coord_t kFindFriendRowHeight = 28;
 constexpr lv_coord_t kFindFriendRowPadVer = 1;
 constexpr lv_coord_t kDropdownHeight =
     kFindFriendRowHeight - 2 * kFindFriendRowPadVer;
-constexpr lv_coord_t kDropdownListPadVer = 2;
 #else
 constexpr lv_coord_t kFindFriendRowHeight = ui_settings_row_height();
 #endif
@@ -54,19 +54,6 @@ void configure_row(_lv_obj_t* row, lv_flex_align_t main_align) {
   lv_obj_set_size(row, lv_pct(100), kFindFriendRowHeight);
   lv_obj_set_flex_flow(row, LV_FLEX_FLOW_ROW);
   lv_obj_set_flex_align(row, main_align, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
-#if defined(HELTEC_V4_R8_TFT)
-  lv_obj_set_style_pad_hor(row, ui_settings_row_pad_hor(), LV_PART_MAIN);
-  lv_obj_set_style_pad_ver(row, kFindFriendRowPadVer, LV_PART_MAIN);
-#elif defined(HELTEC_T1)
-  lv_obj_set_style_pad_all(row, 0, LV_PART_MAIN);
-#else
-  lv_obj_set_style_pad_all(row, LV_COLOR_DEPTH == 1 ? 0 : 2, LV_PART_MAIN);
-#endif
-#if defined(HELTEC_T1)
-  lv_obj_set_style_pad_column(row, 2, LV_PART_MAIN);
-#else
-  lv_obj_set_style_pad_column(row, LV_DPX(4), LV_PART_MAIN);
-#endif
   lv_obj_clear_flag(row, LV_OBJ_FLAG_SCROLLABLE);
   lv_obj_set_scrollbar_mode(row, LV_SCROLLBAR_MODE_OFF);
 }
@@ -575,14 +562,11 @@ void FindFriendScreen::realignDropdownList(_lv_obj_t* dropdown) {
   const lv_coord_t width = lv_obj_get_width(dropdown);
   if (width > 0) lv_obj_set_width(list, width);
   lv_obj_set_scrollbar_mode(list, LV_SCROLLBAR_MODE_OFF);
-  ui_theme_apply_dropdown_list(list);
+  if (ht_id(list) != meta_id::FindFriendDropdownList) {
+    ht_set_meta_id(list, meta_id::FindFriendDropdownList);
+    ui_widget_theme_apply(list);
+  }
   ui_theme_match_dropdown_list_padding(dropdown, list);
-#if defined(HELTEC_V4_R8_TFT)
-  lv_obj_set_style_pad_top(list, kDropdownListPadVer, LV_PART_MAIN);
-  lv_obj_set_style_pad_bottom(list, kDropdownListPadVer, LV_PART_MAIN);
-  lv_obj_set_style_pad_top(list, kDropdownListPadVer, LV_PART_SELECTED);
-  lv_obj_set_style_pad_bottom(list, kDropdownListPadVer, LV_PART_SELECTED);
-#endif
   _lv_obj_t* const viewport = tile();
   ui_dropdown_fit_list_to_viewport(dropdown, viewport ? viewport : _root, _root);
 }

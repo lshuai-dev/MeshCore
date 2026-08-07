@@ -17,7 +17,6 @@ _lv_obj_t* AbstractOverlay::create(_lv_obj_t* parent) {
   lv_obj_set_flex_flow(_root, LV_FLEX_FLOW_COLUMN);
   lv_obj_set_flex_align(_root, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER,
                         LV_FLEX_ALIGN_CENTER);
-  lv_obj_set_style_pad_all(_root, 0, LV_PART_MAIN);
   lv_obj_clear_flag(_root, LV_OBJ_FLAG_SCROLLABLE);
   lv_obj_add_flag(_root, LV_OBJ_FLAG_HIDDEN);
   return _root;

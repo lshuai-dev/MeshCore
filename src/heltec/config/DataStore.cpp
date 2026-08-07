@@ -97,7 +97,7 @@ static long deg_to_e6(double deg) {
 
 bool DataStore::loadFindFriendCompassSettings(int& mode, int& wpValid, double& wpLat, double& wpLon,
                                               uint16_t& trackMinDistCm, int* friendIdx,
-                                              uint32_t* advSec, uint16_t* trackIntervalMin,
+                                              uint16_t* trackIntervalMin,
                                               bool* enabled) {
   if (!_fs || !_fs->exists(kCompassCfgPath)) return false;
 #if defined(RP2040_PLATFORM)
@@ -113,29 +113,31 @@ bool DataStore::loadFindFriendCompassSettings(int& mode, int& wpValid, double& w
   buf[n] = 0;
   f.close();
 
-  if (!parse_int_field(compass_cfg_field(buf, 0), &mode)) return false;
-  if (!parse_int_field(compass_cfg_field(buf, 1), &wpValid)) return false;
+  // v2 removes Location Share's advert interval from this Find Friend file.
+  // Legacy files have no prefix and keep their former field positions.
+  const bool v2 = strncmp(buf, "v2,", 3) == 0;
+  const int base = v2 ? 1 : 0;
+  if (!parse_int_field(compass_cfg_field(buf, base), &mode)) return false;
+  if (!parse_int_field(compass_cfg_field(buf, base + 1), &wpValid)) return false;
 
   wpLat = 0;
   wpLon = 0;
   if (wpValid) {
-    parse_coord_field(compass_cfg_field(buf, 2), wpLat);
-    parse_coord_field(compass_cfg_field(buf, 3), wpLon);
+    parse_coord_field(compass_cfg_field(buf, base + 2), wpLat);
+    parse_coord_field(compass_cfg_field(buf, base + 3), wpLon);
   }
 
   int dist = 100;
   int ff_idx = -1;
-  unsigned adv = 0;
-  parse_int_field(compass_cfg_field(buf, 4), &dist);
-  parse_int_field(compass_cfg_field(buf, 5), &ff_idx);
-  int adv_i = 0;
-  if (parse_int_field(compass_cfg_field(buf, 6), &adv_i) && adv_i >= 0) adv = (unsigned)adv_i;
+  parse_int_field(compass_cfg_field(buf, base + 4), &dist);
+  parse_int_field(compass_cfg_field(buf, base + 5), &ff_idx);
 
   if (dist >= 10 && dist <= 20000) trackMinDistCm = (uint16_t)dist;
   if (friendIdx) *friendIdx = ff_idx;
-  if (advSec && adv >= 30) *advSec = adv;
   if (trackIntervalMin) {
     int interval_min = 1;
+    // The v2 prefix replaces the removed legacy advert-interval field, so
+    // these two trailing fields retain their old indexes in both formats.
     if (parse_int_field(compass_cfg_field(buf, 7), &interval_min) && interval_min >= 1 &&
         interval_min <= 120) {
       *trackIntervalMin = (uint16_t)interval_min;
@@ -156,7 +158,7 @@ bool DataStore::loadFindFriendCompassSettings(int& mode, int& wpValid, double& w
 
 void DataStore::saveFindFriendCompassSettings(int mode, int wpValid, double wpLat, double wpLon,
                                               uint16_t trackMinDistCm, int friendIdx,
-                                              uint32_t advSec, uint16_t trackIntervalMin,
+                                              uint16_t trackIntervalMin,
                                               bool enabled) {
   if (!_fs) return;
 #if defined(RP2040_PLATFORM)
@@ -173,9 +175,9 @@ void DataStore::saveFindFriendCompassSettings(int mode, int wpValid, double wpLa
   if (!f) return;
   if (trackIntervalMin < 1) trackIntervalMin = 1;
   char buf[128];
-  snprintf(buf, sizeof(buf), "%d,%d,%ld,%ld,%u,%d,%u,%u,%u\n", mode, wpValid,
+  snprintf(buf, sizeof(buf), "v2,%d,%d,%ld,%ld,%u,%d,%u,%u\n", mode, wpValid,
            (long)deg_to_e6(wpLat), (long)deg_to_e6(wpLon), (unsigned)trackMinDistCm, friendIdx,
-           (unsigned)advSec, (unsigned)trackIntervalMin, enabled ? 1u : 0u);
+           (unsigned)trackIntervalMin, enabled ? 1u : 0u);
   f.print(buf);
   f.close();
 }

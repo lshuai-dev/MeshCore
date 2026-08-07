@@ -4,9 +4,8 @@
 #include "ui/core/ht_meta_data.hpp"
 #include "ui/core/ui_motion_scheduler.hpp"
 #include "heltec/ui/core/abstract_menu.hpp"
+#include "ui/app/ui_behavior_profile.hpp"
 #include "heltec/ui/app/ui_theme.hpp"
-#include "ui/menus/context_menu_metrics.hpp"
-#include "ui/theme/ui_theme_metrics.hpp"
 #include "ui/theme/ui_widget_theme.hpp"
 
 #include <lvgl.h>
@@ -32,43 +31,8 @@ struct FrameGeometry {
 };
 
 uint16_t contextPageAnimMs(const lv_obj_t* obj) {
-  return ui_context_menu_metrics(obj).page_anim_ms;
-}
-
-lv_coord_t componentGap() {
-#if defined(HELTEC_V4_R8_TFT)
-  return LV_DPX(10);
-#else
-  return 3;
-#endif
-}
-
-lv_coord_t frameOuterInsetX(const lv_obj_t* obj) {
-#if (defined(HELTEC_DISPLAY_ST7735) && HELTEC_DISPLAY_ST7735) || \
-    (defined(HELTEC_DISPLAY_ST7789) && HELTEC_DISPLAY_ST7789) || \
-    (defined(HELTEC_DISPLAY_SSD1306) && HELTEC_DISPLAY_SSD1306) || \
-    LV_COLOR_DEPTH == 1
   (void)obj;
-  return 8;
-#else
-  const lv_coord_t frame_pad = ui_context_menu_metrics(obj).frame_pad;
-  return frame_pad > 0 ? frame_pad : 0;
-#endif
-}
-
-lv_coord_t frameOuterInsetY(const lv_obj_t* obj) {
-#if (defined(HELTEC_DISPLAY_ST7789) && HELTEC_DISPLAY_ST7789)
-  (void)obj;
-  return 18;
-#elif (defined(HELTEC_DISPLAY_ST7735) && HELTEC_DISPLAY_ST7735) || \
-    (defined(HELTEC_DISPLAY_SSD1306) && HELTEC_DISPLAY_SSD1306) || \
-    LV_COLOR_DEPTH == 1
-  (void)obj;
-  return 6;
-#else
-  const lv_coord_t frame_pad = ui_context_menu_metrics(obj).frame_pad;
-  return frame_pad > 0 ? frame_pad : 0;
-#endif
+  return ui_behavior_profile().context_menu.page_anim_ms;
 }
 
 FrameGeometry layoutFrame(_lv_obj_t* obj) {
@@ -84,23 +48,19 @@ FrameGeometry layoutFrame(_lv_obj_t* obj) {
   if (parent_w <= 0) parent_w = lv_disp_get_hor_res(nullptr);
   if (parent_h <= 0) parent_h = lv_disp_get_ver_res(nullptr);
 
-  const lv_coord_t inset_x = frameOuterInsetX(obj);
-  const lv_coord_t inset_y = frameOuterInsetY(obj);
-  lv_coord_t w = parent_w - inset_x * 2;
-  lv_coord_t h = parent_h - inset_y * 2;
+  lv_obj_update_layout(obj);
+  lv_coord_t w = lv_obj_get_width(obj);
+  lv_coord_t h = lv_obj_get_height(obj);
   if (w <= 0) w = parent_w;
   if (h <= 0) h = parent_h;
-  lv_obj_set_align(obj, LV_ALIGN_TOP_LEFT);
-  lv_obj_set_size(obj, w, h);
   geom.parent_w = parent_w;
   geom.parent_h = parent_h;
   geom.root_w = w;
   geom.root_h = h;
-  geom.root_x = (parent_w > w) ? (parent_w - w) / 2 : 0;
-  geom.target_y = (parent_h > h) ? (parent_h - h) / 2 : 0;
+  geom.root_x = lv_obj_get_x(obj);
+  geom.target_y = lv_obj_get_y(obj);
   geom.start_y = -h;
-  lv_obj_set_pos(obj, geom.root_x, geom.start_y);
-  lv_obj_update_layout(obj);
+  lv_obj_set_y(obj, geom.start_y);
   return geom;
 }
 
@@ -292,15 +252,11 @@ _lv_obj_t* ContextMenu::create(_lv_obj_t* parent) {
   lv_obj_add_flag(_root, LV_OBJ_FLAG_HIDDEN);
   lv_obj_clear_flag(_root, LV_OBJ_FLAG_SCROLLABLE);
   lv_obj_set_flex_flow(_root, LV_FLEX_FLOW_COLUMN);
-  lv_obj_set_style_pad_all(_root, 0, LV_PART_MAIN);
-  lv_obj_set_style_pad_row(_root, componentGap(), LV_PART_MAIN);
 
   _menu = ht_menu_create(_root, meta_id::ContextMenuMenu);
   if (!_menu) return nullptr;
   lv_obj_set_size(_menu, lv_pct(100), lv_pct(100));
   lv_obj_set_flex_grow(_menu, 1);
-  lv_obj_set_style_pad_all(_menu, 0, LV_PART_MAIN);
-  lv_obj_set_style_pad_row(_menu, componentGap(), LV_PART_MAIN);
   lv_obj_clear_flag(_menu, LV_OBJ_FLAG_SCROLLABLE);
   lv_obj_add_event_cb(_menu, [](lv_event_t* e) {
     const UiEvent* event = ui_event_get(e);
@@ -319,7 +275,6 @@ _lv_obj_t* ContextMenu::create(_lv_obj_t* parent) {
   lv_obj_set_flex_flow(mh, LV_FLEX_FLOW_COLUMN);
   lv_obj_set_flex_align(mh, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER,
                         LV_FLEX_ALIGN_CENTER);
-  lv_obj_set_style_pad_all(mh, 0, LV_PART_MAIN);
 
   lv_obj_t* back_btn = lv_menu_get_main_header_back_btn(_menu);
   lv_obj_t* title_lbl = nullptr;
@@ -337,14 +292,9 @@ _lv_obj_t* ContextMenu::create(_lv_obj_t* parent) {
 
   _header_icon_row = ht_obj_create(mh, meta_id::ContextMenuHeaderIconRow);
   if (!_header_icon_row) return nullptr;
-  const UiContextMenuMetrics& metrics = ui_context_menu_metrics(_root);
-  lv_obj_set_size(_header_icon_row, lv_pct(100),
-                  metrics.icon_btn + 2 * metrics.icon_pad);
   lv_obj_set_flex_flow(_header_icon_row, LV_FLEX_FLOW_ROW);
   lv_obj_set_flex_align(_header_icon_row, LV_FLEX_ALIGN_CENTER,
                         LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
-  lv_obj_set_style_pad_all(_header_icon_row, 0, LV_PART_MAIN);
-  lv_obj_set_style_pad_column(_header_icon_row, metrics.icon_pad, LV_PART_MAIN);
   lv_obj_move_to_index(_header_icon_row, 0);
   lv_obj_clear_flag(_header_icon_row, LV_OBJ_FLAG_SCROLLABLE);
 
@@ -357,7 +307,6 @@ _lv_obj_t* ContextMenu::create(_lv_obj_t* parent) {
   lv_obj_set_flex_flow(nav_row, LV_FLEX_FLOW_ROW);
   lv_obj_set_flex_align(nav_row, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER,
                         LV_FLEX_ALIGN_CENTER);
-  lv_obj_set_style_pad_all(nav_row, 0, LV_PART_MAIN);
   lv_obj_clear_flag(nav_row, LV_OBJ_FLAG_SCROLLABLE);
 
   lv_obj_set_parent(title_lbl, nav_row);
@@ -366,7 +315,6 @@ _lv_obj_t* ContextMenu::create(_lv_obj_t* parent) {
   lv_obj_add_flag(back_btn, LV_OBJ_FLAG_FLOATING);
   lv_obj_set_width(title_lbl, lv_pct(100));
   lv_obj_set_flex_grow(title_lbl, 1);
-  lv_obj_set_style_pad_all(title_lbl, 0, LV_PART_MAIN);
   lv_label_set_long_mode(title_lbl, LV_LABEL_LONG_DOT);
   lv_obj_clear_flag(title_lbl, LV_OBJ_FLAG_CLICKABLE);
   lv_obj_move_to_index(nav_row, 1);
@@ -406,10 +354,6 @@ bool ContextMenu::registerMenu(const char* title, const lv_img_dsc_t* icon, Abst
 
   lv_obj_t* btn = ht_btn_create(_header_icon_row, meta_id::ContextMenuIconButton, &menu);
   if (!btn) return false;
-  const UiContextMenuMetrics& metrics = ui_context_menu_metrics(_root);
-  const lv_coord_t button_size = metrics.icon_btn + 2 * metrics.icon_pad;
-  lv_obj_set_size(btn, button_size, button_size);
-  lv_obj_set_style_pad_all(btn, metrics.icon_pad, LV_PART_MAIN);
 
   lv_obj_add_event_cb(btn, [](lv_event_t* e) {
     const lv_event_code_t code = lv_event_get_code(e);
@@ -437,7 +381,6 @@ bool ContextMenu::registerMenu(const char* title, const lv_img_dsc_t* icon, Abst
 
   lv_obj_t* im = ht_img_create(btn, meta_id::ContextMenuIcon);
   if (!im) return false;
-  lv_obj_set_size(im, metrics.icon_btn, metrics.icon_btn);
   lv_img_set_src(im, icon);
 
   lv_obj_t* page = menu.page();

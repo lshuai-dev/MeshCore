@@ -22,6 +22,7 @@ enum class MetaIdScope : MetaId {
   Map = 0x0700,
   Compass = 0x0800,
   ButtonRoller = 0x0900,
+  LicenseGate = 0x0A00,
 };
 
 constexpr MetaId ht_meta_id(MetaIdScope scope, uint8_t offset = 0) {
@@ -46,8 +47,16 @@ lv_obj_t* ht_btn_create(lv_obj_t* parent, MetaId id, void* user_data = nullptr);
 lv_obj_t* ht_switch_create(lv_obj_t* parent, MetaId id, void* user_data = nullptr);
 #endif
 
+#if LV_USE_SLIDER
+lv_obj_t* ht_slider_create(lv_obj_t* parent, MetaId id, void* user_data = nullptr);
+#endif
+
 #if LV_USE_DROPDOWN
 lv_obj_t* ht_dropdown_create(lv_obj_t* parent, MetaId id, void* user_data = nullptr);
+#endif
+
+#if LV_USE_ROLLER
+lv_obj_t* ht_roller_create(lv_obj_t* parent, MetaId id, void* user_data = nullptr);
 #endif
 
 #if LV_USE_TEXTAREA
