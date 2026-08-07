@@ -16,7 +16,6 @@ class MeshAppUi final : public IBizFacade {
   void reconcileGpsPower();
 
   bool sendAdvert() override;
-  void sendAdvertWithFeedback() override;
   // Called by the non-UI application shell; UI surfaces use UiEvent instead.
   void requestRadioParamPresetPicker();
   bool toggleGPS() override;

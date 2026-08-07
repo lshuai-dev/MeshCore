@@ -8,6 +8,7 @@ on:
       - 'examples/**'
       - 'variants/**'
       - 'platformio.ini'
+      - 'scripts/check_ui_theme_style_boundaries.py'
       - '.github/workflows/pr-build-check.yml'
   push:
     branches: [main, dev]
@@ -16,9 +17,19 @@ on:
       - 'examples/**'
       - 'variants/**'
       - 'platformio.ini'
+      - 'scripts/check_ui_theme_style_boundaries.py'
       - '.github/workflows/pr-build-check.yml'
 
 jobs:
+  ui-theme-boundary:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clone Repo
+        uses: actions/checkout@v6
+
+      - name: Check UI theme Style ownership
+        run: python3 scripts/check_ui_theme_style_boundaries.py
+
   build:
     runs-on: ubuntu-latest
     strategy:

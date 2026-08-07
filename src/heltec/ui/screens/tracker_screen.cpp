@@ -733,8 +733,6 @@ void TrackerScreen::onRefreshRequested() {
 _lv_obj_t* TrackerScreen::create(_lv_obj_t* parent) {
   if (!AbstractScreen::create(parent)) return nullptr;
   lv_obj_set_flex_flow(_root, LV_FLEX_FLOW_COLUMN);
-  lv_obj_set_style_pad_top(_root, 1, LV_PART_MAIN);
-  lv_obj_set_style_pad_row(_root, 2, LV_PART_MAIN);
   lv_obj_clear_flag(_root, LV_OBJ_FLAG_SCROLLABLE);
 
   _lbl_status = ht_label_create(_root, meta_id::MapStatusLabel, "Map");
@@ -748,8 +746,6 @@ _lv_obj_t* TrackerScreen::create(_lv_obj_t* parent) {
   if (_map_viewport) {
     lv_obj_set_width(_map_viewport, lv_pct(100));
     lv_obj_set_flex_grow(_map_viewport, 1);
-    lv_obj_set_style_min_height(_map_viewport, 140, LV_PART_MAIN);
-    lv_obj_set_style_pad_all(_map_viewport, 0, LV_PART_MAIN);
     lv_obj_clear_flag(_map_viewport, LV_OBJ_FLAG_SCROLLABLE);
     _toolbar = ht_obj_create(_map_viewport, meta_id::MapToolbar);
     if (_toolbar) {
@@ -759,8 +755,6 @@ _lv_obj_t* TrackerScreen::create(_lv_obj_t* parent) {
       lv_obj_set_flex_flow(_toolbar, LV_FLEX_FLOW_ROW);
       lv_obj_set_flex_align(_toolbar, LV_FLEX_ALIGN_END, LV_FLEX_ALIGN_CENTER,
                             LV_FLEX_ALIGN_CENTER);
-      lv_obj_set_style_pad_all(_toolbar, kMapToolbarPad, LV_PART_MAIN);
-      lv_obj_set_style_pad_column(_toolbar, kMapToolbarGap, LV_PART_MAIN);
       lv_obj_clear_flag(_toolbar, LV_OBJ_FLAG_SCROLLABLE);
       lv_obj_add_flag(_toolbar, LV_OBJ_FLAG_FLOATING | LV_OBJ_FLAG_OVERFLOW_VISIBLE);
       lv_obj_move_foreground(_toolbar);
@@ -782,7 +776,6 @@ _lv_obj_t* TrackerScreen::create(_lv_obj_t* parent) {
       for (_lv_obj_t* button : buttons) {
         if (!button) continue;
         lv_obj_set_size(button, kMapToolBtnW, kMapToolBtnH);
-        lv_obj_set_style_pad_all(button, 0, LV_PART_MAIN);
         lv_obj_add_flag(button, LV_OBJ_FLAG_CLICKABLE);
       }
       if (_btn_zoom_out) {

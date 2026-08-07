@@ -70,8 +70,6 @@ bool RecentScreen::createRowControl(int index) {
   lv_obj_set_flex_flow(_rows[index], LV_FLEX_FLOW_ROW);
   lv_obj_set_flex_align(_rows[index], LV_FLEX_ALIGN_SPACE_BETWEEN,
                         LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
-  lv_obj_set_style_pad_all(_rows[index], 0, LV_PART_MAIN);
-  lv_obj_set_style_pad_column(_rows[index], 4, LV_PART_MAIN);
   lv_obj_clear_flag(_rows[index], LV_OBJ_FLAG_SCROLLABLE);
 
   _names[index] = ht_label_create(_rows[index], meta_id::RecentName, "");
@@ -89,7 +87,6 @@ bool RecentScreen::createRowControl(int index) {
   lv_obj_set_flex_grow(_names[index], 1);
   lv_label_set_long_mode(_names[index], LV_LABEL_LONG_DOT);
   lv_obj_set_width(_ages[index], LV_SIZE_CONTENT);
-  lv_obj_set_style_text_align(_ages[index], LV_TEXT_ALIGN_RIGHT, LV_PART_MAIN);
   lv_obj_add_event_cb(_rows[index], onRowFocused, LV_EVENT_FOCUSED, this);
   addFocusItem(_rows[index], nullptr, true, FocusVisual::Row);
   return true;

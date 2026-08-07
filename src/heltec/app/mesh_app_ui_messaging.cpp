@@ -119,11 +119,6 @@ bool MeshAppUi::sendAdvert() {
   return the_mesh.advert();
 }
 
-void MeshAppUi::sendAdvertWithFeedback() {
-  const bool ok = sendAdvert();
-  heltec::meshcore::ui::ui_task().showAlert(ok ? "Advert sent!" : "Advert failed..", 1000);
-}
-
 int MeshAppUi::sendMessagePersonalCount() const {
   int count = 0;
   const int total = the_mesh.getNumContacts();

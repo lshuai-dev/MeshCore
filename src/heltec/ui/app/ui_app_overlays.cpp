@@ -17,7 +17,7 @@
 namespace heltec::meshcore::ui {
 
 namespace {
-void cm_send_advert(biz::IBizFacade& app, _lv_obj_t*) { app.sendAdvertWithFeedback(); }
+void cm_send_advert(biz::IBizFacade& app, _lv_obj_t*) { (void)app.sendAdvert(); }
 void cm_open_send_message(biz::IBizFacade&, _lv_obj_t* target) {
   (void)ui_event_send(target, UiEventType::SendMessageOpen);
 }
@@ -32,6 +32,7 @@ bool UiApp::initOverlay() {
   if (!_layerOverlay) return false;
   if (!_previewOvl.init(_layerOverlay)) return false;
   if (!_alertOvl.init(_layerOverlay)) return false;
+  if (!_confirmOvl.init(_layerOverlay)) return false;
   if (!_radioParamSyncOvl.init(_layerOverlay)) return false;
   if (!_repeatModeOvl.init(_layerOverlay)) return false;
   if (!_keyboardOvl.init(_layerOverlay)) return false;

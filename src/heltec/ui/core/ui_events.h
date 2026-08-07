@@ -12,6 +12,9 @@ enum class UiEventType : uint8_t {
   TilePreview,
   TileCommit,
   ActionOpen,
+  ConfirmOpen,
+  ConfirmAccepted,
+  ConfirmCancelled,
   ContextOpen,
   ContextClose,
   SendMessageOpen,
@@ -40,6 +43,15 @@ enum class UiEventType : uint8_t {
 struct UiEvent {
   UiEventType type;
   const void* payload;
+};
+
+enum class UiConfirmAction : uint8_t {
+  FactoryReset,
+  ClearData,
+};
+
+struct UiConfirmRequest {
+  UiConfirmAction action = UiConfirmAction::FactoryReset;
 };
 
 struct UiMessageKeyboardRequest {

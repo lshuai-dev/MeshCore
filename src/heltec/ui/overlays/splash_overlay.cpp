@@ -31,18 +31,10 @@ bool SplashOverlay::create(_lv_obj_t* parent) {
 
   _root = ht_obj_create(parent, meta_id::SplashOverlayRoot);
   if (!_root) return false;
-  const lv_coord_t gap =
-#if defined(HELTEC_V4_R8_TFT)
-      LV_DPX(10);
-#else
-      3;
-#endif
   lv_obj_set_size(_root, lv_pct(100), lv_pct(100));
   lv_obj_set_flex_flow(_root, LV_FLEX_FLOW_COLUMN);
   lv_obj_set_flex_align(_root, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER,
                         LV_FLEX_ALIGN_CENTER);
-  lv_obj_set_style_pad_all(_root, 8, LV_PART_MAIN);
-  lv_obj_set_style_pad_row(_root, gap, LV_PART_MAIN);
   lv_obj_clear_flag(_root, LV_OBJ_FLAG_SCROLLABLE);
 
   _logo = ht_img_create(_root, meta_id::SplashLogo);

@@ -14,6 +14,9 @@ constexpr MetaId RepeatModeOverlayRoot =
     ht_meta_id(MetaIdScope::Overlay, 0x09);
 constexpr MetaId RepeatModeTitle = ht_meta_id(MetaIdScope::Overlay, 0xD0);
 constexpr MetaId RepeatModeList = ht_meta_id(MetaIdScope::Overlay, 0xD1);
+constexpr MetaId RepeatModeRoller = ht_meta_id(MetaIdScope::Overlay, 0xD2);
+constexpr MetaId RepeatModeItem = ht_meta_id(MetaIdScope::Overlay, 0xD3);
+constexpr MetaId RepeatModeItemLabel = ht_meta_id(MetaIdScope::Overlay, 0xD4);
 }  // namespace meta_id
 
 class RepeatModeOverlay : public AbstractOverlay {

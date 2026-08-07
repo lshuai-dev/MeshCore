@@ -39,22 +39,12 @@ constexpr uint8_t kStreakNeed = COMPASS_CALIB_QUALITY_STREAK;
 
 _lv_obj_t* CalibrationOverlay::create(lv_obj_t* parent) {
   if (!AbstractOverlay::create(parent)) return nullptr;
-  lv_obj_set_style_pad_all(_root, 0, LV_PART_MAIN);
-
   _panel = ht_obj_create(_root, meta_id::CalibrationPanel);
   if (!_panel) return nullptr;
-  const lv_coord_t gap =
-#if defined(HELTEC_V4_R8_TFT)
-      LV_DPX(10);
-#else
-      3;
-#endif
   lv_obj_set_size(_panel, lv_pct(100), lv_pct(100));
   lv_obj_set_flex_flow(_panel, LV_FLEX_FLOW_COLUMN);
   lv_obj_set_flex_align(_panel, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER,
                         LV_FLEX_ALIGN_CENTER);
-  lv_obj_set_style_pad_all(_panel, 8, LV_PART_MAIN);
-  lv_obj_set_style_pad_row(_panel, gap, LV_PART_MAIN);
   lv_obj_clear_flag(_panel, LV_OBJ_FLAG_SCROLLABLE);
   lv_obj_add_event_cb(_panel, [](lv_event_t* e) {
     auto* self = static_cast<CalibrationOverlay*>(lv_event_get_user_data(e));

@@ -4,6 +4,7 @@
 #include "ui/core/ht_meta_data.hpp"
 #include "ui/core/ui_deferred_queue.hpp"
 #include "ui/app/ui_theme.hpp"
+#include "ui/theme/ui_widget_theme.hpp"
 #include <lvgl.h>
 
 namespace heltec::meshcore::ui {
@@ -12,7 +13,6 @@ namespace {
 #if defined(HELTEC_V4_R8_TFT)
 constexpr lv_coord_t kGpsDropdownHeight =
     ui_settings_row_height() - 2 * ui_settings_row_pad_ver();
-constexpr lv_coord_t kGpsDropdownListPadVer = 2;
 #endif
 
 void configure_gps_row(_lv_obj_t* row) {
@@ -21,9 +21,6 @@ void configure_gps_row(_lv_obj_t* row) {
   lv_obj_set_flex_flow(row, LV_FLEX_FLOW_ROW);
   lv_obj_set_flex_align(row, LV_FLEX_ALIGN_SPACE_BETWEEN,
                         LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_START);
-  lv_obj_set_style_pad_all(row, 0, LV_PART_MAIN);
-  lv_obj_set_style_pad_hor(row, ui_settings_row_pad_hor(), LV_PART_MAIN);
-  lv_obj_set_style_pad_ver(row, ui_settings_row_pad_ver(), LV_PART_MAIN);
   lv_obj_clear_flag(row, LV_OBJ_FLAG_SCROLLABLE);
 }
 
@@ -298,14 +295,11 @@ void GPSScreen::realignAdvDropdownList() {
   const lv_coord_t width = lv_obj_get_width(_dd_adv_interval);
   if (width > 0) lv_obj_set_width(list, width);
   lv_obj_set_scrollbar_mode(list, LV_SCROLLBAR_MODE_OFF);
-  ui_theme_apply_dropdown_list(list);
+  if (ht_id(list) != meta_id::GpsDropdownList) {
+    ht_set_meta_id(list, meta_id::GpsDropdownList);
+    ui_widget_theme_apply(list);
+  }
   ui_theme_match_dropdown_list_padding(_dd_adv_interval, list);
-#if defined(HELTEC_V4_R8_TFT)
-  lv_obj_set_style_pad_top(list, kGpsDropdownListPadVer, LV_PART_MAIN);
-  lv_obj_set_style_pad_bottom(list, kGpsDropdownListPadVer, LV_PART_MAIN);
-  lv_obj_set_style_pad_top(list, kGpsDropdownListPadVer, LV_PART_SELECTED);
-  lv_obj_set_style_pad_bottom(list, kGpsDropdownListPadVer, LV_PART_SELECTED);
-#endif
   _lv_obj_t* const viewport = tile();
   ui_dropdown_fit_list_to_viewport(
       _dd_adv_interval, viewport ? viewport : _root, _root);
@@ -535,7 +529,11 @@ void GPSScreen::updateGps(const biz::IBizFacade::GpsStatus& s) {
   if (_lbl_fix) {
     if (!s.available) {
       lv_label_set_text_static(_lbl_fix, "can't access gps");
-    } else if (!s.enabled || !s.fix_valid) {
+    } else if (!s.enabled) {
+      lv_label_set_text_static(_lbl_fix, "gps off");
+    } else if (!s.powered) {
+      lv_label_set_text_static(_lbl_fix, "gps sleep");
+    } else if (!s.fix_valid) {
       lv_label_set_text_static(_lbl_fix, "no fix");
     } else {
       lv_label_set_text_static(_lbl_fix, "fix");

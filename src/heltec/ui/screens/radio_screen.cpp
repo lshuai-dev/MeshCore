@@ -55,9 +55,6 @@ _lv_obj_t* RadioScreen::create(_lv_obj_t* parent) {
       lv_obj_set_flex_flow(_row_lna, LV_FLEX_FLOW_ROW);
       lv_obj_set_flex_align(_row_lna, LV_FLEX_ALIGN_SPACE_BETWEEN,
                             LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_START);
-      lv_obj_set_style_pad_all(_row_lna, 0, LV_PART_MAIN);
-      lv_obj_set_style_pad_hor(_row_lna, ui_settings_row_pad_hor(), LV_PART_MAIN);
-      lv_obj_set_style_pad_ver(_row_lna, ui_settings_row_pad_ver(), LV_PART_MAIN);
       lv_obj_clear_flag(_row_lna, LV_OBJ_FLAG_SCROLLABLE);
       _lbl_lna = ht_label_create(_row_lna, meta_id::RadioLnaLabel, "LNA");
       _sw_lna = ht_switch_create(_row_lna, meta_id::RadioLnaSwitch);

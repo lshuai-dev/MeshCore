@@ -27,6 +27,7 @@ constexpr MetaId GpsAdvIntervalRow = ht_meta_id(MetaIdScope::Screen, 0x4E);
 constexpr MetaId GpsAdvIntervalLabel = ht_meta_id(MetaIdScope::Screen, 0x4F);
 constexpr MetaId GpsAdvIntervalDropdown = ht_meta_id(MetaIdScope::Screen, 0x50);
 constexpr MetaId GpsSpeedLabel = ht_meta_id(MetaIdScope::Screen, 0x51);
+constexpr MetaId GpsDropdownList = ht_meta_id(MetaIdScope::Screen, 0x52);
 }
 
 class GPSScreen : public AbstractScreen {

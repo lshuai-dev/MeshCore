@@ -17,7 +17,6 @@
 #include "ui/core/ui_deferred_queue.hpp"
 #include "ui/core/ui_motion_scheduler.hpp"
 #include "ui/navigation/ui_navigator.hpp"
-#include "ui/theme/ui_theme_metrics.hpp"
 #include "heltec/drivers/display/display_port.hpp"
 #include "heltec/drivers/input/touch_input.hpp"
 #include "heltec/drivers/input/touch_port.hpp"
@@ -108,6 +107,7 @@ UiApp::UiApp(biz::IBizFacade& biz)
       ,
       _previewOvl(_biz),
       _alertOvl(_biz),
+      _confirmOvl(_biz),
       _radioParamSyncOvl(_biz),
       _repeatModeOvl(_biz),
       _sendMessageOvl(_biz),
@@ -229,9 +229,7 @@ void UiApp::init() {
     return !heltec::meshcore::dal::display_port::isBacklightOn();
   };
 #if defined(HELTEC_TOUCH_GESTURE_INPUT) && HELTEC_TOUCH_GESTURE_INPUT
-#if defined(ENV_INCLUDE_MAP) && ENV_INCLUDE_MAP
-  touch_hooks.block_long_enter = UiApp::touchGestureBlockTrackerLongPress;
-#endif
+  touch_hooks.block_long_enter = UiApp::touchGestureBlockLongPress;
 #if defined(HELTEC_V4_R8_TFT) && defined(HELTEC_HAS_TOUCH) && HELTEC_HAS_TOUCH
   touch_hooks.raw_pointer_passthrough = UiApp::touchGestureRawPointerPassthrough;
   touch_hooks.block_double_tap = UiApp::touchGestureBlockQuickPingDoubleTap;
@@ -250,7 +248,6 @@ void UiApp::init() {
   if (!initTimers()) return;
 
   lv_obj_clear_flag(scr, LV_OBJ_FLAG_SCROLLABLE);
-  lv_obj_set_style_pad_all(scr, 0, LV_PART_MAIN);
   ui_app_active_screen_apply_theme(scr);
 #if defined(HELTEC_V4_R8_TFT)
   lv_obj_t* bg = ht_img_create(scr, meta_id::AppBackgroundImage);
@@ -265,7 +262,6 @@ void UiApp::init() {
   _layerOverlay = ht_obj_create(lv_layer_top(), meta_id::AppOverlayLayer);
   if (!_layerOverlay) return;
   lv_obj_set_size(_layerOverlay, lv_pct(100), lv_pct(100));
-  lv_obj_set_style_pad_all(_layerOverlay, 0, LV_PART_MAIN);
   lv_obj_clear_flag(_layerOverlay, LV_OBJ_FLAG_SCROLLABLE | LV_OBJ_FLAG_CLICKABLE);
 
   SplashOverlay splash;
@@ -274,12 +270,8 @@ void UiApp::init() {
 
   lv_obj_t* layout = ht_obj_create(scr, meta_id::AppFrameLayout);
   if (!layout) return;
-  const UiAppFrameMetrics& frame_metrics = ui_app_frame_metrics(layout);
   lv_obj_set_size(layout, lv_pct(100), lv_pct(100));
   lv_obj_set_flex_flow(layout, LV_FLEX_FLOW_COLUMN);
-  lv_obj_set_style_pad_all(layout, 0, LV_PART_MAIN);
-  lv_obj_set_style_pad_top(layout, frame_metrics.frame_margin_top, LV_PART_MAIN);
-  lv_obj_set_style_pad_row(layout, 0, LV_PART_MAIN);
   lv_obj_clear_flag(layout, LV_OBJ_FLAG_SCROLLABLE);
 
   _frame_root = layout;
@@ -305,10 +297,6 @@ void UiApp::init() {
   if (!content) return;
   lv_obj_set_width(content, lv_pct(100));
   lv_obj_set_flex_grow(content, 1);
-  lv_obj_set_style_pad_all(content, 0, LV_PART_MAIN);
-  lv_obj_set_style_pad_left(content, frame_metrics.frame_margin_left, LV_PART_MAIN);
-  lv_obj_set_style_pad_right(content, frame_metrics.frame_margin_right, LV_PART_MAIN);
-  lv_obj_set_style_pad_bottom(content, frame_metrics.frame_margin_bottom, LV_PART_MAIN);
   lv_obj_clear_flag(content, LV_OBJ_FLAG_SCROLLABLE);
   lv_obj_add_flag(content, LV_OBJ_FLAG_OVERFLOW_VISIBLE);
   if (!initScreens(content)) return;
@@ -336,7 +324,7 @@ void UiApp::init() {
         }
         case UiEventType::TileCommit: {
           const auto* idx = static_cast<const uint8_t*>(event->payload);
-          if (idx) app->scheduleNavTileCommit(*idx, true);
+          if (idx) app->scheduleNavTileCommit(*idx);
           break;
         }
         default:
@@ -346,6 +334,7 @@ void UiApp::init() {
   }
   _previewOvl.setTarget(_frame_root);
   _alertOvl.setTarget(_frame_root);
+  _confirmOvl.setTarget(_frame_root);
   _radioParamSyncOvl.setTarget(_frame_root);
   _repeatModeOvl.setTarget(_frame_root);
   _keyboardOvl.setTarget(_frame_root);
@@ -412,6 +401,30 @@ void UiApp::handleFrameEvent(lv_event_t* e) {
 #else
       (void)ui_event_send(_frame_root, UiEventType::ContextOpen);
 #endif
+      break;
+    case UiEventType::ConfirmOpen: {
+      const auto* request = static_cast<const UiConfirmRequest*>(event->payload);
+      if (!request || !inputOnActiveScreen()) break;
+      _confirmOvl.setRequest(request->action);
+      if (!_surfaces.contains(&_confirmOvl) &&
+          !_surfaces.present(&_confirmOvl)) {
+        _biz.showAlert("Unable to open confirmation", 2000);
+      }
+      break;
+    }
+    case UiEventType::ConfirmAccepted: {
+      const auto* action = static_cast<const UiConfirmAction*>(event->payload);
+      if (!action || !_surfaces.contains(&_confirmOvl)) break;
+      const UiConfirmAction accepted_action = *action;
+      if (_surfaces.dismissBranch(&_confirmOvl) &&
+          !_surfaces.contains(&_confirmOvl)) {
+        (void)_surfaces.dispatchEventToActive(UiEventType::ConfirmAccepted,
+                                              &accepted_action);
+      }
+      break;
+    }
+    case UiEventType::ConfirmCancelled:
+      (void)_surfaces.dismissBranch(&_confirmOvl);
       break;
 #if !defined(HELTEC_V4_R8_TFT) || !defined(HELTEC_HAS_TOUCH) || !HELTEC_HAS_TOUCH
     case UiEventType::ContextOpen:
@@ -564,7 +577,6 @@ bool UiApp::initScreens(_lv_obj_t* content) {
   _root = ht_obj_create(content, meta_id::AppScreenRoot);
   if (!_root) return false;
   lv_obj_set_size(_root, lv_pct(100), lv_pct(100));
-  lv_obj_set_style_pad_all(_root, 0, LV_PART_MAIN);
   lv_obj_clear_flag(_root, LV_OBJ_FLAG_SCROLLABLE);
 
   _tileview = lv_tileview_create(_root);
@@ -572,7 +584,6 @@ bool UiApp::initScreens(_lv_obj_t* content) {
   ht_set_meta_id(_tileview, meta_id::AppTileView);
   ui_widget_theme_apply(_tileview);
   lv_obj_set_size(_tileview, lv_pct(100), lv_pct(100));
-  lv_obj_set_style_pad_all(_tileview, 0, LV_PART_MAIN);
   lv_obj_set_scrollbar_mode(_tileview, LV_SCROLLBAR_MODE_OFF);
   lv_obj_add_event_cb(_tileview, tileview_size_changed_cb, LV_EVENT_SIZE_CHANGED, nullptr);
   if (_frame_root) lv_obj_update_layout(_frame_root);
@@ -592,7 +603,6 @@ bool UiApp::initScreens(_lv_obj_t* content) {
     ht_set_meta_id(tile, meta_id::AppTile);
     ht_set_user_data(tile, scr);
     ui_widget_theme_apply(tile);
-    lv_obj_set_style_pad_all(tile, ui_app_frame_metrics(_root).screen_pad, LV_PART_MAIN);
     lv_obj_set_scrollbar_mode(tile, LV_SCROLLBAR_MODE_OFF);
     lv_obj_clear_flag(tile, LV_OBJ_FLAG_SCROLLABLE);
     scr->setTarget(_frame_root);

@@ -71,8 +71,10 @@ bool MeshAppUi::applyGpsPowerPolicy(bool* changed) {
 #else
       false;
 #endif
+  // Active friend navigation needs a continuous fix. Keep GPS powered while
+  // this screen is foreground even if the backlight times out.
   const bool find_friend_foreground =
-      _find_friend_foreground_active && find_friend_enabled && (display_on || display_grace);
+      _find_friend_foreground_active && find_friend_enabled;
   const bool gps_screen_foreground =
       _gps_foreground_active && (display_on || display_grace);
   const bool map_screen_foreground =
@@ -89,6 +91,9 @@ bool MeshAppUi::applyGpsPowerPolicy(bool* changed) {
 
   if (!sensors.setSettingValue("gps", desired ? "1" : "0")) return false;
   if (changed) *changed = true;
+#if defined(HELTEC_T1)
+  showAlert(desired ? "GPS power: ON" : "GPS power: OFF", 1000);
+#endif
   MESH_DEBUG_PRINTLN("[gps] power=%s external=%u display=%u grace=%u share=%u interval=%lu "
                      "share_cont=%u share_wake=%u due_ms=%ld track=%u gps_fg=%u map_fg=%u "
                      "find=%u ff_fg=%u",
@@ -209,29 +214,29 @@ IBizFacade::GpsStatus MeshAppUi::gpsStatus() const {
     s.enabled = nmea->isEnabled();
   }
   s.powered = nmea && nmea->isEnabled();
-#if defined(HELTEC_SENSOR_MANAGER) && HELTEC_SENSOR_MANAGER
-  s.fix_valid_ms = sensors.gpsFixValidMs();
-#endif
   if (!s.enabled || !s.powered || !nmea) {
+    HeltecMesh::StableGpsFixSnapshot discarded{};
+    (void)the_mesh.getStableGpsFix(discarded);
     reset_speed();
     return s;
   }
 
-  s.fix_valid = nmea->isValid();
-#if defined(HELTEC_SENSOR_MANAGER) && HELTEC_SENSOR_MANAGER
-  s.fix_valid = s.fix_valid && sensors.hasFreshGpsFix();
-#endif
+  HeltecMesh::StableGpsFixSnapshot snapshot{};
+  s.fix_valid = the_mesh.getStableGpsFix(snapshot);
+  s.fix_valid_ms = snapshot.age_ms;
   if (!s.fix_valid) {
     reset_speed();
     return s;
   }
 
-  s.satellites = nmea->satellitesCount();
-  s.lat_micro = nmea->getLatitude();
-  s.lon_micro = nmea->getLongitude();
+  s.satellites = snapshot.satellites < 0
+                     ? 0
+                     : (snapshot.satellites > 255 ? 255 : static_cast<uint8_t>(snapshot.satellites));
+  s.lat_micro = snapshot.lat_micro;
+  s.lon_micro = snapshot.lon_micro;
+  s.alt_m = snapshot.alt_milli / 1000.0;
   s.lat_deg = s.lat_micro / 1000000.0;
   s.lon_deg = s.lon_micro / 1000000.0;
-  s.alt_m = nmea->getAltitude() / 1000.0;
 
   const uint32_t now_ms = millis();
   if (!_gps_speed_sample_valid) {

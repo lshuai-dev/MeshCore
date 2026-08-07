@@ -1,9 +1,9 @@
 #include "repeat_mode_overlay.hpp"
 
-#include "ui/app/ui_theme.hpp"
 #include "ui/core/biz_facade.hpp"
 #include "ui/core/ht_meta_data.hpp"
 #include "ui/core/ui_events.h"
+#include "ui/theme/ui_widget_theme.hpp"
 
 #include <lvgl.h>
 
@@ -59,39 +59,6 @@ bool format_frequency_item(const biz::IBizFacade& biz, int index, char* buffer,
   return true;
 }
 
-#if !defined(HELTEC_V4_R8_TFT)
-void style_item(_lv_obj_t* item) {
-  if (!item) return;
-  static const lv_state_t selected_states[] = {
-      LV_STATE_CHECKED,
-      LV_STATE_FOCUSED,
-      LV_STATE_FOCUS_KEY,
-      LV_STATE_PRESSED,
-      static_cast<lv_state_t>(LV_STATE_CHECKED | LV_STATE_FOCUSED),
-      static_cast<lv_state_t>(LV_STATE_CHECKED | LV_STATE_FOCUS_KEY),
-  };
-
-  lv_obj_set_style_bg_opa(item, LV_OPA_TRANSP, LV_PART_MAIN);
-  lv_obj_set_style_border_width(item, 0, LV_PART_MAIN);
-  lv_obj_set_style_text_color(item, ui_color_overlay_fg(), LV_PART_MAIN);
-  for (lv_state_t state : selected_states) {
-    const lv_style_selector_t selector = LV_PART_MAIN | state;
-    lv_obj_set_style_bg_color(item, ui_color_highlight_bg(), selector);
-    lv_obj_set_style_bg_opa(item, LV_OPA_COVER, selector);
-    lv_obj_set_style_text_color(item, ui_color_highlight_fg(), selector);
-  }
-
-  _lv_obj_t* const label = lv_obj_get_child(item, 0);
-  if (!label) return;
-  lv_obj_set_style_text_color(label, ui_color_overlay_fg(), LV_PART_MAIN);
-  for (lv_state_t state : selected_states) {
-    lv_obj_set_style_text_color(label, ui_color_highlight_fg(),
-                                LV_PART_MAIN | state);
-  }
-  lv_obj_center(label);
-}
-#endif
-
 }  // namespace
 
 _lv_obj_t* RepeatModeOverlay::createRoot(_lv_obj_t* parent) {
@@ -101,17 +68,10 @@ _lv_obj_t* RepeatModeOverlay::createRoot(_lv_obj_t* parent) {
 _lv_obj_t* RepeatModeOverlay::create(_lv_obj_t* parent) {
   if (!AbstractOverlay::create(parent)) return nullptr;
 
-  lv_obj_set_style_pad_hor(_root, 6, LV_PART_MAIN);
-  lv_obj_set_style_pad_ver(_root, 4, LV_PART_MAIN);
-  lv_obj_set_style_pad_row(_root, LV_DPX(4), LV_PART_MAIN);
-
   _lv_obj_t* const title =
       ht_label_create(_root, meta_id::RepeatModeTitle, "Repeat frequency");
   if (!title) return nullptr;
   lv_obj_set_width(title, lv_pct(100));
-  lv_obj_set_style_text_color(title, ui_color_overlay_fg(), LV_PART_MAIN);
-  lv_obj_set_style_text_align(title, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
-
   _lv_obj_t* const list = ht_obj_create(_root, meta_id::RepeatModeList);
   if (!list) return nullptr;
   lv_obj_set_width(list, lv_pct(100));
@@ -119,7 +79,6 @@ _lv_obj_t* RepeatModeOverlay::create(_lv_obj_t* parent) {
   lv_obj_set_flex_flow(list, LV_FLEX_FLOW_COLUMN);
   lv_obj_set_flex_align(list, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER,
                         LV_FLEX_ALIGN_CENTER);
-  lv_obj_set_style_pad_all(list, 0, LV_PART_MAIN);
   lv_obj_clear_flag(list, LV_OBJ_FLAG_SCROLLABLE);
   lv_obj_add_flag(list, LV_OBJ_FLAG_EVENT_BUBBLE);
 
@@ -127,23 +86,9 @@ _lv_obj_t* RepeatModeOverlay::create(_lv_obj_t* parent) {
 #if LV_USE_ROLLER == 0
 #error "HELTEC_V4_R8_TFT repeat mode overlay requires LV_USE_ROLLER=1"
 #endif
-  _touch_roller = lv_roller_create(list);
+  _touch_roller = ht_roller_create(list, meta_id::RepeatModeRoller);
   if (!_touch_roller) return nullptr;
-  lv_obj_remove_style_all(_touch_roller);
   lv_obj_set_width(_touch_roller, lv_pct(100));
-  lv_obj_set_style_bg_opa(_touch_roller, LV_OPA_TRANSP, LV_PART_MAIN);
-  lv_obj_set_style_border_width(_touch_roller, 0, LV_PART_MAIN);
-  lv_obj_set_style_outline_width(_touch_roller, 0, LV_PART_MAIN);
-  lv_obj_set_style_shadow_width(_touch_roller, 0, LV_PART_MAIN);
-  lv_obj_set_style_text_color(_touch_roller, ui_color_overlay_fg(), LV_PART_MAIN);
-  lv_obj_set_style_text_align(_touch_roller, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
-  // The native roller uses text line spacing as the distance between frequency rows.
-  lv_obj_set_style_text_line_space(_touch_roller, LV_DPX(18), LV_PART_MAIN);
-  lv_obj_set_style_anim_time(_touch_roller, 220, LV_PART_MAIN);
-  lv_obj_set_style_bg_color(_touch_roller, ui_color_highlight_bg(), LV_PART_SELECTED);
-  lv_obj_set_style_bg_opa(_touch_roller, LV_OPA_COVER, LV_PART_SELECTED);
-  lv_obj_set_style_text_color(_touch_roller, ui_color_highlight_fg(), LV_PART_SELECTED);
-  lv_obj_set_style_radius(_touch_roller, LV_DPX(4), LV_PART_SELECTED);
   lv_obj_add_event_cb(_touch_roller, onRollerEvent, LV_EVENT_ALL, this);
 #else
   if (!_roller.create(list, group())) return nullptr;
@@ -163,7 +108,13 @@ _lv_obj_t* RepeatModeOverlay::create(_lv_obj_t* parent) {
     _lv_obj_t* const button = _roller.addItem(label);
     if (!button) return nullptr;
     _frequency_buttons[_frequency_count] = button;
-    style_item(button);
+    ht_set_meta_id(button, meta_id::RepeatModeItem);
+    ui_widget_theme_apply(button);
+    if (_lv_obj_t* const label_obj = lv_obj_get_child(button, 0)) {
+      ht_set_meta_id(label_obj, meta_id::RepeatModeItemLabel);
+      ui_widget_theme_apply(label_obj);
+      lv_obj_center(label_obj);
+    }
     lv_obj_add_event_cb(button, onItemClicked, LV_EVENT_CLICKED, this);
 #endif
     _frequency_indices[_frequency_count] = static_cast<int8_t>(index);

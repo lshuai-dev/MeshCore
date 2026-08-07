@@ -76,6 +76,22 @@ struct AdvertPath {
 
 class HeltecMesh : public BaseChatMesh, public DataStoreHost {
 public:
+  /**
+   * Stable GPS fix shared by the UI and application paths.
+   * A transient invalid NMEA sentence does not immediately discard the last
+   * accepted coordinates; the sample remains usable for the configured hold
+   * window.
+   */
+  struct StableGpsFixSnapshot {
+    bool valid = false;
+    uint32_t age_ms = 0;
+    long timestamp = 0;
+    long lat_micro = 0;
+    long lon_micro = 0;
+    long alt_milli = 0;
+    long satellites = 0;
+  };
+
   struct ClientRepeatFreqRange {
     uint32_t lower_khz;
     uint32_t upper_khz;
@@ -109,6 +125,7 @@ public:
   void handleCmdFrame(size_t len);
   void handleCompanionJsonCmdLine(const char* line, size_t len);
   bool advert();
+  bool getStableGpsFix(StableGpsFixSnapshot& out) const;
   void enterCLIRescue();
 
   int  getRecentlyHeard(AdvertPath dest[], int max_num);
@@ -311,6 +328,17 @@ private:
   AdvertPath advert_paths[ADVERT_PATH_TABLE_SIZE]; // circular table
   uint32_t _contact_location_fingerprint = 0;
   bool _contact_location_fingerprint_valid = false;
+
+#if defined(ENV_INCLUDE_GPS) && ENV_INCLUDE_GPS
+  mutable bool _stable_gps_fix_seen = false;
+  mutable bool _stable_gps_raw_valid = false;
+  mutable uint32_t _stable_gps_last_fix_ms = 0;
+  mutable long _stable_gps_last_timestamp = 0;
+  mutable long _stable_gps_last_lat = 0;
+  mutable long _stable_gps_last_lon = 0;
+  mutable long _stable_gps_last_alt = 0;
+  mutable long _stable_gps_last_sats = 0;
+#endif
 };
 
 extern HeltecMesh the_mesh;

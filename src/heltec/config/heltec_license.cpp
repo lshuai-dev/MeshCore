@@ -14,6 +14,8 @@
 #include <lvgl.h>
 #include "heltec/drivers/display/display_port.hpp"
 #include "heltec/drivers/input/momentary_button.hpp"
+#include "ui/core/ht_meta_data.hpp"
+#include "ui/core/license_gate_ids.hpp"
 #endif
 
 #if defined(MESH_DEBUG) && MESH_DEBUG
@@ -341,58 +343,6 @@ static lv_obj_t* s_gate_root = nullptr;
 static lv_obj_t* s_gate_title = nullptr;
 static lv_obj_t* s_gate_chip = nullptr;
 static uint32_t s_gate_display_last_activity_ms = 0;
-static lv_style_t s_gate_root_style;
-static lv_style_t s_gate_label_style;
-static lv_style_t s_gate_chip_style;
-static bool s_gate_styles_ready = false;
-
-static void heltecLicenseGateInitStyles() {
-  if (s_gate_styles_ready) return;
-
-  lv_style_init(&s_gate_root_style);
-  lv_style_set_width(&s_gate_root_style, lv_pct(100));
-  lv_style_set_height(&s_gate_root_style, lv_pct(100));
-  lv_style_set_radius(&s_gate_root_style, 0);
-#if defined(HELTEC_V4_R8_TFT)
-  lv_style_set_pad_all(&s_gate_root_style, 0);
-  lv_style_set_border_width(&s_gate_root_style, 0);
-  lv_style_set_outline_width(&s_gate_root_style, 0);
-#else
-  lv_style_set_pad_all(&s_gate_root_style, 8);
-#endif
-  lv_style_set_bg_color(&s_gate_root_style, lv_color_black());
-  lv_style_set_bg_opa(&s_gate_root_style, LV_OPA_COVER);
-  lv_style_set_layout(&s_gate_root_style, LV_LAYOUT_FLEX);
-  lv_style_set_flex_flow(&s_gate_root_style, LV_FLEX_FLOW_COLUMN);
-  lv_style_set_flex_main_place(&s_gate_root_style, LV_FLEX_ALIGN_CENTER);
-  lv_style_set_flex_cross_place(&s_gate_root_style, LV_FLEX_ALIGN_CENTER);
-  lv_style_set_flex_track_place(&s_gate_root_style, LV_FLEX_ALIGN_CENTER);
-#if defined(HELTEC_V4_R8_TFT)
-  lv_style_set_pad_row(&s_gate_root_style, 0);
-  lv_style_set_pad_column(&s_gate_root_style, 0);
-#else
-  lv_style_set_pad_row(&s_gate_root_style, 12);
-#endif
-
-  lv_style_init(&s_gate_label_style);
-  lv_style_set_text_color(&s_gate_label_style, lv_color_white());
-  lv_style_set_text_align(&s_gate_label_style, LV_TEXT_ALIGN_CENTER);
-#if defined(HELTEC_V4_R8_TFT)
-  lv_style_set_pad_all(&s_gate_label_style, 0);
-  lv_style_set_border_width(&s_gate_label_style, 0);
-  lv_style_set_outline_width(&s_gate_label_style, 0);
-#endif
-
-  lv_style_init(&s_gate_chip_style);
-  lv_style_set_width(&s_gate_chip_style, lv_pct(100));
-#if defined(HELTEC_V4_R8_TFT)
-  lv_style_set_pad_all(&s_gate_chip_style, 0);
-  lv_style_set_border_width(&s_gate_chip_style, 0);
-  lv_style_set_outline_width(&s_gate_chip_style, 0);
-#endif
-
-  s_gate_styles_ready = true;
-}
 
 static void heltecLicenseGateNotifyDisplayActivity(uint32_t now) {
   s_gate_display_last_activity_ms = now;
@@ -424,24 +374,21 @@ static void heltecLicenseShowUnauthorizedUi(const char* display_id) {
     return;
   }
 
-  s_gate_root = lv_obj_create(lv_layer_top());
+  using namespace heltec::meshcore::ui;
+
+  s_gate_root = ht_obj_create(lv_layer_top(), meta_id::LicenseGateRoot);
   if (!s_gate_root) return;
 
-  heltecLicenseGateInitStyles();
-  lv_obj_add_style(s_gate_root, &s_gate_root_style, LV_PART_MAIN);
   lv_obj_clear_flag(s_gate_root, LV_OBJ_FLAG_SCROLLABLE);
 
-  s_gate_title = lv_label_create(s_gate_root);
+  s_gate_title = ht_label_create(s_gate_root, meta_id::LicenseGateTitle);
   if (s_gate_title) {
     lv_label_set_text(s_gate_title, "Not Authorized");
-    lv_obj_add_style(s_gate_title, &s_gate_label_style, LV_PART_MAIN);
   }
 
-  s_gate_chip = lv_label_create(s_gate_root);
+  s_gate_chip = ht_label_create(s_gate_root, meta_id::LicenseGateChip);
   if (s_gate_chip) {
     lv_label_set_text(s_gate_chip, display_id ? display_id : "ID:");
-    lv_obj_add_style(s_gate_chip, &s_gate_label_style, LV_PART_MAIN);
-    lv_obj_add_style(s_gate_chip, &s_gate_chip_style, LV_PART_MAIN);
     lv_label_set_long_mode(s_gate_chip, LV_LABEL_LONG_WRAP);
   }
 

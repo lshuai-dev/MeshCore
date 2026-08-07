@@ -68,6 +68,31 @@ bool point_inside_obj(const _lv_obj_t* obj, int16_t x, int16_t y) {
   lv_point_t point{static_cast<lv_coord_t>(x), static_cast<lv_coord_t>(y)};
   return lv_obj_hit_test(const_cast<_lv_obj_t*>(obj), &point);
 }
+
+bool point_inside_open_dropdown_list(const _lv_obj_t* root, int16_t x, int16_t y) {
+#if LV_USE_DROPDOWN
+  if (!root || !lv_obj_is_valid(root) || lv_obj_has_flag(root, LV_OBJ_FLAG_HIDDEN)) return false;
+  if (lv_obj_check_type(root, &lv_dropdownlist_class) && point_inside_obj(root, x, y)) {
+    return true;
+  }
+  const uint32_t count = lv_obj_get_child_cnt(root);
+  for (uint32_t i = 0; i < count; ++i) {
+    if (point_inside_open_dropdown_list(lv_obj_get_child(root, i), x, y)) return true;
+  }
+#else
+  (void)root;
+  (void)x;
+  (void)y;
+#endif
+  return false;
+}
+
+bool point_inside_any_open_dropdown_list(int16_t x, int16_t y) {
+  _lv_obj_t* const screen = lv_scr_act();
+  if (point_inside_open_dropdown_list(screen, x, y)) return true;
+  _lv_obj_t* const top = lv_layer_top();
+  return top != screen && point_inside_open_dropdown_list(top, x, y);
+}
 }  // namespace
 
 #if defined(HELTEC_V4_R8_TFT) && defined(HELTEC_HAS_TOUCH) && HELTEC_HAS_TOUCH
@@ -320,11 +345,18 @@ void UiApp::handleNativeTouchGesture(lv_event_t* e) {
 
 #if defined(HELTEC_TOUCH_GESTURE_INPUT) && HELTEC_TOUCH_GESTURE_INPUT
 
-bool UiApp::touchGestureBlockTrackerLongPress(int16_t x, int16_t y) {
+bool UiApp::touchGestureBlockLongPress(int16_t x, int16_t y) {
+  // An open dropdown owns the pointer until release. Converting a hold into a
+  // synthetic ENTER key suppresses that release and prevents item selection.
+  if (point_inside_any_open_dropdown_list(x, y)) return true;
+#if defined(ENV_INCLUDE_MAP) && ENV_INCLUDE_MAP
   if (x <= HELTEC_TOUCH_EDGE_PX || y <= HELTEC_TOUCH_EDGE_PX) return false;
   auto& app = UiApp::instance();
   if (!app.inputOnActiveScreen()) return false;
   return app.hitActiveTrackerViewport(x, y);
+#else
+  return false;
+#endif
 }
 
 #if defined(HELTEC_V4_R8_TFT) && defined(HELTEC_HAS_TOUCH) && HELTEC_HAS_TOUCH

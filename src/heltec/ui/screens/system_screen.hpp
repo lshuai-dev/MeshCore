@@ -27,6 +27,7 @@ constexpr MetaId SystemVolumeButton = ht_meta_id(MetaIdScope::Screen, 0xAB);
 constexpr MetaId SystemVolumeButtonLabel = ht_meta_id(MetaIdScope::Screen, 0xAC);
 constexpr MetaId SystemVolumeSlider = ht_meta_id(MetaIdScope::Screen, 0xAD);
 #endif
+constexpr MetaId SystemDropdownList = ht_meta_id(MetaIdScope::Screen, 0xAE);
 }
 
 class SystemScreen : public AbstractScreen {
@@ -43,6 +44,7 @@ class SystemScreen : public AbstractScreen {
   _lv_obj_t* createRoot(_lv_obj_t* parent) override;
   void onAppStateChanged(const AppStateEvent& event) override;
   void onRefreshRequested() override;
+  void onUiEvent(const UiEvent& event) override;
   enum class SysAction : uint8_t { None, FactoryReset, ClearData };
   struct ChoiceRow {
     _lv_obj_t* row = nullptr;
@@ -51,7 +53,6 @@ class SystemScreen : public AbstractScreen {
   };
 
   void bindWidget(_lv_obj_t* obj);
-  bool onKey(uint32_t key) override;
   _lv_obj_t* addActionRow(_lv_obj_t* scroll, const char* title, _lv_obj_t** out_row);
   _lv_obj_t* addSwitchRow(_lv_obj_t* scroll, const char* title, _lv_obj_t** out_sw);
   _lv_obj_t* addDropdownRow(_lv_obj_t* scroll, ChoiceRow& choice, const char* title);
@@ -72,12 +73,6 @@ class SystemScreen : public AbstractScreen {
 
   void handleAction(SysAction action);
   void executeAction(SysAction action);
-  bool createActionConfirmation();
-  void openActionConfirmation(SysAction action);
-  void closeActionConfirmation();
-  void acceptActionConfirmation();
-  bool handleConfirmationKey(uint32_t key);
-  static void onActionConfirmationEvent(lv_event_t* e);
   SysAction actionForRow(_lv_obj_t* obj) const;
   void syncDropdownLayout(_lv_obj_t* dropdown) const;
   void realignDropdownList(_lv_obj_t* dropdown);
@@ -121,13 +116,6 @@ class SystemScreen : public AbstractScreen {
   _lv_obj_t* _dd_screen_off = nullptr;
   _lv_obj_t* _row_factory_reset = nullptr;
   _lv_obj_t* _row_clear_data = nullptr;
-  _lv_obj_t* _action_confirm_root = nullptr;
-  _lv_obj_t* _action_confirm_box = nullptr;
-  _lv_obj_t* _action_confirm_body = nullptr;
-  _lv_obj_t* _action_confirm_cancel = nullptr;
-  _lv_obj_t* _action_confirm_accept = nullptr;
-  SysAction _pending_action = SysAction::None;
-  uint32_t _suppress_action_click_until_ms = 0;
 
   _lv_obj_t* _open_dropdown = nullptr;
   uint16_t _open_dropdown_original_index = 0;

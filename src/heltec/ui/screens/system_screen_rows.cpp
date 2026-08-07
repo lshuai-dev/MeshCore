@@ -3,6 +3,7 @@
 #include "ui/app/ui_theme.hpp"
 #include "ui/core/ht_meta_data.hpp"
 #include "ui/core/ui_deferred_queue.hpp"
+#include "ui/theme/ui_widget_theme.hpp"
 #include <Arduino.h>
 
 namespace heltec::meshcore::ui {
@@ -10,7 +11,6 @@ namespace {
 #if defined(HELTEC_V4_R8_TFT)
 constexpr lv_coord_t kSystemDropdownHeight =
     ui_settings_row_height() - 2 * ui_settings_row_pad_ver();
-constexpr lv_coord_t kSystemDropdownListPadVer = 2;
 #endif
 void configure_system_row(_lv_obj_t* row, lv_flex_flow_t flow, lv_flex_align_t main,
                           lv_flex_align_t cross, bool single_line = true) {
@@ -19,20 +19,6 @@ void configure_system_row(_lv_obj_t* row, lv_flex_flow_t flow, lv_flex_align_t m
                   single_line ? ui_settings_row_height() : LV_SIZE_CONTENT);
   lv_obj_set_flex_flow(row, flow);
   lv_obj_set_flex_align(row, main, cross, cross);
-#if LV_COLOR_DEPTH == 1
-  lv_obj_set_style_pad_all(row, 0, LV_PART_MAIN);
-  lv_obj_set_style_pad_row(row, 0, LV_PART_MAIN);
-  lv_obj_set_style_pad_column(row, 2, LV_PART_MAIN);
-#else
-#if defined(HELTEC_V4_R8_TFT)
-  lv_obj_set_style_pad_hor(row, ui_settings_row_pad_hor(), LV_PART_MAIN);
-  lv_obj_set_style_pad_ver(row, ui_settings_row_pad_ver(), LV_PART_MAIN);
-  lv_obj_set_style_pad_row(row, LV_DPX(10), LV_PART_MAIN);
-  lv_obj_set_style_pad_column(row, LV_DPX(10), LV_PART_MAIN);
-#else
-  lv_obj_set_style_pad_all(row, 2, LV_PART_MAIN);
-#endif
-#endif
   lv_obj_clear_flag(row, LV_OBJ_FLAG_SCROLLABLE);
   lv_obj_add_flag(row, LV_OBJ_FLAG_EVENT_BUBBLE);
   lv_obj_set_scrollbar_mode(row, LV_SCROLLBAR_MODE_OFF);
@@ -304,14 +290,11 @@ void SystemScreen::realignDropdownList(_lv_obj_t* dropdown) {
   const lv_coord_t width = lv_obj_get_width(dropdown);
   if (width > 0) lv_obj_set_width(list, width);
   lv_obj_set_scrollbar_mode(list, LV_SCROLLBAR_MODE_OFF);
-  ui_theme_apply_dropdown_list(list);
+  if (ht_id(list) != meta_id::SystemDropdownList) {
+    ht_set_meta_id(list, meta_id::SystemDropdownList);
+    ui_widget_theme_apply(list);
+  }
   ui_theme_match_dropdown_list_padding(dropdown, list);
-#if defined(HELTEC_V4_R8_TFT)
-  lv_obj_set_style_pad_top(list, kSystemDropdownListPadVer, LV_PART_MAIN);
-  lv_obj_set_style_pad_bottom(list, kSystemDropdownListPadVer, LV_PART_MAIN);
-  lv_obj_set_style_pad_top(list, kSystemDropdownListPadVer, LV_PART_SELECTED);
-  lv_obj_set_style_pad_bottom(list, kSystemDropdownListPadVer, LV_PART_SELECTED);
-#endif
   _lv_obj_t* const viewport = tile();
   ui_dropdown_fit_list_to_viewport(dropdown, viewport ? viewport : _root, _root);
 #else
@@ -326,12 +309,6 @@ void SystemScreen::onWidgetKeyPreprocess(lv_event_t* e) {
 
   const uint32_t key = lv_event_get_key(e);
   _lv_obj_t* const target = lv_event_get_target(e);
-
-  if (self->handleConfirmationKey(key)) {
-    lv_event_stop_processing(e);
-    lv_event_stop_bubbling(e);
-    return;
-  }
 
 #if LV_USE_DROPDOWN != 0
   if (self->_open_dropdown == target && cycle_open_dropdown(target, key)) {
@@ -408,17 +385,6 @@ void SystemScreen::onActionRowEvent(lv_event_t* e) {
   if (!self) return;
 
   const SysAction action = self->actionForRow(lv_event_get_target(e));
-  if ((action == SysAction::FactoryReset || action == SysAction::ClearData) &&
-      self->_suppress_action_click_until_ms != 0) {
-    const uint32_t now = lv_tick_get();
-    if ((int32_t)(now - self->_suppress_action_click_until_ms) < 0) {
-      lv_event_stop_processing(e);
-      lv_event_stop_bubbling(e);
-      return;
-    }
-    self->_suppress_action_click_until_ms = 0;
-  }
-
   if (action == SysAction::None) return;
 
   self->handleAction(action);
@@ -443,37 +409,12 @@ _lv_obj_t* SystemScreen::addBuzzerVolumeRow(_lv_obj_t* scroll) {
   lv_obj_set_flex_flow(controls, LV_FLEX_FLOW_ROW);
   lv_obj_set_flex_align(controls, LV_FLEX_ALIGN_SPACE_BETWEEN,
                         LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
-  lv_obj_set_style_pad_all(controls, 0, LV_PART_MAIN);
-  lv_obj_set_style_pad_column(controls, 4, LV_PART_MAIN);
   lv_obj_clear_flag(controls, LV_OBJ_FLAG_SCROLLABLE | LV_OBJ_FLAG_CLICKABLE);
 
   const auto add_button = [this, controls](const char* text, _lv_obj_t** out) {
     _lv_obj_t* btn = ht_btn_create(controls, meta_id::SystemVolumeButton);
     if (!btn) return;
     lv_obj_set_size(btn, 26, 24);
-    lv_obj_set_style_pad_all(btn, 0, LV_PART_MAIN);
-    lv_obj_set_style_bg_opa(btn, LV_OPA_TRANSP, LV_PART_MAIN);
-    lv_obj_set_style_border_width(btn, 1, LV_PART_MAIN);
-    lv_obj_set_style_border_color(btn, ui_color_panel_border(), LV_PART_MAIN);
-    lv_obj_set_style_border_opa(btn, LV_OPA_TRANSP, LV_PART_MAIN);
-    lv_obj_set_style_text_color(btn, ui_color_fg(), LV_PART_MAIN);
-    lv_obj_set_style_bg_color(btn, ui_color_highlight_bg(),
-                              LV_PART_MAIN | LV_STATE_PRESSED);
-    lv_obj_set_style_bg_opa(btn, LV_OPA_COVER, LV_PART_MAIN | LV_STATE_PRESSED);
-    lv_obj_set_style_text_color(btn, ui_color_highlight_fg(),
-                                LV_PART_MAIN | LV_STATE_PRESSED);
-    lv_obj_set_style_bg_opa(btn, LV_OPA_TRANSP, LV_PART_MAIN | LV_STATE_FOCUSED);
-    lv_obj_set_style_border_width(btn, 1, LV_PART_MAIN | LV_STATE_FOCUSED);
-    lv_obj_set_style_border_color(btn, lv_color_white(),
-                                  LV_PART_MAIN | LV_STATE_FOCUSED);
-    lv_obj_set_style_border_opa(btn, LV_OPA_COVER, LV_PART_MAIN | LV_STATE_FOCUSED);
-    lv_obj_set_style_text_color(btn, ui_color_fg(), LV_PART_MAIN | LV_STATE_FOCUSED);
-    lv_obj_set_style_bg_opa(btn, LV_OPA_TRANSP, LV_PART_MAIN | LV_STATE_FOCUS_KEY);
-    lv_obj_set_style_border_width(btn, 1, LV_PART_MAIN | LV_STATE_FOCUS_KEY);
-    lv_obj_set_style_border_color(btn, lv_color_white(),
-                                  LV_PART_MAIN | LV_STATE_FOCUS_KEY);
-    lv_obj_set_style_border_opa(btn, LV_OPA_COVER, LV_PART_MAIN | LV_STATE_FOCUS_KEY);
-    lv_obj_set_style_text_color(btn, ui_color_fg(), LV_PART_MAIN | LV_STATE_FOCUS_KEY);
 #if defined(HELTEC_V4_R8_TFT)
     // Pointer focus and modal focus restoration must not reposition the
     // System list. Keypad navigation is scrolled explicitly by applyGroupFocus().
@@ -490,31 +431,14 @@ _lv_obj_t* SystemScreen::addBuzzerVolumeRow(_lv_obj_t* scroll) {
   add_button("-", &_btnBuzzerVolumeDown);
 
 #if LV_USE_SLIDER != 0
-  _sliderBuzzerVolume = lv_slider_create(controls);
+  _sliderBuzzerVolume =
+      ht_slider_create(controls, meta_id::SystemVolumeSlider);
   if (_sliderBuzzerVolume) {
-    ht_set_meta_id(_sliderBuzzerVolume, meta_id::SystemVolumeSlider);
     lv_obj_set_size(_sliderBuzzerVolume, 60, 10);
     lv_obj_set_flex_grow(_sliderBuzzerVolume, 1);
     lv_slider_set_range(_sliderBuzzerVolume, 0, 3);
     lv_obj_clear_flag(_sliderBuzzerVolume,
                       LV_OBJ_FLAG_SCROLLABLE | LV_OBJ_FLAG_CLICKABLE | LV_OBJ_FLAG_CLICK_FOCUSABLE);
-    lv_obj_set_style_bg_color(_sliderBuzzerVolume, ui_color_switch_bg(), LV_PART_MAIN);
-    lv_obj_set_style_bg_opa(_sliderBuzzerVolume, LV_OPA_COVER, LV_PART_MAIN);
-    lv_obj_set_style_border_width(_sliderBuzzerVolume, 1, LV_PART_MAIN);
-    lv_obj_set_style_border_color(_sliderBuzzerVolume, ui_color_panel_border(), LV_PART_MAIN);
-    lv_obj_set_style_radius(_sliderBuzzerVolume, LV_RADIUS_CIRCLE, LV_PART_MAIN);
-    lv_obj_set_style_bg_color(_sliderBuzzerVolume, ui_color_accent(), LV_PART_INDICATOR);
-    lv_obj_set_style_bg_opa(_sliderBuzzerVolume, LV_OPA_COVER, LV_PART_INDICATOR);
-    lv_obj_set_style_radius(_sliderBuzzerVolume, LV_RADIUS_CIRCLE, LV_PART_INDICATOR);
-    lv_obj_set_style_bg_color(_sliderBuzzerVolume, ui_color_fg(), LV_PART_KNOB);
-    lv_obj_set_style_bg_opa(_sliderBuzzerVolume, LV_OPA_COVER, LV_PART_KNOB);
-    lv_obj_set_style_border_width(_sliderBuzzerVolume, 1, LV_PART_KNOB);
-    lv_obj_set_style_border_color(_sliderBuzzerVolume, ui_color_panel_border(), LV_PART_KNOB);
-    lv_obj_set_style_pad_left(_sliderBuzzerVolume, 0, LV_PART_KNOB);
-    lv_obj_set_style_pad_right(_sliderBuzzerVolume, 0, LV_PART_KNOB);
-    lv_obj_set_style_pad_top(_sliderBuzzerVolume, 3, LV_PART_KNOB);
-    lv_obj_set_style_pad_bottom(_sliderBuzzerVolume, 3, LV_PART_KNOB);
-    lv_obj_set_style_transform_width(_sliderBuzzerVolume, -1, LV_PART_KNOB);
   }
 #endif
 

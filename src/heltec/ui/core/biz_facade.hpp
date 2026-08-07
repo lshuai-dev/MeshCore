@@ -54,7 +54,7 @@ struct FindFriendUi {
   float turn_deg = 0.f;
   char target_label[40] = {};
   bool target_valid = false;
-  bool arrived = false;
+  bool near_target = false;
   double distance_m = -1.0;
 };
 
@@ -168,7 +168,6 @@ class IBizFacade : public ui::IFeedback {
 
   // Device and radio commands.
   virtual bool sendAdvert() = 0;
-  virtual void sendAdvertWithFeedback() = 0;
   virtual bool toggleGPS() = 0;
   virtual void setGpsEnabled(bool enabled) = 0;
   virtual void adjustTxPowerDbm(int delta_db) = 0;

@@ -1,91 +1,13 @@
 #include "button_roller.hpp"
 #include "ui/core/ht_meta_data.hpp"
 #include "ui/core/ui_motion_scheduler.hpp"
+#include "ui/app/ui_behavior_profile.hpp"
 #include "ui/app/ui_theme.hpp"
-#include "ui/menus/context_menu_metrics.hpp"
-#include "ui/theme/ui_theme_metrics.hpp"
+#include "ui/theme/ui_widget_theme.hpp"
 #include "MeshCore.h"
 
 namespace heltec::meshcore::ui {
 namespace {
-
-lv_style_t s_roller_root_style;
-lv_style_t s_roller_button_style;
-lv_style_t s_roller_button_selected_style;
-lv_style_t s_roller_label_style;
-lv_style_t s_roller_label_selected_style;
-bool s_roller_styles_ready = false;
-
-static const lv_style_selector_t kRollerItemSelectedSelectors[] = {
-    LV_PART_MAIN | LV_STATE_CHECKED,
-    LV_PART_MAIN | LV_STATE_FOCUSED,
-    LV_PART_MAIN | LV_STATE_FOCUS_KEY,
-    LV_PART_MAIN | (LV_STATE_CHECKED | LV_STATE_FOCUSED),
-    LV_PART_MAIN | (LV_STATE_CHECKED | LV_STATE_FOCUS_KEY),
-    LV_PART_MAIN | LV_STATE_PRESSED,
-};
-
-void initRollerStyles(lv_obj_t* obj) {
-  if (s_roller_styles_ready) return;
-  const UiButtonRollerMetrics& metrics = ui_button_roller_metrics(obj);
-  const lv_coord_t border_w = metrics.border_width;
-
-  lv_style_init(&s_roller_root_style);
-  lv_style_set_border_width(&s_roller_root_style, border_w);
-  lv_style_set_bg_opa(&s_roller_root_style, LV_OPA_TRANSP);
-
-  lv_style_init(&s_roller_button_style);
-  lv_style_set_border_width(&s_roller_button_style, border_w);
-  lv_style_set_bg_opa(&s_roller_button_style, LV_OPA_TRANSP);
-  lv_style_set_text_color(&s_roller_button_style, ui_color_fg());
-  lv_style_set_shadow_width(&s_roller_button_style, 0);
-  lv_style_set_radius(&s_roller_button_style, 0);
-
-  lv_style_init(&s_roller_button_selected_style);
-  lv_style_set_border_width(&s_roller_button_selected_style, 0);
-  lv_style_set_outline_width(&s_roller_button_selected_style, 0);
-  lv_style_set_shadow_width(&s_roller_button_selected_style, 0);
-  lv_style_set_radius(&s_roller_button_selected_style, 0);
-  lv_style_set_bg_color(&s_roller_button_selected_style, ui_color_highlight_bg());
-  lv_style_set_bg_opa(&s_roller_button_selected_style, LV_OPA_COVER);
-  lv_style_set_text_color(&s_roller_button_selected_style, ui_color_highlight_fg());
-
-  lv_style_init(&s_roller_label_style);
-  lv_style_set_text_color(&s_roller_label_style, ui_color_fg());
-  lv_style_set_text_line_space(&s_roller_label_style, 0);
-  lv_style_set_text_letter_space(&s_roller_label_style, 0);
-
-  lv_style_init(&s_roller_label_selected_style);
-  lv_style_set_text_color(&s_roller_label_selected_style, ui_color_highlight_fg());
-  lv_style_set_text_line_space(&s_roller_label_selected_style, 0);
-  lv_style_set_text_letter_space(&s_roller_label_selected_style, 0);
-
-  s_roller_styles_ready = true;
-}
-
-void styleRollerRoot(lv_obj_t* obj) {
-  if (!obj) return;
-  initRollerStyles(obj);
-  lv_obj_add_style(obj, &s_roller_root_style, LV_PART_MAIN);
-}
-
-void styleRollerButton(lv_obj_t* obj) {
-  if (!obj) return;
-  initRollerStyles(obj);
-  lv_obj_add_style(obj, &s_roller_button_style, LV_PART_MAIN);
-  for (lv_style_selector_t selector : kRollerItemSelectedSelectors) {
-    lv_obj_add_style(obj, &s_roller_button_selected_style, selector);
-  }
-}
-
-void styleRollerLabel(lv_obj_t* obj) {
-  if (!obj) return;
-  initRollerStyles(obj);
-  lv_obj_add_style(obj, &s_roller_label_style, LV_PART_MAIN);
-  for (lv_style_selector_t selector : kRollerItemSelectedSelectors) {
-    lv_obj_add_style(obj, &s_roller_label_selected_style, selector);
-  }
-}
 
 lv_obj_t* itemLabel(lv_obj_t* item) {
   return item && lv_obj_get_child_cnt(item) > 0 ? lv_obj_get_child(item, 0) : nullptr;
@@ -112,24 +34,6 @@ void clearItemFocusState(lv_obj_t* item) {
 
 }  // namespace
 
-bool ui_button_roller_apply_theme(_lv_obj_t* obj) {
-  if (!obj) return false;
-
-  switch (ht_id(obj)) {
-    case meta_id::ButtonRollerRoot:
-      styleRollerRoot(obj);
-      return true;
-    case meta_id::ButtonRollerItem:
-      styleRollerButton(obj);
-      return true;
-    case meta_id::ButtonRollerLabel:
-      styleRollerLabel(obj);
-      return true;
-    default:
-      return false;
-  }
-}
-
 void ButtonRoller::layoutItems(uint8_t focus_index, lv_anim_enable_t anim , bool is_checked) {
   if (_root && _count > 0 && _group) {
     lv_obj_t* focus_obj = lv_group_get_focused(_group);
@@ -137,14 +41,19 @@ void ButtonRoller::layoutItems(uint8_t focus_index, lv_anim_enable_t anim , bool
       focus_index = lv_obj_get_index(focus_obj);
     }
     if (_items[focus_index]) {
-      const lv_coord_t btn_px = ui_button_roller_metrics(_root).button_px;
-      const uint16_t ms = ui_context_menu_metrics(_root).page_anim_ms;
+      const uint16_t ms = ui_behavior_profile().context_menu.page_anim_ms;
       auto const anim_set_y = +[](void* obj, int32_t v) {
         lv_obj_set_y(static_cast<lv_obj_t*>(obj), v);
       };
 
-      const lv_coord_t vp_h = lv_obj_get_content_height(_root);
-      const lv_coord_t row_h = btn_px > 0 ? btn_px : vp_h;
+      lv_coord_t vp_h = lv_obj_get_content_height(_root);
+      lv_coord_t row_h = lv_obj_get_height(_items[focus_index]);
+      if (vp_h <= 0 || row_h <= 0) {
+        lv_obj_update_layout(_root);
+        vp_h = lv_obj_get_content_height(_root);
+        row_h = lv_obj_get_height(_items[focus_index]);
+      }
+      if (row_h <= 0) row_h = vp_h;
       if (row_h <= 0 || vp_h < row_h) {
         if (anim == LV_ANIM_OFF && !is_checked) _last_vp_h = 0;
         return;
@@ -212,10 +121,7 @@ lv_obj_t* ButtonRoller::addItem(const char* label) {
 
   lv_obj_t* const btn = ht_btn_create(_root, meta_id::ButtonRollerItem);
   if (!btn) return nullptr;
-  const UiButtonRollerMetrics& metrics = ui_button_roller_metrics(_root);
-  lv_obj_set_size(btn, lv_pct(100),
-                  metrics.button_px > 0 ? metrics.button_px : LV_SIZE_CONTENT);
-  lv_obj_set_style_pad_all(btn, metrics.pad, LV_PART_MAIN);
+  lv_obj_set_width(btn, lv_pct(100));
   lv_obj_add_flag(btn, LV_OBJ_FLAG_EVENT_BUBBLE);
 
   lv_obj_t* const lbl = ht_label_create(btn, meta_id::ButtonRollerLabel, label ? label : "");
@@ -249,9 +155,7 @@ bool ButtonRoller::create(lv_obj_t* parent, lv_group_t* group) {
   _group = group;
   _root = ht_obj_create(parent, meta_id::ButtonRollerRoot);
   if (!_root) return false;
-  const UiButtonRollerMetrics& metrics = ui_button_roller_metrics(_root);
   lv_obj_set_size(_root, lv_pct(100), lv_pct(100));
-  lv_obj_set_style_pad_all(_root, metrics.pad, LV_PART_MAIN);
   lv_obj_clear_flag(_root, LV_OBJ_FLAG_SCROLLABLE);
   lv_obj_add_flag(_root, LV_OBJ_FLAG_OVERFLOW_VISIBLE);
 

@@ -35,6 +35,7 @@
 
 #include "ui/overlays/preview_overlay.hpp"
 #include "ui/overlays/alert_overlay.hpp"
+#include "ui/overlays/confirm_overlay.hpp"
 #include "ui/overlays/radio_pram_sync_overlay.hpp"
 #include "ui/overlays/repeat_mode_overlay.hpp"
 #include "ui/overlays/send_message_overlay.hpp"
@@ -121,7 +122,7 @@ class UiApp final : public IUiHost, public InputHost {
 
   bool hitActiveTrackerViewport(lv_coord_t x, lv_coord_t y) const;
 #if defined(HELTEC_TOUCH_GESTURE_INPUT) && HELTEC_TOUCH_GESTURE_INPUT
-  static bool touchGestureBlockTrackerLongPress(int16_t x, int16_t y);
+  static bool touchGestureBlockLongPress(int16_t x, int16_t y);
 #if defined(HELTEC_V4_R8_TFT) && defined(HELTEC_HAS_TOUCH) && HELTEC_HAS_TOUCH
   static bool touchGestureRawPointerPassthrough(int16_t x, int16_t y);
   static bool touchGestureBlockQuickPingDoubleTap(int16_t x, int16_t y);
@@ -171,7 +172,7 @@ class UiApp final : public IUiHost, public InputHost {
 
   void closeNavigationImmediate();
   bool selectTile(uint8_t tile_idx);
-  void scheduleNavTileCommit(uint8_t tile_idx, bool user_commit = false);
+  void scheduleNavTileCommit(uint8_t tile_idx);
   void previewNavTile(uint8_t tile_idx);
   void onTileActiveChanged();
   bool switchAdjacentTile(int8_t dir);
@@ -187,7 +188,6 @@ class UiApp final : public IUiHost, public InputHost {
   AppNavigation _navigation;
   uint32_t _nav_last_activity_ms = 0;
   uint8_t _scheduled_nav_tile = kNoScheduledTile;
-  bool _scheduled_nav_action = false;
   lv_timer_t* _nav_auto_commit_timer = nullptr;
   uint32_t _display_auto_off_ms = 0;
   uint32_t _display_last_activity_ms = 0;
@@ -220,6 +220,7 @@ class UiApp final : public IUiHost, public InputHost {
 
   PreviewOverlay _previewOvl;
   AlertOverlay _alertOvl;
+  ConfirmOverlay _confirmOvl;
   RadioParamSyncOverlay _radioParamSyncOvl;
   RepeatModeOverlay _repeatModeOvl;
   SendMessageOverlay _sendMessageOvl;

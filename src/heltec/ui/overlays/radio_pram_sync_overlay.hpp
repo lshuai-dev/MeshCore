@@ -14,6 +14,7 @@ constexpr MetaId RadioParamSyncTitle = ht_meta_id(MetaIdScope::Overlay, 0xA0);
 constexpr MetaId RadioParamSyncList = ht_meta_id(MetaIdScope::Overlay, 0xA1);
 constexpr MetaId RadioParamSyncRow = ht_meta_id(MetaIdScope::Overlay, 0xA2);
 constexpr MetaId RadioParamSyncFooter = ht_meta_id(MetaIdScope::Overlay, 0xA3);
+constexpr MetaId RadioParamSyncRoller = ht_meta_id(MetaIdScope::Overlay, 0xA4);
 }
 
 class RadioParamSyncOverlay : public AbstractOverlay {

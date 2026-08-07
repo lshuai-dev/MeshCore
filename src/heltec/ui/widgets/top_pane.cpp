@@ -1,7 +1,6 @@
 #include "top_pane.hpp"
 #include "ui/app/ui_theme.hpp"
 #include "ui/core/ht_meta_data.hpp"
-#include "ui/theme/ui_theme_metrics.hpp"
 #include <lvgl.h>
 
 #ifndef BAT_MIN_MV
@@ -74,12 +73,6 @@ struct BatteryFillBox {
   lv_coord_t h;
 };
 
-static lv_style_t s_battery_fill_empty_style;
-static lv_style_t s_battery_fill_low_style;
-static lv_style_t s_battery_fill_mid_style;
-static lv_style_t s_battery_fill_high_style;
-static bool s_battery_fill_styles_ready = false;
-
 lv_coord_t clamp_nonnegative(lv_coord_t v) {
   return v > 0 ? v : 0;
 }
@@ -104,51 +97,6 @@ BatteryFillBox battery_fill_box(_lv_obj_t* outline) {
   return {clamp_nonnegative(w), clamp_nonnegative(h)};
 }
 
-void init_battery_fill_styles() {
-  if (s_battery_fill_styles_ready) return;
-
-  lv_style_init(&s_battery_fill_empty_style);
-  lv_style_set_bg_opa(&s_battery_fill_empty_style, LV_OPA_TRANSP);
-
-  lv_style_init(&s_battery_fill_low_style);
-  lv_style_set_bg_opa(&s_battery_fill_low_style, LV_OPA_COVER);
-#if LV_COLOR_DEPTH == 1
-  lv_style_set_bg_color(&s_battery_fill_low_style, ui_color_top_pane_fg());
-#else
-  lv_style_set_bg_color(&s_battery_fill_low_style, ui_color_battery_low());
-#endif
-
-  lv_style_init(&s_battery_fill_mid_style);
-  lv_style_set_bg_opa(&s_battery_fill_mid_style, LV_OPA_COVER);
-#if LV_COLOR_DEPTH == 1
-  lv_style_set_bg_color(&s_battery_fill_mid_style, ui_color_top_pane_fg());
-#else
-  lv_style_set_bg_color(&s_battery_fill_mid_style, ui_color_battery_mid());
-#endif
-
-  lv_style_init(&s_battery_fill_high_style);
-  lv_style_set_bg_opa(&s_battery_fill_high_style, LV_OPA_COVER);
-#if LV_COLOR_DEPTH == 1
-  lv_style_set_bg_color(&s_battery_fill_high_style, ui_color_top_pane_fg());
-#else
-  lv_style_set_bg_color(&s_battery_fill_high_style, ui_color_battery_high());
-#endif
-
-  s_battery_fill_styles_ready = true;
-}
-
-void install_battery_fill_styles(_lv_obj_t* fill) {
-  if (!fill) return;
-  init_battery_fill_styles();
-  lv_obj_add_style(fill, &s_battery_fill_empty_style, LV_PART_MAIN);
-  lv_obj_add_style(fill, &s_battery_fill_low_style,
-                   LV_PART_MAIN | LV_STATE_USER_1);
-  lv_obj_add_style(fill, &s_battery_fill_mid_style,
-                   LV_PART_MAIN | LV_STATE_USER_2);
-  lv_obj_add_style(fill, &s_battery_fill_high_style,
-                   LV_PART_MAIN | LV_STATE_USER_3);
-}
-
 void apply_battery_state(_lv_obj_t* fill, uint8_t pct, bool present) {
   if (!fill) return;
   lv_obj_clear_state(fill, LV_STATE_USER_1 | LV_STATE_USER_2 | LV_STATE_USER_3);
@@ -170,29 +118,11 @@ bool TopPane::create(_lv_obj_t* parent) {
 
   _root = ht_obj_create(parent, meta_id::TopPaneRoot);
   if (!_root) return false;
-  const UiTopPaneMetrics& metrics = ui_top_pane_metrics(_root);
-  const UiAppFrameMetrics& frame = ui_app_frame_metrics(_root);
-  const lv_coord_t pad_left =
-      (frame.frame_margin_left > 0 || frame.frame_margin_right > 0)
-          ? frame.frame_margin_left
-          : metrics.radius;
-  const lv_coord_t pad_right =
-      (frame.frame_margin_left > 0 || frame.frame_margin_right > 0)
-          ? frame.frame_margin_right
-          : metrics.radius;
-  const lv_coord_t battery_h =
-      metrics.battery_h > 0 ? metrics.battery_h
-                             : static_cast<lv_coord_t>((metrics.height * 7 + 5) / 10);
-  lv_obj_set_size(_root, lv_pct(100), metrics.height);
+  lv_obj_set_width(_root, lv_pct(100));
   lv_obj_set_flex_flow(_root, LV_FLEX_FLOW_ROW);
   lv_obj_set_flex_align(_root, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER,
                         LV_FLEX_ALIGN_CENTER);
-  lv_obj_set_style_pad_top(_root, LV_MAX(0, metrics.pad_top), LV_PART_MAIN);
-  lv_obj_set_style_pad_bottom(_root, 0, LV_PART_MAIN);
-  lv_obj_set_style_pad_left(_root, pad_left, LV_PART_MAIN);
-  lv_obj_set_style_pad_right(_root, pad_right, LV_PART_MAIN);
   lv_obj_clear_flag(_root, LV_OBJ_FLAG_SCROLLABLE);
-  lv_obj_add_event_cb(_root, onRootSizeChanged, LV_EVENT_SIZE_CHANGED, this);
 
   _lv_obj_t* left_slot = ht_obj_create(_root, meta_id::TopPaneLeftSlot);
   if (!left_slot) {
@@ -202,7 +132,6 @@ bool TopPane::create(_lv_obj_t* parent) {
   }
   lv_obj_set_height(left_slot, lv_pct(100));
   lv_obj_set_flex_grow(left_slot, 1);
-  lv_obj_set_style_pad_all(left_slot, 0, LV_PART_MAIN);
   lv_obj_clear_flag(left_slot, LV_OBJ_FLAG_SCROLLABLE);
 
   _lv_obj_t* center_slot = ht_obj_create(_root, meta_id::TopPaneCenterSlot);
@@ -216,7 +145,6 @@ bool TopPane::create(_lv_obj_t* parent) {
   lv_obj_set_flex_flow(center_slot, LV_FLEX_FLOW_ROW);
   lv_obj_set_flex_align(center_slot, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER,
                         LV_FLEX_ALIGN_CENTER);
-  lv_obj_set_style_pad_all(center_slot, 0, LV_PART_MAIN);
   lv_obj_clear_flag(center_slot, LV_OBJ_FLAG_SCROLLABLE);
 
   _title = ht_label_create(center_slot, meta_id::TopPaneTitle, "");
@@ -243,17 +171,17 @@ bool TopPane::create(_lv_obj_t* parent) {
   }
   lv_obj_set_height(right_slot, lv_pct(100));
   lv_obj_set_flex_grow(right_slot, 1);
-  lv_obj_set_style_pad_all(right_slot, 0, LV_PART_MAIN);
+  lv_obj_set_flex_flow(right_slot, LV_FLEX_FLOW_ROW);
+  lv_obj_set_flex_align(right_slot, LV_FLEX_ALIGN_END, LV_FLEX_ALIGN_CENTER,
+                        LV_FLEX_ALIGN_CENTER);
   lv_obj_clear_flag(right_slot, LV_OBJ_FLAG_SCROLLABLE);
 
-  _bat_cont = ht_obj_create(_root, meta_id::TopPaneBattery);
+  _bat_cont = ht_obj_create(right_slot, meta_id::TopPaneBattery);
   if (!_bat_cont) {
     lv_obj_del(_root);
     _root = nullptr;
     return false;
   }
-  lv_obj_set_size(_bat_cont, metrics.battery_w, battery_h);
-  lv_obj_add_flag(_bat_cont, LV_OBJ_FLAG_FLOATING);
   // The cap is aligned against the right edge of this container. Some LVGL
   // layouts round the final coordinate one pixel outside the content box, so
   // keep child overflow visible on every display profile.
@@ -269,9 +197,6 @@ bool TopPane::create(_lv_obj_t* parent) {
     _root = nullptr;
     return false;
   }
-  const lv_coord_t cap_w = LV_MIN(6, LV_MAX(2, static_cast<lv_coord_t>((battery_h + 1) / 3)));
-  const lv_coord_t body_w = metrics.battery_w - cap_w + 1;
-  lv_obj_set_size(bat_outline, body_w, battery_h);
   lv_obj_align(bat_outline, LV_ALIGN_LEFT_MID, 0, 0);
   lv_obj_add_flag(bat_outline, LV_OBJ_FLAG_OVERFLOW_VISIBLE);
   lv_obj_clear_flag(bat_outline, LV_OBJ_FLAG_SCROLLABLE);
@@ -283,25 +208,20 @@ bool TopPane::create(_lv_obj_t* parent) {
     _root = nullptr;
     return false;
   }
-  lv_obj_set_size(_bat_fill, 0, LV_MAX(0, battery_h - 2));
   lv_obj_align(_bat_fill, LV_ALIGN_LEFT_MID, 0, 0);
   lv_obj_add_flag(_bat_fill, LV_OBJ_FLAG_FLOATING);
   lv_obj_clear_flag(_bat_fill, LV_OBJ_FLAG_SCROLLABLE);
-  install_battery_fill_styles(_bat_fill);
-
   lv_obj_t* bat_cap = ht_obj_create(_bat_cont, meta_id::TopPaneBatteryCap);
   if (!bat_cap) {
     lv_obj_del(_root);
     _root = _bat_fill = nullptr;
     return false;
   }
-  lv_obj_set_size(bat_cap, cap_w, LV_MAX(2, battery_h / 2));
   lv_obj_align_to(bat_cap, bat_outline, LV_ALIGN_OUT_RIGHT_MID, -1, 0);
   lv_obj_clear_flag(bat_cap, LV_OBJ_FLAG_SCROLLABLE);
 #endif
 
   lv_obj_update_layout(_root);
-  layoutBattery();
   lv_obj_invalidate(_root);
 
   renderBattery(0);
@@ -315,30 +235,6 @@ void TopPane::setTitle(const char* text) {
 void TopPane::setBatteryMilliVolts(uint16_t mv) {
   _bat_mv = mv;
   renderBattery(_bat_mv);
-}
-
-void TopPane::onRootSizeChanged(lv_event_t* e) {
-  if (!e || lv_event_get_code(e) != LV_EVENT_SIZE_CHANGED) return;
-  auto* self = static_cast<TopPane*>(lv_event_get_user_data(e));
-  if (self) self->layoutBattery();
-}
-
-void TopPane::layoutBattery() {
-  if (!_root || !_bat_cont) return;
-
-  const UiTopPaneMetrics& metrics = ui_top_pane_metrics(_root);
-  const lv_coord_t margin_r =
-      metrics.battery_pad_r >= 0
-          ? metrics.battery_pad_r
-          : static_cast<lv_coord_t>((metrics.height + 2) / 3);
-  const lv_coord_t parent_w = lv_obj_get_content_width(_root);
-  const lv_coord_t parent_h = lv_obj_get_content_height(_root);
-  const lv_coord_t battery_w = lv_obj_get_width(_bat_cont);
-  const lv_coord_t battery_h = lv_obj_get_height(_bat_cont);
-  const lv_coord_t x = LV_MAX(0, static_cast<lv_coord_t>(parent_w - battery_w - margin_r));
-  const lv_coord_t y = LV_MAX(0, static_cast<lv_coord_t>((parent_h - battery_h) / 2));
-
-  lv_obj_set_pos(_bat_cont, x, y);
 }
 
 #if defined(HELTEC_V4_R8_TFT)

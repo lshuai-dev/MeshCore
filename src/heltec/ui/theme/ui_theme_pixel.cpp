@@ -1,18 +1,16 @@
 #include <lvgl.h>
 
 #include "ui_theme_pixel.hpp"
+#include "ui/app/ui_behavior_profile.hpp"
 #include "ui/app/ui_app_ids.hpp"
-#include "ui/app/ui_app_frame_metrics.hpp"
 #include "ui/app/ui_theme.hpp"
 #include "ui/core/ht_meta_data.hpp"
 #include "ui/menus/context_menu.hpp"
-#include "ui/menus/context_menu_metrics.hpp"
 #include "ui/navigation/ui_navigator.hpp"
 #include "ui/screens/find_friend_screen_ids.hpp"
 #include "ui/screens/gps_screen.hpp"
 #include "ui/screens/radio_screen.hpp"
 #include "ui/screens/system_screen.hpp"
-#include "ui/theme/ui_theme_metrics.hpp"
 #include "ui/theme/ui_widget_theme.hpp"
 #include "ui/widgets/button_roller.hpp"
 #include "ui/widgets/top_pane.hpp"
@@ -27,9 +25,7 @@ static lv_style_t s_switch_indicator_checked;
 static lv_style_t s_switch_knob;
 static lv_style_t s_row_focus_key;
 static lv_style_t s_widget_radius;
-static lv_style_t s_metrics_style;
 static bool s_styles_ready = false;
-static bool s_device_styles_ready = false;
 
 static lv_color_t s_color_fg;
 static lv_color_t s_color_border;
@@ -65,51 +61,34 @@ static const UiThemeColors kPixelColors = {
     2,         // widget_radius_px
 };
 
+static const UiBehaviorProfile kPixelBehaviorProfile = {
+    {0},
+    {5000, 560, 380, 4, 2},
+};
+
 static void initDeviceStyles() {
-  ui_theme_metrics_init();
+  ui_set_behavior_profile(&kPixelBehaviorProfile);
 
 #if defined(HELTEC_V4_R8_TFT)
-  static const UiThemeMetrics kThemeMetrics = {
-      {8, 10, 10, 0, 22, 8},
-      {32, 12, 24, 14, 10, 5},
-      {12, 1, 1, 1, 1, 3, 0},
-      {100, 100, 8, 104},
-      {0, 2, 12},
-      {5000, 560, 380, 4, 2, 2, 2, 3, 6, 0, 16, 8, 36},
-  };
+  ui_widget_theme_set_app_frame_style({8, 10, 10, 0, 22, 8});
+  ui_widget_theme_set_top_pane_style({32, 12, 10, 10, 5, 24, 14, 10});
 #else
-  static const UiThemeMetrics kThemeMetrics = {
-      {6, 8, 8, 0, 22, 0},
-      {25, 0, 22, 12, 4, 5},
-      {12, 1, 1, 1, 1, 3, 0},
-      {100, 100, 8, 104},
-      {0, 2, 12},
-      {5000, 560, 380, 4, 2, 2, 2, 3, 6, 0, 16, 8, 36},
-  };
+  ui_widget_theme_set_app_frame_style({6, 8, 8, 0, 22, 0});
+  ui_widget_theme_set_top_pane_style({25, 0, 8, 8, 5, 22, 12, 4});
 #endif
 
-  if (!s_device_styles_ready) {
-    lv_style_init(&s_metrics_style);
-    s_device_styles_ready = true;
-  }
-
-  lv_style_value_t value{};
-  value.ptr = &kThemeMetrics;
-  lv_style_set_prop(&s_metrics_style, UI_PROP_THEME_METRICS, value);
-}
-
-static void applyDeviceStyles(lv_obj_t* obj) {
-  if (!obj) return;
-  initDeviceStyles();
-
-  switch (ht_id(obj)) {
-    case meta_id::AppOverlayLayer:
-    case meta_id::AppFrameLayout:
-      lv_obj_add_style(obj, &s_metrics_style, LV_PART_MAIN);
-      break;
-    default:
-      break;
-  }
+#if defined(HELTEC_DISPLAY_ST7789) && HELTEC_DISPLAY_ST7789
+  ui_widget_theme_set_context_menu_style({12, 1, 1, 1, 3, 8, 18});
+#elif (defined(HELTEC_DISPLAY_ST7735) && HELTEC_DISPLAY_ST7735) || \
+    (defined(HELTEC_DISPLAY_SSD1306) && HELTEC_DISPLAY_SSD1306) || \
+    LV_COLOR_DEPTH == 1
+  ui_widget_theme_set_context_menu_style({12, 1, 1, 1, 3, 8, 6});
+#else
+  ui_widget_theme_set_context_menu_style({12, 1, 1, 1, 3, 1, 1});
+#endif
+  ui_widget_theme_set_quick_ping_style({104});
+  ui_widget_theme_set_navigation_style({2, 3, 6, 0, 18, 8, 36, 2});
+  ui_widget_theme_set_button_roller_style({0, 2, 12});
 }
 
 static void styleSetBorderFrame(lv_style_t* st) {
@@ -194,7 +173,6 @@ extern "C" void ui_pixel_theme_apply(lv_theme_t* th, lv_obj_t* obj) {
   if (!obj) return;
   (void)th;
 
-  applyDeviceStyles(obj);
   const bool custom_applied = ui_widget_theme_apply(obj);
 
 #if LV_USE_SWITCH

@@ -162,7 +162,6 @@ void SystemScreen::onDropdownValueChanged(lv_event_t* e) {
 }
 
 void SystemScreen::onExit() {
-  closeActionConfirmation();
   closeOpenDropdown();
   clearGroupFocusVisual();
   AbstractScreen::onExit();

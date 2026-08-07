@@ -33,17 +33,6 @@ _lv_obj_t* SendMessageOverlay::createRoot(_lv_obj_t* parent) {
 
 namespace {
 
-static lv_style_t s_opaque_cover_style;
-static bool s_opaque_cover_style_ready = false;
-
-lv_coord_t componentGap() {
-#if defined(HELTEC_V4_R8_TFT)
-  return LV_DPX(10);
-#else
-  return 3;
-#endif
-}
-
 lv_coord_t sendRowHeight() {
 #if defined(HELTEC_DISPLAY_ST7789) && HELTEC_DISPLAY_ST7789
   return 16;
@@ -53,20 +42,6 @@ lv_coord_t sendRowHeight() {
 #else
   return 28;
 #endif
-}
-
-static void initOpaqueCoverStyle() {
-  if (s_opaque_cover_style_ready) return;
-  lv_style_init(&s_opaque_cover_style);
-  lv_style_set_bg_opa(&s_opaque_cover_style, LV_OPA_COVER);
-  lv_style_set_bg_color(&s_opaque_cover_style, ui_color_overlay_bg());
-  s_opaque_cover_style_ready = true;
-}
-
-static void applyOpaqueCover(lv_obj_t* obj) {
-  if (!obj) return;
-  initOpaqueCoverStyle();
-  lv_obj_add_style(obj, &s_opaque_cover_style, LV_PART_MAIN);
 }
 
 const char* footerForPage(bool back_to_parent) {
@@ -99,17 +74,6 @@ bool SendMessageOverlay::onKey(uint32_t key) {
 
 _lv_obj_t* SendMessageOverlay::create(lv_obj_t* parent) {
   if (!AbstractOverlay::create(parent)) return nullptr;
-#if (defined(HELTEC_DISPLAY_ST7789) && HELTEC_DISPLAY_ST7789) || \
-    (defined(HELTEC_DISPLAY_ST7735) && HELTEC_DISPLAY_ST7735) || \
-    (defined(HELTEC_DISPLAY_SSD1306) && HELTEC_DISPLAY_SSD1306) || LV_COLOR_DEPTH == 1
-  lv_obj_set_style_pad_hor(_root, 2, LV_PART_MAIN);
-  lv_obj_set_style_pad_ver(_root, 1, LV_PART_MAIN);
-  lv_obj_set_style_pad_row(_root, 0, LV_PART_MAIN);
-#else
-  lv_obj_set_style_pad_hor(_root, 6, LV_PART_MAIN);
-  lv_obj_set_style_pad_ver(_root, 4, LV_PART_MAIN);
-  lv_obj_set_style_pad_row(_root, componentGap(), LV_PART_MAIN);
-#endif
   lv_obj_add_event_cb(_root, [](lv_event_t* e) {
     if (lv_event_get_code(e) != LV_EVENT_CLICKED) return;
     if (lv_event_get_target(e) != lv_event_get_current_target(e)) return;
@@ -135,8 +99,6 @@ _lv_obj_t* SendMessageOverlay::create(lv_obj_t* parent) {
   lv_obj_set_flex_flow(_list_mid, LV_FLEX_FLOW_COLUMN);
   lv_obj_set_flex_align(_list_mid, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER,
                         LV_FLEX_ALIGN_CENTER);
-  lv_obj_set_style_pad_all(_list_mid, 0, LV_PART_MAIN);
-  lv_obj_set_style_pad_row(_list_mid, componentGap(), LV_PART_MAIN);
   lv_obj_clear_flag(_list_mid, LV_OBJ_FLAG_SCROLLABLE);
 
   _footer = ht_label_create(_root, meta_id::SendMessageFooter);
@@ -202,11 +164,7 @@ bool SendMessageOverlay::ensureRowPool() {
     lv_obj_t* row = ht_label_create(_list_mid, meta_id::SendMessageRow);
     if (!row) return false;
     const lv_coord_t row_h = sendRowHeight();
-    const lv_coord_t font_h = lv_font_get_line_height(LV_FONT_DEFAULT);
     lv_obj_set_size(row, lv_pct(100), row_h);
-    lv_obj_set_style_pad_all(row, 0, LV_PART_MAIN);
-    lv_obj_set_style_pad_top(row, row_h > font_h ? (row_h - font_h) / 2 : 0,
-                             LV_PART_MAIN);
     lv_obj_clear_flag(row, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_set_scrollbar_mode(row, LV_SCROLLBAR_MODE_OFF);
     lv_obj_add_flag(row, LV_OBJ_FLAG_CLICKABLE);
@@ -485,8 +443,6 @@ void SendMessageOverlay::applySelection() {
 void SendMessageOverlay::onEnter() {
   if (!_root || !_list_mid) return;
   AbstractOverlay::onEnter();
-  applyOpaqueCover(_root);
-  applyOpaqueCover(_list_mid);
   _confirm_pending = false;
   _model.reset(_biz);
   if (_pending_target_valid) {

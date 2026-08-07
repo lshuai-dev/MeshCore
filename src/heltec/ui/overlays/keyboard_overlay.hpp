@@ -14,6 +14,7 @@ constexpr MetaId KeyboardOverlayRoot = ht_meta_id(MetaIdScope::Overlay, 0x04);
 constexpr MetaId KeyboardTitle = ht_meta_id(MetaIdScope::Overlay, 0x80);
 constexpr MetaId KeyboardTextarea = ht_meta_id(MetaIdScope::Overlay, 0x81);
 constexpr MetaId KeyboardKeyboard = ht_meta_id(MetaIdScope::Overlay, 0x82);
+constexpr MetaId KeyboardSpacer = ht_meta_id(MetaIdScope::Overlay, 0x83);
 }
 
 class KeyboardOverlay : public AbstractOverlay {

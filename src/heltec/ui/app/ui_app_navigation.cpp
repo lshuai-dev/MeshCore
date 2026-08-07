@@ -1,10 +1,10 @@
 #include "ui/app/ui_app.hpp"
 
 #include "heltec/drivers/display/display_port.hpp"
+#include "ui/app/ui_behavior_profile.hpp"
 #include "ui/core/screen_id.hpp"
 #include "ui/core/ui_deferred_queue.hpp"
 #include "ui/core/ui_events.h"
-#include "ui/theme/ui_theme_metrics.hpp"
 #include <Arduino.h>
 
 namespace heltec::meshcore::ui {
@@ -20,7 +20,7 @@ void UiApp::openNavigationPane() {
   (void)_surfaces.present(&_navigation);
 }
 
-void UiApp::scheduleNavTileCommit(uint8_t tile_idx, bool user_commit) {
+void UiApp::scheduleNavTileCommit(uint8_t tile_idx) {
   const bool nav_active = _surfaces.isActive(&_navigation);
   const bool transitioning = _navigation.isTransitioning();
   if (!nav_active || transitioning) return;
@@ -28,24 +28,13 @@ void UiApp::scheduleNavTileCommit(uint8_t tile_idx, bool user_commit) {
   if (kNoScheduledTile != _scheduled_nav_tile) return;
   stopNavigationAutoCommitTimer();
   _scheduled_nav_tile = tile_idx;
-  _scheduled_nav_action = user_commit && tile_idx == activeTileIndex();
   if (!ui_defer(+[](void* user_data) {
         auto* app = static_cast<UiApp*>(user_data);
         if (!app || kNoScheduledTile == app->_scheduled_nav_tile) return;
 
         const uint8_t pending_tile = app->_scheduled_nav_tile;
-        const bool open_action = app->_scheduled_nav_action;
         app->_scheduled_nav_tile = kNoScheduledTile;
-        app->_scheduled_nav_action = false;
         if (!app->_tileview || pending_tile >= kScreenCnt) return;
-
-        if (open_action) {
-          app->closeNavigationPane();
-          if (app->_frame_root) {
-            (void)ui_event_send(app->_frame_root, UiEventType::ActionOpen);
-          }
-          return;
-        }
 
         (void)app->selectTile(pending_tile);
         if (AbstractScreen* scr = app->screenAt(pending_tile)) {
@@ -55,7 +44,6 @@ void UiApp::scheduleNavTileCommit(uint8_t tile_idx, bool user_commit) {
         app->closeNavigationPane();
       }, this)) {
     _scheduled_nav_tile = kNoScheduledTile;
-    _scheduled_nav_action = false;
   }
 }
 
@@ -208,7 +196,7 @@ void UiApp::closeNavigationImmediate() {
 
 void UiApp::restartNavigationAutoCommitTimer() {
   if (!_nav_auto_commit_timer) return;
-  const uint16_t delay_ms = ui_navigation_metrics(_navigation.root()).auto_hide_ms;
+  const uint16_t delay_ms = ui_behavior_profile().navigation.auto_hide_ms;
   if (!delay_ms || !_nav_last_activity_ms) {
     stopNavigationAutoCommitTimer();
     return;
@@ -232,7 +220,7 @@ void UiApp::handleNavigationAutoCommitTimeout() {
   stopNavigationAutoCommitTimer();
   if (!heltec::meshcore::dal::display_port::isBacklightOn()) return;
   if (!_surfaces.isActive(&_navigation) || _navigation.isTransitioning()) return;
-  const uint16_t auto_hide_ms = ui_navigation_metrics(_navigation.root()).auto_hide_ms;
+  const uint16_t auto_hide_ms = ui_behavior_profile().navigation.auto_hide_ms;
   if (!auto_hide_ms || !_nav_last_activity_ms) return;
   if ((millis() - _nav_last_activity_ms) < auto_hide_ms) {
     restartNavigationAutoCommitTimer();

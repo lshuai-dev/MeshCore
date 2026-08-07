@@ -133,11 +133,43 @@ lv_obj_t* ht_switch_create(lv_obj_t* parent, MetaId id, void* user_data) {
 }
 #endif
 
+#if LV_USE_SLIDER
+lv_obj_t* ht_slider_create(lv_obj_t* parent, MetaId id, void* user_data) {
+  MetaData* meta = meta_allocater(id, user_data);
+  if (!meta) return nullptr;
+  lv_obj_t* obj = lv_obj_class_create_obj(&lv_slider_class, parent);
+  if (!obj) {
+    lv_mem_free(meta);
+    return nullptr;
+  }
+  obj->user_data = meta;
+  lv_obj_add_event_cb(obj, meta_delete_callback, LV_EVENT_DELETE, meta);
+  lv_obj_class_init_obj(obj);
+  return obj;
+}
+#endif
+
 #if LV_USE_DROPDOWN
 lv_obj_t* ht_dropdown_create(lv_obj_t* parent, MetaId id, void* user_data) {
   MetaData* meta = meta_allocater(id, user_data);
   if (!meta) return nullptr;
   lv_obj_t* obj = lv_obj_class_create_obj(&lv_dropdown_class, parent);
+  if (!obj) {
+    lv_mem_free(meta);
+    return nullptr;
+  }
+  obj->user_data = meta;
+  lv_obj_add_event_cb(obj, meta_delete_callback, LV_EVENT_DELETE, meta);
+  lv_obj_class_init_obj(obj);
+  return obj;
+}
+#endif
+
+#if LV_USE_ROLLER
+lv_obj_t* ht_roller_create(lv_obj_t* parent, MetaId id, void* user_data) {
+  MetaData* meta = meta_allocater(id, user_data);
+  if (!meta) return nullptr;
+  lv_obj_t* obj = lv_obj_class_create_obj(&lv_roller_class, parent);
   if (!obj) {
     lv_mem_free(meta);
     return nullptr;

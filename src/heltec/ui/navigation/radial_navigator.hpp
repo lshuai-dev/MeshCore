@@ -20,10 +20,7 @@ class RadialNavigator : public UiSurface {
   uint8_t focusedIndex() const;
   _lv_obj_t* navButtonHost() const { return itemHost(); }
   _lv_obj_t* navFocusWidget() const { return _nav ? _nav : _root; }
-  void setTileView(_lv_obj_t* tileview) {
-    _tileview = tileview;
-    _geometry_valid = false;
-  }
+  void setTileView(_lv_obj_t* tileview);
   void setFrameRoot(_lv_obj_t* frame) { _frame_root = frame; }
 
   void onEnter() override;

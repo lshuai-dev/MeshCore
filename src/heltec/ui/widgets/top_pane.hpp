@@ -19,15 +19,6 @@ constexpr MetaId TopPaneBatteryFill = ht_meta_id(MetaIdScope::TopPane, 0x07);
 constexpr MetaId TopPaneBatteryCap = ht_meta_id(MetaIdScope::TopPane, 0x08);
 }
 
-struct UiTopPaneMetrics {
-  lv_coord_t height;
-  lv_coord_t radius;
-  lv_coord_t battery_w;
-  lv_coord_t battery_h;
-  lv_coord_t battery_pad_r;
-  lv_coord_t pad_top;
-};
-
 class TopPane {
 public:
   TopPane() = default;
@@ -45,14 +36,11 @@ protected:
   void renderBattery(uint16_t uiMv);
 
 private:
-  static void onRootSizeChanged(lv_event_t* e);
 #if defined(HELTEC_V4_R8_TFT)
   static void onBatteryDraw(lv_event_t* e);
 #else
   static void onBatteryOutlineSizeChanged(lv_event_t* e);
 #endif
-
-  void layoutBattery();
 
   _lv_obj_t*  _root = nullptr;
   _lv_obj_t*  _title = nullptr;
