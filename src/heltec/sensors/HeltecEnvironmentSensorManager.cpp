@@ -614,7 +614,7 @@ void sendUcConfigStep(LocationProvider* location, uint8_t step, uint32_t& settle
   }
 }
 #elif defined(GPS_L76K)
-constexpr uint8_t kL76KConfigLastStep = 2;
+constexpr uint8_t kL76KConfigLastStep = 3;
 #endif
 
 }  // namespace
@@ -654,10 +654,13 @@ void HeltecEnvironmentSensorManager::pollGpsModuleConfiguration() {
   }
 #elif defined(GPS_L76K)
   if (gps_config_step == 1) {
+    _location->sendSentence("$PMTK225,0");
+    settle_ms = 500;
+  } else if (gps_config_step == 2) {
     char interval_cmd[24] = {0};
     snprintf(interval_cmd, sizeof(interval_cmd), "$PCAS02,%u", (unsigned)kGpsNmeaIntervalMs);
     _location->sendSentence(interval_cmd);
-  } else if (gps_config_step == 2) {
+  } else if (gps_config_step == 3) {
     _location->sendSentence("$PCAS03,1,0,0,0,1,0,0,0,0,0,,,0,0");
   }
   if (gps_config_step >= kL76KConfigLastStep) {
@@ -982,4 +985,3 @@ void HeltecEnvironmentSensorManager::loop() {
   }
 #endif
 }
-

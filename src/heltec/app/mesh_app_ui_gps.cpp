@@ -91,9 +91,6 @@ bool MeshAppUi::applyGpsPowerPolicy(bool* changed) {
 
   if (!sensors.setSettingValue("gps", desired ? "1" : "0")) return false;
   if (changed) *changed = true;
-#if defined(HELTEC_T1)
-  showAlert(desired ? "GPS power: ON" : "GPS power: OFF", 1000);
-#endif
   MESH_DEBUG_PRINTLN("[gps] power=%s external=%u display=%u grace=%u share=%u interval=%lu "
                      "share_cont=%u share_wake=%u due_ms=%ld track=%u gps_fg=%u map_fg=%u "
                      "find=%u ff_fg=%u",

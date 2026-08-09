@@ -116,7 +116,9 @@ static bool resolvePublicChannel(mesh::GroupChannel& out_channel, const char** o
 }  // namespace
 
 bool MeshAppUi::sendAdvert() {
-  return the_mesh.advert();
+  const bool queued = the_mesh.advert();
+  showAlert(queued ? "Advert sent!" : "Advert failed", 1000);
+  return queued;
 }
 
 int MeshAppUi::sendMessagePersonalCount() const {

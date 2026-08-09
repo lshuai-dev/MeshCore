@@ -1,4 +1,5 @@
 #include <Arduino.h>
+#include <cmath>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -56,6 +57,63 @@ void DataStore::notifyBootRegionMapStorageDone() {
 static const char kCompassCfgPath[] = "/compass_cfg";
 static const char kCompassMagCalPath[] = "/compass_mag_cal";
 
+static bool compass_mag_cal_valid(const float hmm[4]) {
+  if (!hmm) return false;
+  for (int i = 0; i < 4; ++i) {
+    if (!std::isfinite(hmm[i])) return false;
+  }
+  return hmm[3] > 0.0f;
+}
+
+static bool load_compass_mag_cal_from(FILESYSTEM* fs, float hmm[4]) {
+  if (!fs || !hmm || !fs->exists(kCompassMagCalPath)) return false;
+#if defined(RP2040_PLATFORM)
+  File f = fs->open(kCompassMagCalPath, "r");
+#elif defined(NRF52_PLATFORM) || defined(STM32_PLATFORM)
+  File f = fs->open(kCompassMagCalPath, FILE_O_READ);
+#else
+  File f = fs->open(kCompassMagCalPath, "r");
+#endif
+  if (!f) return false;
+  char buf[80] = {0};
+  const size_t n = f.readBytes(buf, sizeof(buf) - 1);
+  f.close();
+  if (n < 8 || strncmp(buf, "CAL1,", 5) != 0) return false;
+
+  const char* p = buf + 5;
+  for (int i = 0; i < 4; ++i) {
+    char* end = nullptr;
+    const float v = strtof(p, &end);
+    if (end == p) return false;
+    hmm[i] = v;
+    p = end;
+    if (i < 3) {
+      if (*p != ',') return false;
+      ++p;
+    }
+  }
+  return compass_mag_cal_valid(hmm);
+}
+
+static bool save_compass_mag_cal_to(FILESYSTEM* fs, const float hmm[4]) {
+  if (!fs || !compass_mag_cal_valid(hmm)) return false;
+
+  char buf[80];
+  const int len = snprintf(buf, sizeof(buf), "CAL1,%.6f,%.6f,%.6f,%.6f\n",
+                           (double)hmm[0], (double)hmm[1], (double)hmm[2],
+                           (double)hmm[3]);
+  if (len <= 0 || len >= (int)sizeof(buf)) return false;
+
+  File f = openWrite(fs, kCompassMagCalPath);
+  if (!f) return false;
+  const size_t n = f.print(buf);
+  f.close();
+  if (n != (size_t)len) return false;
+
+  float verify[4];
+  return load_compass_mag_cal_from(fs, verify);
+}
+
 /** nth comma-separated field (0-based); nullptr if missing. */
 static const char* compass_cfg_field(const char* line, int index) {
   if (!line || index < 0) return nullptr;
@@ -95,18 +153,30 @@ static long deg_to_e6(double deg) {
   return (long)(deg * 1000000.0 + (deg >= 0.0 ? 0.5 : -0.5));
 }
 
+static bool save_find_friend_cfg_to(FILESYSTEM* fs, const char* buf, size_t len) {
+  if (!fs || !buf || len == 0) return false;
+  File f = openWrite(fs, kCompassCfgPath);
+  if (!f) return false;
+  const size_t written = f.write(reinterpret_cast<const uint8_t*>(buf), len);
+  f.close();
+  if (written == len) return true;
+  fs->remove(kCompassCfgPath);
+  return false;
+}
+
 bool DataStore::loadFindFriendCompassSettings(int& mode, int& wpValid, double& wpLat, double& wpLon,
                                               uint16_t& trackMinDistCm, int* friendIdx,
                                               uint16_t* trackIntervalMin,
                                               bool* enabled) {
-  if (!_fs || !_fs->exists(kCompassCfgPath)) return false;
-#if defined(RP2040_PLATFORM)
-  File f = _fs->open(kCompassCfgPath, "r");
-#elif defined(NRF52_PLATFORM) || defined(STM32_PLATFORM)
-  File f = _fs->open(kCompassCfgPath, FILE_O_READ);
-#else
-  File f = _fs->open(kCompassCfgPath);
-#endif
+  FILESYSTEM* fs = nullptr;
+  if (_fsExtra && _fsExtra->exists(kCompassCfgPath)) {
+    fs = _fsExtra;
+  } else if (_fs && _fs->exists(kCompassCfgPath)) {
+    fs = _fs;
+  }
+  if (!fs) return false;
+
+  File f = openRead(fs, kCompassCfgPath);
   if (!f) return false;
   char buf[96];
   int n = f.readBytesUntil('\n', buf, sizeof(buf) - 1);
@@ -160,26 +230,18 @@ void DataStore::saveFindFriendCompassSettings(int mode, int wpValid, double wpLa
                                               uint16_t trackMinDistCm, int friendIdx,
                                               uint16_t trackIntervalMin,
                                               bool enabled) {
-  if (!_fs) return;
-#if defined(RP2040_PLATFORM)
-  File f = _fs->open(kCompassCfgPath, "w");
-#elif defined(NRF52_PLATFORM) || defined(STM32_PLATFORM)
-  File f = _fs->open(kCompassCfgPath, FILE_O_WRITE);
-  if (f) {
-    f.seek(0);
-    f.truncate(0);
-  }
-#else
-  File f = _fs->open(kCompassCfgPath, "w", true);
-#endif
-  if (!f) return;
   if (trackIntervalMin < 1) trackIntervalMin = 1;
   char buf[128];
-  snprintf(buf, sizeof(buf), "v2,%d,%d,%ld,%ld,%u,%d,%u,%u\n", mode, wpValid,
-           (long)deg_to_e6(wpLat), (long)deg_to_e6(wpLon), (unsigned)trackMinDistCm, friendIdx,
-           (unsigned)trackIntervalMin, enabled ? 1u : 0u);
-  f.print(buf);
-  f.close();
+  const int len = snprintf(buf, sizeof(buf), "v2,%d,%d,%ld,%ld,%u,%d,%u,%u\n", mode,
+                           wpValid, (long)deg_to_e6(wpLat), (long)deg_to_e6(wpLon),
+                           (unsigned)trackMinDistCm, friendIdx,
+                           (unsigned)trackIntervalMin, enabled ? 1u : 0u);
+  if (len <= 0 || len >= (int)sizeof(buf)) return;
+
+  // nRF52 LittleFS permits only one open file per volume. Find Friend settings
+  // must not share the primary volume with long-lived GPS/boot file handles.
+  if (_fsExtra && save_find_friend_cfg_to(_fsExtra, buf, (size_t)len)) return;
+  (void)save_find_friend_cfg_to(_fs, buf, (size_t)len);
 }
 
 bool DataStore::hasCompassMagCal() const {
@@ -188,47 +250,19 @@ bool DataStore::hasCompassMagCal() const {
 }
 
 bool DataStore::loadCompassMagCal(float hmm[4]) const {
-  if (!hmm || !_fs || !_fs->exists(kCompassMagCalPath)) return false;
-#if defined(RP2040_PLATFORM)
-  File f = _fs->open(kCompassMagCalPath, "r");
-#elif defined(NRF52_PLATFORM) || defined(STM32_PLATFORM)
-  File f = _fs->open(kCompassMagCalPath, FILE_O_READ);
-#else
-  File f = _fs->open(kCompassMagCalPath, "r");
-#endif
-  if (!f) return false;
-  char buf[80] = {0};
-  const size_t n = f.readBytes(buf, sizeof(buf) - 1);
-  f.close();
-  if (n < 8) return false;
-  if (strncmp(buf, "CAL1,", 5) != 0) return false;
-  const char* p = buf + 5;
-  for (int i = 0; i < 4; ++i) {
-    char* end = nullptr;
-    const float v = strtof(p, &end);
-    if (end == p) return false;
-    hmm[i] = v;
-    p = end;
-    if (i < 3) {
-      if (*p != ',') return false;
-      ++p;
-    }
-  }
-  return true;
+  if (!hmm) return false;
+
+  // nRF52 LittleFS permits only one open file per volume. Prefer ExtraFS when
+  // available so an active GPS track on the primary volume cannot block the
+  // calibration read/write. Fall back to primary for existing installations.
+  if (_fsExtra && load_compass_mag_cal_from(_fsExtra, hmm)) return true;
+  return load_compass_mag_cal_from(_fs, hmm);
 }
 
 bool DataStore::saveCompassMagCal(const float hmm[4]) {
-  if (!hmm || !_fs) return false;
-  File f = openWrite(_fs, kCompassMagCalPath);
-  if (!f) return false;
-  char buf[80];
-  snprintf(buf, sizeof(buf), "CAL1,%.6f,%.6f,%.6f,%.6f\n", (double)hmm[0], (double)hmm[1],
-           (double)hmm[2], (double)hmm[3]);
-  const size_t n = f.print(buf);
-  f.close();
-  if (n == 0) return false;
-  float verify[4];
-  return loadCompassMagCal(verify);
+  if (!compass_mag_cal_valid(hmm)) return false;
+  if (_fsExtra && save_compass_mag_cal_to(_fsExtra, hmm)) return true;
+  return save_compass_mag_cal_to(_fs, hmm);
 }
 
 #endif  // ENV_INCLUDE_COMPASS

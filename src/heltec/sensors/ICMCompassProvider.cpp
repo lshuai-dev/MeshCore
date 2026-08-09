@@ -219,9 +219,12 @@ void ICMCompassProvider::applyMagCalibration(const float hmm[4]) {
 
 bool ICMCompassProvider::exportMagCalibration(float hmm[4]) {
   if (!hmm || !_ready) return false;
-  (void)GetCalPara(hmm);
-  memcpy(_magHmm, hmm, sizeof(_magHmm));
-  memcpy(_lastAppliedMagHmm, hmm, sizeof(_lastAppliedMagHmm));
+
+  // GetCalPara() is edge-triggered: a return value of 1 means a new reliable
+  // calibration was produced and needs to be saved. updateCalibrationIfChanged()
+  // and setCalibrationState(false) already consume that update into _magHmm.
+  // Calling it again here can return 0 without filling the caller's buffer.
+  memcpy(hmm, _magHmm, sizeof(_magHmm));
   return true;
 }
 

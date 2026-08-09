@@ -7,7 +7,6 @@
 #include <cstdlib>
 #include <cstring>
 #include <cmath>
-#include <time.h>
 #include "ui/core/app_state_notifier.hpp"
 
 #if defined(ENV_INCLUDE_GPS) && ENV_INCLUDE_GPS
@@ -20,6 +19,16 @@ namespace {
 constexpr uint32_t kStableGpsFixWindowMs = GPS_FIX_VALID_WINDOW_MS;
 #else
 constexpr uint32_t kStableGpsFixWindowMs = 5000UL;
+#endif
+
+#if defined(HELTEC_T1)
+constexpr uint32_t kT1MinSupportedUnixTime = 1704067200UL; // 2024-01-01 UTC
+constexpr uint32_t kT1MaxSupportedUnixTime = 0x7FFFFFFFUL;
+
+bool isT1SupportedUnixTime(uint32_t timestamp) {
+  return timestamp >= kT1MinSupportedUnixTime &&
+         timestamp <= kT1MaxSupportedUnixTime;
+}
 #endif
 
 uint32_t clampIntervalSec(uint32_t v) {
@@ -81,7 +90,7 @@ uint8_t pathHashSizeForPrefs(const NodePrefs& prefs) {
 #if defined(ENV_INCLUDE_GPS) && ENV_INCLUDE_GPS
 bool locShareCurrentGps(double* lat, double* lon) {
   HeltecMesh::StableGpsFixSnapshot snapshot{};
-  if (!the_mesh.getStableGpsFix(snapshot)) return false;
+  if (!the_mesh.getStableGpsFix(snapshot) || !snapshot.valid) return false;
   *lat = snapshot.lat_micro / 1000000.0;
   *lon = snapshot.lon_micro / 1000000.0;
   return true;
@@ -188,29 +197,15 @@ bool writeJsonLine(Print* out, const char* json) {
 
 void HeltecMesh::onAdvertRecv(mesh::Packet* packet, const mesh::Identity& id, uint32_t timestamp,
                              const uint8_t* app_data, size_t app_data_len) {
-  // Interpret the sender-provided timestamp as UNIX epoch seconds (as used by our RTCClock).
-  char tsBuf[24] = {0}; // "YYYY-MM-DD hh:mm:ss"
-  {
-    time_t t = (time_t)timestamp;
-    struct tm tmv;
-  #if defined(ESP32_PLATFORM)
-    localtime_r(&t, &tmv);
-  #else
-    // Fallback: localtime() is not re-entrant but ok for debug logs here.
-    const struct tm* p = localtime(&t);
-    if (p) tmv = *p;
-    else memset(&tmv, 0, sizeof(tmv));
-  #endif
-    snprintf(tsBuf, sizeof(tsBuf), "%04d-%02d-%02d %02d:%02d:%02d",
-             tmv.tm_year + 1900, tmv.tm_mon + 1, tmv.tm_mday,
-             tmv.tm_hour, tmv.tm_min, tmv.tm_sec);
+#if defined(HELTEC_T1)
+  ContactInfo* stored = lookupContactByPubKey(id.pub_key, PUB_KEY_SIZE);
+  if (!isT1SupportedUnixTime(timestamp)) {
+    return;
   }
-
-  AdvertDataParser parser(app_data, app_data_len);
-  const char* name = (parser.isValid() && parser.hasName()) ? parser.getName() : "?";
-  MESH_DEBUG_PRINTLN("ADV rx: name=%s ts=%u (%s)", name, (unsigned)timestamp, tsBuf);
-
-  // Keep original behavior (replay protection etc.).
+  if (stored && !isT1SupportedUnixTime(stored->last_advert_timestamp)) {
+    stored->last_advert_timestamp = 0;
+  }
+#endif
   BaseChatMesh::onAdvertRecv(packet, id, timestamp, app_data, app_data_len);
 }
 
@@ -287,7 +282,7 @@ void HeltecMesh::pollLocShareAdvert(HeltecMesh& mesh) {
   const bool have_gps = locShareCurrentGps(&lat, &lon);
 
   if (have_gps && locShareGpsMovedEnough(lat, lon)) {
-    if (mesh.advert()) {
+    if (mesh.advert(true)) {
       locShareRememberGps(lat, lon);
       s_next_advert_millis = now + sec * 1000UL;
     }
@@ -299,7 +294,7 @@ void HeltecMesh::pollLocShareAdvert(HeltecMesh& mesh) {
   }
 
   if ((long)(now - s_next_advert_millis) >= 0) {
-    if (mesh.advert()) {
+    if (mesh.advert(true)) {
       if (have_gps) locShareRememberGps(lat, lon);
     }
     s_next_advert_millis = now + sec * 1000UL;
@@ -1292,7 +1287,7 @@ bool HeltecMesh::getStableGpsFix(StableGpsFixSnapshot& out) const {
   // The Heltec manager samples the provider from its sensor loop and already
   // holds the last accepted fix across transient invalid NMEA sentences.
   HeltecGpsFixSnapshot source{};
-  if (!sensors.getGpsFixSnapshot(source)) return false;
+  if (!sensors.getGpsFixSnapshot(source) || !source.valid) return false;
   out.valid = source.valid;
   out.age_ms = source.age_ms;
   out.timestamp = source.timestamp;
@@ -1348,6 +1343,22 @@ bool HeltecMesh::getStableGpsFix(StableGpsFixSnapshot& out) const {
 #else
   return false;
 #endif
+}
+
+mesh::Packet* HeltecMesh::createPolicySelfAdvert(bool require_live_location) {
+  if (_prefs.advert_loc_policy == ADVERT_LOC_NONE) {
+    return createSelfAdvert(_prefs.node_name);
+  }
+
+  StableGpsFixSnapshot stable_gps{};
+  const bool fix_ok = getStableGpsFix(stable_gps);
+  if (!fix_ok || !stable_gps.valid) {
+    return require_live_location ? nullptr : createSelfAdvert(_prefs.node_name);
+  }
+
+  return createSelfAdvert(_prefs.node_name,
+                          stable_gps.lat_micro / 1000000.0,
+                          stable_gps.lon_micro / 1000000.0);
 }
 
 void HeltecMesh::begin(bool has_display) {
@@ -1747,14 +1758,7 @@ void HeltecMesh::handleCmdFrame(size_t len) {
       writeErrFrame(ERR_CODE_ILLEGAL_ARG);
     }
   } else if (cmd_frame[0] == CMD_SEND_SELF_ADVERT) {
-    StableGpsFixSnapshot stable_gps{};
-    (void)getStableGpsFix(stable_gps);
-    mesh::Packet* pkt;
-    if (_prefs.advert_loc_policy == ADVERT_LOC_NONE) {
-      pkt = createSelfAdvert(_prefs.node_name);
-    } else {
-      pkt = createSelfAdvert(_prefs.node_name, sensors.node_lat, sensors.node_lon);
-    }
+    mesh::Packet* pkt = createPolicySelfAdvert(false);
     if (pkt) {
       if (len >= 2 && cmd_frame[1] == 1) { // optional param (1 = flood, 0 = zero hop)
         sendFlood(pkt, 0, pathHashSizeForPrefs(_prefs));
@@ -1833,14 +1837,7 @@ void HeltecMesh::handleCmdFrame(size_t len) {
   } else if (cmd_frame[0] == CMD_EXPORT_CONTACT) {
     if (len < 1 + PUB_KEY_SIZE) {
       // export SELF
-      StableGpsFixSnapshot stable_gps{};
-      (void)getStableGpsFix(stable_gps);
-      mesh::Packet* pkt;
-      if (_prefs.advert_loc_policy == ADVERT_LOC_NONE) {
-        pkt = createSelfAdvert(_prefs.node_name);
-      } else {
-        pkt = createSelfAdvert(_prefs.node_name, sensors.node_lat, sensors.node_lon);
-      }
+      mesh::Packet* pkt = createPolicySelfAdvert(false);
       if (pkt) {
         pkt->header |= ROUTE_TYPE_FLOOD; // would normally be sent in this mode
 
@@ -2958,13 +2955,8 @@ void HeltecMesh::loop() {
   if (_ui) _ui->setHasConnection(_serial->isConnected());
 }
 
-bool HeltecMesh::advert() {
-  const bool has_gps_fields = _prefs.advert_loc_policy != ADVERT_LOC_NONE;
-  StableGpsFixSnapshot stable_gps{};
-  (void)getStableGpsFix(stable_gps);
-  mesh::Packet* const pkt = !has_gps_fields
-                                ? createSelfAdvert(_prefs.node_name)
-                                : createSelfAdvert(_prefs.node_name, sensors.node_lat, sensors.node_lon);
+bool HeltecMesh::advert(bool require_live_location) {
+  mesh::Packet* const pkt = createPolicySelfAdvert(require_live_location);
   if (!pkt) return false;
   sendZeroHop(pkt);
   return true;

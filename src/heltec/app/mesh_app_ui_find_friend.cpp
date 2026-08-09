@@ -112,22 +112,6 @@ void MeshAppUi::persistFfPrefs(int mode, int wp_valid, double wp_lat, double wp_
 
 void MeshAppUi::resetFindFriendNavState() const {}
 
-void MeshAppUi::syncFfCacheFromStore() const {
-  int mode = 0;
-  int wp_valid = 0;
-  double la = 0;
-  double lo = 0;
-  uint16_t track_cm = 100;
-  bool enabled = false;
-  if (load_ff_settings(mode, wp_valid, la, lo, track_cm, nullptr, nullptr, &enabled)) {
-    _ff_mode = mode;
-    _ff_wp_valid = wp_valid;
-    _ff_wp_lat_e6 = deg_to_e6(la);
-    _ff_wp_lon_e6 = deg_to_e6(lo);
-    _ff_enabled = enabled;
-  }
-}
-
 void MeshAppUi::setFfWaypointCache(double lat_deg, double lon_deg) {
   _ff_mode = 1;
   _ff_wp_valid = 1;
@@ -240,15 +224,9 @@ int MeshAppUi::findFriendMode() const {
 
 bool MeshAppUi::setFindFriendMode(int mode) {
   ensureFindFriendPrefsLoaded();
-
-  int wp_valid = 0;
-  double la = 0;
-  double lo = 0;
-  uint16_t track_cm = 100;
-  int cur_mode = 0;
-  load_ff_settings(cur_mode, wp_valid, la, lo, track_cm);
   _ff_mode = mode ? 1 : 0;
-  persistFfPrefs(_ff_mode, wp_valid, la, lo);
+  persistFfPrefs(_ff_mode, _ff_wp_valid, e6_to_deg(_ff_wp_lat_e6),
+                 e6_to_deg(_ff_wp_lon_e6));
   notifyAppState(heltec::meshcore::ui::AppStateEventType::ConfigChanged);
   notifyAppState(heltec::meshcore::ui::AppStateEventType::FindFriendChanged);
   return true;
@@ -258,16 +236,9 @@ bool MeshAppUi::setFindFriendWaypoint(double lat_deg, double lon_deg) {
   if (lat_deg < -90.0 || lat_deg > 90.0 || lon_deg < -180.0 || lon_deg > 180.0) return false;
   ensureFindFriendPrefsLoaded();
 
-  int mode = 1;
-  int wp_valid = 1;
-  uint16_t track_cm = 100;
-  int cur_mode = 0;
-  int cur_wp = 0;
-  double dummy_la = 0;
-  double dummy_lo = 0;
-  load_ff_settings(cur_mode, cur_wp, dummy_la, dummy_lo, track_cm);
   setFfWaypointCache(lat_deg, lon_deg);
-  persistFfPrefs(1, wp_valid, e6_to_deg(_ff_wp_lat_e6), e6_to_deg(_ff_wp_lon_e6));
+  persistFfPrefs(_ff_mode, _ff_wp_valid, e6_to_deg(_ff_wp_lat_e6),
+                 e6_to_deg(_ff_wp_lon_e6));
   notifyAppState(heltec::meshcore::ui::AppStateEventType::FindFriendChanged);
   return true;
 }
@@ -283,7 +254,6 @@ void MeshAppUi::formatFindFriendWaypointInput(char* buf, size_t buf_len) const {
   if (!buf || buf_len == 0) return;
   buf[0] = '\0';
   ensureFindFriendPrefsLoaded();
-  syncFfCacheFromStore();
   if (!_ff_wp_valid) return;
   format_e6_pair(buf, buf_len, _ff_wp_lat_e6, _ff_wp_lon_e6);
 }
@@ -377,13 +347,8 @@ void MeshAppUi::setFindFriendTargetContactIndex(int index) {
     _ff_target_contact_idx = index;
   }
 
-  int mode = 0;
-  int wp_valid = 0;
-  double la = 0;
-  double lo = 0;
-  uint16_t track_cm = 100;
-  load_ff_settings(mode, wp_valid, la, lo, track_cm);
-  persistFfPrefs(mode, wp_valid, la, lo);
+  persistFfPrefs(_ff_mode, _ff_wp_valid, e6_to_deg(_ff_wp_lat_e6),
+                 e6_to_deg(_ff_wp_lon_e6));
   resetFindFriendNavState();
   notifyAppState(heltec::meshcore::ui::AppStateEventType::FindFriendChanged);
 }
@@ -428,13 +393,8 @@ void MeshAppUi::cycleFindFriendTargetContact(int delta) {
     idx = (idx + delta + n) % n;
     if (findFriendContactHasGps(idx)) {
       _ff_target_contact_idx = idx;
-      int mode = 0;
-      int wp_valid = 0;
-      double la = 0;
-      double lo = 0;
-      uint16_t track_cm = 100;
-      load_ff_settings(mode, wp_valid, la, lo, track_cm);
-      persistFfPrefs(mode, wp_valid, la, lo);
+      persistFfPrefs(_ff_mode, _ff_wp_valid, e6_to_deg(_ff_wp_lat_e6),
+                     e6_to_deg(_ff_wp_lon_e6));
       resetFindFriendNavState();
       return;
     }
@@ -456,7 +416,6 @@ FindFriendUi MeshAppUi::findFriendUi() const {
   u.heading_valid = cm.heading_valid;
   u.heading_deg = cm.heading_deg;
 
-  syncFfCacheFromStore();
   u.mode = _ff_mode;
 
   u.waypoint_valid = (_ff_wp_valid != 0);

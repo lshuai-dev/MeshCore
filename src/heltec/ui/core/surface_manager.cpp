@@ -5,17 +5,6 @@
 
 #include <lvgl.h>
 
-#if defined(MESH_DEBUG) && MESH_DEBUG && defined(ARDUINO)
-#include <Arduino.h>
-#define SURFACE_LOG(fmt, ...) \
-  do { \
-    Serial.printf("[surface] " fmt "\n", ##__VA_ARGS__); \
-    Serial.flush(); \
-  } while (0)
-#else
-#define SURFACE_LOG(fmt, ...) ((void)0)
-#endif
-
 namespace heltec::meshcore::ui {
 
 UiSurface* SurfaceManager::active() const {
@@ -226,49 +215,23 @@ bool SurfaceManager::present(UiSurface* surface) {
 }
 
 bool SurfaceManager::present(UiSurface* surface, UiSurface* owner) {
-  SURFACE_LOG("present req surface=%p depth=%u active=%p mutating=%d",
-              surface, (unsigned)_modal_depth, active(), _mutating ? 1 : 0);
   if (!beginMutation(PendingOpType::Present, surface)) {
-    const bool enqueued = enqueue(PendingOpType::Present, surface, owner);
-    SURFACE_LOG("present enqueue surface=%p ok=%d pending=%u",
-                surface, enqueued ? 1 : 0, (unsigned)_pending_count);
-    return enqueued;
+    return enqueue(PendingOpType::Present, surface, owner);
   }
   const bool ok = presentImmediate(surface, owner);
   endMutation();
-  SURFACE_LOG("present done surface=%p ok=%d depth=%u active=%p",
-              surface, ok ? 1 : 0, (unsigned)_modal_depth, active());
   return ok;
 }
 
 bool SurfaceManager::presentImmediate(UiSurface* surface, UiSurface* owner) {
-  if (isActive(surface)) {
-    SURFACE_LOG("present_immediate already_active surface=%p depth=%u",
-                surface, (unsigned)_modal_depth);
-    return true;
-  }
-  if (!canPresent(surface) || !validOwner(surface, owner)) {
-    SURFACE_LOG("present_immediate reject canPresent=0 surface=%p depth=%u",
-                surface, (unsigned)_modal_depth);
-    return false;
-  }
-  if (contains(surface)) {
-    SURFACE_LOG("present_immediate reject contained surface=%p depth=%u idx=%d",
-                surface, (unsigned)_modal_depth, findModal(surface));
-    return false;
-  }
-  if (_modal_depth >= kMaxModalDepth) {
-    SURFACE_LOG("present_immediate reject full surface=%p depth=%u",
-                surface, (unsigned)_modal_depth);
-    return false;
-  }
+  if (isActive(surface)) return true;
+  if (!canPresent(surface) || !validOwner(surface, owner)) return false;
+  if (contains(surface)) return false;
+  if (_modal_depth >= kMaxModalDepth) return false;
 
   _modals[_modal_depth++] = ModalEntry{surface, owner};
-  SURFACE_LOG("present_immediate push surface=%p depth=%u", surface, (unsigned)_modal_depth);
   enter(surface);
   if (!canPresent(surface)) {
-    SURFACE_LOG("present_immediate reject after_enter surface=%p depth=%u",
-                surface, (unsigned)_modal_depth);
     exit(surface);
     _modals[--_modal_depth] = {};
     bindInput(active());
@@ -279,30 +242,17 @@ bool SurfaceManager::presentImmediate(UiSurface* surface, UiSurface* owner) {
 }
 
 bool SurfaceManager::raise(UiSurface* surface) {
-  SURFACE_LOG("raise req surface=%p depth=%u active=%p mutating=%d",
-              surface, (unsigned)_modal_depth, active(), _mutating ? 1 : 0);
   if (!beginMutation(PendingOpType::Raise, surface)) {
-    const bool enqueued = enqueue(PendingOpType::Raise, surface);
-    SURFACE_LOG("raise enqueue surface=%p ok=%d pending=%u",
-                surface, enqueued ? 1 : 0, (unsigned)_pending_count);
-    return enqueued;
+    return enqueue(PendingOpType::Raise, surface);
   }
   const bool ok = raiseImmediate(surface);
   endMutation();
-  SURFACE_LOG("raise done surface=%p ok=%d depth=%u active=%p",
-              surface, ok ? 1 : 0, (unsigned)_modal_depth, active());
   return ok;
 }
 
 bool SurfaceManager::raiseImmediate(UiSurface* surface) {
-  if (!canPresent(surface)) {
-    SURFACE_LOG("raise_immediate reject canPresent=0 surface=%p depth=%u",
-                surface, (unsigned)_modal_depth);
-    return false;
-  }
+  if (!canPresent(surface)) return false;
   const int idx = findModal(surface);
-  SURFACE_LOG("raise_immediate surface=%p idx=%d depth=%u top=%p",
-              surface, idx, (unsigned)_modal_depth, topModal());
   if (idx < 0) return presentImmediate(surface, active());
   if (idx == static_cast<int>(_modal_depth) - 1) {
     enter(surface);
@@ -322,18 +272,11 @@ bool SurfaceManager::raiseImmediate(UiSurface* surface) {
 }
 
 bool SurfaceManager::dismiss(UiSurface* surface) {
-  SURFACE_LOG("dismiss req surface=%p depth=%u active=%p mutating=%d",
-              surface, (unsigned)_modal_depth, active(), _mutating ? 1 : 0);
   if (!beginMutation(PendingOpType::Dismiss, surface)) {
-    const bool enqueued = enqueue(PendingOpType::Dismiss, surface);
-    SURFACE_LOG("dismiss enqueue surface=%p ok=%d pending=%u",
-                surface, enqueued ? 1 : 0, (unsigned)_pending_count);
-    return enqueued;
+    return enqueue(PendingOpType::Dismiss, surface);
   }
   const bool ok = dismissImmediate(surface);
   endMutation();
-  SURFACE_LOG("dismiss done surface=%p ok=%d depth=%u active=%p",
-              surface, ok ? 1 : 0, (unsigned)_modal_depth, active());
   return ok;
 }
 
@@ -363,18 +306,11 @@ bool SurfaceManager::dismissImmediate(UiSurface* surface) {
 
 bool SurfaceManager::dismissTop() {
   UiSurface* top = topModal();
-  SURFACE_LOG("dismiss_top req top=%p depth=%u mutating=%d",
-              top, (unsigned)_modal_depth, _mutating ? 1 : 0);
   if (!beginMutation(PendingOpType::Dismiss, top)) {
-    const bool enqueued = enqueue(PendingOpType::Dismiss, top);
-    SURFACE_LOG("dismiss_top enqueue top=%p ok=%d pending=%u",
-                top, enqueued ? 1 : 0, (unsigned)_pending_count);
-    return enqueued;
+    return enqueue(PendingOpType::Dismiss, top);
   }
   const bool ok = dismissTopImmediate();
   endMutation();
-  SURFACE_LOG("dismiss_top done ok=%d depth=%u active=%p",
-              ok ? 1 : 0, (unsigned)_modal_depth, active());
   return ok;
 }
 
@@ -383,18 +319,11 @@ bool SurfaceManager::dismissTopImmediate() {
 }
 
 bool SurfaceManager::dismissBranch(UiSurface* surface) {
-  SURFACE_LOG("dismiss_branch req surface=%p depth=%u active=%p mutating=%d",
-              surface, (unsigned)_modal_depth, active(), _mutating ? 1 : 0);
   if (!beginMutation(PendingOpType::DismissBranch, surface)) {
-    const bool enqueued = enqueue(PendingOpType::DismissBranch, surface);
-    SURFACE_LOG("dismiss_branch enqueue surface=%p ok=%d pending=%u",
-                surface, enqueued ? 1 : 0, (unsigned)_pending_count);
-    return enqueued;
+    return enqueue(PendingOpType::DismissBranch, surface);
   }
   const bool ok = dismissBranchImmediate(surface);
   endMutation();
-  SURFACE_LOG("dismiss_branch done surface=%p ok=%d depth=%u active=%p",
-              surface, ok ? 1 : 0, (unsigned)_modal_depth, active());
   return ok;
 }
 
@@ -488,11 +417,6 @@ void SurfaceManager::reconcileVisibility() {
   while (_modal_depth > 0) {
     UiSurface* top = topModal();
     if (!canPresent(top) || lv_obj_has_flag(top->root(), LV_OBJ_FLAG_HIDDEN)) {
-      SURFACE_LOG("reconcile_visibility dismiss hidden_or_invalid top=%p can=%d hidden=%d depth=%u",
-                  top,
-                  canPresent(top) ? 1 : 0,
-                  (top && top->root() && lv_obj_has_flag(top->root(), LV_OBJ_FLAG_HIDDEN)) ? 1 : 0,
-                  (unsigned)_modal_depth);
       (void)dismissTop();
       continue;
     }

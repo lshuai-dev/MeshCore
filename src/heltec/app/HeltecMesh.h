@@ -124,7 +124,7 @@ public:
   void loop();
   void handleCmdFrame(size_t len);
   void handleCompanionJsonCmdLine(const char* line, size_t len);
-  bool advert();
+  bool advert(bool require_live_location = false);
   bool getStableGpsFix(StableGpsFixSnapshot& out) const;
   void enterCLIRescue();
 
@@ -172,7 +172,7 @@ protected:
   bool filterRecvFloodPacket(mesh::Packet* packet) override;
   bool allowPacketForward(const mesh::Packet* packet) override;
 
-  // Debug helper: log sender's advert timestamp as human time.
+  // Reject unsupported T1 timestamps before the base replay check.
   void onAdvertRecv(mesh::Packet* packet, const mesh::Identity& id, uint32_t timestamp,
                     const uint8_t* app_data, size_t app_data_len) override;
 
@@ -231,6 +231,7 @@ public:
   }
 
 private:
+  mesh::Packet* createPolicySelfAdvert(bool require_live_location);
   void dedupeContactsByUniqueName();
   uint32_t contactLocationFingerprint();
   void notifyContactLocationChangedIfNeeded();
@@ -342,4 +343,3 @@ private:
 };
 
 extern HeltecMesh the_mesh;
-

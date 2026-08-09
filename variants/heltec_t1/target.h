@@ -24,7 +24,14 @@ extern MomentaryButton user_btn;
 
 extern T1Board board;
 extern WRAPPER_CLASS radio_driver;
-extern VolatileRTCClock rtc_clock;
+
+class T1RTCClock : public VolatileRTCClock {
+public:
+  void setCurrentTime(uint32_t time) override;
+  void tick() override;
+};
+
+extern T1RTCClock rtc_clock;
 #if defined(HELTEC_SENSOR_MANAGER) && HELTEC_SENSOR_MANAGER
 extern HeltecEnvironmentSensorManager sensors;
 #else

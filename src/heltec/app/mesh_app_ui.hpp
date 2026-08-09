@@ -139,7 +139,6 @@ class MeshAppUi final : public IBizFacade {
   void pollGpsTrack();
   void pollRadioStatus();
   void ensureFindFriendPrefsLoaded() const;
-  void syncFfCacheFromStore() const;
   void setFfWaypointCache(double lat_deg, double lon_deg);
   void resetFindFriendNavState() const;
   void persistFfPrefs(int mode, int wp_valid, double wp_lat, double wp_lon) const;
@@ -188,4 +187,3 @@ class MeshAppUi final : public IBizFacade {
 };
 
 }  // namespace heltec::meshcore::biz
-
