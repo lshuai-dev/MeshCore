@@ -4,10 +4,6 @@
 #include "heltec/ui/images.h"
 #include "ui/core/ht_meta_data.hpp"
 
-#if defined(HELTEC_V4_R8_TFT)
-#include "heltec/drivers/display/display_port.hpp"
-#endif
-
 #include <string.h>
 
 #include <lvgl.h>
@@ -69,9 +65,6 @@ bool SplashOverlay::create(_lv_obj_t* parent) {
 
   lv_disp_t* disp = lv_disp_get_default();
   if (disp) {
-#if defined(HELTEC_V4_R8_TFT)
-    heltec::meshcore::dal::display_port::setBacklightOn(true);
-#endif
     lv_timer_handler();
     lv_refr_now(disp);
   }

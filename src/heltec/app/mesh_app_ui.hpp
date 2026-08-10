@@ -1,4 +1,5 @@
 #pragma once
+#include "app/power_mgr.hpp"
 #include "ui/core/biz_facade.hpp"
 #include "ui/core/app_state_event.hpp"
 
@@ -12,8 +13,12 @@
 namespace heltec::meshcore::biz {
 class MeshAppUi final : public IBizFacade {
  public:
+  explicit MeshAppUi(heltec::meshcore::power::PowerMgr& power) : _power(power) {}
+
   void pollRuntime();
   void reconcileGpsPower();
+  void handlePowerChanged(heltec::meshcore::power::PowerChangeMask changes,
+                          const heltec::meshcore::power::PowerSnapshot& snapshot);
 
   bool sendAdvert() override;
   // Called by the non-UI application shell; UI surfaces use UiEvent instead.
@@ -130,11 +135,11 @@ class MeshAppUi final : public IBizFacade {
   void showAlert(const char* text, int duration_ms) override;
 
  private:
+  heltec::meshcore::power::PowerMgr& _power;
   static void notifyAppState(heltec::meshcore::ui::AppStateEventType type);
   static void notifyCompanionChanged();
   void notifyRadioChanged();
-  bool applyGpsPowerPolicy(bool* changed = nullptr);
-  bool externalPowerForGps();
+  bool applyGpsPowerPolicy();
   void notifyGpsChanged();
   void pollGpsTrack();
   void pollRadioStatus();
@@ -164,14 +169,6 @@ class MeshAppUi final : public IBizFacade {
   uint16_t _gps_track_point_count = 0;
   uint32_t _gps_track_start_ms = 0;
 
-  bool _gps_external_power_known = false;
-  bool _gps_external_powered = false;
-  uint32_t _gps_external_power_next_poll_ms = 0;
-  bool _gps_display_state_known = false;
-  bool _gps_display_was_on = false;
-  uint32_t _gps_display_off_since_ms = 0;
-  bool _gps_foreground_active = false;
-  bool _map_foreground_active = false;
   bool _find_friend_foreground_active = false;
   mutable bool _gps_speed_sample_valid = false;
   mutable int32_t _gps_speed_sample_lat_e6 = 0;

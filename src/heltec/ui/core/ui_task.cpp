@@ -51,10 +51,6 @@ static void ensure_buzzer_hw() {
 }
 #endif
 
-#ifndef UI_BATT_POLL_MS
-#define UI_BATT_POLL_MS 10000
-#endif
-
 #if defined(MESH_DEBUG) && MESH_DEBUG
 #define UI_TASK_ALERT_LOG(fmt, ...) \
   do { \
@@ -86,24 +82,6 @@ void UiTask::attachHost(IUiHost* host) {
   _ui_host = host;
 }
 
-void UiTask::pollBattery() {
-  const uint32_t now = millis();
-  if (_batt_last_read_ms != 0 && (uint32_t)(now - _batt_last_read_ms) < UI_BATT_POLL_MS) {
-    return;
-  }
-  const uint16_t prev = _batt_mv;
-  _batt_mv = _board ? _board->getBattMilliVolts() : 0;
-  _batt_last_read_ms = now;
-  if (_batt_mv != prev) {
-    AppStateEvent ev{};
-    ev.type = AppStateEventType::BatteryChanged;
-    ev.battery.millivolts = _batt_mv;
-    ev.battery.percent = 0;
-    ev.battery.charging = false;
-    app_state_notifier().notify(ev);
-  }
-}
-
 #ifdef PIN_STATUS_LED
 void UiTask::pollStatusLed() {
   const uint32_t now = millis();
@@ -132,7 +110,6 @@ void UiTask::begin(NodePrefs* node_prefs) {
   AppStateEvent config_ev{};
   config_ev.type = AppStateEventType::ConfigChanged;
   app_state_notifier().notify(config_ev);
-  pollBattery();
 #if HELTEC_TOUCH_INPUT
   if (lv_disp_t* d = lv_disp_get_default()) {
     heltec::meshcore::dal::touch_input::armInit((uint16_t)lv_disp_get_hor_res(d),
@@ -230,7 +207,6 @@ void UiTask::setHasConnection(bool connected) {
 }
 
 void UiTask::loop() {
-  pollBattery();
 #ifdef PIN_BUZZER
   if (_buzzer_startup_pending) {
     _buzzer_startup_pending = false;
@@ -366,16 +342,39 @@ bool UiTask::setLnaEnabled(bool enabled) {
 #endif
 }
 
-void UiTask::playShutdownMelody() {
-#ifdef PIN_BUZZER
-  _buzzer.shutdown();
-  const uint32_t started = millis();
-  while (_buzzer.isPlaying() && (millis() - started) < 2500U) {
-    _buzzer.loop();
-  }
-#endif
+void UiTask::finishShutdownFeedback() {
+  _shutdown_feedback_active = false;
 #ifdef PIN_STATUS_LED
   digitalWrite(PIN_STATUS_LED, 0 == LED_STATE_ON);
+#endif
+}
+
+void UiTask::startShutdownFeedback() {
+  _shutdown_feedback_active = true;
+#ifdef PIN_BUZZER
+  _buzzer.shutdown();
+  if (!_buzzer.isPlaying()) finishShutdownFeedback();
+#else
+  finishShutdownFeedback();
+#endif
+}
+
+bool UiTask::shutdownFeedbackDone() {
+#ifdef PIN_BUZZER
+  if (_shutdown_feedback_active && _buzzer.isPlaying()) return false;
+#endif
+  if (_shutdown_feedback_active) finishShutdownFeedback();
+  return true;
+}
+
+void UiTask::playShutdownMelody() {
+  startShutdownFeedback();
+#ifdef PIN_BUZZER
+  const uint32_t started = millis();
+  while (!shutdownFeedbackDone() && (millis() - started) < 2500U) {
+    _buzzer.loop();
+  }
+  finishShutdownFeedback();
 #endif
 }
 

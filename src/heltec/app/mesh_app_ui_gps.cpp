@@ -2,7 +2,6 @@
 
 #include "HeltecMesh.h"
 #include "config/NodePrefs.h"
-#include "heltec/drivers/display/display_port.hpp"
 #include "ui/core/app_state_notifier.hpp"
 
 #include "target.h"
@@ -13,7 +12,6 @@
 
 namespace heltec::meshcore::biz {
 namespace {
-constexpr uint32_t kGpsScreenOffGraceMs = 30000;
 constexpr uint32_t kLocShareAcquireWindowMs = 30000;
 constexpr uint32_t kGpsSpeedMinSampleMs = 200;
 constexpr uint32_t kGpsSpeedIdleSampleMs = 1000;
@@ -21,19 +19,13 @@ constexpr double kEarthRadiusM = 6371000.0;
 constexpr double kMicroDegreeToRad = 3.14159265358979323846 / 180000000.0;
 }  // namespace
 
-bool MeshAppUi::externalPowerForGps() {
-  const uint32_t now_ms = millis();
-  if (!_gps_external_power_known || (int32_t)(now_ms - _gps_external_power_next_poll_ms) >= 0) {
-    _gps_external_powered = board.isExternalPowered();
-    _gps_external_power_known = true;
-    _gps_external_power_next_poll_ms = now_ms + 1000;
-  }
-  return _gps_external_powered;
-}
-
-bool MeshAppUi::applyGpsPowerPolicy(bool* changed) {
-  if (changed) *changed = false;
+bool MeshAppUi::applyGpsPowerPolicy() {
 #if !defined(ENV_INCLUDE_GPS) || !(ENV_INCLUDE_GPS)
+  _power.setGpsAllowed(false);
+  _power.setGpsDemand(power::GpsDemand::Track, false);
+  _power.setGpsDemand(power::GpsDemand::LocationContinuous, false);
+  _power.setGpsDemand(power::GpsDemand::LocationAcquire, false);
+  _power.setGpsDemand(power::GpsDemand::FindFriend, false);
   return true;
 #else
   NodePrefs* p = the_mesh.getNodePrefs();
@@ -42,15 +34,6 @@ bool MeshAppUi::applyGpsPowerPolicy(bool* changed) {
 
   const uint32_t now_ms = millis();
   const bool gps_enabled = p->gps_enabled != 0;
-  const bool external_powered = externalPowerForGps();
-  const bool display_on = heltec::meshcore::dal::display_port::isBacklightOn();
-  if (!_gps_display_state_known || display_on != _gps_display_was_on) {
-    _gps_display_state_known = true;
-    _gps_display_was_on = display_on;
-    _gps_display_off_since_ms = display_on ? 0 : now_ms;
-  }
-  const bool display_grace =
-      !display_on && (now_ms - _gps_display_off_since_ms) < kGpsScreenOffGraceMs;
 
   const bool location_share = HeltecMesh::isLocationShareEnabled(p);
   const uint32_t share_interval_sec = HeltecMesh::locShareAdvertIntervalSec();
@@ -75,52 +58,33 @@ bool MeshAppUi::applyGpsPowerPolicy(bool* changed) {
   // this screen is foreground even if the backlight times out.
   const bool find_friend_foreground =
       _find_friend_foreground_active && find_friend_enabled;
-  const bool gps_screen_foreground =
-      _gps_foreground_active && (display_on || display_grace);
-  const bool map_screen_foreground =
-      _map_foreground_active && (display_on || display_grace);
-  const bool desired = gps_enabled &&
-                       (external_powered || track_active || share_continuous ||
-                        share_wakeup_window || gps_screen_foreground ||
-                        map_screen_foreground || find_friend_foreground);
-  bool state_matches = location->isEnabled() == desired;
-#if defined(HELTEC_SENSOR_MANAGER) && HELTEC_SENSOR_MANAGER
-  state_matches = state_matches && sensors.isGpsActive() == desired;
-#endif
-  if (state_matches) return true;
 
-  if (!sensors.setSettingValue("gps", desired ? "1" : "0")) return false;
-  if (changed) *changed = true;
-  MESH_DEBUG_PRINTLN("[gps] power=%s external=%u display=%u grace=%u share=%u interval=%lu "
-                     "share_cont=%u share_wake=%u due_ms=%ld track=%u gps_fg=%u map_fg=%u "
-                     "find=%u ff_fg=%u",
-                     desired ? "on" : "off", external_powered ? 1 : 0,
-                     display_on ? 1 : 0, display_grace ? 1 : 0,
-                     location_share ? 1 : 0, static_cast<unsigned long>(share_interval_sec),
-                     share_continuous ? 1 : 0, share_wakeup_window ? 1 : 0,
-                     static_cast<long>(share_due_ms), track_active ? 1 : 0,
-                     gps_screen_foreground ? 1 : 0,
-                     map_screen_foreground ? 1 : 0,
-                     find_friend_enabled ? 1 : 0, find_friend_foreground ? 1 : 0);
-  return true;
+  _power.setGpsAllowed(gps_enabled);
+  _power.setGpsDemand(power::GpsDemand::Track, track_active);
+  _power.setGpsDemand(power::GpsDemand::LocationContinuous, share_continuous);
+  _power.setGpsDemand(power::GpsDemand::LocationAcquire, share_wakeup_window);
+  _power.setGpsDemand(power::GpsDemand::FindFriend, find_friend_foreground);
+  return _power.reconcileGpsPower(now_ms);
 #endif
 }
 
 void MeshAppUi::reconcileGpsPower() {
-  bool changed = false;
-  if (applyGpsPowerPolicy(&changed) && changed) notifyGpsChanged();
+  (void)applyGpsPowerPolicy();
 }
 
 void MeshAppUi::setFindFriendForegroundActive(bool active) {
   _find_friend_foreground_active = active;
+  reconcileGpsPower();
 }
 
 void MeshAppUi::setGpsForegroundActive(bool active) {
-  _gps_foreground_active = active;
+  _power.setGpsDemand(power::GpsDemand::GpsScreen, active);
+  (void)_power.reconcileGpsPower(millis());
 }
 
 void MeshAppUi::setMapForegroundActive(bool active) {
-  _map_foreground_active = active;
+  _power.setGpsDemand(power::GpsDemand::MapScreen, active);
+  (void)_power.reconcileGpsPower(millis());
 }
 
 void MeshAppUi::notifyGpsChanged() {
@@ -210,7 +174,7 @@ IBizFacade::GpsStatus MeshAppUi::gpsStatus() const {
   } else if (nmea) {
     s.enabled = nmea->isEnabled();
   }
-  s.powered = nmea && nmea->isEnabled();
+  s.powered = _power.snapshot().gps_powered;
   if (!s.enabled || !s.powered || !nmea) {
     HeltecMesh::StableGpsFixSnapshot discarded{};
     (void)the_mesh.getStableGpsFix(discarded);

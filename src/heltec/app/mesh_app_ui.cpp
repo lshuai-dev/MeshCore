@@ -12,6 +12,25 @@ void MeshAppUi::pollRuntime() {
   pollRadioStatus();
 }
 
+void MeshAppUi::handlePowerChanged(
+    heltec::meshcore::power::PowerChangeMask changes,
+    const heltec::meshcore::power::PowerSnapshot& snapshot) {
+  using heltec::meshcore::power::PowerChange;
+  using heltec::meshcore::power::hasChange;
+  if (hasChange(changes, PowerChange::Battery) ||
+      hasChange(changes, PowerChange::Source)) {
+    heltec::meshcore::ui::AppStateEvent ev{};
+    ev.type = heltec::meshcore::ui::AppStateEventType::BatteryChanged;
+    ev.battery.millivolts = snapshot.battery_mv;
+    ev.battery.percent = snapshot.battery_percent;
+    ev.battery.charging = false;
+    ev.battery.source_known = snapshot.source != mesh::PowerSource::Unknown;
+    ev.battery.external_powered = snapshot.source == mesh::PowerSource::External;
+    heltec::meshcore::ui::app_state_notifier().notify(ev);
+  }
+  if (hasChange(changes, PowerChange::Gps)) notifyGpsChanged();
+}
+
 void MeshAppUi::notifyAppState(heltec::meshcore::ui::AppStateEventType type) {
   heltec::meshcore::ui::AppStateEvent ev{};
   ev.type = type;

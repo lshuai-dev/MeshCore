@@ -42,6 +42,12 @@ namespace mesh {
 #define  BD_STARTUP_NORMAL     0  // getStartupReason() codes
 #define  BD_STARTUP_RX_PACKET  1
 
+enum class PowerSource : uint8_t {
+  Unknown = 0,
+  Battery,
+  External,
+};
+
 class MainBoard {
 public:
   virtual uint16_t getBattMilliVolts() = 0;
@@ -67,6 +73,7 @@ public:
 
   // Power management interface (boards with power management override these)
   virtual bool isExternalPowered() { return false; }
+  virtual PowerSource getPowerSource() { return PowerSource::Unknown; }
   virtual uint16_t getBootVoltage() { return 0; }
   virtual uint32_t getResetReason() const { return 0; }
   virtual const char* getResetReasonString(uint32_t reason) { return "Not available"; }

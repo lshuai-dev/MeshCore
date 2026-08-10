@@ -1,6 +1,5 @@
 #include "ui/app/ui_app.hpp"
 
-#include "heltec/drivers/display/display_port.hpp"
 #include "heltec/drivers/input/touch_port.hpp"
 #include <Arduino.h>
 
@@ -176,7 +175,7 @@ void UiApp::deferredTouchActionTimerCb(lv_timer_t* timer) {
 
 void UiApp::onTouchSwipe(lv_dir_t direction, int16_t start_x, int16_t start_y) {
   if (!_inited || direction == LV_DIR_NONE) return;
-  if (!heltec::meshcore::dal::display_port::isBacklightOn()) {
+  if (!isDisplayOn()) {
     notifyDisplayActivity(millis());
     return;
   }

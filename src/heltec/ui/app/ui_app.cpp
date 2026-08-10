@@ -17,7 +17,6 @@
 #include "ui/core/ui_deferred_queue.hpp"
 #include "ui/core/ui_motion_scheduler.hpp"
 #include "ui/navigation/ui_navigator.hpp"
-#include "heltec/drivers/display/display_port.hpp"
 #include "heltec/drivers/input/touch_input.hpp"
 #include "heltec/drivers/input/touch_port.hpp"
 #include <Arduino.h>
@@ -76,8 +75,9 @@ UiApp& UiApp::instance() {
   return *s_ui_app_instance;
 }
 
-UiApp::UiApp(biz::IBizFacade& biz)
+UiApp::UiApp(biz::IBizFacade& biz, heltec::meshcore::power::PowerMgr& power)
     : _biz(biz),
+      _power(power),
       _top_pane(),
       _navigation(_biz),
       _scrHome(_biz, "Home", &icon_home_img),
@@ -222,11 +222,11 @@ void UiApp::init() {
   touch_hooks.wake = +[]() {
     auto& app = UiApp::instance();
     if (BacklightPolicy::mode() == BacklightMode::AutoTimeout) {
-      const bool was_off = !heltec::meshcore::dal::display_port::isBacklightOn();
+      const bool was_off = !app.isDisplayOn();
       app.notifyDisplayActivity(millis());
       return was_off;
     }
-    return !heltec::meshcore::dal::display_port::isBacklightOn();
+    return !app.isDisplayOn();
   };
 #if defined(HELTEC_TOUCH_GESTURE_INPUT) && HELTEC_TOUCH_GESTURE_INPUT
   touch_hooks.block_long_enter = UiApp::touchGestureBlockLongPress;
@@ -277,7 +277,8 @@ void UiApp::init() {
   _frame_root = layout;
 
   if (!_top_pane.create(layout)) return;
-  _top_pane.setBatteryMilliVolts(ui_task().batteryMilliVolts());
+  _top_pane.setBatteryStatus(_power.snapshot().battery_mv,
+                             _power.snapshot().battery_percent);
   lv_obj_set_flex_grow(_top_pane.root(), 0);
 #if defined(HELTEC_TOPBAR_TOUCH_SHELL) && HELTEC_TOPBAR_TOUCH_SHELL
   _top_pane.enableTouchShell(
@@ -352,8 +353,6 @@ void UiApp::init() {
 #endif
 #endif
 
-  _display_auto_off_ms = 0;
-  _display_last_activity_ms = millis();
 #if defined(HELTEC_V4_R8_TFT) && defined(HELTEC_HAS_TOUCH) && HELTEC_HAS_TOUCH && \
     defined(HELTEC_TOUCH_GESTURE_INPUT) && HELTEC_TOUCH_GESTURE_INPUT
   lv_obj_add_event_cb(scr, nativeTouchGestureEvent, LV_EVENT_GESTURE, this);
@@ -547,13 +546,26 @@ void UiApp::handleFrameEvent(lv_event_t* e) {
 
 void UiApp::handleAppStateEvent(const AppStateEvent& event) {
   if (event.type == AppStateEventType::BatteryChanged) {
-    _top_pane.setBatteryMilliVolts(event.battery.millivolts);
+    _top_pane.setBatteryStatus(event.battery.millivolts, event.battery.percent);
+  }
+}
+
+void UiApp::handlePowerChanged(
+    heltec::meshcore::power::PowerChangeMask changes,
+    const heltec::meshcore::power::PowerSnapshot& snapshot) {
+  using heltec::meshcore::power::PowerChange;
+  if (!heltec::meshcore::power::hasChange(changes, PowerChange::Display)) return;
+  if (snapshot.display_on) {
+    onBacklightTurnedOn();
+  } else {
+    ensureTileKeypadFocus();
   }
 }
 
 void UiApp::tick() {
   if (!_inited) return;
   lv_timer_handler();
+  syncDisplayTimeoutInhibit(millis());
 }
 
 bool UiApp::initScreens(_lv_obj_t* content) {
@@ -635,12 +647,6 @@ bool UiApp::initTimers() {
     lv_timer_set_repeat_count(_nav_auto_commit_timer, -1);
     lv_timer_pause(_nav_auto_commit_timer);
   }
-  if (!_display_auto_off_timer) {
-    _display_auto_off_timer = lv_timer_create(displayAutoOffTimerCb, 1U, this);
-    if (!_display_auto_off_timer) return false;
-    lv_timer_set_repeat_count(_display_auto_off_timer, -1);
-    lv_timer_pause(_display_auto_off_timer);
-  }
 #if defined(HELTEC_V4_R8_TFT) && defined(HELTEC_HAS_TOUCH) && HELTEC_HAS_TOUCH
   if (!_deferred_touch_timer) {
     _deferred_touch_timer = lv_timer_create(deferredTouchActionTimerCb, 40U, this);
@@ -650,25 +656,22 @@ bool UiApp::initTimers() {
   }
 #endif
   restartNavigationAutoCommitTimer();
-  restartDisplayAutoOffTimer();
   return true;
 }
 
 void UiApp::notifyDisplayActivity(uint32_t now_ms) {
-  if (!_display_auto_off_ms) return;
-  _display_last_activity_ms = now_ms;
-  restartDisplayAutoOffTimer();
-  if (!heltec::meshcore::dal::display_port::isBacklightOn()) {
-    onBacklightTurnedOn();
-  }
+  _power.notifyUserActivity(now_ms);
+}
+
+bool UiApp::isDisplayOn() const {
+  return _power.snapshot().display_on;
+}
+
+void UiApp::toggleDisplay(uint32_t now_ms) {
+  (void)_power.setDisplayOn(!_power.snapshot().display_on, now_ms);
 }
 
 void UiApp::onBacklightTurnedOn() {
-  heltec::meshcore::dal::display_port::setBacklightOn(true);
-  if (_display_auto_off_ms) {
-    _display_last_activity_ms = millis();
-    restartDisplayAutoOffTimer();
-  }
   ensureTileKeypadFocus();
   reconcileInput();
   lv_obj_t* scr = lv_scr_act();
@@ -679,63 +682,14 @@ void UiApp::setDisplayAutoOffMs(uint32_t ms) {
   if (BacklightPolicy::mode() == BacklightMode::ManualToggle) {
     ms = 0;
   }
-  _display_auto_off_ms = ms;
-  if (ms) {
-    _display_last_activity_ms = millis();
-    restartDisplayAutoOffTimer();
-  } else {
-    _display_last_activity_ms = 0;
-    stopDisplayAutoOffTimer();
-  }
+  _power.setDisplayAutoOffMs(ms, millis());
 }
 
-void UiApp::restartDisplayAutoOffTimer() {
-  if (!_display_auto_off_timer) return;
-  if (BacklightPolicy::mode() == BacklightMode::ManualToggle ||
-      !_display_auto_off_ms || !_display_last_activity_ms ||
-      !heltec::meshcore::dal::display_port::isBacklightOn()) {
-    stopDisplayAutoOffTimer();
-    return;
-  }
-
-  const uint32_t elapsed = millis() - _display_last_activity_ms;
-  const uint32_t delay_ms = elapsed >= _display_auto_off_ms
-                                ? 1U
-                                : _display_auto_off_ms - elapsed;
-  lv_timer_set_period(_display_auto_off_timer, delay_ms);
-  lv_timer_set_repeat_count(_display_auto_off_timer, -1);
-  lv_timer_reset(_display_auto_off_timer);
-  lv_timer_resume(_display_auto_off_timer);
-}
-
-void UiApp::stopDisplayAutoOffTimer() {
-  if (_display_auto_off_timer) lv_timer_pause(_display_auto_off_timer);
-}
-
-void UiApp::handleDisplayAutoOffTimeout() {
-  stopDisplayAutoOffTimer();
-  if (BacklightPolicy::mode() == BacklightMode::ManualToggle) return;
-  if (!_display_auto_off_ms || !_display_last_activity_ms) return;
-  if (!heltec::meshcore::dal::display_port::isBacklightOn()) return;
-  if (_surfaces.isActive(&_radioParamSyncOvl) ||
-      _surfaces.isActive(&_repeatModeOvl)) {
-    _display_last_activity_ms = millis();
-    restartDisplayAutoOffTimer();
-    return;
-  }
-  if ((millis() - _display_last_activity_ms) < _display_auto_off_ms) {
-    restartDisplayAutoOffTimer();
-    return;
-  }
-
-  ensureTileKeypadFocus();
-  heltec::meshcore::dal::display_port::setBacklightOn(false);
-  _display_last_activity_ms = 0;
-}
-
-void UiApp::displayAutoOffTimerCb(lv_timer_t* timer) {
-  auto* app = timer ? static_cast<UiApp*>(timer->user_data) : nullptr;
-  if (app) app->handleDisplayAutoOffTimeout();
+void UiApp::syncDisplayTimeoutInhibit(uint32_t now_ms) {
+  constexpr uint16_t kCriticalOverlay = 1U << 0;
+  const bool inhibited = _surfaces.isActive(&_radioParamSyncOvl) ||
+                         _surfaces.isActive(&_repeatModeOvl);
+  _power.setDisplayTimeoutInhibited(kCriticalOverlay, inhibited, now_ms);
 }
 
 }  // namespace heltec::meshcore::ui

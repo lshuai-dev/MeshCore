@@ -21,8 +21,6 @@ class UiTask final : public AbstractUITask {
   void notify(UIEventType t = UIEventType::none) override;
   void setHasConnection(bool connected) override;
   void loop() override;
-  /** Cached battery mV; hardware ADC polled at most every 10s in loop(). */
-  uint16_t batteryMilliVolts() const { return _batt_mv; }
   /** Init buzzer from stored prefs (call once after mesh prefs are loaded). */
   void begin(NodePrefs* node_prefs);
 
@@ -33,6 +31,8 @@ class UiTask final : public AbstractUITask {
   bool isLnaCanControl() const;
   bool lnaEnabled() const;
   bool setLnaEnabled(bool enabled);
+  void startShutdownFeedback();
+  bool shutdownFeedbackDone();
   void playShutdownMelody();
 
   int msgCount() const { return _msg_count; }
@@ -77,15 +77,14 @@ class UiTask final : public AbstractUITask {
   uint8_t _preview_head = kPreviewCapacity - 1;
   uint8_t _preview_count = 0;
 
-  uint16_t _batt_mv = 0;
-  uint32_t _batt_last_read_ms = 0;
-  void pollBattery();
 #ifdef PIN_STATUS_LED
   void pollStatusLed();
   uint8_t _status_led_on = 0;
   uint32_t _status_led_next_ms = 0;
   uint16_t _status_led_on_ms = 0;
 #endif
+  bool _shutdown_feedback_active = false;
+  void finishShutdownFeedback();
 };
 
 // Global singleton instance created in main.cpp for LVGL builds.

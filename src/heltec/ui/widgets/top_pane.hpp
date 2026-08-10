@@ -26,14 +26,14 @@ public:
   bool create(_lv_obj_t* parent = nullptr);
 
   void setTitle(const char* title);
-  void setBatteryMilliVolts(uint16_t mv);
+  void setBatteryStatus(uint16_t millivolts, uint8_t percent);
   _lv_obj_t* root() const { return _root; }
 #if defined(HELTEC_TOPBAR_TOUCH_SHELL) && HELTEC_TOPBAR_TOUCH_SHELL
   void enableTouchShell(lv_event_cb_t on_short_press, lv_event_cb_t on_long_press, void* user_data);
 #endif
 
 protected:
-  void renderBattery(uint16_t uiMv);
+  void renderBattery();
 
 private:
 #if defined(HELTEC_V4_R8_TFT)
@@ -51,7 +51,8 @@ private:
 #if !defined(HELTEC_V4_R8_TFT)
   _lv_obj_t*  _bat_fill = nullptr;
 #endif
-  uint16_t    _bat_mv = 0;
+  uint8_t     _bat_percent = 0;
+  bool        _bat_present = false;
 };
 
 }  // namespace heltec::meshcore::ui

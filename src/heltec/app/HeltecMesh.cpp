@@ -1,4 +1,5 @@
 #include "app/HeltecMesh.h"
+#include "app/power_mgr.hpp"
 #include "app/geodesic.hpp"
 #include <target.h>
 #include "config/NodePrefs.h"
@@ -1029,7 +1030,7 @@ uint8_t HeltecMesh::onContactRequest(const ContactInfo &contact, uint32_t sender
 
     if (permissions & TELEM_PERM_BASE) { // only respond if base permission bit is set
       telemetry.reset();
-      telemetry.addVoltage(TELEM_CHANNEL_SELF, (float)board.getBattMilliVolts() / 1000.0f);
+      telemetry.addVoltage(TELEM_CHANNEL_SELF, (float)currentBatteryMilliVolts() / 1000.0f);
       // query other sensors -- target specific
       sensors.querySensors(permissions, telemetry);
 
@@ -1270,6 +1271,13 @@ HeltecMesh::HeltecMesh(mesh::Radio &radio, mesh::RNG &rng, mesh::RTCClock &rtc, 
   _prefs.companion_link_enabled = 1; // BLE/USB companion enabled by default
   _prefs.buzzer_volume_level = 3; // Preserve the legacy fixed 3x buzzer drive by default
   //_prefs.rx_delay_base = 10.0f;  enable once new algo fixed
+}
+
+uint16_t HeltecMesh::currentBatteryMilliVolts() const {
+  if (_power_mgr && _power_mgr->batteryMilliVolts() != 0) {
+    return _power_mgr->batteryMilliVolts();
+  }
+  return board.getBattMilliVolts();
 }
 
 bool HeltecMesh::getStableGpsFix(StableGpsFixSnapshot& out) const {
@@ -1968,7 +1976,7 @@ void HeltecMesh::handleCmdFrame(size_t len) {
     uint8_t reply[11];
     int i = 0;
     reply[i++] = RESP_CODE_BATT_AND_STORAGE;
-    uint16_t battery_millivolts = board.getBattMilliVolts();
+    uint16_t battery_millivolts = currentBatteryMilliVolts();
     uint32_t used = _store->getStorageUsedKb();
     uint32_t total = _store->getStorageTotalKb();
     memcpy(&reply[i], &battery_millivolts, 2); i += 2;
@@ -2137,7 +2145,7 @@ void HeltecMesh::handleCmdFrame(size_t len) {
     }
   } else if (cmd_frame[0] == CMD_SEND_TELEMETRY_REQ && len == 4) {  // 'self' telemetry request
     telemetry.reset();
-    telemetry.addVoltage(TELEM_CHANNEL_SELF, (float)board.getBattMilliVolts() / 1000.0f);
+    telemetry.addVoltage(TELEM_CHANNEL_SELF, (float)currentBatteryMilliVolts() / 1000.0f);
     // query other sensors -- target specific
     sensors.querySensors(0xFF, telemetry);
 
@@ -2358,7 +2366,7 @@ void HeltecMesh::handleCmdFrame(size_t len) {
       int i = 0;
       out_frame[i++] = RESP_CODE_STATS;
       out_frame[i++] = STATS_TYPE_CORE;
-      uint16_t battery_mv = board.getBattMilliVolts();
+      uint16_t battery_mv = currentBatteryMilliVolts();
       uint32_t uptime_secs = _ms->getMillis() / 1000;
       uint8_t queue_len = (uint8_t)_mgr->getOutboundCount(0xFFFFFFFF);
       memcpy(&out_frame[i], &battery_mv, 2); i += 2;

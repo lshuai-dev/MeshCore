@@ -10,6 +10,8 @@ class InputHost {
   virtual ~InputHost() = default;
 
   virtual bool isReady() const = 0;
+  virtual bool isDisplayOn() const = 0;
+  virtual void toggleDisplay(uint32_t now_ms) = 0;
   virtual void onBacklightTurnedOn() = 0;
   virtual void notifyDisplayActivity(uint32_t now_ms) = 0;
   virtual void reconcileInput() = 0;

@@ -1,6 +1,5 @@
 #include "ui/app/ui_app.hpp"
 
-#include "heltec/drivers/display/display_port.hpp"
 #include "ui/app/ui_behavior_profile.hpp"
 #include "ui/core/screen_id.hpp"
 #include "ui/core/ui_deferred_queue.hpp"
@@ -218,7 +217,7 @@ uint8_t UiApp::activeTileIndex() const {
 
 void UiApp::handleNavigationAutoCommitTimeout() {
   stopNavigationAutoCommitTimer();
-  if (!heltec::meshcore::dal::display_port::isBacklightOn()) return;
+  if (!isDisplayOn()) return;
   if (!_surfaces.isActive(&_navigation) || _navigation.isTransitioning()) return;
   const uint16_t auto_hide_ms = ui_behavior_profile().navigation.auto_hide_ms;
   if (!auto_hide_ms || !_nav_last_activity_ms) return;

@@ -29,6 +29,8 @@ struct AppStateEvent {
       uint16_t millivolts;
       uint8_t percent;
       bool charging;
+      bool source_known;
+      bool external_powered;
     } battery;
 
     struct {

@@ -3,6 +3,7 @@
 #include <stdint.h>
 #include <lvgl.h>
 
+#include "app/power_mgr.hpp"
 #include "ui/app/ui_theme.hpp"
 #include "ui/core/biz_facade.hpp"
 #include "ui/core/input_host.hpp"
@@ -56,7 +57,7 @@ class AbstractScreen;
 
 class UiApp final : public IUiHost, public InputHost {
  public:
-  explicit UiApp(biz::IBizFacade& biz);
+  UiApp(biz::IBizFacade& biz, heltec::meshcore::power::PowerMgr& power);
   static UiApp& instance();
 
   void init();
@@ -71,6 +72,9 @@ class UiApp final : public IUiHost, public InputHost {
 #endif
   void openWaypointKeyboard();
   void closePreviewOverlay() override;
+
+  void handlePowerChanged(heltec::meshcore::power::PowerChangeMask changes,
+                          const heltec::meshcore::power::PowerSnapshot& snapshot);
 
   void setDisplayAutoOffMs(uint32_t ms);
 
@@ -89,6 +93,8 @@ class UiApp final : public IUiHost, public InputHost {
   void closeAlertOverlay() override;
 
   void notifyDisplayActivity(uint32_t now_ms) override;
+  bool isDisplayOn() const override;
+  void toggleDisplay(uint32_t now_ms) override;
   void onBacklightTurnedOn() override;
   void reconcileInput() override;
   void ensureTileKeypadFocus() override;
@@ -163,12 +169,9 @@ class UiApp final : public IUiHost, public InputHost {
   void onTouchSwipe(lv_dir_t direction, int16_t start_x, int16_t start_y);
   void restartNavigationAutoCommitTimer();
   void stopNavigationAutoCommitTimer();
-  void restartDisplayAutoOffTimer();
-  void stopDisplayAutoOffTimer();
   void handleNavigationAutoCommitTimeout();
-  void handleDisplayAutoOffTimeout();
   static void navigationAutoCommitTimerCb(lv_timer_t* timer);
-  static void displayAutoOffTimerCb(lv_timer_t* timer);
+  void syncDisplayTimeoutInhibit(uint32_t now_ms);
 
   void closeNavigationImmediate();
   bool selectTile(uint8_t tile_idx);
@@ -182,6 +185,7 @@ class UiApp final : public IUiHost, public InputHost {
 #endif
 
   biz::IBizFacade& _biz;
+  heltec::meshcore::power::PowerMgr& _power;
   AppStateUiDispatcher _app_state_dispatcher;
   SurfaceManager _surfaces;
   TopPane _top_pane;
@@ -189,9 +193,6 @@ class UiApp final : public IUiHost, public InputHost {
   uint32_t _nav_last_activity_ms = 0;
   uint8_t _scheduled_nav_tile = kNoScheduledTile;
   lv_timer_t* _nav_auto_commit_timer = nullptr;
-  uint32_t _display_auto_off_ms = 0;
-  uint32_t _display_last_activity_ms = 0;
-  lv_timer_t* _display_auto_off_timer = nullptr;
 
   HomeScreen _scrHome;
   RecentScreen _scrRecent;

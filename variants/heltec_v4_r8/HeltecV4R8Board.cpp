@@ -156,6 +156,14 @@ bool HeltecV4R8Board::isExternalPowered() {
 #endif
 }
 
+mesh::PowerSource HeltecV4R8Board::getPowerSource() {
+#if defined(ARDUINO_USB_MODE) && ARDUINO_USB_MODE
+  return isExternalPowered() ? mesh::PowerSource::External : mesh::PowerSource::Battery;
+#else
+  return mesh::PowerSource::Unknown;
+#endif
+}
+
 uint16_t HeltecV4R8Board::getBattMilliVolts() {
   analogReadResolution(12);
 

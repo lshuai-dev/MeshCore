@@ -1,7 +1,6 @@
 #include "backlight_policy.hpp"
 
 #include "input_host.hpp"
-#include "heltec/drivers/display/display_port.hpp"
 
 namespace heltec::meshcore::ui {
 
@@ -14,9 +13,8 @@ BacklightMode BacklightPolicy::mode() {
 }
 
 bool BacklightPolicy::handle(InputHost& host, const InputEvent& event) {
-  namespace dp = heltec::meshcore::dal::display_port;
   const uint32_t now_ms = event.timestamp_ms;
-  const bool backlight_on = dp::isBacklightOn();
+  const bool backlight_on = host.isDisplayOn();
 
   switch (mode()) {
     case BacklightMode::ManualToggle:
@@ -37,16 +35,13 @@ bool BacklightPolicy::handle(InputHost& host, const InputEvent& event) {
 }
 
 bool BacklightPolicy::handleCommand(InputHost& host, InputCommand command, uint32_t now_ms) {
-  namespace dp = heltec::meshcore::dal::display_port;
-
   if (command == InputCommand::ToggleBacklight) {
-    dp::setBacklightOn(!dp::isBacklightOn());
-    if (dp::isBacklightOn()) host.onBacklightTurnedOn();
+    host.toggleDisplay(now_ms);
     return true;
   }
 
   if (command == InputCommand::WakeBacklight) {
-    if (!dp::isBacklightOn()) {
+    if (!host.isDisplayOn()) {
       host.notifyDisplayActivity(now_ms);
       return true;
     }

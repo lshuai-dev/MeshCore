@@ -3,33 +3,8 @@
 #include "ui/core/ht_meta_data.hpp"
 #include <lvgl.h>
 
-#ifndef BAT_MIN_MV
-#ifdef BATT_MIN_MILLIVOLTS
-#define BAT_MIN_MV BATT_MIN_MILLIVOLTS
-#else
-#define BAT_MIN_MV 3000
-#endif
-#endif
-#ifndef BAT_MAX_MV
-#ifdef BATT_MAX_MILLIVOLTS
-#define BAT_MAX_MV BATT_MAX_MILLIVOLTS
-#else
-#define BAT_MAX_MV 4200
-#endif
-#endif
-
 namespace heltec::meshcore::ui {
 namespace {
-
-uint8_t battery_percent_from_mv(uint16_t mv) {
-  int pct = 0;
-  if (mv > BAT_MIN_MV) {
-    pct = ((int)mv - BAT_MIN_MV) * 100 / ((int)BAT_MAX_MV - BAT_MIN_MV);
-  }
-  if (pct < 0) pct = 0;
-  if (pct > 100) pct = 100;
-  return static_cast<uint8_t>(pct);
-}
 
 #if defined(HELTEC_V4_R8_TFT)
 lv_color_t battery_fill_color(uint8_t pct) {
@@ -224,7 +199,7 @@ bool TopPane::create(_lv_obj_t* parent) {
   lv_obj_update_layout(_root);
   lv_obj_invalidate(_root);
 
-  renderBattery(0);
+  renderBattery();
   return true;
 }
 
@@ -232,9 +207,10 @@ void TopPane::setTitle(const char* text) {
   if (_title) lv_label_set_text_static(_title, text ? text : "");
 }
 
-void TopPane::setBatteryMilliVolts(uint16_t mv) {
-  _bat_mv = mv;
-  renderBattery(_bat_mv);
+void TopPane::setBatteryStatus(uint16_t millivolts, uint8_t percent) {
+  _bat_present = millivolts > 0;
+  _bat_percent = percent > 100 ? 100 : percent;
+  renderBattery();
 }
 
 #if defined(HELTEC_V4_R8_TFT)
@@ -267,8 +243,8 @@ void TopPane::onBatteryDraw(lv_event_t* e) {
   const lv_coord_t cap_y = body.y1 + (h - cap_h) / 2;
   lv_area_set(&cap, body.x2 + 1, cap_y, coords.x2, cap_y + cap_h - 1);
 
-  const uint8_t pct = battery_percent_from_mv(self->_bat_mv);
-  const bool present = self->_bat_mv > 0;
+  const uint8_t pct = self->_bat_percent;
+  const bool present = self->_bat_present;
   const lv_coord_t inner_w = body_w - 2;
   const lv_coord_t inner_h = h - 2;
   if (present && pct > 0 && inner_w > 0 && inner_h > 0) {
@@ -291,13 +267,12 @@ void TopPane::onBatteryDraw(lv_event_t* e) {
 void TopPane::onBatteryOutlineSizeChanged(lv_event_t* e) {
   if (!e || lv_event_get_code(e) != LV_EVENT_SIZE_CHANGED) return;
   auto* self = static_cast<TopPane*>(lv_event_get_user_data(e));
-  if (self) self->renderBattery(self->_bat_mv);
+  if (self) self->renderBattery();
 }
 #endif
 
-void TopPane::renderBattery(uint16_t mv) {
+void TopPane::renderBattery() {
 #if defined(HELTEC_V4_R8_TFT)
-  LV_UNUSED(mv);
   if (_bat_cont) lv_obj_invalidate(_bat_cont);
 #else
   if (!_bat_fill) return;
@@ -307,14 +282,14 @@ void TopPane::renderBattery(uint16_t mv) {
   const BatteryFillBox box = battery_fill_box(outline);
   if (box.w < 1 || box.h < 1) return;
 
-  const uint8_t pct = battery_percent_from_mv(mv);
+  const uint8_t pct = _bat_percent;
   lv_coord_t fill_w = (box.w * pct + 99) / 100;
   if (pct > 0 && fill_w < 1) fill_w = 1;
   if (fill_w > box.w) fill_w = box.w;
 
   lv_obj_set_size(_bat_fill, fill_w, box.h);
   lv_obj_align(_bat_fill, LV_ALIGN_TOP_LEFT, 0, 0);
-  apply_battery_state(_bat_fill, pct, mv > 0);
+  apply_battery_state(_bat_fill, pct, _bat_present);
   lv_obj_invalidate(outline);
 #endif
 }

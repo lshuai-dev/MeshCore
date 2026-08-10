@@ -8,7 +8,6 @@
 #include "ui/core/ui_task.hpp"
 
 #include <Arduino.h>
-#include <lvgl.h>
 
 namespace heltec::meshcore::biz {
 
@@ -33,15 +32,7 @@ bool MeshAppUi::factoryReset() {
   heltec::meshcore::ui::ui_task().disableSerial();
   if (!ds->formatFileSystem()) return false;
 
-  lv_timer_t* const reboot_timer = lv_timer_create(
-      [](lv_timer_t*) { board.reboot(); }, 1800, nullptr);
-  if (reboot_timer) {
-    lv_timer_set_repeat_count(reboot_timer, 1);
-    return true;
-  }
-
-  delay(500);
-  board.reboot();
+  _power.requestReboot(1800, millis());
   return true;
 }
 

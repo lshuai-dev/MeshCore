@@ -12,6 +12,10 @@
 #include <helpers/TransportKeyStore.h>
 #include <target.h>
 
+namespace heltec::meshcore::power {
+class PowerMgr;
+}
+
 /*------------ Frame Protocol --------------*/
 #define FIRMWARE_VER_CODE 10
 
@@ -110,6 +114,7 @@ public:
              AbstractUITask* ui=nullptr);
 
   void begin(bool has_display);
+  void attachPowerMgr(heltec::meshcore::power::PowerMgr* power) { _power_mgr = power; }
   void startInterface(BaseSerialInterface &serial);
 
   const char *getNodeName();
@@ -253,6 +258,7 @@ private:
   void checkSerialInterface();
   void checkUsbCompanionJsonInput();
   bool isValidClientRepeatFreq(uint32_t f) const;
+  uint16_t currentBatteryMilliVolts() const;
 
   void handleCompanionJsonCmdLineTo(BaseSerialInterface* outSerial, Print* outPrint, const char* line, size_t len);
 
@@ -268,6 +274,7 @@ private:
   uint32_t pending_req;   // pending _BINARY_REQ
   BaseSerialInterface *_serial;
   AbstractUITask* _ui;
+  heltec::meshcore::power::PowerMgr* _power_mgr = nullptr;
 
   ContactsIterator _iter;
   uint32_t _iter_filter_since;

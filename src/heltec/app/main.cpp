@@ -2,11 +2,13 @@
 #include <Mesh.h>
 #include "HeltecMesh.h"
 #include "app/mesh_app_ui.hpp"
+#include "app/power_mgr.hpp"
 #include "ui/app/ui_app.hpp"
 #include "heltec/drivers/display/display_port.hpp"
 #include "lvgl.h"
 #include "config/NodePrefs.h"
 #include "MeshCore.h"
+#include <helpers/sensors/LocationProvider.h>
 #if defined(HELTEC_MESH_UI) && HELTEC_MESH_UI
 #include "config/heltec_license.h"
 #endif
@@ -113,11 +115,69 @@ HeltecMesh the_mesh(radio_driver, fast_rng, rtc_clock, tables, store,&heltec::me
 
 namespace {
 
-struct ApplicationRuntime {
-  heltec::meshcore::biz::MeshAppUi biz;
-  heltec::meshcore::ui::UiApp ui{biz};
+class ApplicationPowerPort final : public heltec::meshcore::power::PowerRuntimePort {
+ public:
+  mesh::PowerSource getPowerSource() const override {
+#if defined(NRF52_PLATFORM)
+    return board.isExternalPowered() ? mesh::PowerSource::External
+                                     : mesh::PowerSource::Battery;
+#else
+    return board.getPowerSource();
+#endif
+  }
+
+  bool isDisplayOn() const override {
+    return heltec::meshcore::dal::display_port::isBacklightOn();
+  }
+
+  void setDisplayOn(bool on) override {
+    heltec::meshcore::dal::display_port::setBacklightOn(on);
+  }
+
+  bool isGpsAvailable() const override {
+    return sensors.getLocationProvider() != nullptr;
+  }
+
+  bool isGpsPowered() const override {
+    LocationProvider* location = sensors.getLocationProvider();
+    return location && location->isEnabled();
+  }
+
+  bool setGpsPowered(bool on) override {
+    LocationProvider* location = sensors.getLocationProvider();
+    if (!location) return !on;
+    if (location->isEnabled() == on) return true;
+    if (!sensors.setSettingValue("gps", on ? "1" : "0")) return false;
+    return location->isEnabled() == on;
+  }
+
+  void startShutdownFeedback() override {
+    heltec::meshcore::ui::ui_task().startShutdownFeedback();
+  }
+
+  bool shutdownFeedbackDone() override {
+    return heltec::meshcore::ui::ui_task().shutdownFeedbackDone();
+  }
+
+  void powerOffRadio() override { radio_driver.powerOff(); }
+};
+
+struct ApplicationRuntime final : heltec::meshcore::power::PowerListener {
+  ApplicationPowerPort power_port;
+  heltec::meshcore::power::PowerMgr power{board, power_port};
+  heltec::meshcore::biz::MeshAppUi biz{power};
+  heltec::meshcore::ui::UiApp ui{biz, power};
+
+  ApplicationRuntime() { power.setListener(this); }
 
   void pollBackend() { biz.pollRuntime(); }
+
+  void onPowerChanged(
+      heltec::meshcore::power::PowerChangeMask changes,
+      const heltec::meshcore::power::PowerSnapshot& snapshot) override {
+    biz.handlePowerChanged(changes, snapshot);
+    ui.handlePowerChanged(changes, snapshot);
+  }
 };
 
 ApplicationRuntime& applicationRuntime() {
@@ -285,6 +345,13 @@ void setup() {
   }
 #endif
   sensors.begin();
+  {
+    heltec::meshcore::power::PowerConfig power_config =
+        heltec::meshcore::power::defaultPowerConfig();
+    power_config.display_available = hasDisplay;
+    runtime.power.begin(millis(), power_config);
+    the_mesh.attachPowerMgr(&runtime.power);
+  }
 #if ENV_INCLUDE_GPS == 1
   // Apply stored GPS prefs to hardware (initBasicGPS leaves GPS off until this).
   if (NodePrefs* p = the_mesh.getNodePrefs()) {
@@ -324,6 +391,7 @@ void loop() {
   heltec::meshcore::ui::ui_task().loop();
   runtime.ui.tick();
   runtime.biz.reconcileGpsPower();
+  runtime.power.loop(millis());
   rtc_clock.tick();
 
   // Both supported Arduino cores run loop() from a FreeRTOS task.  Without a
