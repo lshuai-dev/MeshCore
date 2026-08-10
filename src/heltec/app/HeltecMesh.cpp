@@ -240,6 +240,16 @@ bool HeltecMesh::getContactLocationReceipt(const uint8_t pub_key[PUB_KEY_SIZE],
   return false;
 }
 
+void HeltecMesh::pinContactLocationReceipt(const uint8_t pub_key[PUB_KEY_SIZE]) {
+  if (!pub_key) {
+    _contact_location_receipt_pin_valid = false;
+    memset(_contact_location_receipt_pin, 0, sizeof(_contact_location_receipt_pin));
+    return;
+  }
+  memcpy(_contact_location_receipt_pin, pub_key, PUB_KEY_SIZE);
+  _contact_location_receipt_pin_valid = true;
+}
+
 void HeltecMesh::recordContactLocationReceipt(const uint8_t pub_key[PUB_KEY_SIZE], bool advertised,
                                               int32_t lat_micro, int32_t lon_micro) {
   if (!pub_key) return;
@@ -254,6 +264,9 @@ void HeltecMesh::recordContactLocationReceipt(const uint8_t pub_key[PUB_KEY_SIZE
     }
     if (!entry.occupied && !slot) slot = &entry;
     if (entry.occupied) {
+      const bool pinned = _contact_location_receipt_pin_valid &&
+          memcmp(entry.pub_key, _contact_location_receipt_pin, PUB_KEY_SIZE) == 0;
+      if (pinned) continue;
       const uint32_t age = now_ms - entry.received_ms;
       if (!oldest || age > oldest_age) {
         oldest = &entry;
@@ -273,6 +286,10 @@ void HeltecMesh::recordContactLocationReceipt(const uint8_t pub_key[PUB_KEY_SIZE
 
 void HeltecMesh::clearContactLocationReceipt(const uint8_t pub_key[PUB_KEY_SIZE]) {
   if (!pub_key) return;
+  if (_contact_location_receipt_pin_valid &&
+      memcmp(_contact_location_receipt_pin, pub_key, PUB_KEY_SIZE) == 0) {
+    pinContactLocationReceipt(nullptr);
+  }
   for (ContactLocationEntry& entry : _contact_location_receipts) {
     if (entry.occupied && memcmp(entry.pub_key, pub_key, PUB_KEY_SIZE) == 0) {
       entry = ContactLocationEntry{};

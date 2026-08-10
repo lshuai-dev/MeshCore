@@ -147,6 +147,7 @@ class MeshAppUi final : public IBizFacade {
   void ensureFindFriendPrefsLoaded() const;
   void setFfWaypointCache(double lat_deg, double lon_deg);
   void resetFindFriendNavState() const;
+  void syncFindFriendReceiptPin() const;
   void persistFfPrefs(int mode, int wp_valid, double wp_lat, double wp_lon) const;
   int resolveFindFriendTargetContactIndex() const;
   bool setFindFriendTargetKeyFromIndex(int index) const;

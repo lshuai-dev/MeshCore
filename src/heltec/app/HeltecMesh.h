@@ -142,6 +142,7 @@ public:
   bool getStableGpsFix(StableGpsFixSnapshot& out) const;
   bool getContactLocationReceipt(const uint8_t pub_key[PUB_KEY_SIZE],
                                  ContactLocationReceipt& out) const;
+  void pinContactLocationReceipt(const uint8_t pub_key[PUB_KEY_SIZE]);
   void enterCLIRescue();
 
   int  getRecentlyHeard(AdvertPath dest[], int max_num);
@@ -360,7 +361,11 @@ private:
     int32_t lon_micro = 0;
     uint32_t received_ms = 0;
   };
-  ContactLocationEntry _contact_location_receipts[MAX_CONTACTS]{};
+  static constexpr size_t kContactLocationReceiptCapacity =
+      MAX_CONTACTS < 32 ? MAX_CONTACTS : 32;
+  ContactLocationEntry _contact_location_receipts[kContactLocationReceiptCapacity]{};
+  bool _contact_location_receipt_pin_valid = false;
+  uint8_t _contact_location_receipt_pin[PUB_KEY_SIZE] = {};
 
 #if defined(ENV_INCLUDE_GPS) && ENV_INCLUDE_GPS
   mutable bool _stable_gps_fix_seen = false;

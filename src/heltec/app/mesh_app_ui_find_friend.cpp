@@ -75,6 +75,43 @@ bool contact_location(const ContactInfo& c, int32_t& lat_micro, int32_t& lon_mic
   return true;
 }
 
+struct FriendContactCandidate {
+  int index = -1;
+  bool receipt_known = false;
+  uint32_t receipt_age_ms = 0;
+  uint32_t last_modified = 0;
+};
+
+bool load_friend_contact_candidate(int index, int selected_contact_index,
+                                   FriendContactCandidate& candidate) {
+  ContactInfo contact{};
+  if (!the_mesh.getContactByIdx(static_cast<uint32_t>(index), contact)) return false;
+
+  int32_t lat_micro = 0;
+  int32_t lon_micro = 0;
+  HeltecMesh::ContactLocationReceipt receipt{};
+  const bool has_location = contact_location(contact, lat_micro, lon_micro, &receipt);
+  if (!has_location && index != selected_contact_index) return false;
+
+  candidate.index = index;
+  candidate.receipt_known = receipt.known;
+  candidate.receipt_age_ms = receipt.age_ms;
+  candidate.last_modified = contact.lastmod;
+  return true;
+}
+
+bool friend_contact_before(const FriendContactCandidate& lhs,
+                           const FriendContactCandidate& rhs) {
+  if (lhs.receipt_known != rhs.receipt_known) return lhs.receipt_known;
+  if (lhs.receipt_known && lhs.receipt_age_ms != rhs.receipt_age_ms) {
+    return lhs.receipt_age_ms < rhs.receipt_age_ms;
+  }
+  if (!lhs.receipt_known && lhs.last_modified != rhs.last_modified) {
+    return lhs.last_modified > rhs.last_modified;
+  }
+  return lhs.index < rhs.index;
+}
+
 int adv_interval_index(uint32_t sec) {
   for (int i = 0; i < 5; ++i) {
     if (kAdvIntervalSec[i] == sec) return i;
@@ -155,6 +192,13 @@ void MeshAppUi::persistFfPrefs(int mode, int wp_valid, double wp_lat, double wp_
 #endif
 }
 
+void MeshAppUi::syncFindFriendReceiptPin() const {
+  const uint8_t* key = _ff_enabled && _ff_mode == 0 && _ff_target_pub_key_valid
+                           ? _ff_target_pub_key
+                           : nullptr;
+  the_mesh.pinContactLocationReceipt(key);
+}
+
 void MeshAppUi::resetFindFriendNavState() const { _ff_nav_estimator.reset(); }
 
 void MeshAppUi::setFfWaypointCache(double lat_deg, double lon_deg) {
@@ -162,6 +206,7 @@ void MeshAppUi::setFfWaypointCache(double lat_deg, double lon_deg) {
   _ff_wp_valid = 1;
   _ff_wp_lat_e6 = deg_to_e6(lat_deg);
   _ff_wp_lon_e6 = deg_to_e6(lon_deg);
+  syncFindFriendReceiptPin();
   resetFindFriendNavState();
 }
 
@@ -201,6 +246,7 @@ void MeshAppUi::ensureFindFriendPrefsLoaded() const {
     persistFfPrefs(_ff_mode, _ff_wp_valid, e6_to_deg(_ff_wp_lat_e6),
                    e6_to_deg(_ff_wp_lon_e6));
   }
+  syncFindFriendReceiptPin();
 }
 
 bool MeshAppUi::locationShareEnabled() const {
@@ -255,11 +301,13 @@ bool MeshAppUi::setFindFriendEnabled(bool enabled) {
   }
 
   if (_ff_enabled == enabled) {
+    syncFindFriendReceiptPin();
     reconcileGpsPower();
     return true;
   }
 
   _ff_enabled = enabled;
+  syncFindFriendReceiptPin();
   resetFindFriendNavState();
   persistFfPrefs(_ff_mode, _ff_wp_valid, e6_to_deg(_ff_wp_lat_e6),
                  e6_to_deg(_ff_wp_lon_e6));
@@ -277,6 +325,7 @@ int MeshAppUi::findFriendMode() const {
 bool MeshAppUi::setFindFriendMode(int mode) {
   ensureFindFriendPrefsLoaded();
   _ff_mode = mode ? 1 : 0;
+  syncFindFriendReceiptPin();
   resetFindFriendNavState();
   persistFfPrefs(_ff_mode, _ff_wp_valid, e6_to_deg(_ff_wp_lat_e6),
                  e6_to_deg(_ff_wp_lon_e6));
@@ -328,64 +377,69 @@ int MeshAppUi::fillFindFriendContacts(int offset, int selected_contact_index,
   if (selected_rank) *selected_rank = -1;
   if (!items || max_items <= 0) return 0;
   const int n = findFriendContactCount();
-  int order[MAX_CONTACTS];
-  bool receipt_known[MAX_CONTACTS];
-  uint32_t receipt_ages[MAX_CONTACTS];
-  uint32_t mods[MAX_CONTACTS];
   int count = 0;
-  if (n > MAX_CONTACTS) return 0;
-
+  FriendContactCandidate selected{};
+  bool selected_found = false;
   for (int i = 0; i < n; ++i) {
-    ContactInfo c{};
-    if (!the_mesh.getContactByIdx((uint32_t)i, c)) continue;
-    int32_t lat_micro = 0;
-    int32_t lon_micro = 0;
-    HeltecMesh::ContactLocationReceipt receipt{};
-    const bool has_location = contact_location(c, lat_micro, lon_micro, &receipt);
-    if (!has_location && i != selected_contact_index) continue;
-    order[count] = i;
-    receipt_known[count] = receipt.known;
-    receipt_ages[count] = receipt.age_ms;
-    mods[count] = c.lastmod;
+    FriendContactCandidate candidate{};
+    if (!load_friend_contact_candidate(i, selected_contact_index, candidate)) continue;
     ++count;
-  }
-
-  for (int i = 0; i < count - 1; ++i) {
-    for (int j = i + 1; j < count; ++j) {
-      const bool newer = receipt_known[j] != receipt_known[i]
-                             ? receipt_known[j]
-                             : (receipt_known[i] ? receipt_ages[j] < receipt_ages[i]
-                                                 : mods[j] > mods[i]);
-      if (newer) {
-        const int ti = order[i];
-        order[i] = order[j];
-        order[j] = ti;
-        const bool trk = receipt_known[i];
-        receipt_known[i] = receipt_known[j];
-        receipt_known[j] = trk;
-        const uint32_t tra = receipt_ages[i];
-        receipt_ages[i] = receipt_ages[j];
-        receipt_ages[j] = tra;
-        const uint32_t tm = mods[i];
-        mods[i] = mods[j];
-        mods[j] = tm;
-      }
+    if (i == selected_contact_index) {
+      selected = candidate;
+      selected_found = true;
     }
   }
-
   if (total_items) *total_items = count;
-  for (int k = 0; k < count; ++k) {
-    if (order[k] == selected_contact_index && selected_rank) *selected_rank = k;
+
+  if (selected_rank && selected_found) {
+    int rank = 0;
+    for (int i = 0; i < n; ++i) {
+      FriendContactCandidate candidate{};
+      if (load_friend_contact_candidate(i, selected_contact_index, candidate) &&
+          friend_contact_before(candidate, selected)) {
+        ++rank;
+      }
+    }
+    *selected_rank = rank;
   }
 
   if (offset < 0) offset = 0;
   if (offset > count) offset = count;
+
+  FriendContactCandidate cursor{};
+  bool cursor_valid = false;
+  const auto find_next = [&](FriendContactCandidate& next) {
+    bool found = false;
+    for (int i = 0; i < n; ++i) {
+      FriendContactCandidate candidate{};
+      if (!load_friend_contact_candidate(i, selected_contact_index, candidate)) continue;
+      if (cursor_valid && !friend_contact_before(cursor, candidate)) continue;
+      if (!found || friend_contact_before(candidate, next)) {
+        next = candidate;
+        found = true;
+      }
+    }
+    return found;
+  };
+
+  for (int skipped = 0; skipped < offset; ++skipped) {
+    FriendContactCandidate next{};
+    if (!find_next(next)) return 0;
+    cursor = next;
+    cursor_valid = true;
+  }
+
   int filled = 0;
-  for (int k = offset; k < count && filled < max_items; ++k) {
+  while (filled < max_items) {
+    FriendContactCandidate next{};
+    if (!find_next(next)) break;
+    cursor = next;
+    cursor_valid = true;
+
     FindFriendContactItem& item = items[filled];
     item = FindFriendContactItem{};
-    item.contact_index = static_cast<int16_t>(order[k]);
-    if (!findFriendContactLabel(order[k], item.label, sizeof(item.label))) continue;
+    item.contact_index = static_cast<int16_t>(next.index);
+    if (!findFriendContactLabel(next.index, item.label, sizeof(item.label))) continue;
     ++filled;
   }
   return filled;
@@ -422,6 +476,7 @@ bool MeshAppUi::setFindFriendTargetKeyFromIndex(int index) const {
   memcpy(_ff_target_pub_key, c.id.pub_key, PUB_KEY_SIZE);
   _ff_target_pub_key_valid = true;
   _ff_target_contact_idx = index;
+  syncFindFriendReceiptPin();
   return true;
 }
 
@@ -440,6 +495,7 @@ void MeshAppUi::setFindFriendTargetContactIndex(int index) {
   } else {
     (void)setFindFriendTargetKeyFromIndex(index);
   }
+  syncFindFriendReceiptPin();
 
   persistFfPrefs(_ff_mode, _ff_wp_valid, e6_to_deg(_ff_wp_lat_e6),
                  e6_to_deg(_ff_wp_lon_e6));
