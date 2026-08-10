@@ -85,6 +85,7 @@ private:
   float                   _accRawG[3] = {0.0f, 0.0f, 0.0f};
   float                   _magRawG[3] = {0.0f, 0.0f, 0.0f};
   uint32_t                _last_loop_ms = 0;
+  uint32_t                _last_good_sample_ms = 0;
   uint32_t                _last_notify_ms = 0;
   bool                    _last_notify_snapshot = false;
   bool                    _last_notify_heading_valid = false;

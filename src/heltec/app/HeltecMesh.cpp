@@ -207,7 +207,82 @@ void HeltecMesh::onAdvertRecv(mesh::Packet* packet, const mesh::Identity& id, ui
     stored->last_advert_timestamp = 0;
   }
 #endif
+  AdvertDataParser parser(app_data, static_cast<uint8_t>(app_data_len));
+  ContactInfo* const existing = lookupContactByPubKey(id.pub_key, PUB_KEY_SIZE);
+  const bool replay = existing && timestamp <= existing->last_advert_timestamp;
+  if (parser.isValid() && parser.hasName() && !replay) {
+    const double lat = parser.getLat();
+    const double lon = parser.getLon();
+    const bool coordinate_valid = parser.hasLatLon() && std::isfinite(lat) && std::isfinite(lon) &&
+                                  lat >= -90.0 && lat <= 90.0 &&
+                                  lon >= -180.0 && lon <= 180.0;
+    recordContactLocationReceipt(id.pub_key, coordinate_valid,
+                                 coordinate_valid ? parser.getIntLat() : 0,
+                                 coordinate_valid ? parser.getIntLon() : 0);
+  }
   BaseChatMesh::onAdvertRecv(packet, id, timestamp, app_data, app_data_len);
+}
+
+bool HeltecMesh::getContactLocationReceipt(const uint8_t pub_key[PUB_KEY_SIZE],
+                                           ContactLocationReceipt& out) const {
+  out = ContactLocationReceipt{};
+  if (!pub_key) return false;
+  for (const ContactLocationEntry& entry : _contact_location_receipts) {
+    if (!entry.occupied || memcmp(entry.pub_key, pub_key, PUB_KEY_SIZE) != 0) continue;
+    out.known = true;
+    out.advertised = entry.advertised;
+    out.lat_micro = entry.lat_micro;
+    out.lon_micro = entry.lon_micro;
+    out.received_ms = entry.received_ms;
+    out.age_ms = millis() - entry.received_ms;
+    return true;
+  }
+  return false;
+}
+
+void HeltecMesh::recordContactLocationReceipt(const uint8_t pub_key[PUB_KEY_SIZE], bool advertised,
+                                              int32_t lat_micro, int32_t lon_micro) {
+  if (!pub_key) return;
+  ContactLocationEntry* slot = nullptr;
+  ContactLocationEntry* oldest = nullptr;
+  uint32_t oldest_age = 0;
+  const uint32_t now_ms = millis();
+  for (ContactLocationEntry& entry : _contact_location_receipts) {
+    if (entry.occupied && memcmp(entry.pub_key, pub_key, PUB_KEY_SIZE) == 0) {
+      slot = &entry;
+      break;
+    }
+    if (!entry.occupied && !slot) slot = &entry;
+    if (entry.occupied) {
+      const uint32_t age = now_ms - entry.received_ms;
+      if (!oldest || age > oldest_age) {
+        oldest = &entry;
+        oldest_age = age;
+      }
+    }
+  }
+  if (!slot) slot = oldest;
+  if (!slot) return;
+  slot->occupied = true;
+  slot->advertised = advertised;
+  memcpy(slot->pub_key, pub_key, PUB_KEY_SIZE);
+  slot->lat_micro = advertised ? lat_micro : 0;
+  slot->lon_micro = advertised ? lon_micro : 0;
+  slot->received_ms = now_ms;
+}
+
+void HeltecMesh::clearContactLocationReceipt(const uint8_t pub_key[PUB_KEY_SIZE]) {
+  if (!pub_key) return;
+  for (ContactLocationEntry& entry : _contact_location_receipts) {
+    if (entry.occupied && memcmp(entry.pub_key, pub_key, PUB_KEY_SIZE) == 0) {
+      entry = ContactLocationEntry{};
+      return;
+    }
+  }
+}
+
+void HeltecMesh::clearContactLocationReceipts() {
+  memset(_contact_location_receipts, 0, sizeof(_contact_location_receipts));
 }
 
 void HeltecMesh::applyLoRaCarrierMHz(HeltecMesh& mesh, float mhz, bool apply_radio_now, bool save_prefs) {
@@ -624,6 +699,7 @@ bool HeltecMesh::shouldOverwriteWhenFull() const {
 }
 
 void HeltecMesh::onContactOverwrite(const uint8_t* pub_key) {
+  clearContactLocationReceipt(pub_key);
   _store->deleteBlobByKey(pub_key, PUB_KEY_SIZE); // delete from storage
   if (_serial->isConnected()) {
     out_frame[0] = PUSH_CODE_CONTACT_DELETED;
@@ -701,6 +777,7 @@ bool HeltecMesh::onContactLoaded(const ContactInfo& contact) {
 }
 
 void HeltecMesh::reloadContactsFromStore() {
+  clearContactLocationReceipts();
   resetContacts();
   _store->loadContacts(this);
   dedupeContactsByUniqueName();
@@ -716,6 +793,7 @@ bool HeltecMesh::clearAllContacts() {
     _store->deleteBlobByKey(ci.id.pub_key, PUB_KEY_SIZE);
     removeContact(ci);
   }
+  clearContactLocationReceipts();
   saveContacts();
   dirty_contacts_expiry = 0;
   if (had_contacts) notifyContactLocationChangedIfNeeded();
@@ -1815,6 +1893,7 @@ void HeltecMesh::handleCmdFrame(size_t len) {
     uint8_t *pub_key = &cmd_frame[1];
     ContactInfo *recipient = lookupContactByPubKey(pub_key, PUB_KEY_SIZE);
     if (recipient && removeContact(*recipient)) {
+      clearContactLocationReceipt(pub_key);
       _store->deleteBlobByKey(pub_key, PUB_KEY_SIZE);
       dirty_contacts_expiry = futureMillis(LAZY_CONTACTS_WRITE_DELAY);
       notifyContactLocationChangedIfNeeded();

@@ -153,6 +153,40 @@ static long deg_to_e6(double deg) {
   return (long)(deg * 1000000.0 + (deg >= 0.0 ? 0.5 : -0.5));
 }
 
+static int hex_nibble(char c) {
+  if (c >= '0' && c <= '9') return c - '0';
+  if (c >= 'a' && c <= 'f') return c - 'a' + 10;
+  if (c >= 'A' && c <= 'F') return c - 'A' + 10;
+  return -1;
+}
+
+static bool parse_pub_key_field(const char* field, uint8_t pub_key[PUB_KEY_SIZE]) {
+  if (!field || !pub_key) return false;
+  size_t field_len = 0;
+  while (field[field_len] != '\0' && field[field_len] != '\r' &&
+         field[field_len] != '\n' && field[field_len] != ',') {
+    ++field_len;
+  }
+  if (field_len != PUB_KEY_SIZE * 2) return false;
+  for (size_t i = 0; i < PUB_KEY_SIZE; ++i) {
+    const int high = hex_nibble(field[i * 2]);
+    const int low = hex_nibble(field[i * 2 + 1]);
+    if (high < 0 || low < 0) return false;
+    pub_key[i] = static_cast<uint8_t>((high << 4) | low);
+  }
+  return true;
+}
+
+static void format_pub_key_field(char out[PUB_KEY_SIZE * 2 + 1],
+                                 const uint8_t pub_key[PUB_KEY_SIZE]) {
+  static const char kHex[] = "0123456789ABCDEF";
+  for (size_t i = 0; i < PUB_KEY_SIZE; ++i) {
+    out[i * 2] = kHex[pub_key[i] >> 4];
+    out[i * 2 + 1] = kHex[pub_key[i] & 0x0F];
+  }
+  out[PUB_KEY_SIZE * 2] = '\0';
+}
+
 static bool save_find_friend_cfg_to(FILESYSTEM* fs, const char* buf, size_t len) {
   if (!fs || !buf || len == 0) return false;
   File f = openWrite(fs, kCompassCfgPath);
@@ -167,7 +201,9 @@ static bool save_find_friend_cfg_to(FILESYSTEM* fs, const char* buf, size_t len)
 bool DataStore::loadFindFriendCompassSettings(int& mode, int& wpValid, double& wpLat, double& wpLon,
                                               uint16_t& trackMinDistCm, int* friendIdx,
                                               uint16_t* trackIntervalMin,
-                                              bool* enabled) {
+                                              bool* enabled,
+                                              uint8_t friendPubKey[PUB_KEY_SIZE],
+                                              bool* friendPubKeyValid) {
   FILESYSTEM* fs = nullptr;
   if (_fsExtra && _fsExtra->exists(kCompassCfgPath)) {
     fs = _fsExtra;
@@ -178,15 +214,16 @@ bool DataStore::loadFindFriendCompassSettings(int& mode, int& wpValid, double& w
 
   File f = openRead(fs, kCompassCfgPath);
   if (!f) return false;
-  char buf[96];
+  char buf[192];
   int n = f.readBytesUntil('\n', buf, sizeof(buf) - 1);
   buf[n] = 0;
   f.close();
 
-  // v2 removes Location Share's advert interval from this Find Friend file.
-  // Legacy files have no prefix and keep their former field positions.
+  // v2 removes Location Share's advert interval. v3 appends the selected
+  // contact's stable public key while retaining the legacy index for migration.
   const bool v2 = strncmp(buf, "v2,", 3) == 0;
-  const int base = v2 ? 1 : 0;
+  const bool v3 = strncmp(buf, "v3,", 3) == 0;
+  const int base = (v2 || v3) ? 1 : 0;
   if (!parse_int_field(compass_cfg_field(buf, base), &mode)) return false;
   if (!parse_int_field(compass_cfg_field(buf, base + 1), &wpValid)) return false;
 
@@ -223,19 +260,29 @@ bool DataStore::loadFindFriendCompassSettings(int& mode, int& wpValid, double& w
       *enabled = false;
     }
   }
+  if (friendPubKey) memset(friendPubKey, 0, PUB_KEY_SIZE);
+  if (friendPubKeyValid) *friendPubKeyValid = false;
+  if (v3 && friendPubKey) {
+    const bool valid = parse_pub_key_field(compass_cfg_field(buf, 9), friendPubKey);
+    if (friendPubKeyValid) *friendPubKeyValid = valid;
+    if (!valid) memset(friendPubKey, 0, PUB_KEY_SIZE);
+  }
   return true;
 }
 
 void DataStore::saveFindFriendCompassSettings(int mode, int wpValid, double wpLat, double wpLon,
                                               uint16_t trackMinDistCm, int friendIdx,
                                               uint16_t trackIntervalMin,
-                                              bool enabled) {
+                                              bool enabled,
+                                              const uint8_t friendPubKey[PUB_KEY_SIZE]) {
   if (trackIntervalMin < 1) trackIntervalMin = 1;
-  char buf[128];
-  const int len = snprintf(buf, sizeof(buf), "v2,%d,%d,%ld,%ld,%u,%d,%u,%u\n", mode,
+  char pub_key_hex[PUB_KEY_SIZE * 2 + 1] = "-";
+  if (friendPubKey) format_pub_key_field(pub_key_hex, friendPubKey);
+  char buf[192];
+  const int len = snprintf(buf, sizeof(buf), "v3,%d,%d,%ld,%ld,%u,%d,%u,%u,%s\n", mode,
                            wpValid, (long)deg_to_e6(wpLat), (long)deg_to_e6(wpLon),
                            (unsigned)trackMinDistCm, friendIdx,
-                           (unsigned)trackIntervalMin, enabled ? 1u : 0u);
+                           (unsigned)trackIntervalMin, enabled ? 1u : 0u, pub_key_hex);
   if (len <= 0 || len >= (int)sizeof(buf)) return;
 
   // nRF52 LittleFS permits only one open file per volume. Find Friend settings

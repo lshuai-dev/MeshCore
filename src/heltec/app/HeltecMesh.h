@@ -96,6 +96,15 @@ public:
     long satellites = 0;
   };
 
+  struct ContactLocationReceipt {
+    bool known = false;
+    bool advertised = false;
+    int32_t lat_micro = 0;
+    int32_t lon_micro = 0;
+    uint32_t received_ms = 0;
+    uint32_t age_ms = 0;
+  };
+
   struct ClientRepeatFreqRange {
     uint32_t lower_khz;
     uint32_t upper_khz;
@@ -131,6 +140,8 @@ public:
   void handleCompanionJsonCmdLine(const char* line, size_t len);
   bool advert(bool require_live_location = false);
   bool getStableGpsFix(StableGpsFixSnapshot& out) const;
+  bool getContactLocationReceipt(const uint8_t pub_key[PUB_KEY_SIZE],
+                                 ContactLocationReceipt& out) const;
   void enterCLIRescue();
 
   int  getRecentlyHeard(AdvertPath dest[], int max_num);
@@ -237,6 +248,10 @@ public:
 
 private:
   mesh::Packet* createPolicySelfAdvert(bool require_live_location);
+  void recordContactLocationReceipt(const uint8_t pub_key[PUB_KEY_SIZE], bool advertised,
+                                    int32_t lat_micro, int32_t lon_micro);
+  void clearContactLocationReceipt(const uint8_t pub_key[PUB_KEY_SIZE]);
+  void clearContactLocationReceipts();
   void dedupeContactsByUniqueName();
   uint32_t contactLocationFingerprint();
   void notifyContactLocationChangedIfNeeded();
@@ -336,6 +351,16 @@ private:
   AdvertPath advert_paths[ADVERT_PATH_TABLE_SIZE]; // circular table
   uint32_t _contact_location_fingerprint = 0;
   bool _contact_location_fingerprint_valid = false;
+
+  struct ContactLocationEntry {
+    bool occupied = false;
+    bool advertised = false;
+    uint8_t pub_key[PUB_KEY_SIZE] = {};
+    int32_t lat_micro = 0;
+    int32_t lon_micro = 0;
+    uint32_t received_ms = 0;
+  };
+  ContactLocationEntry _contact_location_receipts[MAX_CONTACTS]{};
 
 #if defined(ENV_INCLUDE_GPS) && ENV_INCLUDE_GPS
   mutable bool _stable_gps_fix_seen = false;

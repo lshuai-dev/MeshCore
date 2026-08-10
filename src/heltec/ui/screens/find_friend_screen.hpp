@@ -40,6 +40,7 @@ class FindFriendScreen : public AbstractScreen {
   void refresh();
   void showInfoOnly(const char* info);
   void setInfoText(const char* info);
+  void setStatusText(const char* status);
   void runDeferredEnterActions();
   bool createDial();
   void createInfoRows();
@@ -77,6 +78,7 @@ class FindFriendScreen : public AbstractScreen {
   _lv_obj_t* _dial_row = nullptr;
   _lv_obj_t* _right_column = nullptr;
   lv_obj_t* _lbl_info = nullptr;
+  lv_obj_t* _lbl_status = nullptr;
   _lv_obj_t* _sw_enabled = nullptr;
   ChoiceRow _choice_mode;
   ChoiceRow _choice_friend;
@@ -89,6 +91,7 @@ class FindFriendScreen : public AbstractScreen {
   bool _syncing_switch = false;
   bool _syncing_dropdown = false;
   char _info_text[24] = "starting...";
+  char _status_text[80] = {};
   char _friend_options[384] = {};
   int16_t _ring_heading_tenths = 0;
   float _turn_show_deg = 0.f;

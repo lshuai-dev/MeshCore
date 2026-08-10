@@ -37,6 +37,10 @@ static constexpr float MMC5983_COUNTS_PER_GAUSS = 16384.0f;
 #define COMPASS_HEADING_FILTER_ALPHA 0.2f
 #endif
 
+#ifndef ICM_COMPASS_HEADING_MAX_AGE_MS
+#define ICM_COMPASS_HEADING_MAX_AGE_MS 500
+#endif
+
 #ifndef ICM_COMPASS_ACCEL_FAILURE_THRESHOLD
 #define ICM_COMPASS_ACCEL_FAILURE_THRESHOLD 5
 #endif
@@ -135,6 +139,7 @@ void ICMCompassProvider::resetRuntimeState() {
   _ready = false;
   _headingFilterReady = false;
   _last_loop_ms = 0;
+  _last_good_sample_ms = 0;
   _last_notify_ms = 0;
   _last_notify_snapshot = false;
   _last_notify_heading_valid = false;
@@ -175,18 +180,21 @@ bool ICMCompassProvider::fillUiSnapshot(heltec::meshcore::biz::CompassUi& ui) co
   ui = {};
   if (!_ready) return false;
   ui.has_hardware = true;
-  ui.heading_valid = true;
-  ui.heading_deg = _lastResult.fFilteredHeadingDegrees;
-  ui.azimuth_deg = _lastResult.fAzimuth;
-  ui.mag_xyz[0] = _lastResult.coordinates[0];
-  ui.mag_xyz[1] = _lastResult.coordinates[1];
-  ui.mag_xyz[2] = _lastResult.coordinates[2];
   {
     int q = (int)(_lastResult.fQuality + 0.5f);
     if (q < 0) q = 0;
     if (q > 3) q = 3;
     ui.quality = q;
   }
+  const bool sample_fresh = _last_good_sample_ms != 0 &&
+      (uint32_t)(millis() - _last_good_sample_ms) <= (uint32_t)ICM_COMPASS_HEADING_MAX_AGE_MS;
+  ui.heading_valid = sample_fresh && ui.quality >= 2 &&
+      std::isfinite(_lastResult.fFilteredHeadingDegrees);
+  ui.heading_deg = _lastResult.fFilteredHeadingDegrees;
+  ui.azimuth_deg = _lastResult.fAzimuth;
+  ui.mag_xyz[0] = _lastResult.coordinates[0];
+  ui.mag_xyz[1] = _lastResult.coordinates[1];
+  ui.mag_xyz[2] = _lastResult.coordinates[2];
   return true;
 }
 
@@ -281,6 +289,8 @@ void ICMCompassProvider::loop() {
     recoverSensorsIfNeeded(now);
     return;
   }
+
+  _last_good_sample_ms = now;
 
   _lastResult.coordinates[0] = _magRawG[0];
   _lastResult.coordinates[1] = _magRawG[1];

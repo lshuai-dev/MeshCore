@@ -36,15 +36,36 @@ struct MapPlotUi {
 };
 #endif
 
+enum class FindFriendTargetFreshness : uint8_t {
+  NotApplicable = 0,
+  Unknown,
+  Fresh,
+  Aging,
+  Stale,
+};
+
+enum class FindFriendConfidence : uint8_t {
+  Unavailable = 0,
+  Low,
+  Medium,
+  High,
+};
+
 struct FindFriendUi {
   bool compass_hw = false;
   bool heading_valid = false;
   float heading_deg = 0.f;
+  int compass_quality = 0;
+  bool declination_configured = false;
   int mode = 0;
   bool waypoint_valid = false;
   double waypoint_lat = 0;
   double waypoint_lon = 0;
   bool gps_fix = false;
+  uint32_t gps_age_ms = 0;
+  uint8_t gps_satellites = 0;
+  float estimated_accuracy_m = 0.f;
+  bool gps_low_accuracy = false;
   double here_lat = 0;
   double here_lon = 0;
   bool bearing_valid = false;
@@ -53,9 +74,16 @@ struct FindFriendUi {
   bool relative_valid = false;
   float turn_deg = 0.f;
   char target_label[40] = {};
+  bool target_selected = false;
   bool target_valid = false;
+  bool target_usable = false;
+  bool target_age_known = false;
+  uint32_t target_age_ms = 0;
+  FindFriendTargetFreshness target_freshness = FindFriendTargetFreshness::NotApplicable;
   bool near_target = false;
   double distance_m = -1.0;
+  float nearby_enter_m = 15.f;
+  FindFriendConfidence confidence = FindFriendConfidence::Unavailable;
 };
 
 class IBizFacade : public ui::IFeedback {
@@ -198,7 +226,7 @@ class IBizFacade : public ui::IFeedback {
   virtual bool setFindFriendWaypoint(double lat_deg, double lon_deg) = 0;
   virtual void setFindFriendTargetContactIndex(int index) = 0;
   virtual void cycleFindFriendTargetContact(int delta) = 0;
-  /** Pick first GPS contact in memory only (no flash write). For screen enter. */
+  /** Pick and persist the first contact with a usable stored location. */
   virtual bool tryAutoPickFindFriendTarget() { return false; }
   virtual void syncFindFriendContactList() = 0;
   virtual void syncCompassCache() = 0;

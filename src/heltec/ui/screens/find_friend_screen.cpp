@@ -9,10 +9,6 @@
 #include <Arduino.h>
 #include <lvgl.h>
 
-#ifndef COMPASS_HEADING_OFFSET_DEG
-#define COMPASS_HEADING_OFFSET_DEG 0
-#endif
-
 #ifndef FF_INFO_COL_WIDTH_PCT
 #define FF_INFO_COL_WIDTH_PCT 40
 #endif
@@ -41,6 +37,49 @@ void set_static_text(lv_obj_t* label, char* buffer, size_t capacity, const char*
   lv_snprintf(buffer, capacity, "%s", text ? text : "");
   lv_label_set_text_static(label, buffer);
 }
+
+void format_age_short(char* buf, size_t len, bool known, uint32_t age_ms) {
+  if (!buf || len == 0) return;
+  if (!known) {
+    lv_snprintf(buf, len, "?");
+    return;
+  }
+  const uint32_t seconds = age_ms / 1000U;
+  if (seconds < 60U) {
+    lv_snprintf(buf, len, "%lus", (unsigned long)seconds);
+  } else if (seconds < 3600U) {
+    lv_snprintf(buf, len, "%lum", (unsigned long)(seconds / 60U));
+  } else {
+    lv_snprintf(buf, len, "%luh", (unsigned long)(seconds / 3600U));
+  }
+}
+
+void format_nav_distance(char* buf, size_t len, const biz::FindFriendUi& u) {
+  if (!buf || len == 0 || u.distance_m < 0.0) return;
+  const char* approximate = u.confidence == biz::FindFriendConfidence::Low ? "~" : "";
+  if (u.distance_m >= 10000.0) {
+    const uint32_t km = static_cast<uint32_t>(u.distance_m / 1000.0 + 0.5);
+    lv_snprintf(buf, len, "%s%lukm", approximate, (unsigned long)km);
+    return;
+  }
+  if (u.distance_m >= 1000.0) {
+    const uint32_t km_tenths = static_cast<uint32_t>(u.distance_m / 100.0 + 0.5);
+    lv_snprintf(buf, len, "%s%lu.%lukm", approximate,
+                (unsigned long)(km_tenths / 10U),
+                (unsigned long)(km_tenths % 10U));
+    return;
+  }
+
+  uint32_t step_m = 1;
+  if (u.estimated_accuracy_m >= 40.0f) {
+    step_m = 10;
+  } else if (u.estimated_accuracy_m >= 15.0f) {
+    step_m = 5;
+  }
+  const uint32_t meters = static_cast<uint32_t>(u.distance_m + 0.5);
+  const uint32_t rounded = ((meters + step_m / 2U) / step_m) * step_m;
+  lv_snprintf(buf, len, "%s%lum", approximate, (unsigned long)rounded);
+}
 }  // namespace
 
 _lv_obj_t* FindFriendScreen::createRoot(_lv_obj_t* parent) {
@@ -54,6 +93,20 @@ void FindFriendScreen::setInfoText(const char* info) {
     lv_obj_clear_flag(_lbl_info, LV_OBJ_FLAG_HIDDEN);
   } else {
     lv_obj_add_flag(_lbl_info, LV_OBJ_FLAG_HIDDEN);
+  }
+}
+
+void FindFriendScreen::setStatusText(const char* status) {
+  if (status != _status_text) {
+    set_static_text(_lbl_status, _status_text, sizeof(_status_text), status);
+  } else if (_lbl_status) {
+    lv_label_set_text_static(_lbl_status, _status_text);
+  }
+  if (!_lbl_status) return;
+  if (_status_text[0]) {
+    lv_obj_clear_flag(_lbl_status, LV_OBJ_FLAG_HIDDEN);
+  } else {
+    lv_obj_add_flag(_lbl_status, LV_OBJ_FLAG_HIDDEN);
   }
 }
 
@@ -79,6 +132,7 @@ void FindFriendScreen::onEnter() {
   _dial.setDialHidden(true);
   _dial.setLayersVisible(false);
   setInfoText(_biz.findFriendEnabled() ? "starting..." : "");
+  setStatusText("");
 }
 
 _lv_obj_t* FindFriendScreen::create(_lv_obj_t* parent) {
@@ -154,25 +208,59 @@ void FindFriendScreen::createInfoRows() {
   if (_lbl_info) {
     lv_label_set_text_static(_lbl_info, _info_text);
   }
+
+  _lbl_status = ht_label_create(_right_column, meta_id::CompassInfoLabel);
+  compass_style_info_label(_lbl_status, "", LV_LABEL_LONG_WRAP);
+  if (_lbl_status) lv_label_set_text_static(_lbl_status, _status_text);
 }
 
 void FindFriendScreen::render(const biz::FindFriendUi& u) {
   if (!_biz.findFriendEnabled()) {
+    setStatusText("");
     showInfoOnly("");
     return;
   }
+
+  char gps_age[12];
+  format_age_short(gps_age, sizeof(gps_age), u.gps_fix, u.gps_age_ms);
+  const char* compass_status = u.compass_quality < 2 ? " calibrate" :
+                               (u.compass_quality == 2 ? " compass low" : "");
+  const char* gps_status = u.gps_low_accuracy ? " GPS low" : "";
+  const char* target_status = u.target_freshness == biz::FindFriendTargetFreshness::Aging
+                                  ? " target aging"
+                                  : "";
+  const char* declination_status = u.declination_configured ? "" : " declination unset";
+  if (u.mode == 0 && u.target_selected) {
+    char target_age[12];
+    format_age_short(target_age, sizeof(target_age), u.target_age_known, u.target_age_ms);
+    lv_snprintf(_status_text, sizeof(_status_text), "GPS %s %usat\nfriend %s\nQ%d%s%s%s%s",
+                gps_age, (unsigned)u.gps_satellites, target_age, u.compass_quality,
+                compass_status, gps_status, target_status, declination_status);
+  } else {
+    lv_snprintf(_status_text, sizeof(_status_text), "GPS %s %usat\nQ%d%s%s%s",
+                gps_age, (unsigned)u.gps_satellites, u.compass_quality,
+                compass_status, gps_status, declination_status);
+  }
+  setStatusText(_status_text);
 
   if (!u.compass_hw) {
     showInfoOnly("no compass");
     return;
   }
   if (!u.heading_valid) {
-    if (!u.target_valid) {
+    if (!u.target_selected) {
       showInfoOnly("");
+    } else if (!u.target_valid) {
+      showInfoOnly("no location");
+    } else if (u.target_freshness == biz::FindFriendTargetFreshness::Unknown ||
+               u.target_freshness == biz::FindFriendTargetFreshness::Stale) {
+      showInfoOnly("target stale");
     } else if (u.near_target) {
       showInfoOnly("nearby");
     } else if (!u.gps_fix) {
       showInfoOnly("need gps");
+    } else if (u.compass_quality < 2) {
+      showInfoOnly("calibrate");
     } else {
       showInfoOnly("starting...");
     }
@@ -182,7 +270,7 @@ void FindFriendScreen::render(const biz::FindFriendUi& u) {
   _dial.setDialHidden(false);
   _dial.setLayersVisible(true);
 
-  const float hdg = compass_screen_heading(u.heading_deg, COMPASS_HEADING_OFFSET_DEG);
+  const float hdg = compass_screen_heading(u.heading_deg, 0);
   const int16_t new_ring = dial_heading_tenths((int16_t)(hdg * 10.f + 0.5f));
   const float new_turn = (u.bearing_valid && u.heading_valid) ? u.turn_deg : 0.f;
   const bool new_gps = u.gps_fix;
@@ -207,14 +295,19 @@ void FindFriendScreen::render(const biz::FindFriendUi& u) {
     _dial.invalidateNeedle();
   }
 
-  if (!u.target_valid) {
+  if (!u.target_selected) {
     setInfoText("");
+  } else if (!u.target_valid) {
+    setInfoText("no location");
+  } else if (u.target_freshness == biz::FindFriendTargetFreshness::Unknown ||
+             u.target_freshness == biz::FindFriendTargetFreshness::Stale) {
+    setInfoText("target stale");
   } else if (u.near_target) {
     setInfoText("nearby");
   } else if (!u.gps_fix) {
     setInfoText("need gps");
   } else if (u.bearing_valid) {
-    compass_format_distance_m(_info_text, sizeof(_info_text), u.distance_m);
+    format_nav_distance(_info_text, sizeof(_info_text), u);
     if (_lbl_info) {
       lv_obj_clear_flag(_lbl_info, LV_OBJ_FLAG_HIDDEN);
       lv_label_set_text_static(_lbl_info, _info_text);

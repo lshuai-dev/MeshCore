@@ -1,4 +1,5 @@
 #pragma once
+#include "app/find_friend_nav_estimator.hpp"
 #include "app/power_mgr.hpp"
 #include "ui/core/biz_facade.hpp"
 #include "ui/core/app_state_event.hpp"
@@ -147,10 +148,15 @@ class MeshAppUi final : public IBizFacade {
   void setFfWaypointCache(double lat_deg, double lon_deg);
   void resetFindFriendNavState() const;
   void persistFfPrefs(int mode, int wp_valid, double wp_lat, double wp_lon) const;
+  int resolveFindFriendTargetContactIndex() const;
+  bool setFindFriendTargetKeyFromIndex(int index) const;
 
   CompassUi _compass_ui{};
   mutable bool _ff_prefs_loaded = false;
   mutable int _ff_target_contact_idx = -1;
+  mutable bool _ff_target_pub_key_valid = false;
+  mutable uint8_t _ff_target_pub_key[32] = {};
+  mutable nav::FindFriendNavEstimator _ff_nav_estimator{};
   mutable int _ff_mode = 0;
   mutable int _ff_wp_valid = 0;
   mutable int32_t _ff_wp_lat_e6 = 0;

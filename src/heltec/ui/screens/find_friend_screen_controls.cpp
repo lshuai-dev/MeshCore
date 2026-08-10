@@ -433,7 +433,8 @@ void FindFriendScreen::loadFriendDropdownWindow(int start, int selected_rank, bo
   int total = 0;
   int ignored_rank = -1;
   _friend_mesh_map_count = _biz.fillFindFriendContacts(
-      start, -1, items, kFriendWindowSize, &total, &ignored_rank);
+      start, _biz.findFriendTargetContactIndex(), items, kFriendWindowSize, &total,
+      &ignored_rank);
   _friend_total = total;
   const int max_start = total > kFriendWindowSize ? total - kFriendWindowSize : 0;
   if (start < 0) start = 0;
