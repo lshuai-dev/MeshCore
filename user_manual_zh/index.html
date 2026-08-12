@@ -1,0 +1,4157 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Documentation for the open source MeshCore firmware">
+      
+      
+      
+        <link rel="canonical" href="https://meshcore-dev.github.io/meshcore/user_manual_zh/">
+      
+      
+        <link rel="prev" href="../terminal_chat_cli/">
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>MeshCore LVGL UI 用户操作手册 - MeshCore Docs</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.ec1eaa64.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../_stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    <body dir="ltr">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#meshcore-lvgl-ui" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="MeshCore Docs" class="md-header__button md-logo" aria-label="MeshCore Docs" data-md-component="logo">
+      
+  <img src="../_assets/meshcore.svg" alt="logo">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            MeshCore Docs
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              MeshCore LVGL UI 用户操作手册
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/meshcore-dev/meshcore/" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    meshcore-dev/meshcore
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="MeshCore Docs" class="md-nav__button md-logo" aria-label="MeshCore Docs" data-md-component="logo">
+      
+  <img src="../_assets/meshcore.svg" alt="logo">
+
+    </a>
+    MeshCore Docs
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/meshcore-dev/meshcore/" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    meshcore-dev/meshcore
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Introduction
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../cli_commands/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CLI Commands
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../companion_protocol/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Companion Protocol
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../docs/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Local Documentation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../faq/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Frequently Asked Questions
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../kiss_modem_protocol/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    MeshCore KISS Modem Protocol
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../nrf52_power_management/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    nRF52 Power Management
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../number_allocations/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Number Allocations
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../packet_format/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Packet Format
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../payloads/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Payload Format
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../qr_codes/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    QR Codes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../stats_binary_frames/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Stats Binary Frame Structures
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../terminal_chat_cli/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Terminal Chat CLI
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    MeshCore LVGL UI 用户操作手册
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    MeshCore LVGL UI 用户操作手册
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. 手册范围与功能识别
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="1. 手册范围与功能识别">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#11" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.1 适用范围
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#12" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.2 公共页面和条件页面
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. 首次使用
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2. 首次使用">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#21" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.1 启动前检查
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#22" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.2 界面组成
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#23" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.3 建议检查顺序
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. 通用交互模型
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3. 通用交互模型">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#31" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.1 操作语义
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#32" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.2 焦点
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#33" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.3 开关、下拉框和操作行
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#34" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.4 返回和层级
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#35" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.5 屏幕唤醒
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. 输入方式
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="4. 输入方式">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#41" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.1 单实体按键的常见映射
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#42" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.2 双实体按键的通用映射
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#43" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.3 键盘
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#44" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.4 触摸和手势
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#45" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.5 输入映射自检
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. 页面导航
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="5. 页面导航">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#51" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.1 两种导航外观
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#52" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.2 打开和关闭导航
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#53" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.3 页面顺序
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. 公共页面
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="6. 公共页面">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#61-home" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.1 Home
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#62-recent" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.2 Recent
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#63-radio" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.3 Radio
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#64-gps" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.4 GPS
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="6.4 GPS">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        位置分享
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#gps" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        GPS 轨迹
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#65-system" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.5 System
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="6.5 System">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#region" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Region
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#enable-repeat-mode" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Enable Repeat Mode
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#screen-off" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Screen off
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#bluetooth" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Bluetooth
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#buzzer" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Buzzer
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#7" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. 条件页面
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="7. 条件页面">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#71-compass" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7.1 Compass
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="7.1 Compass">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        指南针校准
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#72-find-friend" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7.2 Find Friend
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="7.2 Find Friend">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        启用和模式
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#friend" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Friend 模式
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#waypoint" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Waypoint 模式
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        运行状态
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#73-tracker" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7.3 Tracker
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#8-advert" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8. 消息和 Advert
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="8. 消息和 Advert">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#81" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8.1 两类操作入口
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#82" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8.2 发送消息
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#83" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8.3 发送结果
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#84-advert" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8.4 发送 Advert
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#9-tracker" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9. Tracker 地图准备
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="9. Tracker 地图准备">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#91" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9.1 地图格式的正式名称
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#92" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9.2 文件硬性要求
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#93-sd" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9.3 SD 卡目录
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#94" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9.4 自动识别
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#95" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9.5 不能直接使用的文件
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#96-png" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9.6 免费数据和 PNG 来源
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#97" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9.7 容量估算
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#10-rtc" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        10. RTC 时间同步
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="10. RTC 时间同步">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#101" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        10.1 从联系人时间恢复
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#102-companion" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        10.2 Companion 设置时间
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#103-gps" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        10.3 GPS 自动校时
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#104-cli" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        10.4 CLI 或串口
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#105" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        10.5 时间不准确时
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#11_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        11. 电源和屏幕行为
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="11. 电源和屏幕行为">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#111" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        11.1 电池和外部供电
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#112-gps" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        11.2 GPS 供电需求
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#113" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        11.3 省电建议
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#12-companion" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        12. Companion 使用
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="12. Companion 使用">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#121" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        12.1 连接状态
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#122-companion" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        12.2 Companion 可以完成的工作
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#123" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        12.3 连接异常
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#13" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        13. 数据清除和恢复出厂
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#14" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        14. 常见问题
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="14. 常见问题">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#141" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        14.1 按键只移动焦点，不能确认
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#142" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        14.2 返回后没有打开导航
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#143" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        14.3 找不到某个页面
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#144-gps-no-fix" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        14.4 GPS 一直显示 no fix
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#145" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        14.5 位置分享开启但其他节点看不到
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#146-find-friend" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        14.6 Find Friend 没有方向
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#147-compass" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        14.7 Compass 航向不稳定
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#148-nosd-map-unavailable" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        14.8 地图显示 noSD 或 Map unavailable
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#149" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        14.9 地图没有本机标记
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#1410" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        14.10 地图没有其他节点
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#1411" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        14.11 消息发不出去
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#1412-recent" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        14.12 Recent 时间不正确
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#1413-repeat-mode" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        14.13 Repeat Mode 无法启用
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#1414-factory-reset" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        14.14 Factory reset 后地图不见了
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#15" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        15. 构建差异速查
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#16" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        16. 快速操作索引
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. 手册范围与功能识别
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="1. 手册范围与功能识别">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#11" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.1 适用范围
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#12" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.2 公共页面和条件页面
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. 首次使用
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2. 首次使用">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#21" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.1 启动前检查
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#22" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.2 界面组成
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#23" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.3 建议检查顺序
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. 通用交互模型
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3. 通用交互模型">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#31" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.1 操作语义
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#32" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.2 焦点
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#33" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.3 开关、下拉框和操作行
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#34" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.4 返回和层级
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#35" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.5 屏幕唤醒
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. 输入方式
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="4. 输入方式">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#41" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.1 单实体按键的常见映射
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#42" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.2 双实体按键的通用映射
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#43" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.3 键盘
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#44" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.4 触摸和手势
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#45" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.5 输入映射自检
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. 页面导航
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="5. 页面导航">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#51" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.1 两种导航外观
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#52" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.2 打开和关闭导航
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#53" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.3 页面顺序
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. 公共页面
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="6. 公共页面">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#61-home" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.1 Home
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#62-recent" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.2 Recent
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#63-radio" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.3 Radio
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#64-gps" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.4 GPS
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="6.4 GPS">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        位置分享
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#gps" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        GPS 轨迹
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#65-system" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.5 System
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="6.5 System">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#region" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Region
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#enable-repeat-mode" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Enable Repeat Mode
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#screen-off" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Screen off
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#bluetooth" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Bluetooth
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#buzzer" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Buzzer
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#7" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. 条件页面
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="7. 条件页面">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#71-compass" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7.1 Compass
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="7.1 Compass">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        指南针校准
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#72-find-friend" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7.2 Find Friend
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="7.2 Find Friend">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        启用和模式
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#friend" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Friend 模式
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#waypoint" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Waypoint 模式
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        运行状态
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#73-tracker" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7.3 Tracker
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#8-advert" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8. 消息和 Advert
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="8. 消息和 Advert">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#81" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8.1 两类操作入口
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#82" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8.2 发送消息
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#83" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8.3 发送结果
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#84-advert" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8.4 发送 Advert
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#9-tracker" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9. Tracker 地图准备
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="9. Tracker 地图准备">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#91" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9.1 地图格式的正式名称
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#92" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9.2 文件硬性要求
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#93-sd" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9.3 SD 卡目录
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#94" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9.4 自动识别
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#95" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9.5 不能直接使用的文件
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#96-png" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9.6 免费数据和 PNG 来源
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#97" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9.7 容量估算
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#10-rtc" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        10. RTC 时间同步
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="10. RTC 时间同步">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#101" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        10.1 从联系人时间恢复
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#102-companion" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        10.2 Companion 设置时间
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#103-gps" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        10.3 GPS 自动校时
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#104-cli" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        10.4 CLI 或串口
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#105" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        10.5 时间不准确时
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#11_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        11. 电源和屏幕行为
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="11. 电源和屏幕行为">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#111" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        11.1 电池和外部供电
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#112-gps" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        11.2 GPS 供电需求
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#113" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        11.3 省电建议
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#12-companion" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        12. Companion 使用
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="12. Companion 使用">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#121" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        12.1 连接状态
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#122-companion" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        12.2 Companion 可以完成的工作
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#123" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        12.3 连接异常
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#13" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        13. 数据清除和恢复出厂
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#14" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        14. 常见问题
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="14. 常见问题">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#141" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        14.1 按键只移动焦点，不能确认
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#142" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        14.2 返回后没有打开导航
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#143" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        14.3 找不到某个页面
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#144-gps-no-fix" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        14.4 GPS 一直显示 no fix
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#145" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        14.5 位置分享开启但其他节点看不到
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#146-find-friend" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        14.6 Find Friend 没有方向
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#147-compass" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        14.7 Compass 航向不稳定
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#148-nosd-map-unavailable" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        14.8 地图显示 noSD 或 Map unavailable
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#149" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        14.9 地图没有本机标记
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#1410" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        14.10 地图没有其他节点
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#1411" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        14.11 消息发不出去
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#1412-recent" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        14.12 Recent 时间不正确
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#1413-repeat-mode" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        14.13 Repeat Mode 无法启用
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#1414-factory-reset" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        14.14 Factory reset 后地图不见了
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#15" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        15. 构建差异速查
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#16" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        16. 快速操作索引
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+    <a href="https://github.com/meshcore-dev/meshcore/edit/main/docs/user_manual_zh.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
+    </a>
+  
+  
+
+
+<h1 id="meshcore-lvgl-ui">MeshCore LVGL UI 用户操作手册</h1>
+<p>本文面向当前项目中启用 LVGL 图形界面的 MeshCore 设备，不以某一块开发板、某一种显示屏或某一个 PlatformIO 编译环境为基线。Heltec T1、T096、T114、Tracker、Tracker V2、V3、V4、V4 R8 等设备家族中，只要固件启用了本项目的 LVGL UI，就可以按本文的通用交互模型操作。</p>
+<p>不同设备的屏幕尺寸、颜色深度、按键数量、触摸能力、传感器和编译功能并不相同。本文用“公共页面”和“条件页面”区分功能，并保留界面中的英文名称，便于与设备屏幕逐项对照。</p>
+<h2 id="1">1. 手册范围与功能识别</h2>
+<h3 id="11">1.1 适用范围</h3>
+<p>本手册覆盖：</p>
+<ul>
+<li>LVGL UI 的页面、焦点、导航、弹层和输入规则。</li>
+<li><code>Home</code>、<code>Recent</code>、<code>Radio</code>、<code>GPS</code>、<code>System</code> 公共页面。</li>
+<li><code>Compass</code>、<code>Find Friend</code>、<code>Tracker</code> 条件页面。</li>
+<li>消息、Advert、GPS、离线地图、RTC、电源管理和 Companion 的用户可见行为。</li>
+<li>常见故障的判断与恢复步骤。</li>
+</ul>
+<p>本手册不覆盖：</p>
+<ul>
+<li>PlatformIO 安装、固件编译和烧录。</li>
+<li>OLED、纯命令行、无 LVGL 的 Repeater 或其他非图形界面。</li>
+<li>LoRa 天线设计、射频匹配和法规认证。</li>
+<li>Companion 协议的字段级实现。协议细节见 <a href="../companion_protocol/">Companion Protocol</a>。</li>
+</ul>
+<h3 id="12">1.2 公共页面和条件页面</h3>
+<table>
+<thead>
+<tr>
+<th>页面或能力</th>
+<th>可用条件</th>
+<th>用户如何识别</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Home</code></td>
+<td>LVGL UI 公共页面</td>
+<td>导航中显示 <code>Home</code></td>
+</tr>
+<tr>
+<td><code>Recent</code></td>
+<td>LVGL UI 公共页面</td>
+<td>导航中显示 <code>Recent</code></td>
+</tr>
+<tr>
+<td><code>Radio</code></td>
+<td>LVGL UI 公共页面</td>
+<td>导航中显示 <code>Radio</code></td>
+</tr>
+<tr>
+<td><code>GPS</code></td>
+<td>LVGL UI 公共页面</td>
+<td>页面始终可以存在；无 GPS 时显示不可访问状态</td>
+</tr>
+<tr>
+<td><code>System</code></td>
+<td>LVGL UI 公共页面</td>
+<td>导航中显示 <code>System</code></td>
+</tr>
+<tr>
+<td><code>Compass</code></td>
+<td>固件包含指南针功能</td>
+<td>导航中显示 <code>Compass</code></td>
+</tr>
+<tr>
+<td><code>Find Friend</code></td>
+<td>当前项目中随指南针功能一同启用</td>
+<td>导航主区域或独立入口显示 <code>Find Friend</code></td>
+</tr>
+<tr>
+<td><code>Tracker</code></td>
+<td>固件包含地图功能</td>
+<td>导航中显示 <code>Tracker</code></td>
+</tr>
+<tr>
+<td>完整 <code>Quick Ping</code></td>
+<td>特定触摸优先构建</td>
+<td>顶部下滑后出现目标、预设和输入控件</td>
+</tr>
+<tr>
+<td><code>LNA</code></td>
+<td>硬件和固件支持 LNA 控制</td>
+<td><code>Radio</code> 页面显示 <code>LNA</code> 开关</td>
+</tr>
+<tr>
+<td><code>Buzzer</code> / 音量</td>
+<td>硬件和固件支持蜂鸣器</td>
+<td><code>System</code> 页面显示对应控件</td>
+</tr>
+</tbody>
+</table>
+<p>如果本文描述的页面或控件没有出现在设备上，通常表示当前固件未包含该能力，而不是操作失败。判断优先级应为：</p>
+<ol>
+<li>当前屏幕实际显示。</li>
+<li>设备按键丝印和硬件说明。</li>
+<li>固件发布说明或编译配置。</li>
+<li>本手册中的常见映射示例。</li>
+</ol>
+<h2 id="2">2. 首次使用</h2>
+<h3 id="21">2.1 启动前检查</h3>
+<ol>
+<li>先安装与设备频段匹配的 LoRa 天线，再开机或进行发射操作。</li>
+<li>连接电池或 USB/外部电源，确认供电稳定。</li>
+<li>需要 GPS 时，确认设备确实带 GPS 模块并正确安装天线。</li>
+<li>需要 <code>Tracker</code> 时，提前准备 SD 卡和离线 PNG 地图瓦片。</li>
+<li>开机后进入 <code>System &gt; Region</code>，选择符合当地无线电法规的区域预设。</li>
+</ol>
+<p>不要在未安装天线或没有合适假负载的情况下长时间发射。<code>Region</code> 决定 LoRa 区域和频段参数，不能仅根据其他设备的设置盲目选择。</p>
+<h3 id="22">2.2 界面组成</h3>
+<p>LVGL UI 通常由以下区域组成：</p>
+<ul>
+<li><strong>顶部栏</strong>：显示当前页面标题，以及电池或连接类状态。</li>
+<li><strong>页面内容区</strong>：显示状态、列表、开关、下拉框和操作行。</li>
+<li><strong>导航层</strong>：以网格面板或径向面板选择页面。</li>
+<li><strong>操作层</strong>：显示当前页面可用的命令，例如发送消息或指南针校准。</li>
+<li><strong>模态层</strong>：显示确认框、键盘、参数选择器、提示和错误信息。</li>
+</ul>
+<p>弹层打开后，输入会优先交给最上层。要回到页面，需逐层执行“返回”，不要假定一次返回一定直接回到 <code>Home</code>。</p>
+<h3 id="23">2.3 建议检查顺序</h3>
+<p>设备启动后通常进入 <code>Home</code>。建议按实际可用功能检查：</p>
+<ol>
+<li>在 <code>Home</code> 确认节点 ID 和 Companion 状态。</li>
+<li>在 <code>System</code> 设置正确的 <code>Region</code>。</li>
+<li>在 <code>Radio</code> 核对频率、带宽、扩频因子和发射功率。</li>
+<li>如果有 GPS，在 <code>GPS</code> 打开 <code>gps</code> 并等待 <code>fix</code>。</li>
+<li>如果有指南针，在 <code>Compass</code> 检查航向并完成校准。</li>
+<li>如果有地图，在 <code>Tracker</code> 检查 SD 卡、地图瓦片和本机位置。</li>
+<li>如果使用 Companion，再检查 USB、BLE 或 Wi-Fi 链路。</li>
+</ol>
+<h2 id="3">3. 通用交互模型</h2>
+<h3 id="31">3.1 操作语义</h3>
+<p>不同硬件会把实体按键、键盘或触摸动作转换为同一组 UI 语义：</p>
+<table>
+<thead>
+<tr>
+<th>语义</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>PREV</code> / 上一项</td>
+<td>移到上一个焦点、列表项或导航项</td>
+</tr>
+<tr>
+<td><code>NEXT</code> / 下一项</td>
+<td>移到下一个焦点、列表项或导航项</td>
+</tr>
+<tr>
+<td><code>LEFT</code> / <code>RIGHT</code></td>
+<td>横向移动、修改选择，或由当前控件解释</td>
+</tr>
+<tr>
+<td><code>ENTER</code> / 确认</td>
+<td>打开控件、切换开关、确认选项或执行操作</td>
+</tr>
+<tr>
+<td><code>ESC</code> / 返回</td>
+<td>关闭当前编辑状态或弹层；在页面根层打开导航</td>
+</tr>
+<tr>
+<td>操作菜单</td>
+<td>打开当前页面注册的附加命令</td>
+</tr>
+</tbody>
+</table>
+<p>因此，本手册中的“上一项、下一项、确认、返回、操作菜单”是功能语义，不等同于固定 GPIO 或固定按键编号。</p>
+<h3 id="32">3.2 焦点</h3>
+<p>非触摸输入依靠焦点操作。当前可操作控件通常有边框、反色或主题高亮：</p>
+<ol>
+<li>用上一项/下一项移动焦点。</li>
+<li>焦点落在屏幕外时，页面会自动滚动到对应控件。</li>
+<li>长列表会循环或分窗口加载，具体表现取决于页面。</li>
+<li>只读状态行可能参与滚动定位，但按确认不会修改数据。</li>
+</ol>
+<p>如果按确认没有反应，先移动一次焦点，确认高亮是否落在开关、下拉框或 <code>&gt;</code> 开头的操作行上。</p>
+<h3 id="33">3.3 开关、下拉框和操作行</h3>
+<p><strong>开关</strong></p>
+<ul>
+<li>焦点落在开关上后执行确认，可以切换开/关。</li>
+<li>触摸设备可以直接点击开关。</li>
+<li>如果硬件不支持或依赖条件未满足，界面会恢复原状态并显示提示。</li>
+</ul>
+<p><strong>下拉框</strong></p>
+<ol>
+<li>执行确认打开选项。</li>
+<li>用上一项/下一项或方向键浏览。</li>
+<li>再次确认保存当前选项。</li>
+<li>执行返回可取消或关闭下拉框。</li>
+</ol>
+<p><strong>操作行</strong></p>
+<ul>
+<li>通常以 <code>&gt;</code> 开头，例如 <code>&gt; Factory reset</code>。</li>
+<li>聚焦后执行确认会打开操作或二次确认。</li>
+<li>清除、复位等危险操作不会在第一次确认时立即执行。</li>
+</ul>
+<h3 id="34">3.4 返回和层级</h3>
+<p><code>ESC</code> / 返回按以下顺序处理：</p>
+<ol>
+<li>关闭屏幕键盘或当前编辑状态。</li>
+<li>关闭下拉框、确认框、提示层或操作菜单。</li>
+<li>从子页面返回上层。</li>
+<li>在普通页面根层打开导航面板。</li>
+<li>在导航面板中返回，则关闭导航并回到原页面。</li>
+</ol>
+<p>这意味着双击返回后若只关闭了下拉框，需要再次返回才能打开导航。</p>
+<h3 id="35">3.5 屏幕唤醒</h3>
+<p>屏幕超时关闭通常只关闭显示或背光，不等于设备关机。自动超时模式下，屏幕熄灭后的第一次按键或触摸可能只负责唤醒，不执行原本的点击、确认或返回动作；待屏幕亮起后再操作一次。</p>
+<h2 id="4">4. 输入方式</h2>
+<h3 id="41">4.1 单实体按键的常见映射</h3>
+<table>
+<thead>
+<tr>
+<th>按键动作</th>
+<th>常见语义</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>单击</td>
+<td>下一项</td>
+</tr>
+<tr>
+<td>双击</td>
+<td>返回</td>
+</tr>
+<tr>
+<td>三击</td>
+<td>打开操作菜单</td>
+</tr>
+<tr>
+<td>长按</td>
+<td>确认</td>
+</tr>
+</tbody>
+</table>
+<p>单键设备没有独立“上一项”时，通常通过持续单击在可用焦点间循环。</p>
+<h3 id="42">4.2 双实体按键的通用映射</h3>
+<p>以下是框架默认双键输入适配。本文称为“按键 1”和“按键 2”，实际名称以设备丝印为准。</p>
+<table>
+<thead>
+<tr>
+<th>按键动作</th>
+<th>按键 1</th>
+<th>按键 2</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>单击</td>
+<td>上一项</td>
+<td>下一项</td>
+</tr>
+<tr>
+<td>双击</td>
+<td>返回</td>
+<td>打开操作菜单</td>
+</tr>
+<tr>
+<td>长按</td>
+<td>确认</td>
+<td>确认</td>
+</tr>
+</tbody>
+</table>
+<p>部分板级实现会覆盖多击映射，例如：</p>
+<ul>
+<li>两个按键双击都作为返回。</li>
+<li>按键 1 三击作为向左。</li>
+<li>按键 2 三击作为向右。</li>
+</ul>
+<p>常见多击识别窗口约为 350 ms，长按阈值约为 1000 ms；这些是当前框架的常用默认值，板级配置可以覆盖。不要只凭按键数量推断映射，应先做一次第 4.5 节的操作自检。</p>
+<h3 id="43">4.3 键盘</h3>
+<p>带键盘或键盘输入桥接的设备通常使用：</p>
+<table>
+<thead>
+<tr>
+<th>键</th>
+<th>语义</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>方向键</td>
+<td>移动焦点或修改当前选择</td>
+</tr>
+<tr>
+<td><code>Enter</code></td>
+<td>确认</td>
+</tr>
+<tr>
+<td><code>Esc</code></td>
+<td>返回或关闭最上层</td>
+</tr>
+</tbody>
+</table>
+<p>字母和数字键只有在屏幕键盘、文本输入或对应页面明确接收文本时才有效。</p>
+<h3 id="44">4.4 触摸和手势</h3>
+<p>触摸构建可能支持以下动作：</p>
+<table>
+<thead>
+<tr>
+<th>动作</th>
+<th>常见结果</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>点击</td>
+<td>聚焦、切换开关、打开下拉框或执行操作</td>
+</tr>
+<tr>
+<td>在可滚动内容上上下拖动</td>
+<td>滚动页面或列表</td>
+</tr>
+<tr>
+<td>从左边缘向右滑</td>
+<td>打开导航</td>
+</tr>
+<tr>
+<td>在导航面板上向左滑</td>
+<td>关闭导航</td>
+</tr>
+<tr>
+<td>从顶部向下滑</td>
+<td>触摸优先构建打开 <code>Quick Ping</code>；其他构建可能打开操作菜单</td>
+</tr>
+<tr>
+<td>普通左右滑</td>
+<td>仅在支持顺序切页的构建中切换相邻页面</td>
+</tr>
+<tr>
+<td>点击顶部标题</td>
+<td>仅在启用顶部触摸入口的构建中打开或关闭导航</td>
+</tr>
+<tr>
+<td>在 <code>Tracker</code> 地图区域拖动</td>
+<td>平移地图，不触发页面切换</td>
+</tr>
+</tbody>
+</table>
+<p>网格导航构建不保证普通左右滑可以切页。地图、滚轮、下拉列表和可滚动区域会优先处理自己的手势。</p>
+<h3 id="45">4.5 输入映射自检</h3>
+<p>不确定设备按键映射时，可以在不会修改关键设置的页面测试：</p>
+<ol>
+<li>进入 <code>GPS</code> 或 <code>System</code>，短按各按键，观察焦点向哪个方向移动。</li>
+<li>长按任一按键，确认下拉框是否打开，然后立即返回，不保存修改。</li>
+<li>在普通页面执行返回，确认是否打开导航。</li>
+<li>在 <code>Radio</code> 页面尝试操作菜单，确认能否看到 <code>send message</code> 和 <code>send advert</code>。</li>
+<li>记录实际映射，后续按语义使用。</li>
+</ol>
+<h2 id="5">5. 页面导航</h2>
+<h3 id="51">5.1 两种导航外观</h3>
+<table>
+<thead>
+<tr>
+<th>导航方式</th>
+<th>外观和特点</th>
+<th>操作</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>网格导航</td>
+<td>页面图标按网格排列，条件功能可能放在独立底部入口</td>
+<td>移动选择，确认进入，返回关闭</td>
+</tr>
+<tr>
+<td>径向导航</td>
+<td>页面图标沿圆环或弧形排列，可以顺序预览</td>
+<td>前后/左右移动，确认进入，返回关闭</td>
+</tr>
+</tbody>
+</table>
+<p>导航外观由固件构建决定，不能在 <code>System</code> 中切换。</p>
+<h3 id="52">5.2 打开和关闭导航</h3>
+<p>可用入口取决于输入设备：</p>
+<ul>
+<li>在普通页面根层执行返回。</li>
+<li>触摸设备从左边缘向右滑。</li>
+<li>部分触摸构建点击顶部标题。</li>
+</ul>
+<p>导航打开后：</p>
+<ol>
+<li>当前页面通常作为初始选中项。</li>
+<li>用方向、上一项/下一项或直接点击选择页面。</li>
+<li>执行确认进入。</li>
+<li>执行返回或反向滑出关闭导航，仍停留在原页面。</li>
+</ol>
+<h3 id="53">5.3 页面顺序</h3>
+<p>框架的逻辑页面顺序为：</p>
+<pre><code class="language-text">Home
+Recent
+Radio
+Compass（可选）
+Find Friend（可选）
+GPS
+Tracker（可选）
+System
+</code></pre>
+<p>网格中的视觉排列可能与该顺序不同，<code>Find Friend</code> 也可能显示为独立入口。需要进入指定页面时，以导航图标和标题为准。</p>
+<h2 id="6">6. 公共页面</h2>
+<h3 id="61-home">6.1 Home</h3>
+<p><code>Home</code> 是设备状态首页，可能显示：</p>
+<ul>
+<li><code>ID: ...</code>：本节点 ID。</li>
+<li><code>MSG: ...</code>：未读消息数量，不是历史消息总数。</li>
+<li><code>COMP: idle</code>：Companion 链路当前空闲。</li>
+<li><code>Pin: ...</code>：等待 Companion 配对时的 PIN。</li>
+<li><code>&lt; Connected &gt;</code>：Companion 已连接。</li>
+<li>顶部电池图标：电池电量估算。</li>
+</ul>
+<p><code>Recent</code> 不是消息历史页。收到新消息后，未读计数可能增加，消息内容由预览弹层或 Companion 客户端读取。</p>
+<h3 id="62-recent">6.2 Recent</h3>
+<p><code>Recent</code> 显示最近听到的节点 Advert，通常每行包含：</p>
+<ul>
+<li>节点名称。</li>
+<li>距离上次听到该 Advert 的时间，例如秒、分钟或小时。</li>
+</ul>
+<p>用上一项/下一项浏览列表，触摸设备也可上下滚动。列表时间依赖 RTC；RTC 未同步时，节点“多久前听到”的显示可能不准确。</p>
+<p>该页面不显示完整消息内容、消息发送历史或精确节点距离。</p>
+<h3 id="63-radio">6.3 Radio</h3>
+<p><code>Radio</code> 用于查看当前无线参数和最近一次接收状态：</p>
+<table>
+<thead>
+<tr>
+<th>字段</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>FQ</code></td>
+<td>当前工作频率</td>
+</tr>
+<tr>
+<td><code>SF</code></td>
+<td>LoRa 扩频因子</td>
+</tr>
+<tr>
+<td><code>BW</code></td>
+<td>带宽</td>
+</tr>
+<tr>
+<td><code>CR</code></td>
+<td>编码率</td>
+</tr>
+<tr>
+<td><code>TX</code></td>
+<td>发射功率</td>
+</tr>
+<tr>
+<td><code>NF</code></td>
+<td>噪声底</td>
+</tr>
+<tr>
+<td><code>RSSI</code></td>
+<td>最近一次有效接收的信号强度</td>
+</tr>
+<tr>
+<td><code>SNR</code></td>
+<td>最近一次有效接收的信噪比</td>
+</tr>
+</tbody>
+</table>
+<p>尚无有效接收时，<code>RSSI</code> 和 <code>SNR</code> 可能显示 <code>--</code>。它们是无线链路测量值，不代表地图距离。</p>
+<p>硬件支持时还会显示 <code>LNA</code> 开关。切换失败并提示 <code>LNA unavailable</code>，表示当前硬件状态或固件不接受该操作。</p>
+<p><code>Radio</code> 页面的操作菜单通常包含：</p>
+<ul>
+<li><code>send message</code></li>
+<li><code>send advert</code></li>
+</ul>
+<p>LoRa 区域预设在 <code>System &gt; Region</code> 中设置。</p>
+<h3 id="64-gps">6.4 GPS</h3>
+<p><code>GPS</code> 页面可能包含以下控件：</p>
+<ul>
+<li><code>gps</code>：GPS 功能总开关。</li>
+<li><code>location share</code>：是否在节点 Advert 中分享位置。</li>
+<li><code>adv interval</code>：位置 Advert 周期，仅在位置分享开启时显示。</li>
+<li><code>gps track</code>：GPS 轨迹记录，仅在固件包含轨迹能力时显示。</li>
+</ul>
+<p>页面还会显示卫星数、纬度、经度、海拔和速度。主要状态含义如下：</p>
+<table>
+<thead>
+<tr>
+<th>屏幕状态</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>can't access gps</code></td>
+<td>固件无法访问 GPS 硬件</td>
+</tr>
+<tr>
+<td><code>gps off</code></td>
+<td>GPS 功能已关闭</td>
+</tr>
+<tr>
+<td><code>gps sleep</code></td>
+<td>GPS 已启用，但当前未被电源策略供电</td>
+</tr>
+<tr>
+<td><code>no fix</code></td>
+<td>GPS 正在工作，尚未获得有效定位</td>
+</tr>
+<tr>
+<td><code>fix</code></td>
+<td>已获得有效定位</td>
+</tr>
+</tbody>
+</table>
+<p>打开 <code>location share</code>、<code>gps track</code> 或需要连续定位的功能时，框架会尝试自动启用 GPS。硬件不可用时会恢复开关并提示 <code>gps unavailable</code>。</p>
+<h4 id="_1">位置分享</h4>
+<p><code>location share</code> 会把本机位置写入节点 Advert，使其他节点能够保存并显示本机的最近位置。常见 <code>adv interval</code> 选项为：</p>
+<ul>
+<li><code>30s</code></li>
+<li><code>1m</code></li>
+<li><code>3m</code></li>
+<li><code>5m</code></li>
+<li><code>10m</code></li>
+</ul>
+<p>实际选项以屏幕下拉框为准。周期越短，位置更新越及时，但 GPS、发射活动和电池消耗通常越高。</p>
+<p>位置分享有明确隐私影响：</p>
+<ul>
+<li>只在可信 Mesh 网络和必要场景中开启。</li>
+<li>离开测试区域或不希望暴露位置时及时关闭。</li>
+<li>调大 Advert 周期只能降低更新频率，不能消除位置暴露。</li>
+</ul>
+<h4 id="gps">GPS 轨迹</h4>
+<p>打开 <code>gps track</code> 后，设备在获得有效定位时写入内部轨迹文件：</p>
+<ul>
+<li>第一条有效定位作为起点。</li>
+<li>后续位置通常至少移动约 50 m 才新增轨迹点。</li>
+<li>当前实现最多约 600 个点，达到上限后自动停止。</li>
+<li>关闭 <code>gps track</code> 会结束当前轨迹文件。</li>
+<li>当前 LVGL UI 没有本地轨迹浏览页。</li>
+</ul>
+<p>轨迹通过 Companion JSON 协议分批导出。导出前先关闭 <code>gps track</code>；仍在记录时，请求会返回 <code>recording_active</code>。</p>
+<h3 id="65-system">6.5 System</h3>
+<p><code>System</code> 集中显示设备级设置。控件会按硬件和构建能力增减。</p>
+<h4 id="region">Region</h4>
+<p><code>Region</code> 包含：</p>
+<ul>
+<li><code>Custom/fwd</code>：当前自定义或 Repeat 状态入口，不是普通地区预设。</li>
+<li>固件提供的 LoRa 区域/频段预设。</li>
+</ul>
+<p>选择预设后会保存无线配置。若 Repeat Mode 正在运行，改变 <code>Region</code> 会关闭转发，避免旧转发参数继续生效。</p>
+<p>必须选择符合设备射频能力和当地法规的区域。</p>
+<h4 id="enable-repeat-mode">Enable Repeat Mode</h4>
+<p>打开 <code>Enable Repeat Mode</code> 后，界面会要求选择转发频率。当前实现常见候选为 433 MHz、869 MHz 和 918 MHz，但实际可选和可用范围取决于构建、射频芯片及法规。</p>
+<p>以下提示表示参数未被接受：</p>
+<ul>
+<li><code>Frequency unsupported</code></li>
+<li><code>Invalid radio params</code></li>
+<li><code>Repeat mode unavailable</code></li>
+</ul>
+<p>Repeat Mode 会改变设备网络角色并增加无线活动，不需要时应关闭。</p>
+<h4 id="screen-off">Screen off</h4>
+<p><code>Screen off</code> 设置自动关闭显示的时间。常见选项为 10、15、20、25、30 秒，实际值以当前下拉框为准。</p>
+<p>屏幕关闭不等于设备关机，LoRa、GPS 轨迹、位置分享和 Companion 等后台任务可继续运行。并非所有构建都提供独立 <code>Power off</code> 菜单。</p>
+<h4 id="bluetooth">Bluetooth</h4>
+<p><code>Bluetooth</code> 控制固件暴露的蓝牙或 Companion 链路能力，不是 LoRa 无线开关。实际传输介质可以由构建配置为 USB、BLE 或 Wi-Fi；因此：</p>
+<ul>
+<li>不要用该开关判断 LoRa 是否工作。</li>
+<li>USB-only 构建不会因为手机开启蓝牙而变成 BLE 设备。</li>
+<li>BLE 配对 PIN 以本次会话 <code>Home</code> 页面显示为准。</li>
+</ul>
+<h4 id="buzzer">Buzzer</h4>
+<p>只有设备定义了蜂鸣器时才显示 <code>Buzzer</code>。支持音量控制的设备还会显示音量调节控件。关闭蜂鸣器只影响提示音，不关闭消息接收。</p>
+<h2 id="7">7. 条件页面</h2>
+<h3 id="71-compass">7.1 Compass</h3>
+<p><code>Compass</code> 仅在固件包含指南针功能时出现，页面可能显示：</p>
+<ul>
+<li>指南针盘和航向指针。</li>
+<li><code>HDG</code>：当前航向角。</li>
+<li><code>Q</code>：校准质量。</li>
+<li>磁场 X、Y、Z 分量。</li>
+</ul>
+<p>常见状态：</p>
+<table>
+<thead>
+<tr>
+<th>状态</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>No compass</code></td>
+<td>未发现指南针模块或硬件不可访问</td>
+</tr>
+<tr>
+<td><code>Starting...</code></td>
+<td>传感器正在启动，尚无稳定航向</td>
+</tr>
+<tr>
+<td><code>Q</code> 较低</td>
+<td>当前校准质量不足，航向可能偏差较大</td>
+</tr>
+</tbody>
+</table>
+<h4 id="_2">指南针校准</h4>
+<p>校准质量不足时，界面可能自动打开校准流程；也可以在 <code>Compass</code> 的操作菜单选择 <code>calibrate</code>：</p>
+<ol>
+<li>远离磁铁、扬声器、大电流导线和大块金属。</li>
+<li>按屏幕提示将设备缓慢做“8”字运动，并改变各轴朝向。</li>
+<li>观察 <code>Q</code> 和质量连续计数。</li>
+<li>出现 <code>Calibration OK</code> 后关闭校准层。</li>
+<li>若显示 <code>Calibration failed</code>，换到磁干扰更小的位置重试。</li>
+</ol>
+<p><code>No compass module / Hardware missing</code> 表示缺少硬件，继续转动设备不会解决。<code>Quality OK / Save failed</code> 表示测量质量已达标，但校准参数未能保存，应检查内部存储后重试。</p>
+<h3 id="72-find-friend">7.2 Find Friend</h3>
+<p><code>Find Friend</code> 用于根据本机位置、目标位置和指南针航向显示前往目标的相对方向与距离。它需要：</p>
+<ul>
+<li>GPS 硬件可用。</li>
+<li>本机已获得有效 GPS fix。</li>
+<li>目标联系人带有效位置，或已输入有效 waypoint。</li>
+<li>指南针提供有效航向，才能把地理方位转换为设备相对方向。</li>
+</ul>
+<h4 id="_3">启用和模式</h4>
+<ol>
+<li>打开 <code>enable</code>。框架会请求 GPS；无法启用时提示 <code>GPS unavailable</code>。</li>
+<li>在 <code>mode</code> 选择：</li>
+<li><code>friend</code>：导航到带位置的联系人。</li>
+<li><code>waypoint</code>：导航到指定经纬度。</li>
+<li>选择目标后观察方向盘和距离。</li>
+</ol>
+<h4 id="friend">Friend 模式</h4>
+<ol>
+<li>选择 <code>mode &gt; friend</code>。</li>
+<li>在 <code>friend</code> 下拉框选择联系人。</li>
+<li>若没有可用目标，下拉框显示 <code>(none)</code>。</li>
+</ol>
+<p>联系人位置来自最近保存的 Advert，不是实时连续跟踪。对方关闭位置分享或很久没有更新时，方向和距离仍可能基于旧位置。</p>
+<h4 id="waypoint">Waypoint 模式</h4>
+<p>选择 <code>mode &gt; waypoint</code> 后，可以使用：</p>
+<ul>
+<li><code>&gt; use current gps</code>：把本机当前 GPS 坐标保存为 waypoint；没有 fix 时提示 <code>Need GPS fix</code>。</li>
+<li><code>&gt; enter lat,lon</code>：手动输入 <code>纬度,经度</code>。</li>
+</ul>
+<p>纬度和经度应使用十进制度数，例如：</p>
+<pre><code class="language-text">31.230400,121.473700
+</code></pre>
+<p>纬度范围为 -90 到 90，经度范围为 -180 到 180。保存成功提示 <code>Waypoint saved</code>。</p>
+<h4 id="_4">运行状态</h4>
+<table>
+<thead>
+<tr>
+<th>状态</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>starting...</code></td>
+<td>正在等待传感器或方向数据</td>
+</tr>
+<tr>
+<td><code>need gps</code></td>
+<td>本机没有有效 GPS fix</td>
+</tr>
+<tr>
+<td><code>nearby</code></td>
+<td>已非常接近目标，不再给出稳定转向</td>
+</tr>
+<tr>
+<td>距离数值</td>
+<td>已计算本机到目标的距离</td>
+</tr>
+</tbody>
+</table>
+<p>只有目标、GPS 和航向都有效时，方向指针才具有完整意义。指南针未校准会直接影响相对方向，应先完成 <code>Compass</code> 校准。</p>
+<h3 id="73-tracker">7.3 Tracker</h3>
+<p><code>Tracker</code> 是条件编译的离线地图页面，可以显示：</p>
+<ul>
+<li>本机有效 GPS 位置。</li>
+<li>已收到且包含有效位置的节点。</li>
+<li>当前缩放级别和地图中心。</li>
+<li>SD 卡与瓦片加载状态。</li>
+</ul>
+<p>地图工具通常包含：</p>
+<table>
+<thead>
+<tr>
+<th>控件</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>-</code></td>
+<td>缩小一级</td>
+</tr>
+<tr>
+<td><code>+</code></td>
+<td>放大一级</td>
+</tr>
+<tr>
+<td><code>G</code></td>
+<td>回到当前有效 GPS 位置</td>
+</tr>
+</tbody>
+</table>
+<p>没有有效 GPS 时，<code>G</code> 可能隐藏。用户平移地图后，GPS 更新不会强制把地图拉回中心；执行 <code>G</code> 才重新居中。</p>
+<p>其他节点的地图标记表示设备最后保存的有效位置，不是实时位置流。没有位置的联系人不会绘制。</p>
+<h2 id="8-advert">8. 消息和 Advert</h2>
+<h3 id="81">8.1 两类操作入口</h3>
+<p>当前框架存在两种常见入口：</p>
+<table>
+<thead>
+<tr>
+<th>入口</th>
+<th>常见构建</th>
+<th>能力</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>页面操作菜单</td>
+<td>单键、双键、键盘或普通手势构建</td>
+<td>当前页面命令，例如发送消息、Advert、校准</td>
+</tr>
+<tr>
+<td>完整 <code>Quick Ping</code></td>
+<td>特定触摸优先构建</td>
+<td>直接选择目标、预设消息或自定义消息</td>
+</tr>
+</tbody>
+</table>
+<p><code>Quick Ping</code> 并不是所有 LVGL UI 的公共页面。设备只有页面操作菜单时，应从 <code>Radio &gt; send message</code> 进入发送流程。</p>
+<h3 id="82">8.2 发送消息</h3>
+<p>通用发送流程为：</p>
+<ol>
+<li>打开 <code>Radio</code> 的操作菜单。</li>
+<li>选择 <code>send message</code>。</li>
+<li>选择接收目标：</li>
+<li><code>broadcast</code>：广播。</li>
+<li><code>group</code>：选择频道。</li>
+<li><code>personal</code>：选择联系人。</li>
+<li>选择预设消息或 <code>custom...</code>。</li>
+<li>输入自定义消息时，完成键盘输入并确认。</li>
+</ol>
+<p>预设消息包括：</p>
+<pre><code class="language-text">hi
+bye
+yes
+no
+ok
+</code></pre>
+<p>完整触摸 <code>Quick Ping</code> 还可以把目标直接设为 <code>advert</code>。<code>advert</code> 会发送本机 Advert，不发送文本。</p>
+<h3 id="83">8.3 发送结果</h3>
+<ul>
+<li><code>Queued</code>：消息已加入本机发送队列，不代表所有目标已经收到。</li>
+<li><code>Failed</code>：请求未能加入发送流程或发送准备失败。</li>
+<li><code>No group channels</code>：没有可用群组频道。</li>
+<li><code>No contacts</code>：没有可用个人联系人。</li>
+<li><code>Message too long</code>：消息超过当前限制。</li>
+</ul>
+<p>当前自定义消息上限为 120 个字符，空消息不会发送。</p>
+<h3 id="84-advert">8.4 发送 Advert</h3>
+<p>Advert 用于发布本机节点信息，并可在位置分享开启时携带位置。可以通过：</p>
+<ul>
+<li><code>Radio &gt; 操作菜单 &gt; send advert</code></li>
+<li>完整 <code>Quick Ping</code> 中的 <code>advert</code></li>
+</ul>
+<p>Advert 不是聊天消息。频繁手动发送会增加信道占用和电量消耗。</p>
+<h2 id="9-tracker">9. Tracker 地图准备</h2>
+<h3 id="91">9.1 地图格式的正式名称</h3>
+<p>当前 Tracker 地图格式可正式称为：</p>
+<blockquote>
+<p>Web Mercator（EPSG:3857）XYZ Raster Tiles，也称 Slippy Map PNG Tiles。</p>
+</blockquote>
+<p>它不是一张完整大图，而是一组按缩放级别 <code>z</code>、横向瓦片编号 <code>x</code> 和纵向瓦片编号 <code>y</code> 组织的 PNG 图片。地理位置由目录路径决定，图片内部不需要额外坐标元数据。</p>
+<h3 id="92">9.2 文件硬性要求</h3>
+<ul>
+<li>投影：Web Mercator，EPSG:3857。</li>
+<li>瓦片编号：XYZ，不能使用 Y 轴翻转的 TMS 编号。</li>
+<li>图片格式：PNG，小写扩展名 <code>.png</code>。</li>
+<li>瓦片尺寸：256 x 256 像素。</li>
+<li>缩放范围：2 到 18。</li>
+<li>推荐颜色格式：常规 8-bit RGB 或 RGBA PNG。</li>
+<li>文件名：<code>z</code>、<code>x</code>、<code>y</code> 必须是十进制数字。</li>
+</ul>
+<p>建议避免交错 PNG、异常大色深或非标准编码，以降低嵌入式 PNG 解码失败的概率。</p>
+<h3 id="93-sd">9.3 SD 卡目录</h3>
+<p>推荐布局如下。这里“SD 卡根目录”指插卡后看到的根目录，不需要再创建名为 <code>SD</code> 的文件夹。</p>
+<pre><code class="language-text">SD 卡根目录/
+└── maps/
+    └── osm/
+        └── 13/
+            └── 6812/
+                └── 3351.png
+</code></pre>
+<p>路径规则：</p>
+<pre><code class="language-text">maps/{style}/{z}/{x}/{y}.png
+</code></pre>
+<p>当前实现还兼容：</p>
+<pre><code class="language-text">tiles/{z}/{x}/{y}.png
+maps/{style}/{z}/{x}/{y}/{y}.png
+</code></pre>
+<p><code>style</code> 建议使用 <code>osm</code>，并只使用字母、数字、下划线、连字符和点号。</p>
+<h3 id="94">9.4 自动识别</h3>
+<p>默认样式为 <code>osm</code>，默认缩放级别为 13。进入 <code>Tracker</code> 后，固件会扫描 SD 卡：</p>
+<ul>
+<li>优先查找已保存样式和 <code>maps/osm</code>。</li>
+<li>已保存样式不存在时，尝试其他包含有效瓦片的样式目录。</li>
+<li>已保存缩放级别没有瓦片时，在 2 到 18 中选择附近可用级别。</li>
+<li>也可以识别没有样式层的 <code>tiles/{z}/{x}/{y}.png</code>。</li>
+</ul>
+<p>地图中心、缩放和样式偏好保存在内部文件系统，PNG 文件保存在 SD 卡，两者彼此独立。</p>
+<h3 id="95">9.5 不能直接使用的文件</h3>
+<p>以下内容不能直接作为 Tracker 地图：</p>
+<ul>
+<li>一张完整的 JPG 或 PNG 大图。</li>
+<li>JPG 瓦片。</li>
+<li>MBTiles 数据库。</li>
+<li>PBF 矢量瓦片或 OSM PBF 数据。</li>
+<li>GeoTIFF。</li>
+<li>TMS 编号瓦片。</li>
+<li>只有 <code>z/x/y</code> 目录但没有 PNG 图片的空地图包。</li>
+</ul>
+<p>如果手头只有大 PNG、MBTiles、PBF 或 GeoTIFF，必须先重投影、切片并导出为符合目录规则的 XYZ PNG。</p>
+<h3 id="96-png">9.6 免费数据和 PNG 来源</h3>
+<p>可从以下公开资源开始准备地图，但“免费访问”不等于允许无限批量下载：</p>
+<table>
+<thead>
+<tr>
+<th>来源</th>
+<th>地址</th>
+<th>得到的内容</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>OpenStreetMap 数据</td>
+<td><a href="https://planet.openstreetmap.org/">planet.openstreetmap.org</a></td>
+<td>原始 OSM 数据，需要自行渲染</td>
+</tr>
+<tr>
+<td>Geofabrik</td>
+<td><a href="https://download.geofabrik.de/">download.geofabrik.de</a></td>
+<td>分地区 OSM PBF，需要自行渲染</td>
+</tr>
+<tr>
+<td>BBBike Extract</td>
+<td><a href="https://extract.bbbike.org/">extract.bbbike.org</a></td>
+<td>自选区域数据，需要转换</td>
+</tr>
+<tr>
+<td>QGIS</td>
+<td><a href="https://qgis.org/">qgis.org</a></td>
+<td>可重投影、处理和导出地图</td>
+</tr>
+<tr>
+<td>Mobile Atlas Creator</td>
+<td><a href="https://mobac.sourceforge.io/">mobac.sourceforge.io</a></td>
+<td>可制作离线瓦片包，数据源授权需单独确认</td>
+</tr>
+</tbody>
+</table>
+<p>技术上，XYZ 服务可以直接返回 PNG，例如：</p>
+<pre><code class="language-text">https://tile.openstreetmap.org/{z}/{x}/{y}.png
+https://tile.opentopomap.org/{z}/{x}/{y}.png
+</code></pre>
+<p>这些公共服务通常限制批量抓取、离线预取、请求速率和使用场景。OpenStreetMap 标准瓦片服务尤其不应作为大范围离线地图包的批量下载源。实际制作地图前，应阅读对应服务当前的 Tile Usage Policy、授权和署名要求。</p>
+<p>稳妥的免费方案是下载允许离线处理的 OSM 数据，在本地渲染并导出所需区域和缩放级别的 XYZ PNG。固件不会自动联网下载地图。</p>
+<h3 id="97">9.7 容量估算</h3>
+<p>某一级缩放中，区域覆盖的瓦片数量约为：</p>
+<pre><code class="language-text">瓦片数 = 横向 x 数量 × 纵向 y 数量
+容量约等于所有瓦片 PNG 文件大小之和
+</code></pre>
+<p>缩放级别每提高一级，同一区域的瓦片数量通常约增至 4 倍。只准备实际活动区域和需要的缩放级别，可显著减少 SD 卡容量、扫描时间和文件数量。</p>
+<h2 id="10-rtc">10. RTC 时间同步</h2>
+<p>当前项目没有使用 NTP、SNTP 或 Wi-Fi <code>configTime()</code> 自动校时。RTC 主要通过以下方式获得时间。</p>
+<h3 id="101">10.1 从联系人时间恢复</h3>
+<p>设备启动并加载联系人后，会参考联系人记录中最新的本地修改时间恢复 RTC。该机制主要维持排序、去重和时间戳单调递增，不能保证绝对时间准确。</p>
+<h3 id="102-companion">10.2 Companion 设置时间</h3>
+<p>Companion 可以发送 <code>CMD_SET_DEVICE_TIME</code>。固件只接受不早于当前 RTC 的时间，尝试把时间调回过去会被拒绝。</p>
+<p>这是带 Companion 设备最直接的校时方式。</p>
+<h3 id="103-gps">10.3 GPS 自动校时</h3>
+<p>GPS NMEA 提供连续有效时间样本后，固件会写入 RTC。自动校时完成后通常约 30 分钟才允许再次自动校时。GPS 提供 UTC，设备内部时间戳也按 UTC 处理。</p>
+<h3 id="104-cli">10.4 CLI 或串口</h3>
+<p>支持 CLI 的构建可以使用：</p>
+<pre><code class="language-text">clock
+clock sync
+time &lt;unix_epoch_seconds&gt;
+</code></pre>
+<ul>
+<li><code>clock</code>：查询当前 UTC。</li>
+<li><code>clock sync</code>：使用发送方时间同步。</li>
+<li><code>time</code>：使用 Unix epoch 秒数设置。</li>
+</ul>
+<p>这些入口同样不允许时间倒退。</p>
+<h3 id="105">10.5 时间不准确时</h3>
+<p>外置 RTC、ESP32 RTC 或易失性 RTC 负责保存和提供当前时间，但它们本身不是网络时间源。设备刚恢复出厂、没有有效联系人、未连接 Companion 且 GPS 尚未提供有效时间时，RTC 可能不准确。</p>
+<p>建议优先级：</p>
+<ol>
+<li>Companion 设置时间。</li>
+<li>GPS 自动校时。</li>
+<li>CLI/串口手动设置。</li>
+<li>联系人时间恢复仅作为保底。</li>
+</ol>
+<h2 id="11_1">11. 电源和屏幕行为</h2>
+<p>当前项目由 <code>PowerMgr</code> 协调电池、外部供电、背光和 GPS 供电需求。用户不直接操作 <code>PowerMgr</code>，但会看到以下结果。</p>
+<h3 id="111">11.1 电池和外部供电</h3>
+<ul>
+<li>顶部电池图标显示估算电量。</li>
+<li>参考默认实现约每 10 秒采样一次电池电压。</li>
+<li>参考默认实现约每 1 秒检测一次 USB/外部供电状态。</li>
+<li>参考默认电量曲线把约 3000 mV 到 4200 mV 映射为 0% 到 100%。</li>
+</ul>
+<p>以上是当前框架默认值或参考值，板级实现可以覆盖采样周期、电压曲线和外部供电检测。电池图标不是精密容量计；发射、GPS、背光和 SD 卡访问都会造成电压波动。</p>
+<h3 id="112-gps">11.2 GPS 供电需求</h3>
+<p>GPS 不一定始终供电。以下功能会请求 GPS：</p>
+<ul>
+<li><code>GPS</code> 页面在前台。</li>
+<li><code>Tracker</code> 页面在前台。</li>
+<li><code>location share</code> 进入位置 Advert 时间窗口。</li>
+<li><code>gps track</code> 正在记录。</li>
+<li><code>Find Friend</code> 等需要连续定位的条件功能。</li>
+</ul>
+<p>只有 GPS 已启用、硬件可用并且存在有效需求时，<code>PowerMgr</code> 才会保持 GPS 供电。供电启动失败时，参考默认重试间隔约为 1 秒。</p>
+<p>屏幕关闭后，前台 GPS/Tracker 需求通常保留约 30 秒宽限期；若没有其他需求，宽限期结束后 GPS 才可能休眠。因此离开地图或屏幕熄灭后，GPS 不立即断电属于预期行为。该宽限时间可由构建覆盖。</p>
+<h3 id="113">11.3 省电建议</h3>
+<ol>
+<li>不需要共享位置时关闭 <code>location share</code>。</li>
+<li>轨迹结束后关闭 <code>gps track</code>，让轨迹文件正常结束。</li>
+<li>不需要导航时关闭 <code>Find Friend</code>。</li>
+<li>不查看地图时离开 <code>Tracker</code>。</li>
+<li>把 <code>Screen off</code> 设置为合适的短时间。</li>
+<li>不需要转发时关闭 <code>Enable Repeat Mode</code>。</li>
+<li>不使用 Companion 时关闭不需要的无线链路。</li>
+</ol>
+<h2 id="12-companion">12. Companion 使用</h2>
+<h3 id="121">12.1 连接状态</h3>
+<p>在 <code>Home</code> 查看：</p>
+<ul>
+<li><code>COMP: idle</code>：链路已就绪但当前空闲，或尚未建立会话。</li>
+<li><code>Pin: ...</code>：等待需要 PIN 的配对。</li>
+<li><code>&lt; Connected &gt;</code>：已连接。</li>
+</ul>
+<p>BLE 配对时使用本次会话屏幕显示的 PIN，不要假定固定 PIN。连接介质由固件决定：</p>
+<ul>
+<li>USB Companion：通过 USB 串口。</li>
+<li>BLE Companion：通过手机或电脑的 BLE。</li>
+<li>Wi-Fi Companion：通过对应网络配置。</li>
+</ul>
+<h3 id="122-companion">12.2 Companion 可以完成的工作</h3>
+<ul>
+<li>同步联系人、频道和消息。</li>
+<li>读取未读消息。</li>
+<li>发送个人、群组和广播消息。</li>
+<li>请求发送本机 Advert。</li>
+<li>设置或读取设备时间。</li>
+<li>在 GPS 轨迹结束后分批导出轨迹。</li>
+</ul>
+<p>具体帧格式、JSON 命令、服务 UUID 和错误码见 <a href="../companion_protocol/">Companion Protocol</a>。</p>
+<h3 id="123">12.3 连接异常</h3>
+<ul>
+<li>BLE 搜不到设备：确认固件确实包含 BLE Companion，而不是 USB-only 构建。</li>
+<li>PIN 不正确：使用当前屏幕 PIN，并清除客户端旧配对记录后重试。</li>
+<li>USB 无响应：检查数据线是否支持数据传输、串口权限和端口选择。</li>
+<li>Wi-Fi 不可用：确认当前固件包含 Wi-Fi Companion 及必要网络配置。</li>
+<li>频繁断开：避免在 <code>Factory reset</code> 或重启过程中保持会话，客户端应支持重连。</li>
+</ul>
+<h2 id="13">13. 数据清除和恢复出厂</h2>
+<p><code>System</code> 中的两个清除操作都会二次确认：</p>
+<table>
+<thead>
+<tr>
+<th>操作</th>
+<th>主要影响</th>
+<th>是否重启</th>
+<th>是否删除 SD 地图</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Clear data</code></td>
+<td>清除联系人、消息文件和相关用户数据，清零未读消息</td>
+<td>否</td>
+<td>否</td>
+</tr>
+<tr>
+<td><code>Factory reset</code></td>
+<td>格式化内部文件系统并恢复内部配置</td>
+<td>是</td>
+<td>否</td>
+</tr>
+</tbody>
+</table>
+<p><code>Factory reset</code> 会删除内部保存的节点偏好、地图中心、缩放、样式和其他内部文件。SD 卡位于独立存储介质，<code>maps</code>、<code>tiles</code> 和 PNG 文件不会被该操作格式化。</p>
+<p>执行前应通过 Companion 导出需要保留的联系人、频道、消息和 GPS 轨迹。清除后不能从本地 UI 撤销。</p>
+<h2 id="14">14. 常见问题</h2>
+<h3 id="141">14.1 按键只移动焦点，不能确认</h3>
+<ul>
+<li>短按通常负责移动，长按通常负责确认。</li>
+<li>确认焦点是否落在可操作控件上。</li>
+<li>屏幕刚被唤醒时，第一次按键可能只唤醒显示。</li>
+<li>按第 4.5 节重新识别当前设备映射。</li>
+</ul>
+<h3 id="142">14.2 返回后没有打开导航</h3>
+<p>当前可能还有下拉框、键盘或弹层。继续逐层返回，直到普通页面根层，再执行返回。触摸设备也可从左边缘向右滑。</p>
+<h3 id="143">14.3 找不到某个页面</h3>
+<ul>
+<li><code>Compass</code> 和 <code>Find Friend</code> 需要指南针功能。</li>
+<li><code>Tracker</code> 需要地图功能。</li>
+<li>GPS 页面存在不代表一定装有 GPS 硬件。</li>
+<li>网格导航中的条件入口可能位于底部或不同位置。</li>
+</ul>
+<p>以当前导航显示为准。</p>
+<h3 id="144-gps-no-fix">14.4 GPS 一直显示 <code>no fix</code></h3>
+<ul>
+<li>把设备移到室外开阔位置。</li>
+<li>确认 GPS 天线、串口和供电。</li>
+<li>保持 <code>GPS</code>、<code>Tracker</code> 或其他 GPS 需求功能活动，等待冷启动。</li>
+<li><code>gps off</code> 表示需要打开 GPS。</li>
+<li><code>gps sleep</code> 表示当前没有有效供电需求。</li>
+<li><code>can't access gps</code> 应重点检查硬件和固件能力。</li>
+</ul>
+<h3 id="145">14.5 位置分享开启但其他节点看不到</h3>
+<ul>
+<li>先确认本机 GPS 状态为 <code>fix</code>。</li>
+<li>等待下一个 <code>adv interval</code>。</li>
+<li>检查 LoRa Region 和链路参数是否一致。</li>
+<li>对方看到的是最近收到的 Advert，不是实时连接。</li>
+</ul>
+<h3 id="146-find-friend">14.6 Find Friend 没有方向</h3>
+<ul>
+<li>确认 <code>enable</code> 已打开。</li>
+<li>确认本机 GPS 为 <code>fix</code>。</li>
+<li>Friend 模式确认联系人带有效位置。</li>
+<li>Waypoint 模式确认经纬度已保存。</li>
+<li>在 <code>Compass</code> 确认硬件可用并完成校准。</li>
+<li>非常接近目标时显示 <code>nearby</code>，不再给出稳定转向。</li>
+</ul>
+<h3 id="147-compass">14.7 Compass 航向不稳定</h3>
+<ul>
+<li>远离磁铁、音箱、钢制桌面和大电流线缆。</li>
+<li>重新执行“8”字校准。</li>
+<li>观察 <code>Q</code> 是否达到稳定质量。</li>
+<li>改变设备安装姿态后，可能需要重新校准。</li>
+</ul>
+<h3 id="148-nosd-map-unavailable">14.8 地图显示 <code>noSD</code> 或 <code>Map unavailable</code></h3>
+<p>按以下顺序检查：</p>
+<ol>
+<li>SD 卡是否被识别。</li>
+<li><code>maps</code> 或 <code>tiles</code> 是否直接位于 SD 卡根目录。</li>
+<li>扩展名是否为小写 <code>.png</code>。</li>
+<li>瓦片是否为 256 x 256 PNG。</li>
+<li><code>z</code> 是否在 2 到 18。</li>
+<li><code>x</code>、<code>y</code> 是否为十进制数字。</li>
+<li>是否使用 XYZ，而不是 TMS。</li>
+<li>当前地图中心附近是否真的有对应瓦片。</li>
+<li>是否等待 SD 探测、目录扫描和 PNG 解码完成。</li>
+</ol>
+<h3 id="149">14.9 地图没有本机标记</h3>
+<p>本机标记依赖有效 GPS fix。先在 <code>GPS</code> 确认状态为 <code>fix</code>，再回到 <code>Tracker</code> 并执行 <code>G</code>。如果地图曾被手动平移，不会自动回到本机位置。</p>
+<h3 id="1410">14.10 地图没有其他节点</h3>
+<ul>
+<li>对方必须在 Advert 中分享有效位置。</li>
+<li>本机必须收到并保存对应节点。</li>
+<li>标记表示最后保存的位置，可能已经过期。</li>
+<li><code>Recent</code> 能看到节点不代表该 Advert 一定带位置。</li>
+</ul>
+<h3 id="1411">14.11 消息发不出去</h3>
+<ul>
+<li><code>group</code> 需要至少一个群组频道。</li>
+<li><code>personal</code> 需要至少一个联系人。</li>
+<li>自定义消息不能为空且不能超过 120 个字符。</li>
+<li><code>Queued</code> 只表示进入发送队列。</li>
+<li><code>advert</code> 发送节点 Advert，不发送文本。</li>
+</ul>
+<h3 id="1412-recent">14.12 Recent 时间不正确</h3>
+<p>先通过 Companion、GPS 或 CLI 同步 RTC。联系人时间恢复只保证时间戳尽量单调，不能替代准确校时。</p>
+<h3 id="1413-repeat-mode">14.13 Repeat Mode 无法启用</h3>
+<p>先选择合法 <code>Region</code>，再选择硬件支持的频点。出现 <code>Frequency unsupported</code>、<code>Invalid radio params</code> 或 <code>Repeat mode unavailable</code> 时，应检查固件配置、射频芯片和当地法规，不要反复强制启用。</p>
+<h3 id="1414-factory-reset">14.14 Factory reset 后地图不见了</h3>
+<p>SD 卡 PNG 没有被删除，但内部地图中心、缩放和样式偏好已重置。重新进入 <code>Tracker</code> 并等待扫描；仍显示 <code>noSD</code> 时按第 14.8 节检查。</p>
+<h2 id="15">15. 构建差异速查</h2>
+<table>
+<thead>
+<tr>
+<th>差异</th>
+<th>可能表现</th>
+<th>使用原则</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>屏幕尺寸和色深</td>
+<td>控件密度、字体、滚动范围不同</td>
+<td>以焦点和标题识别功能</td>
+</tr>
+<tr>
+<td>单键/双键</td>
+<td>多击映射不同</td>
+<td>先做输入自检</td>
+</tr>
+<tr>
+<td>触摸</td>
+<td>可能有边缘手势和完整 <code>Quick Ping</code></td>
+<td>无触摸时使用焦点与操作菜单</td>
+</tr>
+<tr>
+<td>网格/径向导航</td>
+<td>页面排列和连续切页能力不同</td>
+<td>通过导航图标选页</td>
+</tr>
+<tr>
+<td>GPS 硬件</td>
+<td><code>fix</code>、轨迹、位置分享可用性不同</td>
+<td>看 <code>GPS</code> 状态而非只看页面是否存在</td>
+</tr>
+<tr>
+<td>指南针</td>
+<td><code>Compass</code>、<code>Find Friend</code> 可用性不同</td>
+<td>先校准，再使用方向</td>
+</tr>
+<tr>
+<td>地图</td>
+<td><code>Tracker</code> 是否出现</td>
+<td>需要 SD 卡 XYZ PNG</td>
+</tr>
+<tr>
+<td>LNA、Buzzer</td>
+<td>控件可能不显示</td>
+<td>不显示即当前构建不可用</td>
+</tr>
+<tr>
+<td>Companion 介质</td>
+<td>USB、BLE 或 Wi-Fi</td>
+<td>使用与固件匹配的客户端链路</td>
+</tr>
+</tbody>
+</table>
+<h2 id="16">16. 快速操作索引</h2>
+<table>
+<thead>
+<tr>
+<th>目标</th>
+<th>通用路径</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>打开导航</td>
+<td>页面根层执行返回；触摸设备可从左边缘右滑</td>
+</tr>
+<tr>
+<td>查看未读消息数</td>
+<td><code>Home &gt; MSG</code></td>
+</tr>
+<tr>
+<td>查看最近节点</td>
+<td><code>Recent</code></td>
+</tr>
+<tr>
+<td>查看无线参数</td>
+<td><code>Radio</code></td>
+</tr>
+<tr>
+<td>发送消息</td>
+<td><code>Radio &gt; 操作菜单 &gt; send message</code>，或完整 <code>Quick Ping</code></td>
+</tr>
+<tr>
+<td>发送 Advert</td>
+<td><code>Radio &gt; 操作菜单 &gt; send advert</code></td>
+</tr>
+<tr>
+<td>打开 GPS</td>
+<td><code>GPS &gt; gps</code></td>
+</tr>
+<tr>
+<td>分享位置</td>
+<td><code>GPS &gt; location share</code></td>
+</tr>
+<tr>
+<td>调整位置周期</td>
+<td><code>GPS &gt; adv interval</code></td>
+</tr>
+<tr>
+<td>记录轨迹</td>
+<td><code>GPS &gt; gps track</code></td>
+</tr>
+<tr>
+<td>校准指南针</td>
+<td><code>Compass &gt; 操作菜单 &gt; calibrate</code></td>
+</tr>
+<tr>
+<td>导航到联系人</td>
+<td><code>Find Friend &gt; enable &gt; friend</code></td>
+</tr>
+<tr>
+<td>导航到坐标</td>
+<td><code>Find Friend &gt; enable &gt; waypoint</code></td>
+</tr>
+<tr>
+<td>查看离线地图</td>
+<td><code>Tracker</code></td>
+</tr>
+<tr>
+<td>回到本机位置</td>
+<td><code>Tracker &gt; G</code></td>
+</tr>
+<tr>
+<td>设置地区</td>
+<td><code>System &gt; Region</code></td>
+</tr>
+<tr>
+<td>设置息屏时间</td>
+<td><code>System &gt; Screen off</code></td>
+</tr>
+<tr>
+<td>清除用户数据</td>
+<td><code>System &gt; Clear data</code></td>
+</tr>
+<tr>
+<td>恢复出厂</td>
+<td><code>System &gt; Factory reset</code></td>
+</tr>
+</tbody>
+</table>
+<p>本文描述的是当前项目 LVGL UI 的统一用户模型。任何页面缺失、控件增减或按键差异，都应先按“条件能力”和“输入语义”判断，再结合设备硬件与固件发布说明确认。</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["content.action.edit", "content.code.copy", "search.highlight", "search.suggest"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+    
+  </body>
+</html>
