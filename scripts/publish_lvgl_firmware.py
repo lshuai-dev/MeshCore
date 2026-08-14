@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build and publish every PlatformIO environment using the current LVGL UI."""
+"""Build and publish companion environments using the current LVGL UI."""
 
 from __future__ import annotations
 
@@ -17,6 +17,7 @@ from typing import Iterable, Sequence
 
 
 VERSION_RE = re.compile(r"^v\d+(?:\.\d+)+(?:[-_][0-9A-Za-z.-]+)?$")
+COMPANION_ENV_RE = re.compile(r"_companion_radio_(?:ble|usb|wifi)$", re.IGNORECASE)
 ACTIVE_MESH_DEBUG_RE = re.compile(
     r"^(?P<indent>\s*)(?P<flag>-D\s+MESH_DEBUG(?:\s*=\s*[^;\s]+)?)(?P<tail>\s*(?:;.*)?)$"
 )
@@ -49,7 +50,7 @@ class Target:
 def parse_args(argv: Sequence[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description=(
-            "Build all PlatformIO environments using the LVGL UI and publish "
+            "Build PlatformIO companion environments using the LVGL UI and publish "
             "nRF52840 UF2 / merged ESP32 BIN images to ../09_Release/<version>."
         )
     )
@@ -65,7 +66,7 @@ def parse_args(argv: Sequence[str]) -> argparse.Namespace:
         action="append",
         default=[],
         metavar="NAME",
-        help="Only build this LVGL environment; repeat for multiple environments",
+        help="Only build this LVGL companion environment; repeat for multiple environments",
     )
     parser.add_argument("--list", action="store_true", help="List matching environments and exit")
     parser.add_argument("--dry-run", action="store_true", help="Print build/publish actions without running them")
@@ -144,6 +145,10 @@ def is_lvgl_environment(options: dict[str, object]) -> bool:
     return links_lvgl and compiles_current_ui
 
 
+def is_companion_environment(environment: str) -> bool:
+    return COMPANION_ENV_RE.search(environment) is not None
+
+
 def target_platform(options: dict[str, object]) -> str | None:
     flags = option_text(options, "build_flags")
     if "NRF52_PLATFORM" in flags:
@@ -191,13 +196,15 @@ def load_targets(repo: Path, pio: Path) -> list[Target]:
     for section, raw_options in config:
         if not str(section).startswith("env:"):
             continue
+        environment = str(section)[4:]
+        if not is_companion_environment(environment):
+            continue
         options = option_map(raw_options)
         if not is_lvgl_environment(options):
             continue
         platform = target_platform(options)
         if platform not in ("nrf52", "esp32"):
             continue
-        environment = str(section)[4:]
         targets.append(Target(environment, platform, device_name(environment, options)))
     return sorted(targets, key=lambda item: (item.device.casefold(), item.environment.casefold()))
 
@@ -328,10 +335,12 @@ def main(argv: Sequence[str] | None = None) -> int:
         known = {target.environment for target in targets}
         missing = sorted(requested - known)
         if missing:
-            raise RuntimeError(f"Not an LVGL nRF52/ESP32 environment: {', '.join(missing)}")
+            raise RuntimeError(
+                f"Not an LVGL companion nRF52/ESP32 environment: {', '.join(missing)}"
+            )
         targets = [target for target in targets if target.environment in requested]
     if not targets:
-        raise RuntimeError("No matching LVGL nRF52/ESP32 environments were found")
+        raise RuntimeError("No matching LVGL companion nRF52/ESP32 environments were found")
 
     print_targets(targets)
     if args.list:
