@@ -21,12 +21,6 @@
 #include <esp_task_wdt.h>
 #endif
 
-#if defined(MESH_DEBUG) && MESH_DEBUG
-#define MAP_SD_TRACE(...) Serial.printf("[map-sd] " __VA_ARGS__)
-#else
-#define MAP_SD_TRACE(...) ((void)0)
-#endif
-
 namespace heltec::meshcore::ui::map {
 namespace {
 
@@ -216,17 +210,12 @@ static bool sdIsDir(const char* rel_path) {
 }
 
 static bool sdBeginAtHz(SPIClass& spi, uint32_t hz) {
-  const uint32_t started_ms = millis();
-  MAP_SD_TRACE("begin start hz=%lu\n", (unsigned long)hz);
   ensureSdSpiBus(spi);
   dal::spi1::prepareSdBus(spi);
   spi.setFrequency(hz);
   const SdSpiConfig cfg(PIN_MAP_SD_CS, SHARED_SPI, SD_SCK_HZ(hz), &spi);
   const bool ok = s_sd.begin(cfg);
   rememberSdError();
-  MAP_SD_TRACE("begin end hz=%lu elapsed=%lums ok=%u error=0x%02x data=0x%02x\n",
-               (unsigned long)hz, (unsigned long)(millis() - started_ms), ok ? 1U : 0U,
-               (unsigned)s_last_sd_error_code, (unsigned)s_last_sd_error_data);
   if (!ok) {
     s_sd.end();
   }
@@ -244,7 +233,6 @@ static bool cardAnswersCmd0(SPIClass& spi) {
   const SPISettings init_settings(400000U, MSBFIRST, SPI_MODE0);
   const uint32_t started_ms = millis();
   bool answered = false;
-  uint8_t last_response = 0xFF;
 
   spi.beginTransaction(init_settings);
   digitalWrite(PIN_MAP_SD_CS, HIGH);
@@ -260,7 +248,6 @@ static bool cardAnswersCmd0(SPIClass& spi) {
     spi.transfer(0x95);  // valid CMD0 CRC
     for (uint8_t i = 0; i < 16; ++i) {
       const uint8_t response = spi.transfer(0xFF);
-      last_response = response;
       if ((response & 0x80U) == 0) {
         answered = true;
         break;
@@ -274,9 +261,6 @@ static bool cardAnswersCmd0(SPIClass& spi) {
   spi.transfer(0xFF);
   spi.endTransaction();
   afterSdTransfer(spi);
-  MAP_SD_TRACE("cmd0 elapsed=%lums answered=%u response=0x%02x\n",
-               (unsigned long)(millis() - started_ms), answered ? 1U : 0U,
-               (unsigned)last_response);
   return answered;
 }
 
@@ -522,10 +506,6 @@ void map_sd_on_screen_enter() {
 }
 
 bool map_sd_probe_once() {
-  MAP_SD_TRACE("probe state ready=%u io-failed=%u complete=%u started=%u index=%u\n",
-               sdUsable() ? 1U : 0U, s_io_failed ? 1U : 0U,
-               s_probe_complete ? 1U : 0U, s_probe_started ? 1U : 0U,
-               (unsigned)s_probe_hz_idx);
   if (sdUsable()) {
     s_probe_complete = true;
     return true;
@@ -550,12 +530,9 @@ bool map_sd_probe_once() {
 
   uint32_t hz = 0;
   if (!nextProbeHz(hz)) {
-    MAP_SD_TRACE("probe exhausted\n");
     s_probe_complete = true;
     return true;
   }
-  MAP_SD_TRACE("probe selected hz=%lu next-index=%u\n", (unsigned long)hz,
-               (unsigned)s_probe_hz_idx);
 
   if (!s_probe_started) {
     s_probe_started = true;
@@ -563,7 +540,6 @@ bool map_sd_probe_once() {
     // frequency attempt.
     delay(10);
     if (!cardAnswersCmd0(sdSpi())) {
-      MAP_SD_TRACE("probe stop: no CMD0 response\n");
       s_probe_complete = true;
       return true;
     }
@@ -576,18 +552,13 @@ bool map_sd_probe_once() {
     // card does not answer CMD0, retrying the same two-second init timeout at
     // every data clock cannot help and makes an empty socket look frozen.
     if (s_last_sd_error_code == SD_CARD_ERROR_CMD0) {
-      MAP_SD_TRACE("probe stop: SdFat CMD0 error hz=%lu\n", (unsigned long)hz);
       s_probe_complete = true;
       return true;
     }
     if (!probeHzPending()) {
-      MAP_SD_TRACE("probe stop: no fallback hz error=0x%02x data=0x%02x\n",
-                   (unsigned)s_last_sd_error_code, (unsigned)s_last_sd_error_data);
       s_probe_complete = true;
       return true;
     }
-    MAP_SD_TRACE("probe retry pending error=0x%02x data=0x%02x\n",
-                 (unsigned)s_last_sd_error_code, (unsigned)s_last_sd_error_data);
     return false;
   }
 
@@ -596,9 +567,6 @@ bool map_sd_probe_once() {
   s_io_failed = false;
 
   if (!validateSdRoot()) {
-    MAP_SD_TRACE("probe root invalid hz=%lu root-error=0x%02x sd-error=0x%02x data=0x%02x\n",
-                 (unsigned long)hz, (unsigned)s_last_root_error,
-                 (unsigned)s_last_sd_error_code, (unsigned)s_last_sd_error_data);
     dropSdMount();
     if (!probeHzPending()) {
       s_probe_complete = true;
@@ -609,7 +577,6 @@ bool map_sd_probe_once() {
 
   s_probe_complete = true;
   map_sd_register_lvgl_fs();
-  MAP_SD_TRACE("probe ready hz=%lu\n", (unsigned long)hz);
   return true;
 }
 

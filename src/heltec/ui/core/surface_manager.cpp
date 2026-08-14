@@ -403,11 +403,6 @@ bool SurfaceManager::contains(const UiSurface* surface) const {
   return findModal(surface) >= 0;
 }
 
-bool SurfaceManager::dispatchEventToRoot(UiEventType type, const void* payload) {
-  if (!canPresent(_root)) return false;
-  return ui_event_send(_root->root(), type, payload);
-}
-
 bool SurfaceManager::dispatchEventToActive(UiEventType type, const void* payload) {
   UiSurface* surface = active();
   if (!canPresent(surface)) return false;

@@ -207,18 +207,6 @@ bool PowerMgr::reconcileGpsPower(uint32_t now_ms) {
   if (actual == desired) {
     const bool powered_changed = _snapshot.gps_powered != actual;
     _snapshot.gps_powered = actual;
-    if (powered_changed) {
-      ++_snapshot.gps_transition_count;
-      _snapshot.gps_last_transition_ms = now_ms;
-      MESH_DEBUG_PRINTLN(
-          "[power][gps#%lu] observed=%s demands=0x%04x allowed=%u available=%u "
-          "source=%u display=%u",
-          (unsigned long)_snapshot.gps_transition_count, actual ? "on" : "off",
-          demands, _snapshot.gps_allowed ? 1U : 0U,
-          _snapshot.gps_available ? 1U : 0U,
-          static_cast<unsigned>(_snapshot.source),
-          _snapshot.display_on ? 1U : 0U);
-    }
     if (_snapshot.fault == PowerFault::GpsApplyFailed) setFault(PowerFault::None);
     if (available_changed || policy_changed || demand_changed || powered_changed) {
       notify(mask(PowerChange::Gps));
@@ -233,16 +221,7 @@ bool PowerMgr::reconcileGpsPower(uint32_t now_ms) {
     return false;
   }
   _gps_retry_due_ms = now_ms + _config.gps_retry_ms;
-  MESH_DEBUG_PRINTLN(
-      "[power][gps] apply=%s current=%s demands=0x%04x allowed=%u available=%u "
-      "source=%u display=%u",
-      desired ? "on" : "off", actual ? "on" : "off", demands,
-      _snapshot.gps_allowed ? 1U : 0U, _snapshot.gps_available ? 1U : 0U,
-      static_cast<unsigned>(_snapshot.source),
-      _snapshot.display_on ? 1U : 0U);
   if (!_port.setGpsPowered(desired)) {
-    MESH_DEBUG_PRINTLN("[power][gps] apply failed: port rejected %s",
-                       desired ? "on" : "off");
     setFault(PowerFault::GpsApplyFailed);
     if (available_changed || policy_changed || demand_changed) {
       notify(mask(PowerChange::Gps));
@@ -251,26 +230,17 @@ bool PowerMgr::reconcileGpsPower(uint32_t now_ms) {
   }
 
   const bool applied = _snapshot.gps_available && _port.isGpsPowered();
-  const bool powered_changed = _snapshot.gps_powered != applied;
   _snapshot.gps_powered = applied;
   if (applied != desired) {
-    MESH_DEBUG_PRINTLN(
-        "[power][gps] verify failed: requested=%s observed=%s",
-        desired ? "on" : "off", applied ? "on" : "off");
     setFault(PowerFault::GpsApplyFailed);
     if (available_changed || policy_changed || demand_changed) {
       notify(mask(PowerChange::Gps));
     }
     return false;
   }
-  if (powered_changed) {
-    ++_snapshot.gps_transition_count;
-    _snapshot.gps_last_transition_ms = now_ms;
-  }
   if (_snapshot.fault == PowerFault::GpsApplyFailed) setFault(PowerFault::None);
   notify(mask(PowerChange::Gps));
-  MESH_DEBUG_PRINTLN("[power][gps#%lu] applied=%s demands=0x%04x source=%u display=%u",
-                     (unsigned long)_snapshot.gps_transition_count,
+  MESH_DEBUG_PRINTLN("[power] gps=%s demands=0x%04x source=%u display=%u",
                      desired ? "on" : "off", demands,
                      static_cast<unsigned>(_snapshot.source),
                      _snapshot.display_on ? 1U : 0U);
@@ -295,8 +265,6 @@ void PowerMgr::requestReboot(uint32_t delay_ms, uint32_t now_ms) {
 void PowerMgr::finishPowerOff() {
   if (_snapshot.gps_powered && _port.setGpsPowered(false)) {
     _snapshot.gps_powered = false;
-    ++_snapshot.gps_transition_count;
-    _snapshot.gps_last_transition_ms = millis();
     notify(mask(PowerChange::Gps));
   }
   if (_config.display_available && _snapshot.display_on) {
@@ -314,8 +282,6 @@ void PowerMgr::finishPowerOff() {
 void PowerMgr::finishReboot() {
   if (_snapshot.gps_powered && _port.setGpsPowered(false)) {
     _snapshot.gps_powered = false;
-    ++_snapshot.gps_transition_count;
-    _snapshot.gps_last_transition_ms = millis();
     notify(mask(PowerChange::Gps));
   }
   _port.powerOffRadio();
