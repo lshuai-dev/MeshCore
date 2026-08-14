@@ -25,6 +25,9 @@
 #ifndef PIN_TFT_DC
 #error "PIN_TFT_DC must be defined for ST7789 port"
 #endif
+#if defined(ARDUINO_ARCH_NRF52) && !defined(PIN_TFT_MISO)
+#error "PIN_TFT_MISO must be defined for the nRF52 ST7789 port"
+#endif
 
 #ifndef HELTEC_TFT_HOR_RES
 #define HELTEC_TFT_HOR_RES 240
@@ -367,7 +370,7 @@ static void hw_begin() {
   s_panel.boardPowerOn();
   delay(20);
 #if defined(ARDUINO_ARCH_NRF52)
-  SPI1.setPins(-1, PIN_TFT_SCL, PIN_TFT_SDA);
+  SPI1.setPins(PIN_TFT_MISO, PIN_TFT_SCL, PIN_TFT_SDA);
   SPI1.begin();
 #elif defined(ARDUINO_ARCH_ESP32) || defined(ARDUINO_ARCH_RP2040) || defined(ARDUINO_ARCH_STM32)
   SPI1.begin(PIN_TFT_SCL, -1, PIN_TFT_SDA, PIN_TFT_CS);

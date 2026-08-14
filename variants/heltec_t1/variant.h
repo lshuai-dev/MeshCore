@@ -25,7 +25,9 @@
 #define ST7735_SDA              (0 + 24)
 #define ST7735_SCK              (32 + 0)
 #define ST7735_RESET            (0 + 20)
-#define ST7735_MISO             (-1)
+// Logical pin 0 maps to 0xFF (NRFX_SPIM_PIN_NOT_USED). The nRF52 SPI
+// constructor accepts uint8_t pins, so passing -1 would index pin 255.
+#define ST7735_MISO             (0)
 #define ST7735_BUSY             (-1)
 #define ST7735_BL               (0 + 15)
 #define VTFT_CTRL               (0 + 13)
@@ -34,6 +36,7 @@
 #define PIN_TFT_DC              ST7735_RS
 #define PIN_TFT_SDA             ST7735_SDA
 #define PIN_TFT_SCL             ST7735_SCK
+#define PIN_TFT_MISO            ST7735_MISO
 #define PIN_TFT_RST             ST7735_RESET
 #define PIN_TFT_LEDA_CTL        ST7735_BL
 #define PIN_TFT_LEDA_CTL_ACTIVE LOW

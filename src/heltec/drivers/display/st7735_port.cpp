@@ -5,6 +5,9 @@
 #ifndef PIN_TFT_CS
 #error "PIN_TFT_CS must be defined for ST7735 port"
 #endif
+#if defined(ARDUINO_ARCH_NRF52) && !defined(PIN_TFT_MISO)
+#error "PIN_TFT_MISO must be defined for the nRF52 ST7735 port"
+#endif
 
 namespace heltec::meshcore::dal::st7735 {
 namespace {
@@ -383,7 +386,7 @@ static void hw_begin() {
   s_panel.boardPowerOn();
 
 #if defined(ARDUINO_ARCH_NRF52)
-  tft_spi.setPins(-1, PIN_TFT_SCL, PIN_TFT_SDA);
+  tft_spi.setPins(PIN_TFT_MISO, PIN_TFT_SCL, PIN_TFT_SDA);
   tft_spi.begin();
 #elif defined(ARDUINO_ARCH_ESP32) || defined(ARDUINO_ARCH_RP2040) || defined(ARDUINO_ARCH_STM32)
   tft_spi.begin(PIN_TFT_SCL, -1, PIN_TFT_SDA, PIN_TFT_CS);

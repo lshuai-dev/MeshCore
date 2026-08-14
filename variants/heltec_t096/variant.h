@@ -104,7 +104,9 @@
 #define PIN_SPI_SCK             (32 + 8)
 #define PIN_SPI_NSS             LORA_CS
 
-#define PIN_SPI1_MISO           (-1)
+// Logical pin 0 maps to 0xFF (NRFX_SPIM_PIN_NOT_USED). The nRF52 SPI
+// constructor accepts uint8_t pins, so passing -1 would index pin 255.
+#define PIN_SPI1_MISO           (0)
 #define PIN_SPI1_MOSI           (0+17)
 #define PIN_SPI1_SCK            (0+20)
 
@@ -124,6 +126,7 @@
 // TFT
 #define PIN_TFT_SCL             (0 + 20)
 #define PIN_TFT_SDA             (0 + 17)
+#define PIN_TFT_MISO            PIN_SPI1_MISO
 #define PIN_TFT_RST             (0 + 13)
 // #define PIN_TFT_VDD_CTL         (0 + 26)
 #define PIN_TFT_LEDA_CTL        (32 + 12)

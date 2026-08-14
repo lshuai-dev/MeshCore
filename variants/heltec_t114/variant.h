@@ -135,6 +135,7 @@
 // TFT
 #define PIN_TFT_SCL             (40)
 #define PIN_TFT_SDA             (41)
+#define PIN_TFT_MISO            PIN_SPI1_MISO
 #define PIN_TFT_RST             (2)
 #define PIN_TFT_VDD_CTL         (3)
 #define PIN_TFT_LEDA_CTL        (15)
