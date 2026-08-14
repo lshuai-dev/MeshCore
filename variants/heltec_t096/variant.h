@@ -133,3 +133,7 @@
 #define PIN_TFT_LEDA_CTL_ACTIVE LOW
 #define PIN_TFT_CS              (0 + 22)
 #define PIN_TFT_DC              (0 + 15)
+
+#ifndef GPS_UC6580
+#define GPS_UC6580              1
+#endif

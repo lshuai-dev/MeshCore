@@ -337,28 +337,33 @@ void HeltecMesh::resetLocShareAdvertSchedule() {
 }
 
 bool HeltecMesh::isLocationShareEnabled(const NodePrefs* prefs) {
-  return prefs && prefs->advert_loc_policy == ADVERT_LOC_SHARE;
+  return prefs && prefs->loc_share_enabled != 0;
 }
 
 void HeltecMesh::setLocationShareEnabled(HeltecMesh& mesh, bool enabled, bool persist_prefs) {
   NodePrefs* p = mesh.getNodePrefs();
   if (!p) return;
-  const uint8_t next = enabled ? ADVERT_LOC_SHARE : ADVERT_LOC_NONE;
-  if (p->advert_loc_policy == next) {
+  const uint8_t next = enabled ? 1 : 0;
+  if (p->loc_share_enabled == next) {
     // Still ensure schedule matches current state.
     if (!enabled) resetLocShareAdvertSchedule();
     return;
   }
-  p->advert_loc_policy = next;
+  p->loc_share_enabled = next;
   resetLocShareAdvertSchedule();
   if (persist_prefs) {
     mesh.savePrefs();
+  }
+  // Clear the Heltec-shared pin only when MeshCore itself is not configured
+  // to advertise a live or fixed location.
+  if (!enabled && p->advert_loc_policy == ADVERT_LOC_NONE) {
+    (void)mesh.advert(false);
   }
 }
 
 void HeltecMesh::pollLocShareAdvert(HeltecMesh& mesh) {
   NodePrefs* p = mesh.getNodePrefs();
-  if (!p || p->advert_loc_policy != ADVERT_LOC_SHARE) {
+  if (!isLocationShareEnabled(p)) {
     s_next_advert_millis = 0;
     s_loc_share_has_last_gps = false;
     return;
@@ -1449,7 +1454,8 @@ bool HeltecMesh::getStableGpsFix(StableGpsFixSnapshot& out) const {
 }
 
 mesh::Packet* HeltecMesh::createPolicySelfAdvert(bool require_live_location) {
-  if (_prefs.advert_loc_policy == ADVERT_LOC_NONE) {
+  const bool heltec_location_share = isLocationShareEnabled(&_prefs);
+  if (!heltec_location_share && _prefs.advert_loc_policy == ADVERT_LOC_NONE) {
     return createSelfAdvert(_prefs.node_name);
   }
 

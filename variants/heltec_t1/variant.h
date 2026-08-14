@@ -126,8 +126,9 @@
 
 ////////////////////////////////////////////////////////////////////////////////
 // GPS
-
-#define GPS_UC6580
+#ifndef GPS_UC6580
+#define GPS_UC6580              1
+#endif
 #define GPS_BAUD_RATE           115200
 #define PIN_GPS_RESET           (0 + 26)
 #define GPS_RESET               PIN_GPS_RESET

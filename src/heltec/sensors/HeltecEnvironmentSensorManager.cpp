@@ -581,7 +581,7 @@ void initGpsSerial() {
   #endif
 }
 
-#if defined(GPS_UC6580) && defined(GPS_UC6580_CONFIGURE) && GPS_UC6580_CONFIGURE
+#if defined(GPS_UC6580) && GPS_UC6580
 constexpr uint8_t kUcConfigLastStep = 13;
 
 void sendUcConfigStep(LocationProvider* location, uint8_t step, uint32_t& settle_ms) {
@@ -624,7 +624,7 @@ void HeltecEnvironmentSensorManager::beginGpsModuleConfiguration() {
   gps_config_pending = false;
   gps_config_step = 0;
 
-#if defined(GPS_UC6580) && defined(GPS_UC6580_CONFIGURE) && GPS_UC6580_CONFIGURE
+#if defined(GPS_UC6580) && GPS_UC6580
   gps_config_pending = true;
   gps_config_due_ms = millis() + 1200;
   MESH_DEBUG_PRINTLN("[gps] configure UC6580: GGA+RMC %uHz nav_rate=%ums",
@@ -632,7 +632,7 @@ void HeltecEnvironmentSensorManager::beginGpsModuleConfiguration() {
 #elif defined(GPS_L76K)
   gps_config_pending = true;
   gps_config_due_ms = millis() + 1200;
-  MESH_DEBUG_PRINTLN("[gps] configure L76K: GGA+RMC %uHz interval=%ums",
+  MESH_DEBUG_PRINTLN("[gps] configure L76K: GPS+BDS+GLONASS GGA+RMC %uHz interval=%ums",
                      (unsigned)kGpsNmeaRateHz, (unsigned)kGpsNmeaIntervalMs);
 #endif
 }
@@ -645,7 +645,7 @@ void HeltecEnvironmentSensorManager::pollGpsModuleConfiguration() {
 
   ++gps_config_step;
   uint32_t settle_ms = 100;
-#if defined(GPS_UC6580) && defined(GPS_UC6580_CONFIGURE) && GPS_UC6580_CONFIGURE
+#if defined(GPS_UC6580) && GPS_UC6580
   sendUcConfigStep(_location, gps_config_step, settle_ms);
   if (gps_config_step >= kUcConfigLastStep) {
     gps_config_pending = false;
@@ -654,7 +654,7 @@ void HeltecEnvironmentSensorManager::pollGpsModuleConfiguration() {
   }
 #elif defined(GPS_L76K)
   if (gps_config_step == 1) {
-    _location->sendSentence("$PMTK225,0");
+    _location->sendSentence("$PCAS04,7");
     settle_ms = 500;
   } else if (gps_config_step == 2) {
     char interval_cmd[24] = {0};

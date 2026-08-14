@@ -8,15 +8,11 @@
 
 #include <helpers/SensorManager.h>
 #include <helpers/sensors/LocationProvider.h>
-#include <math.h>
+#include <heltec/sensors/GpsRmcSpeedStream.h>
 
 namespace heltec::meshcore::biz {
 namespace {
 constexpr uint32_t kLocShareAcquireWindowMs = 30000;
-constexpr uint32_t kGpsSpeedMinSampleMs = 200;
-constexpr uint32_t kGpsSpeedIdleSampleMs = 1000;
-constexpr double kEarthRadiusM = 6371000.0;
-constexpr double kMicroDegreeToRad = 3.14159265358979323846 / 180000000.0;
 }  // namespace
 
 bool MeshAppUi::applyGpsPowerPolicy() {
@@ -159,13 +155,6 @@ void MeshAppUi::setGpsEnabled(bool enabled) {
 
 IBizFacade::GpsStatus MeshAppUi::gpsStatus() const {
   GpsStatus s;
-  const auto reset_speed = [this]() {
-    _gps_speed_sample_valid = false;
-    _gps_speed_sample_lat_e6 = 0;
-    _gps_speed_sample_lon_e6 = 0;
-    _gps_speed_sample_ms = 0;
-    _gps_speed_kph = -1.0f;
-  };
   LocationProvider* nmea = sensors.getLocationProvider();
   s.available = (nmea != nullptr);
 
@@ -179,7 +168,6 @@ IBizFacade::GpsStatus MeshAppUi::gpsStatus() const {
   if (!s.enabled || !s.powered || !nmea) {
     HeltecMesh::StableGpsFixSnapshot discarded{};
     (void)the_mesh.getStableGpsFix(discarded);
-    reset_speed();
     return s;
   }
 
@@ -187,7 +175,6 @@ IBizFacade::GpsStatus MeshAppUi::gpsStatus() const {
   s.fix_valid = the_mesh.getStableGpsFix(snapshot);
   s.fix_valid_ms = snapshot.age_ms;
   if (!s.fix_valid) {
-    reset_speed();
     return s;
   }
 
@@ -200,42 +187,8 @@ IBizFacade::GpsStatus MeshAppUi::gpsStatus() const {
   s.lat_deg = s.lat_micro / 1000000.0;
   s.lon_deg = s.lon_micro / 1000000.0;
 
-  const uint32_t now_ms = millis();
-  if (!_gps_speed_sample_valid) {
-    _gps_speed_sample_valid = true;
-    _gps_speed_sample_lat_e6 = static_cast<int32_t>(s.lat_micro);
-    _gps_speed_sample_lon_e6 = static_cast<int32_t>(s.lon_micro);
-    _gps_speed_sample_ms = now_ms;
-    _gps_speed_kph = -1.0f;
-  } else {
-    const uint32_t elapsed_ms = now_ms - _gps_speed_sample_ms;
-    const bool position_changed =
-        s.lat_micro != _gps_speed_sample_lat_e6 ||
-        s.lon_micro != _gps_speed_sample_lon_e6;
-    if (elapsed_ms >= kGpsSpeedMinSampleMs &&
-        (position_changed || elapsed_ms >= kGpsSpeedIdleSampleMs)) {
-      if (position_changed) {
-        const double lat1 = _gps_speed_sample_lat_e6 * kMicroDegreeToRad;
-        const double lat2 = s.lat_micro * kMicroDegreeToRad;
-        const double dlat = lat2 - lat1;
-        double dlon = (s.lon_micro - _gps_speed_sample_lon_e6) * kMicroDegreeToRad;
-        if (dlon > 3.14159265358979323846) dlon -= 2.0 * 3.14159265358979323846;
-        if (dlon < -3.14159265358979323846) dlon += 2.0 * 3.14159265358979323846;
-        const double x = dlon * cos((lat1 + lat2) * 0.5);
-        const double distance_m = sqrt(dlat * dlat + x * x) * kEarthRadiusM;
-        double speed_kph = distance_m * 3600000.0 / elapsed_ms;
-        if (speed_kph < 0.0) speed_kph = 0.0;
-        if (speed_kph > 999.9) speed_kph = 999.9;
-        _gps_speed_kph = static_cast<float>(speed_kph);
-      } else {
-        _gps_speed_kph = 0.0f;
-      }
-      _gps_speed_sample_lat_e6 = static_cast<int32_t>(s.lat_micro);
-      _gps_speed_sample_lon_e6 = static_cast<int32_t>(s.lon_micro);
-      _gps_speed_sample_ms = now_ms;
-    }
-  }
-  s.speed_kph = _gps_speed_kph;
+  float speed_kph = -1.0f;
+  if (heltec::gps::rmcSpeedKph(speed_kph)) s.speed_kph = speed_kph;
 
   return s;
 }

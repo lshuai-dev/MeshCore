@@ -74,6 +74,8 @@ struct PowerSnapshot {
   bool gps_allowed = false;
   bool gps_powered = false;
   uint16_t gps_demands = 0;
+  uint32_t gps_transition_count = 0;
+  uint32_t gps_last_transition_ms = 0;
   SystemPowerState system_state = SystemPowerState::Running;
   PowerFault fault = PowerFault::None;
 };

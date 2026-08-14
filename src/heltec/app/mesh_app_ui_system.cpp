@@ -3,7 +3,6 @@
 #include "HeltecMesh.h"
 #include "MeshCore.h"
 #include "config/DataStore.h"
-#include "config/heltec_license.h"
 #include "ui/app/ui_app.hpp"
 #include "ui/core/ui_task.hpp"
 
@@ -40,10 +39,6 @@ bool MeshAppUi::clearUserData() {
   if (!the_mesh.clearAllContacts()) return false;
   DataStore* ds = the_mesh.getDataStore();
   if (!ds || !ds->clearLegacyMessageFiles()) return false;
-
-#if defined(NRF52_PLATFORM) || defined(ESP32) || defined(ESP_PLATFORM)
-  heltecLicenseClearStored();
-#endif
 
 #if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
   _ff_target_contact_idx = -1;

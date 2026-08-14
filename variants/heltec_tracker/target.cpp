@@ -2,7 +2,8 @@
 #include "target.h"
 
 #include <helpers/sensors/MicroNMEALocationProvider.h>
-#if defined(GPS_UC6580) && defined(GPS_UC6580_CONFIGURE) && GPS_UC6580_CONFIGURE
+#include <heltec/sensors/GpsRmcSpeedStream.h>
+#if defined(GPS_UC6580) && GPS_UC6580
 #include <heltec/sensors/Uc6580Config.h>
 #endif
 
@@ -20,7 +21,8 @@ WRAPPER_CLASS radio_driver(radio, board);
 ESP32RTCClock fallback_clock;
 AutoDiscoverRTCClock rtc_clock(fallback_clock);
 // GPS_EN (GPIO35) drives N-ch MOSFET → P-ch high-side switch; GPS_RESET (GPIO36) active LOW
-MicroNMEALocationProvider nmea = MicroNMEALocationProvider(Serial1, &rtc_clock, GPS_RESET, GPS_EN, &board.periph_power);
+heltec::gps::GpsRmcSpeedStream gps_serial(Serial1);
+MicroNMEALocationProvider nmea = MicroNMEALocationProvider(gps_serial, &rtc_clock, GPS_RESET, GPS_EN, &board.periph_power);
 HWTSensorManager sensors = HWTSensorManager(nmea);
 
 #if defined(DISPLAY_CLASS) && !defined(HELTEC_DISPLAY_ST7735)
@@ -65,7 +67,7 @@ void HWTSensorManager::start_gps() {
     _location->begin();  // Claims periph_power via RefCountedDigitalPin
     _location->reset();
     gps_active = true;
-    #if defined(GPS_UC6580) && defined(GPS_UC6580_CONFIGURE) && GPS_UC6580_CONFIGURE
+    #if defined(GPS_UC6580) && GPS_UC6580
     Uc6580Config::apply(_location);
     #endif
   }

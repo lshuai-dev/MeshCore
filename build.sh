@@ -15,6 +15,7 @@ Commands:
   build-firmwares: Build all firmwares for all targets.
   build-matching-firmwares <build-match-spec>: Build all firmwares for build targets containing the string given for <build-match-spec>.
   build-companion-firmwares: Build all companion firmwares for all build targets.
+  build-lvgl-companion-firmwares: Build companion firmwares using the LVGL UI.
   build-repeater-firmwares: Build all repeater firmwares for all build targets.
   build-room-server-firmwares: Build all chat room server firmwares for all build targets.
 
@@ -109,6 +110,13 @@ for section, options in data:
                         print(match.group(1))
                         sys.exit(0)
 "
+}
+
+# return success when a pio environment contains the requested build flag
+has_pio_build_flag() {
+  local env_name=$1
+  local flag_name=$2
+  printf '%s' "$PIO_CONFIG_JSON" | python3 -c "import sys,json; data=json.load(sys.stdin); sys.exit(0 if any(section == 'env:$env_name' and key == 'build_flags' and ('$flag_name' in value if isinstance(value,str) else any('$flag_name' in flag for flag in value)) for section,options in data for key,value in options) else 1)"
 }
 
 # disable all debug logging flags if DISABLE_DEBUG=1 is set
@@ -231,6 +239,30 @@ build_companion_firmwares() {
 
 }
 
+build_lvgl_companion_firmwares() {
+  local env
+  for suffix in "_companion_radio_usb" "_companion_radio_ble"; do
+    while read -r env; do
+      [ -z "$env" ] && continue
+      if has_pio_build_flag "$env" "HELTEC_MESH_UI"; then
+        build_firmware "$env"
+      fi
+    done < <(get_pio_envs_ending_with_string "$suffix")
+  done
+}
+
+get_lvgl_companion_firmwares_to_build() {
+  local env
+  for suffix in "_companion_radio_usb" "_companion_radio_ble"; do
+    while read -r env; do
+      [ -z "$env" ] && continue
+      if has_pio_build_flag "$env" "HELTEC_MESH_UI"; then
+        echo "$env"
+      fi
+    done < <(get_pio_envs_ending_with_string "$suffix")
+  done
+}
+
 build_room_server_firmwares() {
 
 #  # build specific room server firmwares
@@ -274,6 +306,8 @@ elif [[ $1 == "build-firmwares" ]]; then
   build_firmwares
 elif [[ $1 == "build-companion-firmwares" ]]; then
   build_companion_firmwares
+elif [[ $1 == "build-lvgl-companion-firmwares" ]]; then
+  build_lvgl_companion_firmwares
 elif [[ $1 == "build-repeater-firmwares" ]]; then
   build_repeater_firmwares
 elif [[ $1 == "build-room-server-firmwares" ]]; then
@@ -281,6 +315,8 @@ elif [[ $1 == "build-room-server-firmwares" ]]; then
 elif [[ $1 == "get-companion-firmwares-to-build" ]]; then
   get_pio_envs_ending_with_string "_companion_radio_usb"
   get_pio_envs_ending_with_string "_companion_radio_ble"
+elif [[ $1 == "get-lvgl-companion-firmwares-to-build" ]]; then
+  get_lvgl_companion_firmwares_to_build
 elif [[ $1 == "get-repeater-firmwares-to-build" ]]; then
   get_pio_envs_ending_with_string "_repeater"
 elif [[ $1 == "get-room-server-firmwares-to-build" ]]; then

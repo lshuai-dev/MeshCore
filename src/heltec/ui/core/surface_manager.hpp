@@ -38,6 +38,7 @@ class SurfaceManager {
   bool contains(const UiSurface* surface) const;
   uint8_t modalDepth() const { return _modal_depth; }
 
+  bool dispatchEventToRoot(UiEventType type, const void* payload = nullptr);
   bool dispatchEventToActive(UiEventType type, const void* payload = nullptr);
   void reconcileFocus();
   void reconcileVisibility();

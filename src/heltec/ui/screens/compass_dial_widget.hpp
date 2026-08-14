@@ -40,6 +40,7 @@ struct CompassDialWidget {
   bool friend_gps_fix = false;
   bool friend_on_target = false;
   bool friend_direction_valid = false;
+  bool friend_near_target = false;
   CompassDialNeedleKind needle_kind = CompassDialNeedleKind::BicolorHeading;
 
   lv_coord_t min_side = 16;

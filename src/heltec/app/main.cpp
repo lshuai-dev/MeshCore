@@ -247,17 +247,6 @@ void setup() {
   }
 #endif
 #if defined(HELTEC_MESH_UI) && HELTEC_MESH_UI
-#if defined(NRF52_PLATFORM)
-  heltecLicenseSetFilesystem(
-#if defined(EXTRAFS)
-      &ExtraFS
-#else
-      &InternalFS
-#endif
-  );
-#elif defined(ESP32)
-  heltecLicenseSetFilesystem(&SPIFFS);
-#endif
 #if HELTEC_LICENSE_BOOT_GATE
   if (!heltecLicenseBootGate(hasDisplay)) {
     halt();

@@ -256,7 +256,14 @@ void FindFriendScreen::render(const biz::FindFriendUi& u) {
                u.target_freshness == biz::FindFriendTargetFreshness::Stale) {
       showInfoOnly("target stale");
     } else if (u.near_target) {
-      showInfoOnly("nearby");
+      _dial.setDialHidden(false);
+      _dial.setLayersVisible(true);
+      _dial.friend_direction_valid = false;
+      _dial.friend_near_target = true;
+      _near_target = true;
+      _direction_valid = false;
+      _dial.invalidateNeedle();
+      setInfoText("nearby");
     } else if (!u.gps_fix) {
       showInfoOnly("need gps");
     } else if (u.compass_quality < 2) {
@@ -276,6 +283,7 @@ void FindFriendScreen::render(const biz::FindFriendUi& u) {
   const bool new_gps = u.gps_fix;
   const bool new_on_target = u.relative_valid && compass_turn_on_target_deg(u.turn_deg);
   const bool new_direction_valid = u.relative_valid;
+  const bool new_near_target = u.near_target;
 
   if (new_ring != _ring_heading_tenths) {
     _ring_heading_tenths = new_ring;
@@ -283,15 +291,17 @@ void FindFriendScreen::render(const biz::FindFriendUi& u) {
     _dial.invalidateRing();
   }
   if (new_turn != _turn_show_deg || new_gps != _gps_fix || new_on_target != _on_target ||
-      new_direction_valid != _direction_valid) {
+      new_direction_valid != _direction_valid || new_near_target != _near_target) {
     _turn_show_deg = new_turn;
     _gps_fix = new_gps;
     _on_target = new_on_target;
     _direction_valid = new_direction_valid;
+    _near_target = new_near_target;
     _dial.friend_turn_deg = new_turn;
     _dial.friend_gps_fix = new_gps;
     _dial.friend_on_target = new_on_target;
     _dial.friend_direction_valid = new_direction_valid;
+    _dial.friend_near_target = new_near_target;
     _dial.invalidateNeedle();
   }
 

@@ -45,10 +45,27 @@ void on_needle_draw(lv_event_t* e) {
   const lv_coord_t ay = (lv_coord_t)(area.y1 + cx);
 
   if (dial->needle_kind == CompassDialNeedleKind::FriendTurn) {
-    if (!dial->friend_direction_valid) return;
-    const lv_coord_t needle_r = (lv_coord_t)(dial->side / 2 - 4);
-    compass_draw_friend_needle(draw_ctx, ax, ay, needle_r, dial->friend_turn_deg, dial->friend_gps_fix,
-                               dial->friend_on_target);
+    if (dial->friend_direction_valid) {
+      const lv_coord_t needle_r = (lv_coord_t)(dial->side / 2 - 4);
+      compass_draw_friend_needle(draw_ctx, ax, ay, needle_r, dial->friend_turn_deg,
+                                 dial->friend_gps_fix, dial->friend_on_target);
+    }
+    if (dial->friend_near_target) {
+      lv_coord_t diameter = (lv_coord_t)(dial->side / 8);
+      if (diameter < 6) diameter = 6;
+      if (diameter > 10) diameter = 10;
+      const lv_coord_t half = (lv_coord_t)(diameter / 2);
+      lv_area_t dot_area = {(lv_coord_t)(ax - half), (lv_coord_t)(ay - half),
+                            (lv_coord_t)(ax - half + diameter - 1),
+                            (lv_coord_t)(ay - half + diameter - 1)};
+      lv_draw_rect_dsc_t dot;
+      lv_draw_rect_dsc_init(&dot);
+      dot.bg_color = ui_color_success();
+      dot.bg_opa = LV_OPA_COVER;
+      dot.border_width = 0;
+      dot.radius = LV_RADIUS_CIRCLE;
+      lv_draw_rect(draw_ctx, &dot, &dot_area);
+    }
   } else {
     compass_draw_dial_needle(draw_ctx, ax, ay, dial->side, dial->needle_heading_tenths);
   }

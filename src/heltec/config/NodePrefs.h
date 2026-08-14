@@ -42,4 +42,5 @@ struct NodePrefs {  // persisted to file
   uint8_t gps_track_armed;       // 0=off, 1=resume GPS track recording when GPS on
   uint8_t buzzer_volume_level;   // retained active level: 1=1x, 2=2x, 3=3x; buzzer_quiet means off
   uint8_t lna_enabled;           // 0=LNA bypass, 1=LNA enabled
+  uint8_t loc_share_enabled;     // Heltec UI location share; independent of MeshCore advert_loc_policy
 };

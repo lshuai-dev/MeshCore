@@ -177,11 +177,6 @@ class MeshAppUi final : public IBizFacade {
   uint32_t _gps_track_start_ms = 0;
 
   bool _find_friend_foreground_active = false;
-  mutable bool _gps_speed_sample_valid = false;
-  mutable int32_t _gps_speed_sample_lat_e6 = 0;
-  mutable int32_t _gps_speed_sample_lon_e6 = 0;
-  mutable uint32_t _gps_speed_sample_ms = 0;
-  mutable float _gps_speed_kph = -1.0f;
 
 #if defined(ENV_INCLUDE_MAP) && ENV_INCLUDE_MAP
   mutable MapPlotUi _map_plot_cache{};

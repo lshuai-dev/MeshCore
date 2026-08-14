@@ -4,6 +4,7 @@
 #include <cstdlib>
 #include <cstring>
 #include "DataStore.h"
+#include "heltec_license.h"
 
 #if defined(EXTRAFS) || defined(QSPIFLASH)
   #define MAX_BLOBRECS 100
@@ -708,8 +709,8 @@ bool DataStore::formatFileSystem() {
   return LittleFS.format();
 #elif defined(ESP32)
   bool fs_success = ((fs::SPIFFSFS *)_fs)->format();
-  esp_err_t nvs_err = nvs_flash_erase(); // no need to reinit, will be done by reboot
-  return fs_success && (nvs_err == ESP_OK);
+  bool nvs_success = heltecLicensePrepareFactoryReset();
+  return fs_success && nvs_success;
 #else
   #error "need to implement format()"
 #endif
@@ -803,6 +804,11 @@ void DataStore::loadPrefsInt(const char *filename, NodePrefs& _prefs, double& no
     } else {
       _prefs.lna_enabled = 0;
     }
+    if (file.available()) {
+      file.read((uint8_t *)&_prefs.loc_share_enabled, sizeof(_prefs.loc_share_enabled)); // 95
+    } else {
+      _prefs.loc_share_enabled = 0;
+    }
 
     file.close();
   }
@@ -856,6 +862,7 @@ void DataStore::savePrefs(const NodePrefs& _prefs, double node_lat, double node_
     file.write((uint8_t *)&_prefs.gps_track_armed, sizeof(_prefs.gps_track_armed));               // 92
     file.write((uint8_t *)&_prefs.buzzer_volume_level, sizeof(_prefs.buzzer_volume_level));       // 93
     file.write((uint8_t *)&_prefs.lna_enabled, sizeof(_prefs.lna_enabled));                         // 94
+    file.write((uint8_t *)&_prefs.loc_share_enabled, sizeof(_prefs.loc_share_enabled));             // 95
 
     file.close();
   }

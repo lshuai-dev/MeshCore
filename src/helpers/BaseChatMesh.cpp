@@ -179,6 +179,11 @@ void BaseChatMesh::onAdvertRecv(mesh::Packet* packet, const mesh::Identity& id, 
   if (parser.hasLatLon()) {
     from->gps_lat = parser.getIntLat();
     from->gps_lon = parser.getIntLon();
+  } else {
+    // An advert without coordinates withdraws the sender's previously shared
+    // location. Do not retain stale GPS data in the contact cache.
+    from->gps_lat = 0;
+    from->gps_lon = 0;
   }
   from->last_advert_timestamp = timestamp;
   from->lastmod = getRTCClock()->getCurrentTime();

@@ -721,7 +721,8 @@ uint32_t TrackerScreen::nextMapWorkDelayMs() const {
 
 void TrackerScreen::onAppStateChanged(const AppStateEvent& event) {
   if (event.type == AppStateEventType::GpsChanged ||
-      event.type == AppStateEventType::ContactLocationChanged) {
+      event.type == AppStateEventType::ContactLocationChanged ||
+      event.type == AppStateEventType::RecentHeardChanged) {
     requestMapWork(kMapWorkRefresh);
   }
 }

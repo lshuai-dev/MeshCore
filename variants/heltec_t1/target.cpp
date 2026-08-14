@@ -5,6 +5,7 @@
 
 #ifdef ENV_INCLUDE_GPS
 #include <helpers/sensors/MicroNMEALocationProvider.h>
+#include <heltec/sensors/GpsRmcSpeedStream.h>
 #endif
 
 T1Board board;
@@ -51,13 +52,17 @@ void T1RTCClock::setCurrentTime(uint32_t time) {
 
 T1RTCClock rtc_clock;
 
+#if ENV_INCLUDE_GPS
+heltec::gps::GpsRmcSpeedStream gps_serial(Serial1);
+#endif
+
 #if defined(HELTEC_SENSOR_MANAGER) && HELTEC_SENSOR_MANAGER
 #if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
 #include "sensors/ICMCompassProvider.h"
 ICMCompassProvider compassProvider;
 #endif
 #if ENV_INCLUDE_GPS
-MicroNMEALocationProvider nmea = MicroNMEALocationProvider(Serial1, &rtc_clock, GPS_RESET, GPS_EN);
+MicroNMEALocationProvider nmea = MicroNMEALocationProvider(gps_serial, &rtc_clock, GPS_RESET, GPS_EN);
 #if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
 HeltecEnvironmentSensorManager sensors(nmea, compassProvider);
 #else
@@ -74,9 +79,9 @@ HeltecEnvironmentSensorManager sensors;
 #if ENV_INCLUDE_GPS
 #if defined(HELTEC_MESH_UI) && HELTEC_MESH_UI
 MicroNMEALocationProvider nmea =
-    MicroNMEALocationProvider(Serial1, &rtc_clock, GPS_RESET, GPS_EN, &board._sensorPower);
+    MicroNMEALocationProvider(gps_serial, &rtc_clock, GPS_RESET, GPS_EN, &board._sensorPower);
 #else
-MicroNMEALocationProvider nmea = MicroNMEALocationProvider(Serial1, &rtc_clock, GPS_RESET, GPS_EN, &board.periph_power);
+MicroNMEALocationProvider nmea = MicroNMEALocationProvider(gps_serial, &rtc_clock, GPS_RESET, GPS_EN, &board.periph_power);
 #endif
 EnvironmentSensorManager sensors = EnvironmentSensorManager(nmea);
 #else

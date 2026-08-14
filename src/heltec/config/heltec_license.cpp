@@ -4,7 +4,17 @@
 
 #if defined(NRF52_PLATFORM)
 #include <nrf.h>
+#if defined(NRF52840_XXAA)
+#include <nrf_sdm.h>
+#endif
 #elif defined(ESP32) || defined(ESP_PLATFORM)
+#include <esp_idf_version.h>
+#include <nvs.h>
+#include <nvs_flash.h>
+#if defined(CONFIG_IDF_TARGET_ESP32S3)
+#include <string>
+#include <vector>
+#endif
 #if defined(CONFIG_IDF_TARGET_ESP32C6) && defined(CONFIG_SOC_IEEE802154_SUPPORTED)
 #include <esp_mac.h>
 #endif
@@ -31,56 +41,125 @@
 
 #if defined(NRF52_PLATFORM) || defined(ESP32) || defined(ESP_PLATFORM)
 
-static FILESYSTEM* s_license_fs = nullptr;
+#if defined(CONFIG_IDF_TARGET_ESP32S3)
+static constexpr const char kLicenseNvsPartition[] = "nvs";
+static constexpr const char kLicenseNvsNamespace[] = "heltec_lic";
+static constexpr const char kLicenseNvsKey[] = "cdkey";
+#endif
 
-static constexpr const char kLicenseFilePath[] = "/heltec_lic";
+static bool licenseWordsEqual(const uint32_t a[HT_LICENSE_WORDS],
+                              const uint32_t b[HT_LICENSE_WORDS]) {
+  return memcmp(a, b, HT_LICENSE_WORDS * sizeof(uint32_t)) == 0;
+}
 
-void heltecLicenseSetFilesystem(FILESYSTEM* fs) { s_license_fs = fs; }
+enum class NativeLicenseState : uint8_t {
+  Unsupported,
+  Empty,
+  Present,
+  Error,
+};
 
-static bool licenseWordsNonEmpty(const uint32_t license[HT_LICENSE_WORDS]) {
+static NativeLicenseState licenseReadNative(uint32_t license[HT_LICENSE_WORDS]) {
+  if (!license) return NativeLicenseState::Error;
+
+#if defined(NRF52_PLATFORM) && defined(NRF52840_XXAA)
+  bool empty = true;
   for (uint32_t i = 0; i < HT_LICENSE_WORDS; ++i) {
-    if (license[i] != 0xFFFFFFFFU) return true;
+    license[i] = NRF_UICR->CUSTOMER[28U + i];
+    if (license[i] != 0xFFFFFFFFU) empty = false;
   }
+  return empty ? NativeLicenseState::Empty : NativeLicenseState::Present;
+#elif (defined(ESP32) || defined(ESP_PLATFORM)) && defined(CONFIG_IDF_TARGET_ESP32S3)
+  nvs_handle_t handle = 0;
+  const esp_err_t open_err =
+      nvs_open_from_partition(kLicenseNvsPartition, kLicenseNvsNamespace, NVS_READONLY, &handle);
+  if (open_err == ESP_ERR_NVS_NOT_FOUND) return NativeLicenseState::Empty;
+  if (open_err != ESP_OK) {
+    LICENSE_LOG("NVS open failed: %s\n", esp_err_to_name(open_err));
+    return NativeLicenseState::Error;
+  }
+
+  size_t size = HT_LICENSE_WORDS * sizeof(uint32_t);
+  const esp_err_t read_err = nvs_get_blob(handle, kLicenseNvsKey, license, &size);
+  nvs_close(handle);
+  if (read_err == ESP_ERR_NVS_NOT_FOUND) return NativeLicenseState::Empty;
+  if (read_err != ESP_OK || size != HT_LICENSE_WORDS * sizeof(uint32_t)) {
+    LICENSE_LOG("NVS read failed: %s size=%u\n", esp_err_to_name(read_err), (unsigned)size);
+    return NativeLicenseState::Error;
+  }
+  return NativeLicenseState::Present;
+#else
+  memset(license, 0, HT_LICENSE_WORDS * sizeof(uint32_t));
+  return NativeLicenseState::Unsupported;
+#endif
+}
+
+#if defined(NRF52_PLATFORM) && defined(NRF52840_XXAA)
+static bool licenseWriteUicrWord(volatile uint32_t* address, uint32_t value) {
+  if (*address == value) return true;
+  if (*address != 0xFFFFFFFFU) return false;
+
+  const uint32_t primask = __get_PRIMASK();
+  __disable_irq();
+  NRF_NVMC->CONFIG = NVMC_CONFIG_WEN_Wen;
+  while (NRF_NVMC->READY == NVMC_READY_READY_Busy) {}
+  *address = value;
+  while (NRF_NVMC->READY == NVMC_READY_READY_Busy) {}
+  NRF_NVMC->CONFIG = NVMC_CONFIG_WEN_Ren;
+  while (NRF_NVMC->READY == NVMC_READY_READY_Busy) {}
+  __DSB();
+  __ISB();
+  if (primask == 0U) __enable_irq();
+  return *address == value;
+}
+#endif
+
+static bool licenseWriteNative(const uint32_t license[HT_LICENSE_WORDS]) {
+  if (!license) return false;
+
+#if defined(NRF52_PLATFORM) && defined(NRF52840_XXAA)
+  uint8_t softdevice_enabled = 0;
+  const uint32_t sd_err = sd_softdevice_is_enabled(&softdevice_enabled);
+  if (sd_err != NRF_SUCCESS || softdevice_enabled) {
+    LICENSE_LOG("UICR write rejected: SoftDevice state err=%lu enabled=%u\n",
+                (unsigned long)sd_err, (unsigned)softdevice_enabled);
+    return false;
+  }
+
+  for (uint32_t i = 0; i < HT_LICENSE_WORDS; ++i) {
+    const uint32_t current = NRF_UICR->CUSTOMER[28U + i];
+    if (current != 0xFFFFFFFFU && current != license[i]) {
+      LICENSE_LOG("UICR CUSTOMER[%u] conflicts with stored data\n", (unsigned)(28U + i));
+      return false;
+    }
+  }
+  for (uint32_t i = 0; i < HT_LICENSE_WORDS; ++i) {
+    if (!licenseWriteUicrWord(&NRF_UICR->CUSTOMER[28U + i], license[i])) {
+      LICENSE_LOG("UICR CUSTOMER[%u] write failed\n", (unsigned)(28U + i));
+      return false;
+    }
+  }
+  return true;
+#elif (defined(ESP32) || defined(ESP_PLATFORM)) && defined(CONFIG_IDF_TARGET_ESP32S3)
+  nvs_handle_t handle = 0;
+  esp_err_t err =
+      nvs_open_from_partition(kLicenseNvsPartition, kLicenseNvsNamespace, NVS_READWRITE, &handle);
+  if (err != ESP_OK) {
+    LICENSE_LOG("NVS open for write failed: %s\n", esp_err_to_name(err));
+    return false;
+  }
+  err = nvs_set_blob(handle, kLicenseNvsKey, license,
+                     HT_LICENSE_WORDS * sizeof(uint32_t));
+  if (err == ESP_OK) err = nvs_commit(handle);
+  nvs_close(handle);
+  if (err != ESP_OK) {
+    LICENSE_LOG("NVS write failed: %s\n", esp_err_to_name(err));
+    return false;
+  }
+  return true;
+#else
   return false;
-}
-
-static bool licenseReadWords(uint32_t license[HT_LICENSE_WORDS]) {
-  if (!license || !s_license_fs) return false;
-  if (!s_license_fs->exists(kLicenseFilePath)) return false;
-
-#if defined(NRF52_PLATFORM) || defined(STM32_PLATFORM)
-  File f = s_license_fs->open(kLicenseFilePath);
-#else
-  File f = s_license_fs->open(kLicenseFilePath, "r");
 #endif
-  if (!f) return false;
-
-  const int n = f.read((uint8_t*)license, (int)(HT_LICENSE_WORDS * sizeof(uint32_t)));
-  f.close();
-  if (n != (int)(HT_LICENSE_WORDS * sizeof(uint32_t))) return false;
-  return licenseWordsNonEmpty(license);
-}
-
-static bool licenseWriteWords(const uint32_t license[HT_LICENSE_WORDS]) {
-  if (!license || !s_license_fs) return false;
-
-  s_license_fs->remove(kLicenseFilePath);
-#if defined(NRF52_PLATFORM) || defined(STM32_PLATFORM)
-  File f = s_license_fs->open(kLicenseFilePath, FILE_O_WRITE);
-#else
-  File f = s_license_fs->open(kLicenseFilePath, "w", true);
-#endif
-  if (!f) return false;
-
-  const size_t n = f.write((const uint8_t*)license, HT_LICENSE_WORDS * sizeof(uint32_t));
-  f.close();
-  return n == HT_LICENSE_WORDS * sizeof(uint32_t);
-}
-
-bool heltecLicenseClearStored() {
-  if (!s_license_fs) return false;
-  if (!s_license_fs->exists(kLicenseFilePath)) return false;
-  return s_license_fs->remove(kLicenseFilePath);
 }
 
 #endif
@@ -234,12 +313,9 @@ bool heltecLicenseReadStored(uint32_t license[HT_LICENSE_WORDS]) {
   if (!license) return false;
 
 #if defined(NRF52_PLATFORM) || defined(ESP32) || defined(ESP_PLATFORM)
-  const bool ok = licenseReadWords(license);
-  if (ok) {
-    LICENSE_VERBOSE("file read %s: %08lX %08lX %08lX %08lX\n", kLicenseFilePath, (unsigned long)license[0],
-                    (unsigned long)license[1], (unsigned long)license[2], (unsigned long)license[3]);
-  }
-  return ok;
+  if (licenseReadNative(license) == NativeLicenseState::Present) return true;
+  memset(license, 0, HT_LICENSE_WORDS * sizeof(uint32_t));
+  return false;
 #else
   memset(license, 0, HT_LICENSE_WORDS * sizeof(uint32_t));
   return false;
@@ -248,22 +324,122 @@ bool heltecLicenseReadStored(uint32_t license[HT_LICENSE_WORDS]) {
 
 bool heltecLicenseWriteStored(const uint32_t license[HT_LICENSE_WORDS]) {
   if (!license) return false;
+  if (!heltecLicenseCalRtc(license)) {
+    LICENSE_LOGLN("store rejected: invalid license");
+    return false;
+  }
 
 #if defined(NRF52_PLATFORM) || defined(ESP32) || defined(ESP_PLATFORM)
-  if (!s_license_fs) {
-    LICENSE_LOGLN("file write: filesystem not ready");
+  uint32_t probe[HT_LICENSE_WORDS] = {0};
+  const NativeLicenseState native_state = licenseReadNative(probe);
+  if (native_state == NativeLicenseState::Unsupported) {
+    LICENSE_LOGLN("native storage is unsupported on this platform");
     return false;
   }
-  if (!licenseWriteWords(license)) {
-    LICENSE_LOGLN("file write: failed");
+
+  if (!licenseWriteNative(license)) {
+    LICENSE_LOGLN("native storage write failed");
     return false;
   }
-  LICENSE_LOG("file write OK %s\n", kLicenseFilePath);
+
+  uint32_t readback[HT_LICENSE_WORDS] = {0};
+  if (licenseReadNative(readback) != NativeLicenseState::Present ||
+      !licenseWordsEqual(readback, license) || !heltecLicenseCalRtc(readback)) {
+    LICENSE_LOGLN("native storage verification failed");
+    return false;
+  }
+
+  LICENSE_LOGLN("license stored in native storage");
   return true;
 #else
   (void)license;
   LICENSE_LOGLN("file write: unsupported platform");
   return false;
+#endif
+}
+
+#if defined(NRF52_PLATFORM) || defined(ESP32) || defined(ESP_PLATFORM)
+bool heltecLicenseClearStored() {
+  LICENSE_LOGLN("native license clear is not supported");
+  return false;
+}
+#endif
+
+bool heltecLicensePrepareFactoryReset() {
+#if (defined(ESP32) || defined(ESP_PLATFORM)) && defined(CONFIG_IDF_TARGET_ESP32S3)
+  std::vector<std::string> namespaces;
+
+#if ESP_IDF_VERSION_MAJOR >= 5
+  nvs_iterator_t iterator = nullptr;
+  esp_err_t find_err =
+      nvs_entry_find(kLicenseNvsPartition, nullptr, NVS_TYPE_ANY, &iterator);
+  while (find_err == ESP_OK) {
+    nvs_entry_info_t info = {};
+    nvs_entry_info(iterator, &info);
+    if (info.namespace_name[0] != '\0') {
+      const std::string name(info.namespace_name);
+      bool found = false;
+      for (const std::string& existing : namespaces) {
+        if (existing == name) {
+          found = true;
+          break;
+        }
+      }
+      if (!found) namespaces.push_back(name);
+    }
+    find_err = nvs_entry_next(&iterator);
+  }
+  nvs_release_iterator(iterator);
+  if (find_err != ESP_ERR_NVS_NOT_FOUND) {
+    LICENSE_LOG("NVS enumeration failed: %s\n", esp_err_to_name(find_err));
+    return false;
+  }
+#else
+  nvs_iterator_t iterator =
+      nvs_entry_find(kLicenseNvsPartition, nullptr, NVS_TYPE_ANY);
+  while (iterator != nullptr) {
+    nvs_entry_info_t info = {};
+    nvs_entry_info(iterator, &info);
+    if (info.namespace_name[0] != '\0') {
+      const std::string name(info.namespace_name);
+      bool found = false;
+      for (const std::string& existing : namespaces) {
+        if (existing == name) {
+          found = true;
+          break;
+        }
+      }
+      if (!found) namespaces.push_back(name);
+    }
+    iterator = nvs_entry_next(iterator);
+  }
+#endif
+
+  for (const std::string& name : namespaces) {
+    if (name == kLicenseNvsNamespace) continue;
+
+    nvs_handle_t handle = 0;
+    esp_err_t err = nvs_open_from_partition(kLicenseNvsPartition, name.c_str(),
+                                            NVS_READWRITE, &handle);
+    if (err != ESP_OK) {
+      LICENSE_LOG("factory reset: NVS namespace open failed: %s\n",
+                  esp_err_to_name(err));
+      return false;
+    }
+    err = nvs_erase_all(handle);
+    if (err == ESP_OK) err = nvs_commit(handle);
+    nvs_close(handle);
+    if (err != ESP_OK) {
+      LICENSE_LOG("factory reset: NVS namespace erase failed: %s\n",
+                  esp_err_to_name(err));
+      return false;
+    }
+  }
+  return true;
+#elif defined(ESP32) || defined(ESP_PLATFORM)
+  return nvs_flash_erase() == ESP_OK;
+#else
+  return true;
 #endif
 }
 
@@ -304,7 +480,7 @@ bool heltecLicenseTryCdkeyCommand(const char* line) {
     return false;
   }
 
-  LICENSE_LOG("cdkey: extracted hex32=%s\n", hex32);
+  LICENSE_LOGLN("cdkey: received 32 hex digits");
 
   uint32_t license[HT_LICENSE_WORDS];
   if (!heltecLicenseParseCdkeyHex(hex32, license)) {
@@ -312,16 +488,13 @@ bool heltecLicenseTryCdkeyCommand(const char* line) {
     return false;
   }
 
-  LICENSE_VERBOSE("cdkey: words %08lX %08lX %08lX %08lX\n", (unsigned long)license[0],
-                  (unsigned long)license[1], (unsigned long)license[2], (unsigned long)license[3]);
-
   if (!heltecLicenseCalRtc(license)) {
     LICENSE_LOGLN("cdkey: validation failed (chip mismatch)");
     return false;
   }
 
   if (!heltecLicenseWriteStored(license)) {
-    LICENSE_LOGLN("cdkey: file store failed");
+    LICENSE_LOGLN("cdkey: native store failed");
     return false;
   }
 
@@ -411,11 +584,6 @@ void heltecLicenseUiTick() {
 }
 
 bool heltecLicenseBootGate(bool has_display) {
-#if defined(NRF52_PLATFORM) || defined(ESP32) || defined(ESP_PLATFORM)
-  if (!s_license_fs) {
-    LICENSE_LOGLN("boot gate: filesystem not bound");
-  }
-#endif
   if (heltecLicenseIsAuthorized()) {
     LICENSE_LOGLN("boot gate: already authorized");
     return true;

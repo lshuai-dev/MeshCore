@@ -6,9 +6,7 @@
 #define HT_LICENSE_WORDS 4U
 
 #if defined(NRF52_PLATFORM) || defined(ESP32) || defined(ESP_PLATFORM)
-#include <helpers/IdentityStore.h>
-/** Bind filesystem volume for CDKEY file storage. */
-void heltecLicenseSetFilesystem(FILESYSTEM* fs);
+/** Native license storage is intentionally not cleared by normal firmware. */
 bool heltecLicenseClearStored();
 #endif
 
@@ -21,6 +19,8 @@ bool heltecLicenseWriteStored(const uint32_t license[HT_LICENSE_WORDS]);
 bool heltecLicenseIsAuthorized();
 bool heltecLicenseParseCdkeyHex(const char* hex32, uint32_t license[HT_LICENSE_WORDS]);
 bool heltecLicenseTryCdkeyCommand(const char* line);
+/** Clear platform user preferences while preserving native license storage. */
+bool heltecLicensePrepareFactoryReset();
 
 #if defined(HELTEC_MESH_UI) && HELTEC_MESH_UI
 /** 1: block boot until CDKEY authorized; 0: skip boot authorization gate. */
