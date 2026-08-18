@@ -185,11 +185,14 @@ void ht_set_user_data(lv_obj_t *obj, void *user_data)
     }
 }
 
+#if LV_USE_OBJECT
 lv_obj_t *ht_obj_create(lv_obj_t *parent, uint16_t id, void *user_data)
 {
     return create_object(&lv_obj_class, parent, id, user_data);
 }
+#endif
 
+#if LV_USE_LABEL
 lv_obj_t *ht_label_create(lv_obj_t *parent, uint16_t id, const char *text, void *user_data)
 {
     lv_obj_t *const obj = create_object(&lv_label_class, parent, id, user_data);
@@ -197,11 +200,14 @@ lv_obj_t *ht_label_create(lv_obj_t *parent, uint16_t id, const char *text, void 
         lv_label_set_text(obj, text);
     return obj;
 }
+#endif
 
+#if LV_USE_BUTTON
 lv_obj_t *ht_btn_create(lv_obj_t *parent, uint16_t id, void *user_data)
 {
     return create_object(&lv_btn_class, parent, id, user_data);
 }
+#endif
 
 #if LV_USE_SWITCH
 lv_obj_t *ht_switch_create(lv_obj_t *parent, uint16_t id, void *user_data)
