@@ -206,6 +206,7 @@ void ui_theme_apply_focus_frame(_lv_obj_t *frame);
 void ui_theme_apply_focus_row(_lv_obj_t *row);
 /** Removes the native focus border from a control whose parent row is highlighted. */
 void ui_theme_apply_focus_control(_lv_obj_t *control);
+void ui_theme_set_focus_emphasis(_lv_obj_t *object, bool focused);
 /** Applies the active theme's row focus style for a row associated with a switch. */
 void ui_theme_apply_switch_row_focus(_lv_obj_t *row, _lv_obj_t *sw);
 /** Applies the active theme's popup dropdown list chrome/background/selection style. */

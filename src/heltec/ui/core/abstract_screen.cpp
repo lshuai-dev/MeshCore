@@ -189,6 +189,7 @@ void AbstractScreen::addFocusItem(_lv_obj_t *object, _lv_obj_t *frame, bool focu
     if (focus_frame != object && lv_obj_has_state(object, LV_STATE_FOCUSED))
     {
         lv_obj_add_state(focus_frame, LV_STATE_FOCUSED | LV_STATE_FOCUS_KEY);
+        ui_theme_set_focus_emphasis(focus_frame, true);
         lv_obj_invalidate(focus_frame);
     }
     _focus_items[_focus_item_count++] = object;
@@ -234,10 +235,12 @@ void AbstractScreen::onFocusItemChanged(lv_event_t *e)
     if (code == LV_EVENT_FOCUSED)
     {
         lv_obj_add_state(frame, LV_STATE_FOCUSED | LV_STATE_FOCUS_KEY);
+        ui_theme_set_focus_emphasis(frame, true);
     }
     else
     {
         lv_obj_clear_state(frame, LV_STATE_FOCUSED | LV_STATE_FOCUS_KEY);
+        ui_theme_set_focus_emphasis(frame, false);
     }
     lv_obj_invalidate(frame);
 }

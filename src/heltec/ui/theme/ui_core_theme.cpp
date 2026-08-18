@@ -56,28 +56,32 @@ void focus_zoom_exec(void *object, int32_t zoom)
     lv_obj_set_style_transform_zoom(static_cast<lv_obj_t *>(object), zoom, LV_PART_MAIN);
 }
 
+void start_focus_zoom(lv_obj_t *object, bool focused)
+{
+    if (!object)
+        return;
+
+    const lv_coord_t target_zoom = focused ? 307 : 256;
+    lv_anim_del(object, focus_zoom_exec);
+    lv_obj_set_style_transform_zoom(object, focused ? 256 : 307, LV_PART_MAIN);
+
+    lv_anim_t animation;
+    lv_anim_init(&animation);
+    lv_anim_set_var(&animation, object);
+    lv_anim_set_values(&animation, focused ? 256 : 307, target_zoom);
+    lv_anim_set_time(&animation, 180);
+    lv_anim_set_path_cb(&animation, lv_anim_path_ease_out);
+    lv_anim_set_exec_cb(&animation, focus_zoom_exec);
+    lv_anim_start(&animation);
+}
+
 void focus_zoom_event(lv_event_t *event)
 {
     const lv_event_code_t event_code = lv_event_get_code(event);
     if (event_code != LV_EVENT_FOCUSED && event_code != LV_EVENT_DEFOCUSED)
         return;
 
-    lv_obj_t *const object = lv_event_get_target(event);
-    if (!object)
-        return;
-
-    const bool focused =
-        lv_obj_has_state(object, LV_STATE_FOCUSED) || lv_obj_has_state(object, LV_STATE_FOCUS_KEY);
-    lv_anim_del(object, focus_zoom_exec);
-
-    lv_anim_t animation;
-    lv_anim_init(&animation);
-    lv_anim_set_var(&animation, object);
-    lv_anim_set_values(&animation, focused ? 256 : 307, focused ? 307 : 256);
-    lv_anim_set_time(&animation, 180);
-    lv_anim_set_path_cb(&animation, lv_anim_path_ease_out);
-    lv_anim_set_exec_cb(&animation, focus_zoom_exec);
-    lv_anim_start(&animation);
+    start_focus_zoom(lv_event_get_target(event), event_code == LV_EVENT_FOCUSED);
 }
 
 void install_focus_zoom(_lv_obj_t *object)
@@ -88,6 +92,11 @@ void install_focus_zoom(_lv_obj_t *object)
 }
 
 } // namespace
+
+void ui_theme_set_focus_emphasis(_lv_obj_t *object, bool focused)
+{
+    start_focus_zoom(object, focused);
+}
 
 void ui_theme_apply_focus_frame(_lv_obj_t *frame)
 {
