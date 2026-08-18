@@ -64,6 +64,14 @@ void start_focus_zoom(lv_obj_t *object, bool focused)
     const lv_coord_t target_zoom = focused ? 307 : 256;
     lv_anim_del(object, focus_zoom_exec);
     lv_obj_set_style_transform_zoom(object, focused ? 256 : 307, LV_PART_MAIN);
+    if (focused)
+    {
+        lv_obj_set_style_text_color(object, ui_color_fg(), LV_PART_MAIN);
+        lv_obj_set_style_text_opa(object, LV_OPA_COVER, LV_PART_MAIN);
+        lv_obj_set_style_outline_color(object, ui_color_fg(), LV_PART_MAIN);
+        lv_obj_set_style_outline_width(object, LV_DPX(1), LV_PART_MAIN);
+        lv_obj_set_style_outline_opa(object, LV_OPA_COVER, LV_PART_MAIN);
+    }
 
     lv_anim_t animation;
     lv_anim_init(&animation);
