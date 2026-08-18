@@ -1,5 +1,7 @@
 #include "config/heltec_license.h"
 
+#include "ui/core/ht_meta_data.hpp"
+
 #include <cstring>
 
 #if defined(NRF52_PLATFORM)
@@ -23,7 +25,6 @@
 #if defined(HELTEC_MESH_UI) && HELTEC_MESH_UI && HELTEC_LICENSE_BOOT_GATE
 #include "heltec/drivers/display/display_port.hpp"
 #include "heltec/drivers/input/momentary_button.hpp"
-#include "ui/core/ht_meta_data.hpp"
 #include "ui/core/license_gate_ids.hpp"
 
 #include <lvgl.h>

@@ -19,6 +19,37 @@ lv_style_t s_screen_row_focus_highlight;
 bool s_screen_row_focus_highlight_ready = false;
 lv_style_t s_screen_focus_control;
 bool s_screen_focus_control_ready = false;
+lv_style_transition_dsc_t s_focus_transition;
+bool s_focus_transition_ready = false;
+
+static const lv_style_prop_t kFocusTransitionProps[] = {
+    LV_STYLE_TRANSFORM_ZOOM, LV_STYLE_BORDER_COLOR, LV_STYLE_BORDER_OPA,
+    LV_STYLE_SHADOW_WIDTH,   LV_STYLE_SHADOW_OPA,   LV_STYLE_PROP_INV,
+};
+
+void init_focus_transition()
+{
+    if (s_focus_transition_ready)
+        return;
+
+    lv_style_transition_dsc_init(&s_focus_transition, kFocusTransitionProps, lv_anim_path_ease_out,
+                                 180, 0, nullptr);
+    s_focus_transition_ready = true;
+}
+
+void apply_focus_emphasis(lv_style_t *style)
+{
+    init_focus_transition();
+    lv_style_set_transform_zoom(style, 307);
+    lv_style_set_transform_pivot_x(style, 128);
+    lv_style_set_transform_pivot_y(style, 128);
+    lv_style_set_shadow_color(style, ui_color_highlight_bg());
+    lv_style_set_shadow_width(style, LV_DPX(12));
+    lv_style_set_shadow_opa(style, LV_OPA_30);
+    lv_style_set_shadow_ofs_x(style, 0);
+    lv_style_set_shadow_ofs_y(style, 0);
+    lv_style_set_transition(style, &s_focus_transition);
+}
 
 } // namespace
 
@@ -48,6 +79,7 @@ void ui_theme_apply_focus_frame(_lv_obj_t *frame)
         lv_style_set_outline_width(&s_screen_focus_highlight, 0);
         lv_style_set_outline_opa(&s_screen_focus_highlight, LV_OPA_TRANSP);
 #endif
+        apply_focus_emphasis(&s_screen_focus_highlight);
         lv_style_set_radius(&s_screen_focus_highlight, ui_widget_radius_px());
         s_screen_focus_highlight_ready = true;
     }
@@ -93,6 +125,7 @@ void ui_theme_apply_focus_control(_lv_obj_t *control)
         lv_style_set_border_opa(&s_screen_focus_control, LV_OPA_TRANSP);
         lv_style_set_outline_width(&s_screen_focus_control, 0);
         lv_style_set_outline_opa(&s_screen_focus_control, LV_OPA_TRANSP);
+        apply_focus_emphasis(&s_screen_focus_control);
         s_screen_focus_control_ready = true;
     }
     lv_obj_add_style(control, &s_screen_focus_control, LV_PART_MAIN | LV_STATE_FOCUSED);
