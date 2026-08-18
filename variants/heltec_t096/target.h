@@ -6,7 +6,11 @@
 #include <helpers/AutoDiscoverRTCClock.h>
 #include <helpers/radiolib/CustomSX1262Wrapper.h>
 #include <helpers/radiolib/RadioLibWrappers.h>
+#if defined(HELTEC_SENSOR_MANAGER) && HELTEC_SENSOR_MANAGER
+#include "sensors/HeltecEnvironmentSensorManager.h"
+#else
 #include <helpers/sensors/EnvironmentSensorManager.h>
+#endif
 #include <helpers/sensors/LocationProvider.h>
 
 #if defined(DISPLAY_CLASS) && !defined(HELTEC_DISPLAY_ST7735)
@@ -19,7 +23,11 @@
 extern T096Board board;
 extern WRAPPER_CLASS radio_driver;
 extern AutoDiscoverRTCClock rtc_clock;
+#if defined(HELTEC_SENSOR_MANAGER) && HELTEC_SENSOR_MANAGER
+extern HeltecEnvironmentSensorManager sensors;
+#else
 extern EnvironmentSensorManager sensors;
+#endif
 
 #if defined(DISPLAY_CLASS) && !defined(HELTEC_DISPLAY_ST7735)
 extern DISPLAY_CLASS display;

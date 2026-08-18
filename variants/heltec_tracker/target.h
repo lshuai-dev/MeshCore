@@ -8,11 +8,15 @@
 #include <helpers/AutoDiscoverRTCClock.h>
 #include <helpers/SensorManager.h>
 #include <helpers/sensors/LocationProvider.h>
+#if defined(HELTEC_SENSOR_MANAGER) && HELTEC_SENSOR_MANAGER
+#include <heltec/sensors/HeltecEnvironmentSensorManager.h>
+#endif
 #if defined(DISPLAY_CLASS) && !defined(HELTEC_DISPLAY_ST7735)
   #include <helpers/ui/ST7735Display.h>
   #include <helpers/ui/MomentaryButton.h>
 #endif
 
+#if !defined(HELTEC_SENSOR_MANAGER) || !(HELTEC_SENSOR_MANAGER)
 class HWTSensorManager : public SensorManager {
   bool gps_active = false;
   LocationProvider * _location;
@@ -30,11 +34,16 @@ public:
   bool setSettingValue(const char* name, const char* value) override;
   LocationProvider* getLocationProvider() override { return _location; }
 };
+#endif
 
 extern HeltecV3Board board;
 extern WRAPPER_CLASS radio_driver;
 extern AutoDiscoverRTCClock rtc_clock;
+#if defined(HELTEC_SENSOR_MANAGER) && HELTEC_SENSOR_MANAGER
+extern HeltecEnvironmentSensorManager sensors;
+#else
 extern HWTSensorManager sensors;
+#endif
 
 #if defined(DISPLAY_CLASS) && !defined(HELTEC_DISPLAY_ST7735)
   extern DISPLAY_CLASS display;

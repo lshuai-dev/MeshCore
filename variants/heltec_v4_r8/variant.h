@@ -4,6 +4,71 @@
 // -include'd to shorten Windows g++ command line (CreateProcess limit).
 // Profiles: HELTEC_V4_R8_TFT / HELTEC_V4_R8_OLED.
 
+// Static build configuration lives here instead of in build_flags so Windows
+// does not have to pass the same long list of -D arguments to every compiler.
+#define HELTEC_V4_R8 1
+#define USE_SX1262 1
+#define HELTEC_USE_ORLP_ED25519_VERIFY 1
+#define HELTEC_MESH_UI 1
+#define HAS_LNA_CONTROL 1
+#define ED25519_NO_SEED 1
+#define MOMENTARY_BUTTON_MAX 2
+#define HELTEC_BUTTON_MAX_CLICKS 3
+
+#define ENV_INCLUDE_GPS 1
+#define ENV_INCLUDE_AHTX0 1
+#define ENV_INCLUDE_BME280 1
+#define ENV_INCLUDE_BMP280 1
+#define ENV_INCLUDE_SHTC3 1
+#define ENV_INCLUDE_SHT4X 1
+#define ENV_INCLUDE_LPS22HB 1
+#define ENV_INCLUDE_INA3221 1
+#define ENV_INCLUDE_INA219 1
+#define ENV_INCLUDE_INA226 1
+#define ENV_INCLUDE_INA260 1
+#define ENV_INCLUDE_MLX90614 1
+#define ENV_INCLUDE_VL53L0X 1
+#define ENV_INCLUDE_BME680 1
+#define ENV_INCLUDE_BMP085 1
+
+#define LV_CONF_SKIP 1
+#define LV_DRAW_COMPLEX 1
+#define LV_TICK_CUSTOM 1
+#define LV_MEM_CUSTOM 1
+#define LV_MEM_CUSTOM_INCLUDE "drivers/display/lv_mem_psram.h"
+#define LV_MEM_CUSTOM_ALLOC lv_mem_psram_alloc
+#define LV_MEM_CUSTOM_FREE lv_mem_psram_free
+#define LV_MEM_CUSTOM_REALLOC lv_mem_psram_realloc
+#define LV_MEMCPY_MEMSET_STD 1
+#define LV_SHADOW_CACHE_SIZE 0
+#define LV_GRAD_CACHE_DEF_SIZE 0
+#define LV_USE_GRID 0
+#define LV_USE_ANIMIMG 0
+#define LV_BUILD_EXAMPLES 0
+#define LV_USE_KEYBOARD 1
+#define LV_USE_TEXTAREA 1
+#define LV_USE_ARC 0
+#define LV_USE_BAR 0
+#define LV_USE_CALENDAR 0
+#define LV_USE_CANVAS 0
+#define LV_USE_CHART 0
+#define LV_USE_CHECKBOX 0
+#define LV_USE_COLORWHEEL 0
+#define LV_USE_LED 0
+#define LV_USE_LINE 0
+#define LV_USE_LIST 0
+#define LV_USE_METER 0
+#define LV_USE_MSGBOX 0
+#define LV_USE_SLIDER 0
+#define LV_USE_SPAN 0
+#define LV_USE_SPINBOX 0
+#define LV_USE_SPINNER 0
+#define LV_USE_TABLE 0
+#define LV_USE_TABVIEW 0
+#define LV_USE_WIN 0
+#define LV_SPRINTF_USE_FLOAT 0
+#define LV_FONT_MONTSERRAT_10 0
+
 #ifndef ESP32_CPU_FREQ
 #define ESP32_CPU_FREQ 240
 #endif
@@ -125,6 +190,51 @@
 #endif
 
 #if defined(HELTEC_V4_R8_TFT)
+#define HELTEC_SENSOR_MANAGER 1
+#define HELTEC_DISPLAY_ST7789 1
+#define UI_THEME_COLOR 1
+#define UI_NAVIGATION_GRID 1
+#define UI_NAV_USE_SCREEN_ICONS 1
+#define HELTEC_HAS_TOUCH 1
+#define HELTEC_TOUCH_USE_CHSC6X 1
+#define HELTEC_TOUCH_GESTURE_INPUT 1
+#define HELTEC_TOUCH_GESTURE_SWIPE_PX 24
+#define HELTEC_TOUCH_GESTURE_DBL_MS 350
+#define HELTEC_TOUCH_GESTURE_DBL_DIST_PX 20
+#define HELTEC_TOUCH_GESTURE_LONG_MS 1000
+#define HELTEC_TOUCH_EDGE_PX 28
+#define HELTEC_TOUCH_ACTION_EDGE_PX 24
+#define HELTEC_TOUCH_TOP_ACTION_SIDE_MARGIN_PCT 10
+#define ENV_INCLUDE_MAP 1
+#define HELTEC_MAP_TOUCH_PAN 1
+#define MAP_UI_PAN_START_PX 6
+#define MAP_UI_PNG_LOADS_PER_TICK 1
+#define ENV_SKIP_GPS_DETECT 1
+#define SDFAT_FILE_TYPE 3
+#define HELTEC_SD_BUS_PRECONFIGURED 1
+#define HELTEC_TOPBAR_TOUCH_SHELL 1
+#define LV_USE_PNG 1
+#define LV_USE_FS_STDIO 0
+#define LV_COLOR_DEPTH 16
+#define LV_COLOR_16_SWAP 1
+#define LV_COLOR_SCREEN_TRANSP 1
+#define LV_MEM_BUF_MAX_NUM 32
+#define LV_DISP_DEF_REFR_PERIOD 16
+#define LV_INDEV_DEF_READ_PERIOD 16
+#define LV_CIRCLE_CACHE_SIZE 8
+#define LV_LAYER_SIMPLE_BUF_SIZE 24000U
+#define LV_LAYER_SIMPLE_FALLBACK_BUF_SIZE 8192U
+#define LV_IMG_CACHE_DEF_SIZE 12
+#define LV_USE_THEME_DEFAULT 0
+#define LODEPNG_NO_COMPILE_ENCODER 1
+#define LODEPNG_NO_COMPILE_ANCILLARY_CHUNKS 1
+#define LV_USE_THEME_MONO 0
+#define LV_USE_MENU 0
+#define LV_USE_ROLLER 1
+#define LV_FONT_MONTSERRAT_12 1
+#define LV_FONT_MONTSERRAT_14 1
+#define LV_FONT_DEFAULT &lv_font_montserrat_12
+
 #ifndef GPS_L76K
 #define GPS_L76K
 #endif
@@ -246,6 +356,22 @@
 #endif
 
 #elif defined(HELTEC_V4_R8_OLED)
+
+#define HELTEC_DISPLAY_SSD1306 1
+#define UI_THEME_MONO 1
+#define LV_COLOR_DEPTH 1
+#define LV_MEM_BUF_MAX_NUM 16
+#define LV_DISP_DEF_REFR_PERIOD 33
+#define LV_INDEV_DEF_READ_PERIOD 20
+#define LV_LAYER_SIMPLE_BUF_SIZE 3200U
+#define LV_USE_THEME_DEFAULT 0
+#define LV_USE_THEME_BASIC 0
+#define LV_USE_THEME_MONO 1
+#define LV_USE_MENU 1
+#define LV_USE_ROLLER 0
+#define LV_FONT_HELTEC_7 1
+#define LV_FONT_CUSTOM_DECLARE LV_FONT_DECLARE(lv_font_heltec_7)
+#define LV_FONT_DEFAULT &lv_font_heltec_7
 
 #ifndef PIN_BOARD_SDA
 #define PIN_BOARD_SDA             (17)

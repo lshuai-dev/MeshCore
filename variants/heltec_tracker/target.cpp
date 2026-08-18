@@ -3,7 +3,7 @@
 
 #include <helpers/sensors/MicroNMEALocationProvider.h>
 #include <heltec/sensors/GpsRmcSpeedStream.h>
-#if defined(GPS_UC6580) && GPS_UC6580
+#if (!defined(HELTEC_SENSOR_MANAGER) || !(HELTEC_SENSOR_MANAGER)) && defined(GPS_UC6580) && GPS_UC6580
 #include <heltec/sensors/Uc6580Config.h>
 #endif
 
@@ -23,7 +23,11 @@ AutoDiscoverRTCClock rtc_clock(fallback_clock);
 // GPS_EN (GPIO35) drives N-ch MOSFET → P-ch high-side switch; GPS_RESET (GPIO36) active LOW
 heltec::gps::GpsRmcSpeedStream gps_serial(Serial1);
 MicroNMEALocationProvider nmea = MicroNMEALocationProvider(gps_serial, &rtc_clock, GPS_RESET, GPS_EN, &board.periph_power);
+#if defined(HELTEC_SENSOR_MANAGER) && HELTEC_SENSOR_MANAGER
+HeltecEnvironmentSensorManager sensors(nmea);
+#else
 HWTSensorManager sensors = HWTSensorManager(nmea);
+#endif
 
 #if defined(DISPLAY_CLASS) && !defined(HELTEC_DISPLAY_ST7735)
   DISPLAY_CLASS display(&board.periph_power);   // peripheral power pin is shared
@@ -62,6 +66,7 @@ mesh::LocalIdentity radio_new_identity() {
   return mesh::LocalIdentity(&rng);  // create new random identity
 }
 
+#if !defined(HELTEC_SENSOR_MANAGER) || !(HELTEC_SENSOR_MANAGER)
 void HWTSensorManager::start_gps() {
   if (!gps_active) {
     _location->begin();  // Claims periph_power via RefCountedDigitalPin
@@ -82,7 +87,7 @@ void HWTSensorManager::stop_gps() {
 
 bool HWTSensorManager::begin() {
   // init GPS port
-  Serial1.begin(GPS_BAUD_RATE, SERIAL_8N1, PIN_GPS_RX, PIN_GPS_TX);
+  Serial1.begin(GPS_BAUD_RATE, SERIAL_8N1, PIN_GPS_TX, PIN_GPS_RX);
   return true;
 }
 
@@ -130,3 +135,4 @@ bool HWTSensorManager::setSettingValue(const char* name, const char* value) {
   }
   return false;  // not supported
 }
+#endif

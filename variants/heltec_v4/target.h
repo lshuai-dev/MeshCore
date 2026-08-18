@@ -8,7 +8,11 @@
 #include <helpers/radiolib/CustomSX1262Wrapper.h>
 #include <helpers/AutoDiscoverRTCClock.h>
 #include <helpers/SensorManager.h>
+#if defined(HELTEC_SENSOR_MANAGER) && HELTEC_SENSOR_MANAGER
+#include <heltec/sensors/HeltecEnvironmentSensorManager.h>
+#else
 #include <helpers/sensors/EnvironmentSensorManager.h>
+#endif
 #ifdef DISPLAY_CLASS
 #if !(defined(HELTEC_MESH_UI) && HELTEC_MESH_UI)
 #ifdef HELTEC_LORA_V4_OLED
@@ -23,7 +27,11 @@
 extern HeltecV4Board board;
 extern WRAPPER_CLASS radio_driver;
 extern AutoDiscoverRTCClock rtc_clock;
+#if defined(HELTEC_SENSOR_MANAGER) && HELTEC_SENSOR_MANAGER
+extern HeltecEnvironmentSensorManager sensors;
+#else
 extern EnvironmentSensorManager sensors;
+#endif
 
 #if defined(SPI_INTERFACES_COUNT) && (SPI_INTERFACES_COUNT >= 2)
 extern SPIClass SPI1;

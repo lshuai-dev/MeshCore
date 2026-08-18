@@ -306,11 +306,10 @@ def artifact_name(target: Target, version: str) -> str:
 
 
 def prepare_release_dir(path: Path, force: bool) -> None:
-    if path.exists() and not force:
-        raise RuntimeError(f"Release directory already exists: {path}; pass --force to replace it")
-    if path.exists():
-        shutil.rmtree(path)
-    path.mkdir(parents=True)
+    #if path.exists() and not force:
+    #    raise RuntimeError(f"Release directory already exists: {path}; pass --force to replace it")
+    if not path.exists():
+        path.mkdir(parents=True)
 
 
 def print_targets(targets: Sequence[Target]) -> None:
@@ -367,8 +366,8 @@ def main(argv: Sequence[str] | None = None) -> int:
                 published.append(destination)
                 print(f"Published: {destination}")
     except BaseException:
-        if release_dir.exists():
-            shutil.rmtree(release_dir)
+        #if release_dir.exists():
+        #    shutil.rmtree(release_dir)
         raise
 
     print(f"\nPublished {len(published)} firmware image(s) to {release_dir}")
