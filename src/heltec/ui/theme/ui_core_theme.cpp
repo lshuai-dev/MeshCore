@@ -51,6 +51,42 @@ void apply_focus_emphasis(lv_style_t *style)
     lv_style_set_transition(style, &s_focus_transition);
 }
 
+void focus_zoom_exec(void *object, int32_t zoom)
+{
+    lv_obj_set_style_transform_zoom(static_cast<lv_obj_t *>(object), zoom, LV_PART_MAIN);
+}
+
+void focus_zoom_event(lv_event_t *event)
+{
+    const lv_event_code_t event_code = lv_event_get_code(event);
+    if (event_code != LV_EVENT_FOCUSED && event_code != LV_EVENT_DEFOCUSED)
+        return;
+
+    lv_obj_t *const object = lv_event_get_target(event);
+    if (!object)
+        return;
+
+    const bool focused =
+        lv_obj_has_state(object, LV_STATE_FOCUSED) || lv_obj_has_state(object, LV_STATE_FOCUS_KEY);
+    lv_anim_del(object, focus_zoom_exec);
+
+    lv_anim_t animation;
+    lv_anim_init(&animation);
+    lv_anim_set_var(&animation, object);
+    lv_anim_set_values(&animation, focused ? 256 : 307, focused ? 307 : 256);
+    lv_anim_set_time(&animation, 180);
+    lv_anim_set_path_cb(&animation, lv_anim_path_ease_out);
+    lv_anim_set_exec_cb(&animation, focus_zoom_exec);
+    lv_anim_start(&animation);
+}
+
+void install_focus_zoom(_lv_obj_t *object)
+{
+    lv_obj_add_event_cb(object, focus_zoom_event, LV_EVENT_FOCUSED, nullptr);
+    lv_obj_add_event_cb(object, focus_zoom_event, LV_EVENT_DEFOCUSED, nullptr);
+    lv_obj_add_flag(object, LV_OBJ_FLAG_OVERFLOW_VISIBLE);
+}
+
 } // namespace
 
 void ui_theme_apply_focus_frame(_lv_obj_t *frame)
@@ -85,6 +121,7 @@ void ui_theme_apply_focus_frame(_lv_obj_t *frame)
     }
     lv_obj_add_style(frame, &s_screen_focus_highlight, LV_PART_MAIN | LV_STATE_FOCUSED);
     lv_obj_add_style(frame, &s_screen_focus_highlight, LV_PART_MAIN | LV_STATE_FOCUS_KEY);
+    install_focus_zoom(frame);
 }
 
 void ui_theme_apply_focus_row(_lv_obj_t *row)
@@ -130,6 +167,7 @@ void ui_theme_apply_focus_control(_lv_obj_t *control)
     }
     lv_obj_add_style(control, &s_screen_focus_control, LV_PART_MAIN | LV_STATE_FOCUSED);
     lv_obj_add_style(control, &s_screen_focus_control, LV_PART_MAIN | LV_STATE_FOCUS_KEY);
+    install_focus_zoom(control);
 }
 
 void ui_theme_apply_switch_row_focus(_lv_obj_t *row, _lv_obj_t *sw)
