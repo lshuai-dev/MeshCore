@@ -8,57 +8,63 @@
 #include "st7789_port.hpp"
 #endif
 
-namespace heltec::meshcore::dal::display_port {
-bool init() {
+namespace heltec::meshcore::dal::display_port
+{
+bool init()
+{
 #if defined(HELTEC_DISPLAY_SSD1306)
-  return ssd1306::init();
+    return ssd1306::init();
 #elif defined(HELTEC_DISPLAY_ST7735)
-  return st7735::init();
+    return st7735::init();
 #elif defined(HELTEC_DISPLAY_ST7789)
-  return st7789::init();
+    return st7789::init();
 #else
-  return false;
+    return false;
 #endif
 }
 
-void deinit() {
+void deinit()
+{
 #if defined(HELTEC_DISPLAY_SSD1306)
-  ssd1306::deinit();
+    ssd1306::deinit();
 #elif defined(HELTEC_DISPLAY_ST7735)
-  st7735::deinit();
+    st7735::deinit();
 #elif defined(HELTEC_DISPLAY_ST7789)
-  st7789::deinit();
+    st7789::deinit();
 #endif
 }
 
-void setBacklightOn(bool on) {
+void setBacklightOn(bool on)
+{
 #if defined(HELTEC_DISPLAY_SSD1306)
-  ssd1306::setBacklightOn(on);
+    ssd1306::setBacklightOn(on);
 #elif defined(HELTEC_DISPLAY_ST7735)
-  st7735::setBacklightOn(on);
+    st7735::setBacklightOn(on);
 #elif defined(HELTEC_DISPLAY_ST7789)
-  st7789::setBacklightOn(on);
+    st7789::setBacklightOn(on);
 #else
-  (void)on;
+    (void)on;
 #endif
 }
 
-bool isBacklightOn() {
+bool isBacklightOn()
+{
 #if defined(HELTEC_DISPLAY_SSD1306)
-  return ssd1306::isBacklightOn();
+    return ssd1306::isBacklightOn();
 #elif defined(HELTEC_DISPLAY_ST7735)
-  return st7735::isBacklightOn();
+    return st7735::isBacklightOn();
 #elif defined(HELTEC_DISPLAY_ST7789)
-  return st7789::isBacklightOn();
+    return st7789::isBacklightOn();
 #else
-  return true;
+    return true;
 #endif
 }
 
-void reinitPanelAfterSharedReset() {
+void reinitPanelAfterSharedReset()
+{
 #if defined(HELTEC_DISPLAY_ST7789)
-  st7789::reinitPanelAfterSharedReset();
+    st7789::reinitPanelAfterSharedReset();
 #endif
 }
 
-}  // namespace heltec::meshcore::dal::display_port
+} // namespace heltec::meshcore::dal::display_port

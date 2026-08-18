@@ -12,13 +12,13 @@ bool heltecLicenseClearStored();
 
 uint64_t heltecLicenseGetChipId64();
 void heltecLicenseFormatChipIdHex(char out13[13]);
-void heltecLicenseFormatSerialLine(char* out, size_t out_len);
+void heltecLicenseFormatSerialLine(char *out, size_t out_len);
 int heltecLicenseCalRtc(const uint32_t license[HT_LICENSE_WORDS]);
 bool heltecLicenseReadStored(uint32_t license[HT_LICENSE_WORDS]);
 bool heltecLicenseWriteStored(const uint32_t license[HT_LICENSE_WORDS]);
 bool heltecLicenseIsAuthorized();
-bool heltecLicenseParseCdkeyHex(const char* hex32, uint32_t license[HT_LICENSE_WORDS]);
-bool heltecLicenseTryCdkeyCommand(const char* line);
+bool heltecLicenseParseCdkeyHex(const char *hex32, uint32_t license[HT_LICENSE_WORDS]);
+bool heltecLicenseTryCdkeyCommand(const char *line);
 /** Clear platform user preferences while preserving native license storage. */
 bool heltecLicensePrepareFactoryReset();
 

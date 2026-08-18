@@ -1,6 +1,7 @@
 #pragma once
 
-namespace heltec::meshcore::dal::display_port {
+namespace heltec::meshcore::dal::display_port
+{
 
 bool init();
 void deinit();
@@ -10,4 +11,4 @@ void setBacklightOn(bool on);
 bool isBacklightOn();
 void reinitPanelAfterSharedReset();
 
-}  // namespace heltec::meshcore::dal::display_port
+} // namespace heltec::meshcore::dal::display_port

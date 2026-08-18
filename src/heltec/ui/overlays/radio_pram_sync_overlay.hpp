@@ -1,61 +1,68 @@
 #pragma once
-#include <stdint.h>
 #include "../core/abstract_overlay.hpp"
 
-namespace heltec::meshcore::biz {
+#include <stdint.h>
+
+namespace heltec::meshcore::biz
+{
 class IBizFacade;
 }
 struct _lv_obj_t;
-namespace heltec::meshcore::ui {
+namespace heltec::meshcore::ui
+{
 
-namespace meta_id {
-constexpr MetaId RadioParamSyncOverlayRoot = ht_meta_id(MetaIdScope::Overlay, 0x05);
-constexpr MetaId RadioParamSyncTitle = ht_meta_id(MetaIdScope::Overlay, 0xA0);
-constexpr MetaId RadioParamSyncList = ht_meta_id(MetaIdScope::Overlay, 0xA1);
-constexpr MetaId RadioParamSyncRow = ht_meta_id(MetaIdScope::Overlay, 0xA2);
-constexpr MetaId RadioParamSyncFooter = ht_meta_id(MetaIdScope::Overlay, 0xA3);
-constexpr MetaId RadioParamSyncRoller = ht_meta_id(MetaIdScope::Overlay, 0xA4);
-}
+namespace meta_id
+{
+constexpr uint16_t RadioParamSyncOverlayRoot = ht_meta_id(MetaIdScope::Overlay, 0x05);
+constexpr uint16_t RadioParamSyncTitle = ht_meta_id(MetaIdScope::Overlay, 0xA0);
+constexpr uint16_t RadioParamSyncList = ht_meta_id(MetaIdScope::Overlay, 0xA1);
+constexpr uint16_t RadioParamSyncRow = ht_meta_id(MetaIdScope::Overlay, 0xA2);
+constexpr uint16_t RadioParamSyncFooter = ht_meta_id(MetaIdScope::Overlay, 0xA3);
+constexpr uint16_t RadioParamSyncRoller = ht_meta_id(MetaIdScope::Overlay, 0xA4);
+} // namespace meta_id
 
-class RadioParamSyncOverlay : public AbstractOverlay {
- public:
-  explicit RadioParamSyncOverlay(biz::IBizFacade& biz) : AbstractOverlay(biz) {}
+class RadioParamSyncOverlay : public AbstractOverlay
+{
+  public:
+    explicit RadioParamSyncOverlay(biz::IBizFacade &biz) : AbstractOverlay(biz)
+    {
+    }
 
-  void onEnter() override;
-  void onExit() override;
+    void onEnter() override;
+    void onExit() override;
 
-  void stepSelection(int8_t dir);
+    void stepSelection(int8_t dir);
 #if defined(HELTEC_V4_R8_TFT)
-  bool hitRoller(int16_t x, int16_t y) const;
+    bool hitRoller(int16_t x, int16_t y) const;
 #endif
 
- protected:
-  _lv_obj_t* create(_lv_obj_t* parent) override;
+  protected:
+    _lv_obj_t *create(_lv_obj_t *parent) override;
 
- private:
-  _lv_obj_t* createRoot(_lv_obj_t* parent) override;
-  _lv_obj_t* focusTarget() const override;
-  bool onKey(uint32_t key) override;
-  void syncFromPrefs();
-  void configureListLayout();
-  void renderRows();
-  void applySelection();
+  private:
+    _lv_obj_t *createRoot(_lv_obj_t *parent) override;
+    _lv_obj_t *focusTarget() const override;
+    bool onKey(uint32_t key) override;
+    void syncFromPrefs();
+    void configureListLayout();
+    void renderRows();
+    void applySelection();
 #if defined(HELTEC_V4_R8_TFT)
-  void rebuildRollerOptions();
+    void rebuildRollerOptions();
 #endif
 
-  _lv_obj_t* _title = nullptr;
-  _lv_obj_t* _list = nullptr;
-  _lv_obj_t* _footer = nullptr;
+    _lv_obj_t *_title = nullptr;
+    _lv_obj_t *_list = nullptr;
+    _lv_obj_t *_footer = nullptr;
 #if defined(HELTEC_V4_R8_TFT)
-  _lv_obj_t* _roller = nullptr;
-  uint8_t _roller_press_selected = 0;
+    _lv_obj_t *_roller = nullptr;
+    uint8_t _roller_press_selected = 0;
 #endif
-  int8_t _select = 0;
-  uint8_t _count = 0;
-  uint8_t _visible_rows = 1;
-  bool _applying = false;
-  char _current_row_text[32] = {};
+    int8_t _select = 0;
+    uint8_t _count = 0;
+    uint8_t _visible_rows = 1;
+    bool _applying = false;
+    char _current_row_text[32] = {};
 };
 
-}  // namespace heltec::meshcore::ui
+} // namespace heltec::meshcore::ui

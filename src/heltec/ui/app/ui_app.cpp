@@ -1,87 +1,99 @@
 #include "ui/app/ui_app.hpp"
-#include "ui/app/ui_app_ids.hpp"
+
+#include "heltec/drivers/input/touch_input.hpp"
+#include "heltec/drivers/input/touch_port.hpp"
 #include "heltec/ui/images.h"
+#include "ui/app/ui_app_ids.hpp"
 #include "ui/app/ui_theme.hpp"
+#include "ui/core/app_state_notifier.hpp"
+#include "ui/core/backlight_policy.hpp"
+#include "ui/core/ht_meta_data.hpp"
+#include "ui/core/input_pipeline.hpp"
+#include "ui/core/screen_id.hpp"
+#include "ui/core/ui_deferred_queue.hpp"
+#include "ui/core/ui_events.h"
+#include "ui/core/ui_motion_scheduler.hpp"
+#include "ui/core/ui_surface.hpp"
 #include "ui/core/ui_task.hpp"
 #include "ui/menus/cascading_menu.hpp"
 #include "ui/menus/context_menu.hpp"
-#include "ui/overlays/splash_overlay.hpp"
-#include "ui/core/ht_meta_data.hpp"
-#include "ui/theme/ui_widget_theme.hpp"
-#include "ui/core/backlight_policy.hpp"
-#include "ui/core/input_pipeline.hpp"
-#include "ui/core/screen_id.hpp"
-#include "ui/core/ui_events.h"
-#include "ui/core/ui_surface.hpp"
-#include "ui/core/app_state_notifier.hpp"
-#include "ui/core/ui_deferred_queue.hpp"
-#include "ui/core/ui_motion_scheduler.hpp"
 #include "ui/navigation/ui_navigator.hpp"
-#include "heltec/drivers/input/touch_input.hpp"
-#include "heltec/drivers/input/touch_port.hpp"
+#include "ui/overlays/splash_overlay.hpp"
+#include "ui/theme/ui_widget_theme.hpp"
+
 #include <Arduino.h>
 #include <cstring>
 #include <lvgl.h>
 
 #if defined(MESH_DEBUG) && MESH_DEBUG
-#define UI_ALERT_LOG(fmt, ...) \
-  do { \
-    Serial.printf("[alert] " fmt "\n", ##__VA_ARGS__); \
-    Serial.flush(); \
-  } while (0)
+#define UI_ALERT_LOG(fmt, ...)                             \
+    do                                                     \
+    {                                                      \
+        Serial.printf("[alert] " fmt "\n", ##__VA_ARGS__); \
+        Serial.flush();                                    \
+    } while (0)
 #else
 #define UI_ALERT_LOG(fmt, ...) ((void)0)
 #endif
 
-namespace heltec::meshcore::ui {
+namespace heltec::meshcore::ui
+{
 
-namespace {
+namespace
+{
 
-UiApp* s_ui_app_instance = nullptr;
+UiApp *s_ui_app_instance = nullptr;
 
-static void relayout_tileview_tiles(lv_obj_t* tileview) {
-  if (!tileview) return;
+static void relayout_tileview_tiles(lv_obj_t *tileview)
+{
+    if (!tileview)
+        return;
 
-  // lv_tileview positions tiles at creation time; boot-time flex layout may still be 0x0.
-  lv_obj_update_layout(tileview);
-  lv_coord_t tile_w = lv_obj_get_content_width(tileview);
-  lv_coord_t tile_h = lv_obj_get_content_height(tileview);
-  if (tile_w <= 0) tile_w = lv_obj_get_width(tileview);
-  if (tile_h <= 0) tile_h = lv_obj_get_height(tileview);
-  if (tile_w <= 0 || tile_h <= 0) return;
+    // lv_tileview positions tiles at creation time; boot-time flex layout may still be 0x0.
+    lv_obj_update_layout(tileview);
+    lv_coord_t tile_w = lv_obj_get_content_width(tileview);
+    lv_coord_t tile_h = lv_obj_get_content_height(tileview);
+    if (tile_w <= 0)
+        tile_w = lv_obj_get_width(tileview);
+    if (tile_h <= 0)
+        tile_h = lv_obj_get_height(tileview);
+    if (tile_w <= 0 || tile_h <= 0)
+        return;
 
-  const uint32_t child_count = lv_obj_get_child_cnt(tileview);
-  for (uint32_t i = 0; i < child_count; ++i) {
-    lv_obj_t* tile = lv_obj_get_child(tileview, i);
-    if (!tile) continue;
-    lv_obj_set_size(tile, tile_w, tile_h);
-    lv_obj_set_pos(tile, static_cast<lv_coord_t>(i) * tile_w, 0);
-  }
+    const uint32_t child_count = lv_obj_get_child_cnt(tileview);
+    for (uint32_t i = 0; i < child_count; ++i)
+    {
+        lv_obj_t *tile = lv_obj_get_child(tileview, i);
+        if (!tile)
+            continue;
+        lv_obj_set_size(tile, tile_w, tile_h);
+        lv_obj_set_pos(tile, static_cast<lv_coord_t>(i) * tile_w, 0);
+    }
 
-  if (lv_obj_t* active_tile = lv_tileview_get_tile_act(tileview)) {
-    lv_obj_set_tile(tileview, active_tile, LV_ANIM_OFF);
-  }
+    if (lv_obj_t *active_tile = lv_tileview_get_tile_act(tileview))
+    {
+        lv_obj_set_tile(tileview, active_tile, LV_ANIM_OFF);
+    }
 }
 
-static void tileview_size_changed_cb(lv_event_t* e) {
-  if (lv_event_get_code(e) != LV_EVENT_SIZE_CHANGED) return;
-  relayout_tileview_tiles(lv_event_get_target(e));
+static void tileview_size_changed_cb(lv_event_t *e)
+{
+    if (lv_event_get_code(e) != LV_EVENT_SIZE_CHANGED)
+        return;
+    relayout_tileview_tiles(lv_event_get_target(e));
 }
 
-}  // namespace
+} // namespace
 
-UiApp& UiApp::instance() {
-  LV_ASSERT(s_ui_app_instance != nullptr);
-  return *s_ui_app_instance;
+UiApp &UiApp::instance()
+{
+    LV_ASSERT(s_ui_app_instance != nullptr);
+    return *s_ui_app_instance;
 }
 
-UiApp::UiApp(biz::IBizFacade& biz, heltec::meshcore::power::PowerMgr& power)
-    : _biz(biz),
-      _power(power),
-      _top_pane(),
-      _navigation(_biz),
-      _scrHome(_biz, "Home", &icon_home_img),
-      _scrRecent(_biz, "Recent", &icon_recent_img),
+UiApp::UiApp(biz::IBizFacade &biz, heltec::meshcore::power::PowerMgr &power)
+    : _biz(biz), _power(power), _top_pane(), _navigation(_biz),
+      _scrHome(_biz, "Home", &icon_home_img), _scrRecent(_biz, "Recent", &icon_recent_img),
       _scrRadio(_biz, "Radio", &icon_radio_img),
 #if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
       _scrCompass(_biz, "Compass", &icon_compass_img),
@@ -105,13 +117,8 @@ UiApp::UiApp(biz::IBizFacade& biz, heltec::meshcore::power::PowerMgr& power)
       _quickPingOverlay(_biz)
 #endif
       ,
-      _previewOvl(_biz),
-      _alertOvl(_biz),
-      _confirmOvl(_biz),
-      _radioParamSyncOvl(_biz),
-      _repeatModeOvl(_biz),
-      _sendMessageOvl(_biz),
-      _keyboardOvl(_biz)
+      _previewOvl(_biz), _alertOvl(_biz), _confirmOvl(_biz), _radioParamSyncOvl(_biz),
+      _repeatModeOvl(_biz), _sendMessageOvl(_biz), _keyboardOvl(_biz)
 #if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
       ,
       _calibrationOvl(_biz)
@@ -120,576 +127,703 @@ UiApp::UiApp(biz::IBizFacade& biz, heltec::meshcore::power::PowerMgr& power)
       ,
       _contextMenu(_biz)
 #endif
-      {
-  LV_ASSERT(s_ui_app_instance == nullptr);
-  s_ui_app_instance = this;
+{
+    LV_ASSERT(s_ui_app_instance == nullptr);
+    s_ui_app_instance = this;
 }
 
-AbstractScreen* UiApp::activeScreen() const {
-  lv_obj_t* tile = _tileview ? lv_tileview_get_tile_act(_tileview) : nullptr;
-  return tile ? static_cast<AbstractScreen*>(ht_user_data(tile)) : nullptr;
+AbstractScreen *UiApp::activeScreen() const
+{
+    lv_obj_t *tile = _tileview ? lv_tileview_get_tile_act(_tileview) : nullptr;
+    return tile ? static_cast<AbstractScreen *>(ht_user_data(tile)) : nullptr;
 }
 
-AbstractScreen* UiApp::screenAt(uint8_t index) const {
-  if (!_tileview) return nullptr;
-  lv_obj_t* tile = lv_obj_get_child(_tileview, index);
-  return tile ? static_cast<AbstractScreen*>(ht_user_data(tile)) : nullptr;
+AbstractScreen *UiApp::screenAt(uint8_t index) const
+{
+    if (!_tileview)
+        return nullptr;
+    lv_obj_t *tile = lv_obj_get_child(_tileview, index);
+    return tile ? static_cast<AbstractScreen *>(ht_user_data(tile)) : nullptr;
 }
 
-AbstractScreen* UiApp::resolveActiveScreen() const {
-  if (AbstractScreen* scr = activeScreen()) return scr;
-  if (AbstractScreen* scr = screenAt(activeTileIndex())) return scr;
-  return screenAt(0);
+AbstractScreen *UiApp::resolveActiveScreen() const
+{
+    if (AbstractScreen *scr = activeScreen())
+        return scr;
+    if (AbstractScreen *scr = screenAt(activeTileIndex()))
+        return scr;
+    return screenAt(0);
 }
 
-void UiApp::activateActiveScreen() {
-  bindScreen(resolveActiveScreen());
+void UiApp::activateActiveScreen()
+{
+    bindScreen(resolveActiveScreen());
 }
 
-void UiApp::bindScreen(AbstractScreen* scr) {
-  if (!scr) {
-    return;
-  }
-  _surfaces.setRoot(scr);
-}
-
-bool UiApp::inputOnActiveScreen() const {
-  AbstractScreen* scr = resolveActiveScreen();
-  return scr && _surfaces.isActive(static_cast<UiSurface*>(scr));
-}
-
-void UiApp::reconcileInput() {
-  _surfaces.reconcileVisibility();
-  if (_surfaces.contains(&_previewOvl) && !ui_task().isPreviewActive()) {
-    (void)_surfaces.dismissBranch(&_previewOvl);
-    return;
-  }
-  if (_surfaces.contains(&_alertOvl) && !ui_task().isAlertActive()) {
-    UI_ALERT_LOG("reconcile alert inactive depth=%u active=%p alert=%p",
-                 (unsigned)_surfaces.modalDepth(),
-                 _surfaces.active(),
-                 &_alertOvl);
-    const bool dismissed = _surfaces.dismissBranch(&_alertOvl);
-    UI_ALERT_LOG("reconcile alert dismiss=%d depth=%u contains=%d",
-                 dismissed ? 1 : 0,
-                 (unsigned)_surfaces.modalDepth(),
-                 _surfaces.contains(&_alertOvl) ? 1 : 0);
-    return;
-  }
-  _surfaces.reconcileFocus();
-}
-
-void UiApp::setTopPaneTitle(const char* title) {
-  if (title) _top_pane.setTitle(title);
-}
-
-#if defined(HELTEC_TOPBAR_TOUCH_SHELL) && HELTEC_TOPBAR_TOUCH_SHELL
-
-void UiApp::onTopPaneShortPress() {
-  if (!_inited) return;
-  notifyDisplayActivity(millis());
-  if (_surfaces.contains(&_navigation)) {
-    closeNavigationPane();
-    return;
-  }
-  if (!inputOnActiveScreen()) return;
-  openNavigationPane();
-}
-
-void UiApp::onTopPaneLongPress() {
-  if (!_inited) return;
-  notifyDisplayActivity(millis());
-}
-
-#endif
-
-void UiApp::init() {
-  _inited = false;
-  ui_events_init();
-  ui_task().attachHost(this);
-  _app_state_dispatcher.bindSurfaceManager(_surfaces);
-  _app_state_dispatcher.bindGlobalHandler(
-      [](void* user_data, const AppStateEvent& event) {
-        auto* app = static_cast<UiApp*>(user_data);
-        if (app) app->handleAppStateEvent(event);
-      },
-      this);
-  _app_state_dispatcher.bindNotifier(app_state_notifier());
-
-  InputPipeline::init();
-#if HELTEC_TOUCH_INPUT
-  heltec::meshcore::dal::touch_input::UiHooks touch_hooks{};
-  touch_hooks.wake = +[]() {
-    auto& app = UiApp::instance();
-    if (BacklightPolicy::mode() == BacklightMode::AutoTimeout) {
-      const bool was_off = !app.isDisplayOn();
-      app.notifyDisplayActivity(millis());
-      return was_off;
+void UiApp::bindScreen(AbstractScreen *scr)
+{
+    if (!scr)
+    {
+        return;
     }
-    return !app.isDisplayOn();
-  };
-#if defined(HELTEC_TOUCH_GESTURE_INPUT) && HELTEC_TOUCH_GESTURE_INPUT
-  touch_hooks.block_long_enter = UiApp::touchGestureBlockLongPress;
-#if defined(HELTEC_V4_R8_TFT) && defined(HELTEC_HAS_TOUCH) && HELTEC_HAS_TOUCH
-  touch_hooks.raw_pointer_passthrough = UiApp::touchGestureRawPointerPassthrough;
-  touch_hooks.block_double_tap = UiApp::touchGestureBlockQuickPingDoubleTap;
-#endif
-#endif
-  heltec::meshcore::dal::touch_input::bindUi(touch_hooks);
-#endif
+    _surfaces.setRoot(scr);
+}
 
-  lv_obj_t* scr = lv_scr_act();
-  if (!scr) return;
+bool UiApp::inputOnActiveScreen() const
+{
+    AbstractScreen *scr = resolveActiveScreen();
+    return scr && _surfaces.isActive(static_cast<UiSurface *>(scr));
+}
 
-  lv_disp_t* disp = lv_disp_get_default();
-  if (!disp) return;
-  if (!heltec::meshcore::ui::ui_theme_init(disp)) return;
-  if (!_surfaces.createTimers()) return;
-  if (!initTimers()) return;
+void UiApp::reconcileInput()
+{
+    _surfaces.reconcileVisibility();
+    if (_surfaces.contains(&_previewOvl) && !ui_task().isPreviewActive())
+    {
+        (void)_surfaces.dismissBranch(&_previewOvl);
+        return;
+    }
+    if (_surfaces.contains(&_alertOvl) && !ui_task().isAlertActive())
+    {
+        UI_ALERT_LOG("reconcile alert inactive depth=%u active=%p alert=%p",
+                     (unsigned)_surfaces.modalDepth(), _surfaces.active(), &_alertOvl);
+        const bool dismissed = _surfaces.dismissBranch(&_alertOvl);
+        UI_ALERT_LOG("reconcile alert dismiss=%d depth=%u contains=%d", dismissed ? 1 : 0,
+                     (unsigned)_surfaces.modalDepth(), _surfaces.contains(&_alertOvl) ? 1 : 0);
+        return;
+    }
+    _surfaces.reconcileFocus();
+}
 
-  lv_obj_clear_flag(scr, LV_OBJ_FLAG_SCROLLABLE);
-  ui_app_active_screen_apply_theme(scr);
-#if defined(HELTEC_V4_R8_TFT)
-  lv_obj_t* bg = ht_img_create(scr, meta_id::AppBackgroundImage);
-  if (bg) {
-    lv_obj_set_pos(bg, 0, 0);
-    lv_obj_clear_flag(bg, LV_OBJ_FLAG_SCROLLABLE | LV_OBJ_FLAG_CLICKABLE);
-    lv_obj_move_background(bg);
-    lv_img_set_src(bg, &ui_background_img);
-  }
-#endif
+void UiApp::setTopPaneTitle(const char *title)
+{
+    if (title)
+        _top_pane.setTitle(title);
+}
 
-  _layerOverlay = ht_obj_create(lv_layer_top(), meta_id::AppOverlayLayer);
-  if (!_layerOverlay) return;
-  lv_obj_set_size(_layerOverlay, lv_pct(100), lv_pct(100));
-  lv_obj_clear_flag(_layerOverlay, LV_OBJ_FLAG_SCROLLABLE | LV_OBJ_FLAG_CLICKABLE);
-
-  SplashOverlay splash;
-  if (!splash.create(_layerOverlay)) return;
-  if (!initOverlay()) return;
-
-  lv_obj_t* layout = ht_obj_create(scr, meta_id::AppFrameLayout);
-  if (!layout) return;
-  lv_obj_set_size(layout, lv_pct(100), lv_pct(100));
-  lv_obj_set_flex_flow(layout, LV_FLEX_FLOW_COLUMN);
-  lv_obj_clear_flag(layout, LV_OBJ_FLAG_SCROLLABLE);
-
-  _frame_root = layout;
-
-  if (!_top_pane.create(layout)) return;
-  _top_pane.setBatteryStatus(_power.snapshot().battery_mv,
-                             _power.snapshot().battery_percent);
-  lv_obj_set_flex_grow(_top_pane.root(), 0);
 #if defined(HELTEC_TOPBAR_TOUCH_SHELL) && HELTEC_TOPBAR_TOUCH_SHELL
-  _top_pane.enableTouchShell(
-      [](lv_event_t* e) {
-        if (lv_event_get_code(e) != LV_EVENT_SHORT_CLICKED) return;
-        UiApp::instance().onTopPaneShortPress();
-      },
-      [](lv_event_t* e) {
-        if (lv_event_get_code(e) != LV_EVENT_LONG_PRESSED) return;
-        heltec::meshcore::dal::touch_port::requestReleaseBarrier();
-        UiApp::instance().onTopPaneLongPress();
-      },
-      this);
+
+void UiApp::onTopPaneShortPress()
+{
+    if (!_inited)
+        return;
+    notifyDisplayActivity(millis());
+    if (_surfaces.contains(&_navigation))
+    {
+        closeNavigationPane();
+        return;
+    }
+    if (!inputOnActiveScreen())
+        return;
+    openNavigationPane();
+}
+
+void UiApp::onTopPaneLongPress()
+{
+    if (!_inited)
+        return;
+    notifyDisplayActivity(millis());
+}
+
 #endif
 
-  lv_obj_t* content = ht_obj_create(layout, meta_id::AppContent);
-  if (!content) return;
-  lv_obj_set_width(content, lv_pct(100));
-  lv_obj_set_flex_grow(content, 1);
-  lv_obj_clear_flag(content, LV_OBJ_FLAG_SCROLLABLE);
-  lv_obj_add_flag(content, LV_OBJ_FLAG_OVERFLOW_VISIBLE);
-  if (!initScreens(content)) return;
-  if (!initNavigationPane(_layerOverlay)) {
-    return;
-  }
-  _navigation.setFrameRoot(_frame_root);
-  _navigation.setTileView(_tileview);
-  bindFrameEvents();
-  if (_tileview) {
-    lv_obj_add_event_cb(_tileview, [](lv_event_t* e) {
-      auto* app = static_cast<UiApp*>(lv_event_get_user_data(e));
-      if (app) app->onTileActiveChanged();
-    }, LV_EVENT_VALUE_CHANGED, this);
-    lv_obj_add_event_cb(_tileview, [](lv_event_t* e) {
-      auto* app = static_cast<UiApp*>(lv_event_get_user_data(e));
-      if (!app) return;
-      const UiEvent* event = ui_event_get(e);
-      if (!event) return;
-      switch (event->type) {
-        case UiEventType::TilePreview: {
-          const auto* idx = static_cast<const uint8_t*>(event->payload);
-          if (idx) app->previewNavTile(*idx);
-          break;
+void UiApp::init()
+{
+    _inited = false;
+    ui_events_init();
+    ui_task().attachHost(this);
+    _app_state_dispatcher.bindSurfaceManager(_surfaces);
+    _app_state_dispatcher.bindGlobalHandler(
+        [](void *user_data, const AppStateEvent &event)
+        {
+            auto *app = static_cast<UiApp *>(user_data);
+            if (app)
+                app->handleAppStateEvent(event);
+        },
+        this);
+    _app_state_dispatcher.bindNotifier(app_state_notifier());
+
+    InputPipeline::init();
+#if HELTEC_TOUCH_INPUT
+    heltec::meshcore::dal::touch_input::UiHooks touch_hooks{};
+    touch_hooks.wake = +[]()
+    {
+        auto &app = UiApp::instance();
+        if (BacklightPolicy::mode() == BacklightMode::AutoTimeout)
+        {
+            const bool was_off = !app.isDisplayOn();
+            app.notifyDisplayActivity(millis());
+            return was_off;
         }
-        case UiEventType::TileCommit: {
-          const auto* idx = static_cast<const uint8_t*>(event->payload);
-          if (idx) app->scheduleNavTileCommit(*idx);
-          break;
-        }
-        default:
-          break;
-      }
-    }, ui_event_code(), this);
-  }
-  _previewOvl.setTarget(_frame_root);
-  _alertOvl.setTarget(_frame_root);
-  _confirmOvl.setTarget(_frame_root);
-  _radioParamSyncOvl.setTarget(_frame_root);
-  _repeatModeOvl.setTarget(_frame_root);
-  _keyboardOvl.setTarget(_frame_root);
-  _sendMessageOvl.setTarget(_frame_root);
+        return !app.isDisplayOn();
+    };
+#if defined(HELTEC_TOUCH_GESTURE_INPUT) && HELTEC_TOUCH_GESTURE_INPUT
+    touch_hooks.block_long_enter = UiApp::touchGestureBlockLongPress;
+#if defined(HELTEC_V4_R8_TFT) && defined(HELTEC_HAS_TOUCH) && HELTEC_HAS_TOUCH
+    touch_hooks.raw_pointer_passthrough = UiApp::touchGestureRawPointerPassthrough;
+    touch_hooks.block_double_tap = UiApp::touchGestureBlockQuickPingDoubleTap;
+#endif
+#endif
+    heltec::meshcore::dal::touch_input::bindUi(touch_hooks);
+#endif
+
+    lv_obj_t *scr = lv_scr_act();
+    if (!scr)
+        return;
+
+    lv_disp_t *disp = lv_disp_get_default();
+    if (!disp)
+        return;
+    if (!heltec::meshcore::ui::ui_theme_init(disp))
+        return;
+    if (!_surfaces.createTimers())
+        return;
+    if (!initTimers())
+        return;
+
+    lv_obj_clear_flag(scr, LV_OBJ_FLAG_SCROLLABLE);
+    ui_app_active_screen_apply_theme(scr);
+#if defined(HELTEC_V4_R8_TFT)
+    lv_obj_t *bg = ht_img_create(scr, meta_id::AppBackgroundImage);
+    if (bg)
+    {
+        lv_obj_set_pos(bg, 0, 0);
+        lv_obj_clear_flag(bg, LV_OBJ_FLAG_SCROLLABLE | LV_OBJ_FLAG_CLICKABLE);
+        lv_obj_move_background(bg);
+        lv_img_set_src(bg, &ui_background_img);
+    }
+#endif
+
+    _layerOverlay = ht_obj_create(lv_layer_top(), meta_id::AppOverlayLayer);
+    if (!_layerOverlay)
+        return;
+    lv_obj_set_size(_layerOverlay, lv_pct(100), lv_pct(100));
+    lv_obj_clear_flag(_layerOverlay, LV_OBJ_FLAG_SCROLLABLE | LV_OBJ_FLAG_CLICKABLE);
+
+    SplashOverlay splash;
+    if (!splash.create(_layerOverlay))
+        return;
+    if (!initOverlay())
+        return;
+
+    lv_obj_t *layout = ht_obj_create(scr, meta_id::AppFrameLayout);
+    if (!layout)
+        return;
+    lv_obj_set_size(layout, lv_pct(100), lv_pct(100));
+    lv_obj_set_flex_flow(layout, LV_FLEX_FLOW_COLUMN);
+    lv_obj_clear_flag(layout, LV_OBJ_FLAG_SCROLLABLE);
+
+    _frame_root = layout;
+
+    if (!_top_pane.create(layout))
+        return;
+    _top_pane.setBatteryStatus(_power.snapshot().battery_mv, _power.snapshot().battery_percent);
+    lv_obj_set_flex_grow(_top_pane.root(), 0);
+#if defined(HELTEC_TOPBAR_TOUCH_SHELL) && HELTEC_TOPBAR_TOUCH_SHELL
+    _top_pane.enableTouchShell(
+        [](lv_event_t *e)
+        {
+            if (lv_event_get_code(e) != LV_EVENT_SHORT_CLICKED)
+                return;
+            UiApp::instance().onTopPaneShortPress();
+        },
+        [](lv_event_t *e)
+        {
+            if (lv_event_get_code(e) != LV_EVENT_LONG_PRESSED)
+                return;
+            heltec::meshcore::dal::touch_port::requestReleaseBarrier();
+            UiApp::instance().onTopPaneLongPress();
+        },
+        this);
+#endif
+
+    lv_obj_t *content = ht_obj_create(layout, meta_id::AppContent);
+    if (!content)
+        return;
+    lv_obj_set_width(content, lv_pct(100));
+    lv_obj_set_flex_grow(content, 1);
+    lv_obj_clear_flag(content, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_add_flag(content, LV_OBJ_FLAG_OVERFLOW_VISIBLE);
+    if (!initScreens(content))
+        return;
+    if (!initNavigationPane(_layerOverlay))
+    {
+        return;
+    }
+    _navigation.setFrameRoot(_frame_root);
+    _navigation.setTileView(_tileview);
+    bindFrameEvents();
+    if (_tileview)
+    {
+        lv_obj_add_event_cb(
+            _tileview,
+            [](lv_event_t *e)
+            {
+                auto *app = static_cast<UiApp *>(lv_event_get_user_data(e));
+                if (app)
+                    app->onTileActiveChanged();
+            },
+            LV_EVENT_VALUE_CHANGED, this);
+        lv_obj_add_event_cb(
+            _tileview,
+            [](lv_event_t *e)
+            {
+                auto *app = static_cast<UiApp *>(lv_event_get_user_data(e));
+                if (!app)
+                    return;
+                const UiEvent *event = ui_event_get(e);
+                if (!event)
+                    return;
+                switch (event->type)
+                {
+                case UiEventType::TilePreview:
+                {
+                    const auto *idx = static_cast<const uint8_t *>(event->payload);
+                    if (idx)
+                        app->previewNavTile(*idx);
+                    break;
+                }
+                case UiEventType::TileCommit:
+                {
+                    const auto *idx = static_cast<const uint8_t *>(event->payload);
+                    if (idx)
+                        app->scheduleNavTileCommit(*idx);
+                    break;
+                }
+                default:
+                    break;
+                }
+            },
+            ui_event_code(), this);
+    }
+    _previewOvl.setTarget(_frame_root);
+    _alertOvl.setTarget(_frame_root);
+    _confirmOvl.setTarget(_frame_root);
+    _radioParamSyncOvl.setTarget(_frame_root);
+    _repeatModeOvl.setTarget(_frame_root);
+    _keyboardOvl.setTarget(_frame_root);
+    _sendMessageOvl.setTarget(_frame_root);
 #if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
-  _calibrationOvl.setTarget(_frame_root);
+    _calibrationOvl.setTarget(_frame_root);
 #endif
 #if defined(HELTEC_V4_R8_TFT) && defined(HELTEC_HAS_TOUCH) && HELTEC_HAS_TOUCH
-  _quickPingOverlay.setTarget(_frame_root);
+    _quickPingOverlay.setTarget(_frame_root);
 #else
-  _contextMenu.setTarget(_frame_root);
-  _ctxRadioMenu.setTarget(_frame_root);
+    _contextMenu.setTarget(_frame_root);
+    _ctxRadioMenu.setTarget(_frame_root);
 #if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
-  _ctxCompassMenu.setTarget(_frame_root);
+    _ctxCompassMenu.setTarget(_frame_root);
 #endif
 #endif
 
 #if defined(HELTEC_V4_R8_TFT) && defined(HELTEC_HAS_TOUCH) && HELTEC_HAS_TOUCH && \
     defined(HELTEC_TOUCH_GESTURE_INPUT) && HELTEC_TOUCH_GESTURE_INPUT
-  lv_obj_add_event_cb(scr, nativeTouchGestureEvent, LV_EVENT_GESTURE, this);
-  if (lv_obj_t* const top_layer = lv_layer_top()) {
-    lv_obj_add_event_cb(top_layer, nativeTouchGestureEvent, LV_EVENT_GESTURE, this);
-  }
-#endif
-  _inited = true;
-  if (_tileview) {
-    lv_obj_t* tile = lv_tileview_get_tile_act(_tileview);
-    if (!tile) {
-      tile = lv_obj_get_child(_tileview, 0);
-      if (tile) lv_obj_set_tile(_tileview, tile, LV_ANIM_OFF);
+    lv_obj_add_event_cb(scr, nativeTouchGestureEvent, LV_EVENT_GESTURE, this);
+    if (lv_obj_t *const top_layer = lv_layer_top())
+    {
+        lv_obj_add_event_cb(top_layer, nativeTouchGestureEvent, LV_EVENT_GESTURE, this);
     }
-  }
-  activateActiveScreen();
+#endif
+    _inited = true;
+    if (_tileview)
+    {
+        lv_obj_t *tile = lv_tileview_get_tile_act(_tileview);
+        if (!tile)
+        {
+            tile = lv_obj_get_child(_tileview, 0);
+            if (tile)
+                lv_obj_set_tile(_tileview, tile, LV_ANIM_OFF);
+        }
+    }
+    activateActiveScreen();
 }
 
-void UiApp::bindFrameEvents() {
-  if (!_frame_root || _frame_events_bound) return;
-  lv_obj_add_event_cb(_frame_root, [](lv_event_t* e) {
-    auto* app = static_cast<UiApp*>(lv_event_get_user_data(e));
-    if (app) app->handleFrameEvent(e);
-  }, ui_event_code(), this);
-  _frame_events_bound = true;
+void UiApp::bindFrameEvents()
+{
+    if (!_frame_root || _frame_events_bound)
+        return;
+    lv_obj_add_event_cb(
+        _frame_root,
+        [](lv_event_t *e)
+        {
+            auto *app = static_cast<UiApp *>(lv_event_get_user_data(e));
+            if (app)
+                app->handleFrameEvent(e);
+        },
+        ui_event_code(), this);
+    _frame_events_bound = true;
 }
 
-void UiApp::handleFrameEvent(lv_event_t* e) {
-  const UiEvent* event = ui_event_get(e);
-  if (!event) return;
+void UiApp::handleFrameEvent(lv_event_t *e)
+{
+    const UiEvent *event = ui_event_get(e);
+    if (!event)
+        return;
 
-  switch (event->type) {
+    switch (event->type)
+    {
     case UiEventType::NavOpen:
-      openNavigationPane();
-      break;
+        openNavigationPane();
+        break;
     case UiEventType::NavClose:
-      closeNavigationPane();
-      break;
+        closeNavigationPane();
+        break;
     case UiEventType::NavActivity:
-      notifyNavActivity(millis());
-      break;
+        notifyNavActivity(millis());
+        break;
     case UiEventType::ActionOpen:
 #if defined(HELTEC_V4_R8_TFT) && defined(HELTEC_HAS_TOUCH) && HELTEC_HAS_TOUCH
-      (void)ui_event_send(_frame_root, UiEventType::QuickPingOpen);
+        (void)ui_event_send(_frame_root, UiEventType::QuickPingOpen);
 #else
-      (void)ui_event_send(_frame_root, UiEventType::ContextOpen);
+        (void)ui_event_send(_frame_root, UiEventType::ContextOpen);
 #endif
-      break;
-    case UiEventType::ConfirmOpen: {
-      const auto* request = static_cast<const UiConfirmRequest*>(event->payload);
-      if (!request || !inputOnActiveScreen()) break;
-      _confirmOvl.setRequest(request->action);
-      if (!_surfaces.contains(&_confirmOvl) &&
-          !_surfaces.present(&_confirmOvl)) {
-        _biz.showAlert("Unable to open confirmation", 2000);
-      }
-      break;
+        break;
+    case UiEventType::ConfirmOpen:
+    {
+        const auto *request = static_cast<const UiConfirmRequest *>(event->payload);
+        if (!request || !inputOnActiveScreen())
+            break;
+        _confirmOvl.setRequest(request->action);
+        if (!_surfaces.contains(&_confirmOvl) && !_surfaces.present(&_confirmOvl))
+        {
+            _biz.showAlert("Unable to open confirmation", 2000);
+        }
+        break;
     }
-    case UiEventType::ConfirmAccepted: {
-      const auto* action = static_cast<const UiConfirmAction*>(event->payload);
-      if (!action || !_surfaces.contains(&_confirmOvl)) break;
-      const UiConfirmAction accepted_action = *action;
-      if (_surfaces.dismissBranch(&_confirmOvl) &&
-          !_surfaces.contains(&_confirmOvl)) {
-        (void)_surfaces.dispatchEventToActive(UiEventType::ConfirmAccepted,
-                                              &accepted_action);
-      }
-      break;
+    case UiEventType::ConfirmAccepted:
+    {
+        const auto *action = static_cast<const UiConfirmAction *>(event->payload);
+        if (!action || !_surfaces.contains(&_confirmOvl))
+            break;
+        const UiConfirmAction accepted_action = *action;
+        if (_surfaces.dismissBranch(&_confirmOvl) && !_surfaces.contains(&_confirmOvl))
+        {
+            (void)_surfaces.dispatchEventToActive(UiEventType::ConfirmAccepted, &accepted_action);
+        }
+        break;
     }
     case UiEventType::ConfirmCancelled:
-      (void)_surfaces.dismissBranch(&_confirmOvl);
-      break;
+        (void)_surfaces.dismissBranch(&_confirmOvl);
+        break;
 #if !defined(HELTEC_V4_R8_TFT) || !defined(HELTEC_HAS_TOUCH) || !HELTEC_HAS_TOUCH
     case UiEventType::ContextOpen:
-      (void)ui_defer(+[](void* user_data) {
-        auto* app = static_cast<UiApp*>(user_data);
-        if (!app) return;
-        if (!app->_inited || app->_surfaces.contains(&app->_contextMenu)) return;
-        app->reconcileInput();
+        (void)ui_defer(
+            +[](void *user_data)
+            {
+                auto *app = static_cast<UiApp *>(user_data);
+                if (!app)
+                    return;
+                if (!app->_inited || app->_surfaces.contains(&app->_contextMenu))
+                    return;
+                app->reconcileInput();
 #if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
-        if (app->_surfaces.isActive(&app->_calibrationOvl)) {
-          app->closeCalibrationOverlay();
-        }
+                if (app->_surfaces.isActive(&app->_calibrationOvl))
+                {
+                    app->closeCalibrationOverlay();
+                }
 #endif
-        app->ensureContextMenusRegistered();
-        if (!app->_contextMenu.canOpen()) return;
-        if (!app->inputOnActiveScreen()) return;
-        (void)app->_surfaces.present(&app->_contextMenu);
-      }, this);
-      break;
+                app->ensureContextMenusRegistered();
+                if (!app->_contextMenu.canOpen())
+                    return;
+                if (!app->inputOnActiveScreen())
+                    return;
+                (void)app->_surfaces.present(&app->_contextMenu);
+            },
+            this);
+        break;
     case UiEventType::ContextClose:
-      dismissTopContextMenu();
-      break;
+        dismissTopContextMenu();
+        break;
 #endif
     case UiEventType::SendMessageOpen:
-      _sendMessageOvl.prepareTarget(static_cast<const UiSendMessageTarget*>(event->payload));
-      (void)openSendMessageOverlay();
-      break;
+        _sendMessageOvl.prepareTarget(static_cast<const UiSendMessageTarget *>(event->payload));
+        (void)openSendMessageOverlay();
+        break;
     case UiEventType::CalibrationOpen:
 #if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
-      (void)openCalibrationOverlay();
+        (void)openCalibrationOverlay();
 #endif
-      break;
+        break;
     case UiEventType::RepeatModeOpen:
-      openRepeatModeOverlay();
-      break;
+        openRepeatModeOverlay();
+        break;
 #if defined(HELTEC_V4_R8_TFT) && defined(HELTEC_HAS_TOUCH) && HELTEC_HAS_TOUCH
     case UiEventType::QuickPingOpen:
-      if (!_surfaces.contains(&_quickPingOverlay) && inputOnActiveScreen()) {
-        (void)_surfaces.present(&_quickPingOverlay, _surfaces.root());
-      }
-      break;
+        if (!_surfaces.contains(&_quickPingOverlay) && inputOnActiveScreen())
+        {
+            (void)_surfaces.present(&_quickPingOverlay, _surfaces.root());
+        }
+        break;
     case UiEventType::QuickPingClose:
-      if (!_quickPingOverlay.requestCloseAnimation()) {
-        (void)_surfaces.dismissBranch(&_quickPingOverlay);
-      }
-      break;
+        if (!_quickPingOverlay.requestCloseAnimation())
+        {
+            (void)_surfaces.dismissBranch(&_quickPingOverlay);
+        }
+        break;
 #endif
     case UiEventType::PreviewNext:
-      if (ui_task().advancePreview()) {
-        openPreviewOverlay(ui_task().previewUnread(),
-                           ui_task().previewReceivedMillis(),
-                           ui_task().previewOrigin(),
-                           ui_task().previewText());
-      } else {
-        closePreviewOverlay();
-      }
-      break;
+        if (ui_task().advancePreview())
+        {
+            openPreviewOverlay(ui_task().previewUnread(), ui_task().previewReceivedMillis(),
+                               ui_task().previewOrigin(), ui_task().previewText());
+        }
+        else
+        {
+            closePreviewOverlay();
+        }
+        break;
     case UiEventType::PreviewClose:
-      closePreviewOverlay();
-      break;
+        closePreviewOverlay();
+        break;
     case UiEventType::AlertClose:
-      UI_ALERT_LOG("event close depth=%u active=%p contains=%d",
-                   (unsigned)_surfaces.modalDepth(),
-                   _surfaces.active(),
-                   _surfaces.contains(&_alertOvl) ? 1 : 0);
-      closeAlertOverlay();
-      break;
+        UI_ALERT_LOG("event close depth=%u active=%p contains=%d", (unsigned)_surfaces.modalDepth(),
+                     _surfaces.active(), _surfaces.contains(&_alertOvl) ? 1 : 0);
+        closeAlertOverlay();
+        break;
     case UiEventType::RadioSyncClose:
-      closeRadioParamSyncOverlay();
-      break;
+        closeRadioParamSyncOverlay();
+        break;
     case UiEventType::RepeatModeClose:
-      closeRepeatModeOverlay();
-      break;
+        closeRepeatModeOverlay();
+        break;
     case UiEventType::CalibrationClose:
 #if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
-      closeCalibrationOverlay();
+        closeCalibrationOverlay();
 #endif
-      break;
+        break;
     case UiEventType::KeyboardClose:
-      closeKeyboardOverlay();
-      break;
+        closeKeyboardOverlay();
+        break;
     case UiEventType::SendMessageClose:
-      closeSendMessageOverlay();
-      break;
-    case UiEventType::MessageKeyboardOpen: {
-      auto* req = static_cast<const UiMessageKeyboardRequest*>(event->payload);
-      if (!req || !_surfaces.isActive(&_sendMessageOvl)) break;
-      if (!_keyboardOvl.prepareMessageInput(req->title ? req->title : "broadcast")) break;
-      (void)ui_defer(+[](void* user_data) {
-        auto* app = static_cast<UiApp*>(user_data);
-        if (!app || !app->_surfaces.isActive(&app->_sendMessageOvl)) return;
-        app->presentMessageKeyboard();
-      }, this);
-      break;
+        closeSendMessageOverlay();
+        break;
+    case UiEventType::MessageKeyboardOpen:
+    {
+        auto *req = static_cast<const UiMessageKeyboardRequest *>(event->payload);
+        if (!req || !_surfaces.isActive(&_sendMessageOvl))
+            break;
+        if (!_keyboardOvl.prepareMessageInput(req->title ? req->title : "broadcast"))
+            break;
+        (void)ui_defer(
+            +[](void *user_data)
+            {
+                auto *app = static_cast<UiApp *>(user_data);
+                if (!app || !app->_surfaces.isActive(&app->_sendMessageOvl))
+                    return;
+                app->presentMessageKeyboard();
+            },
+            this);
+        break;
     }
     case UiEventType::WaypointKeyboardOpen:
-      openWaypointKeyboard();
-      break;
-    case UiEventType::MessageKeyboardSubmit: {
-      auto* submit = static_cast<const UiMessageKeyboardSubmit*>(event->payload);
-      if (submit && submit->text) {
-        if (_surfaces.contains(&_sendMessageOvl)) {
-          _sendMessageOvl.submitCustomMessage(submit->text);
+        openWaypointKeyboard();
+        break;
+    case UiEventType::MessageKeyboardSubmit:
+    {
+        auto *submit = static_cast<const UiMessageKeyboardSubmit *>(event->payload);
+        if (submit && submit->text)
+        {
+            if (_surfaces.contains(&_sendMessageOvl))
+            {
+                _sendMessageOvl.submitCustomMessage(submit->text);
+            }
         }
-      }
-      break;
+        break;
     }
-    case UiEventType::WaypointKeyboardSubmit: {
-      auto* submit = static_cast<const UiWaypointKeyboardSubmit*>(event->payload);
-      if (submit) _surfaces.dispatchEventToActive(UiEventType::WaypointKeyboardSubmit, submit);
-      break;
+    case UiEventType::WaypointKeyboardSubmit:
+    {
+        auto *submit = static_cast<const UiWaypointKeyboardSubmit *>(event->payload);
+        if (submit)
+            _surfaces.dispatchEventToActive(UiEventType::WaypointKeyboardSubmit, submit);
+        break;
     }
     case UiEventType::RebindInput:
-      _surfaces.reconcileFocus();
-      break;
+        _surfaces.reconcileFocus();
+        break;
     default:
-      break;
-  }
+        break;
+    }
 }
 
-void UiApp::handleAppStateEvent(const AppStateEvent& event) {
-  if (event.type == AppStateEventType::BatteryChanged) {
-    _top_pane.setBatteryStatus(event.battery.millivolts, event.battery.percent);
-  }
+void UiApp::handleAppStateEvent(const AppStateEvent &event)
+{
+    if (event.type == AppStateEventType::BatteryChanged)
+    {
+        _top_pane.setBatteryStatus(event.battery.millivolts, event.battery.percent);
+    }
 }
 
-void UiApp::handlePowerChanged(
-    heltec::meshcore::power::PowerChangeMask changes,
-    const heltec::meshcore::power::PowerSnapshot& snapshot) {
-  using heltec::meshcore::power::PowerChange;
-  if (!heltec::meshcore::power::hasChange(changes, PowerChange::Display)) return;
-  if (snapshot.display_on) {
-    onBacklightTurnedOn();
-  } else {
-    ensureTileKeypadFocus();
-  }
+void UiApp::handlePowerChanged(heltec::meshcore::power::PowerChangeMask changes,
+                               const heltec::meshcore::power::PowerSnapshot &snapshot)
+{
+    using heltec::meshcore::power::PowerChange;
+    if (!heltec::meshcore::power::hasChange(changes, PowerChange::Display))
+        return;
+    if (snapshot.display_on)
+    {
+        onBacklightTurnedOn();
+    }
+    else
+    {
+        ensureTileKeypadFocus();
+    }
 }
 
-void UiApp::tick() {
-  if (!_inited) return;
-  lv_timer_handler();
-  syncDisplayTimeoutInhibit(millis());
+void UiApp::tick()
+{
+    if (!_inited)
+        return;
+    lv_timer_handler();
+    syncDisplayTimeoutInhibit(millis());
 }
 
-bool UiApp::initScreens(_lv_obj_t* content) {
-  if (!content) return false;
+bool UiApp::initScreens(_lv_obj_t *content)
+{
+    if (!content)
+        return false;
 
-  AbstractScreen* screens[static_cast<uint8_t>(eScreenId::kScreenCnt)];
-  uint8_t screen_count = 0;
-  screens[screen_count++] = &_scrHome;
-  screens[screen_count++] = &_scrRecent;
-  screens[screen_count++] = &_scrRadio;
+    AbstractScreen *screens[static_cast<uint8_t>(eScreenId::kScreenCnt)];
+    uint8_t screen_count = 0;
+    screens[screen_count++] = &_scrHome;
+    screens[screen_count++] = &_scrRecent;
+    screens[screen_count++] = &_scrRadio;
 #if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
-  screens[screen_count++] = &_scrCompass;
-  screens[screen_count++] = &_scrFindFriend;
+    screens[screen_count++] = &_scrCompass;
+    screens[screen_count++] = &_scrFindFriend;
 #endif
-  screens[screen_count++] = &_scrGPS;
+    screens[screen_count++] = &_scrGPS;
 #if defined(ENV_INCLUDE_MAP) && ENV_INCLUDE_MAP
-  screens[screen_count++] = &_scrTracker;
+    screens[screen_count++] = &_scrTracker;
 #endif
-  screens[screen_count++] = &_scrSystem;
+    screens[screen_count++] = &_scrSystem;
 
-  _root = ht_obj_create(content, meta_id::AppScreenRoot);
-  if (!_root) return false;
-  lv_obj_set_size(_root, lv_pct(100), lv_pct(100));
-  lv_obj_clear_flag(_root, LV_OBJ_FLAG_SCROLLABLE);
+    _root = ht_obj_create(content, meta_id::AppScreenRoot);
+    if (!_root)
+        return false;
+    lv_obj_set_size(_root, lv_pct(100), lv_pct(100));
+    lv_obj_clear_flag(_root, LV_OBJ_FLAG_SCROLLABLE);
 
-  _tileview = lv_tileview_create(_root);
-  if (!_tileview) return false;
-  ht_set_meta_id(_tileview, meta_id::AppTileView);
-  ui_widget_theme_apply(_tileview);
-  lv_obj_set_size(_tileview, lv_pct(100), lv_pct(100));
-  lv_obj_set_scrollbar_mode(_tileview, LV_SCROLLBAR_MODE_OFF);
-  lv_obj_add_event_cb(_tileview, tileview_size_changed_cb, LV_EVENT_SIZE_CHANGED, nullptr);
-  if (_frame_root) lv_obj_update_layout(_frame_root);
-  lv_obj_update_layout(_tileview);
+    _tileview = ht_tileview_create(_root, meta_id::AppTileView);
+    if (!_tileview)
+        return false;
+    ui_widget_theme_apply(_tileview);
+    lv_obj_set_size(_tileview, lv_pct(100), lv_pct(100));
+    lv_obj_set_scrollbar_mode(_tileview, LV_SCROLLBAR_MODE_OFF);
+    lv_obj_add_event_cb(_tileview, tileview_size_changed_cb, LV_EVENT_SIZE_CHANGED, nullptr);
+    if (_frame_root)
+        lv_obj_update_layout(_frame_root);
+    lv_obj_update_layout(_tileview);
 
-  for (uint8_t i = 0; i < screen_count; ++i) {
+    for (uint8_t i = 0; i < screen_count; ++i)
+    {
+        AbstractScreen *const scr = screens[i];
+        if (!scr)
+            continue;
+
 #if defined(UI_NAVIGATION_GRID) && UI_NAVIGATION_GRID
-    lv_obj_t* tile = lv_tileview_add_tile(_tileview, i, 0, LV_DIR_NONE);
+        lv_obj_t *tile = ht_tileview_add_tile(_tileview, i, 0, LV_DIR_NONE, meta_id::AppTile, scr);
 #else
-    lv_obj_t* tile = lv_tileview_add_tile(_tileview, i, 0, LV_DIR_HOR);
+        lv_obj_t *tile = ht_tileview_add_tile(_tileview, i, 0, LV_DIR_HOR, meta_id::AppTile, scr);
 #endif
-    if (!tile) return false;
+        if (!tile)
+            return false;
 
-    AbstractScreen* scr = screens[i];
-    if (!scr) continue;
+        ui_widget_theme_apply(tile);
+        lv_obj_set_scrollbar_mode(tile, LV_SCROLLBAR_MODE_OFF);
+        lv_obj_clear_flag(tile, LV_OBJ_FLAG_SCROLLABLE);
+        scr->setTarget(_frame_root);
+        if (!scr->init(tile))
+            return false;
+        lv_obj_t *scr_root = scr->root();
+        if (!scr_root)
+            return false;
+    }
 
-    ht_set_meta_id(tile, meta_id::AppTile);
-    ht_set_user_data(tile, scr);
-    ui_widget_theme_apply(tile);
-    lv_obj_set_scrollbar_mode(tile, LV_SCROLLBAR_MODE_OFF);
-    lv_obj_clear_flag(tile, LV_OBJ_FLAG_SCROLLABLE);
-    scr->setTarget(_frame_root);
-    if (!scr->init(tile)) return false;
-    lv_obj_t* scr_root = scr->root();
-    if (!scr_root) return false;
-  }
+    relayout_tileview_tiles(_tileview);
 
-  relayout_tileview_tiles(_tileview);
-
-  lv_obj_t* first_tile = lv_obj_get_child(_tileview, 0);
-  if (first_tile) lv_obj_set_tile(_tileview, first_tile, LV_ANIM_OFF);
+    lv_obj_t *first_tile = lv_obj_get_child(_tileview, 0);
+    if (first_tile)
+        lv_obj_set_tile(_tileview, first_tile, LV_ANIM_OFF);
 #if defined(UI_NAVIGATION_GRID) && UI_NAVIGATION_GRID
-  lv_obj_clear_flag(_tileview, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_clear_flag(_tileview, LV_OBJ_FLAG_SCROLLABLE);
 #else
-  lv_obj_set_scroll_dir(_tileview, LV_DIR_HOR);
+    lv_obj_set_scroll_dir(_tileview, LV_DIR_HOR);
 #endif
 
-  if (AbstractScreen* home = screenAt(0)) _top_pane.setTitle(home->title());
-  return true;
+    if (AbstractScreen *home = screenAt(0))
+        _top_pane.setTitle(home->title());
+    return true;
 }
 
-bool UiApp::initTimers() {
-  if (!ui_deferred_init()) return false;
-  if (!ui_motion_init()) return false;
-  if (!_app_state_dispatcher.createTimer()) return false;
-  if (!_nav_auto_commit_timer) {
-    _nav_auto_commit_timer = lv_timer_create(navigationAutoCommitTimerCb, 1U, this);
-    if (!_nav_auto_commit_timer) return false;
-    lv_timer_set_repeat_count(_nav_auto_commit_timer, -1);
-    lv_timer_pause(_nav_auto_commit_timer);
-  }
+bool UiApp::initTimers()
+{
+    if (!ui_deferred_init())
+        return false;
+    if (!ui_motion_init())
+        return false;
+    if (!_app_state_dispatcher.createTimer())
+        return false;
+    if (!_nav_auto_commit_timer)
+    {
+        _nav_auto_commit_timer = lv_timer_create(navigationAutoCommitTimerCb, 1U, this);
+        if (!_nav_auto_commit_timer)
+            return false;
+        lv_timer_set_repeat_count(_nav_auto_commit_timer, -1);
+        lv_timer_pause(_nav_auto_commit_timer);
+    }
 #if defined(HELTEC_V4_R8_TFT) && defined(HELTEC_HAS_TOUCH) && HELTEC_HAS_TOUCH
-  if (!_deferred_touch_timer) {
-    _deferred_touch_timer = lv_timer_create(deferredTouchActionTimerCb, 40U, this);
-    if (!_deferred_touch_timer) return false;
-    lv_timer_set_repeat_count(_deferred_touch_timer, -1);
-    lv_timer_pause(_deferred_touch_timer);
-  }
+    if (!_deferred_touch_timer)
+    {
+        _deferred_touch_timer = lv_timer_create(deferredTouchActionTimerCb, 40U, this);
+        if (!_deferred_touch_timer)
+            return false;
+        lv_timer_set_repeat_count(_deferred_touch_timer, -1);
+        lv_timer_pause(_deferred_touch_timer);
+    }
 #endif
-  restartNavigationAutoCommitTimer();
-  return true;
+    restartNavigationAutoCommitTimer();
+    return true;
 }
 
-void UiApp::notifyDisplayActivity(uint32_t now_ms) {
-  _power.notifyUserActivity(now_ms);
+void UiApp::notifyDisplayActivity(uint32_t now_ms)
+{
+    _power.notifyUserActivity(now_ms);
 }
 
-bool UiApp::isDisplayOn() const {
-  return _power.snapshot().display_on;
+bool UiApp::isDisplayOn() const
+{
+    return _power.snapshot().display_on;
 }
 
-void UiApp::toggleDisplay(uint32_t now_ms) {
-  (void)_power.setDisplayOn(!_power.snapshot().display_on, now_ms);
+void UiApp::toggleDisplay(uint32_t now_ms)
+{
+    (void)_power.setDisplayOn(!_power.snapshot().display_on, now_ms);
 }
 
-void UiApp::onBacklightTurnedOn() {
-  ensureTileKeypadFocus();
-  reconcileInput();
-  lv_obj_t* scr = lv_scr_act();
-  if (scr) lv_obj_invalidate(scr);
+void UiApp::onBacklightTurnedOn()
+{
+    ensureTileKeypadFocus();
+    reconcileInput();
+    lv_obj_t *scr = lv_scr_act();
+    if (scr)
+        lv_obj_invalidate(scr);
 }
 
-void UiApp::setDisplayAutoOffMs(uint32_t ms) {
-  if (BacklightPolicy::mode() == BacklightMode::ManualToggle) {
-    ms = 0;
-  }
-  _power.setDisplayAutoOffMs(ms, millis());
+void UiApp::setDisplayAutoOffMs(uint32_t ms)
+{
+    if (BacklightPolicy::mode() == BacklightMode::ManualToggle)
+    {
+        ms = 0;
+    }
+    _power.setDisplayAutoOffMs(ms, millis());
 }
 
-void UiApp::syncDisplayTimeoutInhibit(uint32_t now_ms) {
-  constexpr uint16_t kCriticalOverlay = 1U << 0;
-  const bool inhibited = _surfaces.isActive(&_radioParamSyncOvl) ||
-                         _surfaces.isActive(&_repeatModeOvl);
-  _power.setDisplayTimeoutInhibited(kCriticalOverlay, inhibited, now_ms);
+void UiApp::syncDisplayTimeoutInhibit(uint32_t now_ms)
+{
+    constexpr uint16_t kCriticalOverlay = 1U << 0;
+    const bool inhibited =
+        _surfaces.isActive(&_radioParamSyncOvl) || _surfaces.isActive(&_repeatModeOvl);
+    _power.setDisplayTimeoutInhibited(kCriticalOverlay, inhibited, now_ms);
 }
 
-}  // namespace heltec::meshcore::ui
+} // namespace heltec::meshcore::ui

@@ -1,24 +1,26 @@
 #pragma once
 
-#include <stdint.h>
-
 #include "app_state_event.hpp"
 
-namespace heltec::meshcore::ui {
+#include <stdint.h>
 
-using AppStateSink = void (*)(void* user_data, const AppStateEvent& event);
+namespace heltec::meshcore::ui
+{
 
-class AppStateNotifier {
- public:
-  void bind(AppStateSink sink, void* user_data);
-  void clear();
-  void notify(const AppStateEvent& event);
+using AppStateSink = void (*)(void *user_data, const AppStateEvent &event);
 
- private:
-  AppStateSink _sink = nullptr;
-  void* _user_data = nullptr;
+class AppStateNotifier
+{
+  public:
+    void bind(AppStateSink sink, void *user_data);
+    void clear();
+    void notify(const AppStateEvent &event);
+
+  private:
+    AppStateSink _sink = nullptr;
+    void *_user_data = nullptr;
 };
 
-AppStateNotifier& app_state_notifier();
+AppStateNotifier &app_state_notifier();
 
-}  // namespace heltec::meshcore::ui
+} // namespace heltec::meshcore::ui

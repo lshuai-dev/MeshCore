@@ -11,7 +11,9 @@ uintptr_t __stack_chk_guard = 0xdeadbeefu;
 
 void __attribute__((noreturn)) __stack_chk_fail(void)
 {
-  while (1) { }
+    while (1)
+    {
+    }
 }
 
 #endif // ENV_INCLUDE_COMPASS

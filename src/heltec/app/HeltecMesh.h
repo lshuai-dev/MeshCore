@@ -1,18 +1,20 @@
 #pragma once
-#include <Arduino.h>
-#include <Mesh.h>
-#include "core/AbstractUITask.h"
 #include "config/DataStore.h"
 #include "config/NodePrefs.h"
+#include "core/AbstractUITask.h"
+
+#include <Arduino.h>
+#include <Mesh.h>
 #include <helpers/ArduinoHelpers.h>
-#include <helpers/BaseSerialInterface.h>
 #include <helpers/BaseChatMesh.h>
+#include <helpers/BaseSerialInterface.h>
 #include <helpers/SimpleMeshTables.h>
 #include <helpers/StaticPoolPacketManager.h>
 #include <helpers/TransportKeyStore.h>
 #include <target.h>
 
-namespace heltec::meshcore::power {
+namespace heltec::meshcore::power
+{
 class PowerMgr;
 }
 
@@ -66,316 +68,365 @@ class PowerMgr;
 
 /* -------------------------------------------------------------------------------------- */
 
-#define REQ_TYPE_GET_STATUS             0x01 // same as _GET_STATS
-#define REQ_TYPE_KEEP_ALIVE             0x02
-#define REQ_TYPE_GET_TELEMETRY_DATA     0x03
+#define REQ_TYPE_GET_STATUS         0x01 // same as _GET_STATS
+#define REQ_TYPE_KEEP_ALIVE         0x02
+#define REQ_TYPE_GET_TELEMETRY_DATA 0x03
 
-struct AdvertPath {
-  uint8_t pubkey_prefix[7];
-  uint8_t path_len;
-  char    name[32];
-  uint32_t recv_timestamp;
-  uint8_t path[MAX_PATH_SIZE];
+struct AdvertPath
+{
+    uint8_t pubkey_prefix[7];
+    uint8_t path_len;
+    char name[32];
+    uint32_t recv_timestamp;
+    uint8_t path[MAX_PATH_SIZE];
 };
 
-class HeltecMesh : public BaseChatMesh, public DataStoreHost {
-public:
-  /**
-   * Stable GPS fix shared by the UI and application paths.
-   * A transient invalid NMEA sentence does not immediately discard the last
-   * accepted coordinates; the sample remains usable for the configured hold
-   * window.
-   */
-  struct StableGpsFixSnapshot {
-    bool valid = false;
-    uint32_t age_ms = 0;
-    long timestamp = 0;
-    long lat_micro = 0;
-    long lon_micro = 0;
-    long alt_milli = 0;
-    long satellites = 0;
-  };
+class HeltecMesh : public BaseChatMesh, public DataStoreHost
+{
+  public:
+    /**
+     * Stable GPS fix shared by the UI and application paths.
+     * A transient invalid NMEA sentence does not immediately discard the last
+     * accepted coordinates; the sample remains usable for the configured hold
+     * window.
+     */
+    struct StableGpsFixSnapshot
+    {
+        bool valid = false;
+        uint32_t age_ms = 0;
+        long timestamp = 0;
+        long lat_micro = 0;
+        long lon_micro = 0;
+        long alt_milli = 0;
+        long satellites = 0;
+    };
 
-  struct ContactLocationReceipt {
-    bool known = false;
-    bool advertised = false;
-    int32_t lat_micro = 0;
-    int32_t lon_micro = 0;
-    uint32_t received_ms = 0;
-    uint32_t age_ms = 0;
-  };
+    struct ContactLocationReceipt
+    {
+        bool known = false;
+        bool advertised = false;
+        int32_t lat_micro = 0;
+        int32_t lon_micro = 0;
+        uint32_t received_ms = 0;
+        uint32_t age_ms = 0;
+    };
 
-  struct ClientRepeatFreqRange {
-    uint32_t lower_khz;
-    uint32_t upper_khz;
-  };
+    struct ClientRepeatFreqRange
+    {
+        uint32_t lower_khz;
+        uint32_t upper_khz;
+    };
 
-  enum class RadioConfigApplyResult : uint8_t {
-    Ok,
-    InvalidFrequency,
-    InvalidBandwidth,
-    InvalidSpreadingFactor,
-    InvalidCodingRate,
-    UnsupportedForwardingFrequency,
-  };
+    enum class RadioConfigApplyResult : uint8_t
+    {
+        Ok,
+        InvalidFrequency,
+        InvalidBandwidth,
+        InvalidSpreadingFactor,
+        InvalidCodingRate,
+        UnsupportedForwardingFrequency,
+    };
 
-  HeltecMesh(mesh::Radio &radio, mesh::RNG &rng, mesh::RTCClock &rtc, SimpleMeshTables &tables, DataStore& store,
-             AbstractUITask* ui=nullptr);
+    HeltecMesh(mesh::Radio &radio, mesh::RNG &rng, mesh::RTCClock &rtc, SimpleMeshTables &tables,
+               DataStore &store, AbstractUITask *ui = nullptr);
 
-  void begin(bool has_display);
-  void attachPowerMgr(heltec::meshcore::power::PowerMgr* power) { _power_mgr = power; }
-  void startInterface(BaseSerialInterface &serial);
+    void begin(bool has_display);
+    void attachPowerMgr(heltec::meshcore::power::PowerMgr *power)
+    {
+        _power_mgr = power;
+    }
+    void startInterface(BaseSerialInterface &serial);
 
-  const char *getNodeName();
-  NodePrefs *getNodePrefs();
-  uint32_t getBLEPin();
+    const char *getNodeName();
+    NodePrefs *getNodePrefs();
+    uint32_t getBLEPin();
 
-  DataStore *getDataStore() { return _store; }
-  void reloadContactsFromStore();
-  /** Same effect as app sending CMD_REMOVE_CONTACT for every entry, then persisting. */
-  bool clearAllContacts();
+    DataStore *getDataStore()
+    {
+        return _store;
+    }
+    void reloadContactsFromStore();
+    /** Same effect as app sending CMD_REMOVE_CONTACT for every entry, then persisting. */
+    bool clearAllContacts();
 
-  void loop();
-  void handleCmdFrame(size_t len);
-  void handleCompanionJsonCmdLine(const char* line, size_t len);
-  bool advert(bool require_live_location = false);
-  bool getStableGpsFix(StableGpsFixSnapshot& out) const;
-  bool getContactLocationReceipt(const uint8_t pub_key[PUB_KEY_SIZE],
-                                 ContactLocationReceipt& out) const;
-  void pinContactLocationReceipt(const uint8_t pub_key[PUB_KEY_SIZE]);
-  void enterCLIRescue();
+    void loop();
+    void handleCmdFrame(size_t len);
+    void handleCompanionJsonCmdLine(const char *line, size_t len);
+    bool advert(bool require_live_location = false);
+    bool getStableGpsFix(StableGpsFixSnapshot &out) const;
+    bool getContactLocationReceipt(const uint8_t pub_key[PUB_KEY_SIZE],
+                                   ContactLocationReceipt &out) const;
+    void pinContactLocationReceipt(const uint8_t pub_key[PUB_KEY_SIZE]);
+    void enterCLIRescue();
 
-  int  getRecentlyHeard(AdvertPath dest[], int max_num);
+    int getRecentlyHeard(AdvertPath dest[], int max_num);
 
-  /** Set carrier from a preset MHz value; optional immediate RF apply and prefs save. */
-  static void applyLoRaCarrierMHz(HeltecMesh& mesh, float mhz, bool apply_radio_now, bool save_prefs);
+    /** Set carrier from a preset MHz value; optional immediate RF apply and prefs save. */
+    static void applyLoRaCarrierMHz(HeltecMesh &mesh, float mhz, bool apply_radio_now,
+                                    bool save_prefs);
 
-  bool clientRepeatEnabled() const { return _prefs.client_repeat != 0; }
-  size_t clientRepeatFrequencyCount() const;
-  bool clientRepeatFrequencyAt(size_t index, ClientRepeatFreqRange& range) const;
-  int currentClientRepeatFrequencyIndex() const;
-  /** Validate, apply and optionally persist one complete radio/forwarding state. */
-  RadioConfigApplyResult applyRadioConfig(uint32_t freq_khz, uint32_t bw_hz,
-                                          uint8_t sf, uint8_t cr,
-                                          bool forwarding,
-                                          bool persist_prefs = true);
+    bool clientRepeatEnabled() const
+    {
+        return _prefs.client_repeat != 0;
+    }
+    size_t clientRepeatFrequencyCount() const;
+    bool clientRepeatFrequencyAt(size_t index, ClientRepeatFreqRange &range) const;
+    int currentClientRepeatFrequencyIndex() const;
+    /** Validate, apply and optionally persist one complete radio/forwarding state. */
+    RadioConfigApplyResult applyRadioConfig(uint32_t freq_khz, uint32_t bw_hz, uint8_t sf,
+                                            uint8_t cr, bool forwarding, bool persist_prefs = true);
 
-  // Heltec-only: periodic GPS location advert (runtime-only interval).
-  static void pollLocShareAdvert(HeltecMesh& mesh);
-  static void resetLocShareAdvertSchedule();
-  static uint32_t locShareAdvertIntervalSec();
-  static uint32_t locShareNextAdvertMillis();
-  static void setLocShareAdvertIntervalSec(uint32_t sec);
+    // Heltec-only: periodic GPS location advert (runtime-only interval).
+    static void pollLocShareAdvert(HeltecMesh &mesh);
+    static void resetLocShareAdvertSchedule();
+    static uint32_t locShareAdvertIntervalSec();
+    static uint32_t locShareNextAdvertMillis();
+    static void setLocShareAdvertIntervalSec(uint32_t sec);
 
-  // Location sharing policy helpers.
-  static bool isLocationShareEnabled(const NodePrefs* prefs);
-  static void setLocationShareEnabled(HeltecMesh& mesh, bool enabled, bool persist_prefs = false);
+    // Location sharing policy helpers.
+    static bool isLocationShareEnabled(const NodePrefs *prefs);
+    static void setLocationShareEnabled(HeltecMesh &mesh, bool enabled, bool persist_prefs = false);
 
-  struct LastRxMetrics {
-    bool valid = false;
-    float rssi_dbm = 0.0f;
-    float snr_db = 0.0f;
-    uint32_t received_ms = 0;
-  };
+    struct LastRxMetrics
+    {
+        bool valid = false;
+        float rssi_dbm = 0.0f;
+        float snr_db = 0.0f;
+        uint32_t received_ms = 0;
+    };
 
-  /** Signal quality of the most recent successfully read LoRa packet. */
-  LastRxMetrics lastRxMetrics() const { return _last_rx_metrics; }
+    /** Signal quality of the most recent successfully read LoRa packet. */
+    LastRxMetrics lastRxMetrics() const
+    {
+        return _last_rx_metrics;
+    }
 
-protected:
-  float getAirtimeBudgetFactor() const override;
-  int getInterferenceThreshold() const override;
-  int calcRxDelay(float score, uint32_t air_time) const override;
-  uint8_t getExtraAckTransmitCount() const override;
-  bool filterRecvFloodPacket(mesh::Packet* packet) override;
-  bool allowPacketForward(const mesh::Packet* packet) override;
+  protected:
+    float getAirtimeBudgetFactor() const override;
+    int getInterferenceThreshold() const override;
+    int calcRxDelay(float score, uint32_t air_time) const override;
+    uint8_t getExtraAckTransmitCount() const override;
+    bool filterRecvFloodPacket(mesh::Packet *packet) override;
+    bool allowPacketForward(const mesh::Packet *packet) override;
 
-  // Reject unsupported T1 timestamps before the base replay check.
-  void onAdvertRecv(mesh::Packet* packet, const mesh::Identity& id, uint32_t timestamp,
-                    const uint8_t* app_data, size_t app_data_len) override;
+    // Reject unsupported T1 timestamps before the base replay check.
+    void onAdvertRecv(mesh::Packet *packet, const mesh::Identity &id, uint32_t timestamp,
+                      const uint8_t *app_data, size_t app_data_len) override;
 
-  void sendFloodScoped(const ContactInfo& recipient, mesh::Packet* pkt, uint32_t delay_millis=0) override;
-  void sendFloodScoped(const mesh::GroupChannel& channel, mesh::Packet* pkt, uint32_t delay_millis=0) override;
+    void sendFloodScoped(const ContactInfo &recipient, mesh::Packet *pkt,
+                         uint32_t delay_millis = 0) override;
+    void sendFloodScoped(const mesh::GroupChannel &channel, mesh::Packet *pkt,
+                         uint32_t delay_millis = 0) override;
 
-  void logRxRaw(float snr, float rssi, const uint8_t raw[], int len) override;
-  bool isAutoAddEnabled() const override;
-  bool shouldAutoAddContactType(uint8_t type) const override;
-  bool shouldOverwriteWhenFull() const override;
-  void onContactsFull() override;
-  void onContactOverwrite(const uint8_t* pub_key) override;
-  bool onContactPathRecv(ContactInfo& from, uint8_t* in_path, uint8_t in_path_len, uint8_t* out_path, uint8_t out_path_len, uint8_t extra_type, uint8_t* extra, uint8_t extra_len) override;
-  void onDiscoveredContact(ContactInfo &contact, bool is_new, uint8_t path_len, const uint8_t* path) override;
-  void onContactPathUpdated(const ContactInfo &contact) override;
-  ContactInfo* processAck(const uint8_t *data) override;
-  void queueMessage(const ContactInfo &from, uint8_t txt_type, mesh::Packet *pkt, uint32_t sender_timestamp,
-                    const uint8_t *extra, int extra_len, const char *text);
+    void logRxRaw(float snr, float rssi, const uint8_t raw[], int len) override;
+    bool isAutoAddEnabled() const override;
+    bool shouldAutoAddContactType(uint8_t type) const override;
+    bool shouldOverwriteWhenFull() const override;
+    void onContactsFull() override;
+    void onContactOverwrite(const uint8_t *pub_key) override;
+    bool onContactPathRecv(ContactInfo &from, uint8_t *in_path, uint8_t in_path_len,
+                           uint8_t *out_path, uint8_t out_path_len, uint8_t extra_type,
+                           uint8_t *extra, uint8_t extra_len) override;
+    void onDiscoveredContact(ContactInfo &contact, bool is_new, uint8_t path_len,
+                             const uint8_t *path) override;
+    void onContactPathUpdated(const ContactInfo &contact) override;
+    ContactInfo *processAck(const uint8_t *data) override;
+    void queueMessage(const ContactInfo &from, uint8_t txt_type, mesh::Packet *pkt,
+                      uint32_t sender_timestamp, const uint8_t *extra, int extra_len,
+                      const char *text);
 
-  void onMessageRecv(const ContactInfo &from, mesh::Packet *pkt, uint32_t sender_timestamp,
-                     const char *text) override;
-  void onCommandDataRecv(const ContactInfo &from, mesh::Packet *pkt, uint32_t sender_timestamp,
-                         const char *text) override;
-  void onSignedMessageRecv(const ContactInfo &from, mesh::Packet *pkt, uint32_t sender_timestamp,
-                           const uint8_t *sender_prefix, const char *text) override;
-  void onChannelMessageRecv(const mesh::GroupChannel &channel, mesh::Packet *pkt, uint32_t timestamp,
-                            const char *text) override;
+    void onMessageRecv(const ContactInfo &from, mesh::Packet *pkt, uint32_t sender_timestamp,
+                       const char *text) override;
+    void onCommandDataRecv(const ContactInfo &from, mesh::Packet *pkt, uint32_t sender_timestamp,
+                           const char *text) override;
+    void onSignedMessageRecv(const ContactInfo &from, mesh::Packet *pkt, uint32_t sender_timestamp,
+                             const uint8_t *sender_prefix, const char *text) override;
+    void onChannelMessageRecv(const mesh::GroupChannel &channel, mesh::Packet *pkt,
+                              uint32_t timestamp, const char *text) override;
 
-  uint8_t onContactRequest(const ContactInfo &contact, uint32_t sender_timestamp, const uint8_t *data,
-                           uint8_t len, uint8_t *reply) override;
-  void onContactResponse(const ContactInfo &contact, const uint8_t *data, uint8_t len) override;
-  void onControlDataRecv(mesh::Packet *packet) override;
-  void onRawDataRecv(mesh::Packet *packet) override;
-  void onTraceRecv(mesh::Packet *packet, uint32_t tag, uint32_t auth_code, uint8_t flags,
-                   const uint8_t *path_snrs, const uint8_t *path_hashes, uint8_t path_len) override;
+    uint8_t onContactRequest(const ContactInfo &contact, uint32_t sender_timestamp,
+                             const uint8_t *data, uint8_t len, uint8_t *reply) override;
+    void onContactResponse(const ContactInfo &contact, const uint8_t *data, uint8_t len) override;
+    void onControlDataRecv(mesh::Packet *packet) override;
+    void onRawDataRecv(mesh::Packet *packet) override;
+    void onTraceRecv(mesh::Packet *packet, uint32_t tag, uint32_t auth_code, uint8_t flags,
+                     const uint8_t *path_snrs, const uint8_t *path_hashes,
+                     uint8_t path_len) override;
 
-  uint32_t calcFloodTimeoutMillisFor(uint32_t pkt_airtime_millis) const override;
-  uint32_t calcDirectTimeoutMillisFor(uint32_t pkt_airtime_millis, uint8_t path_len) const override;
-  void onSendTimeout() override;
+    uint32_t calcFloodTimeoutMillisFor(uint32_t pkt_airtime_millis) const override;
+    uint32_t calcDirectTimeoutMillisFor(uint32_t pkt_airtime_millis,
+                                        uint8_t path_len) const override;
+    void onSendTimeout() override;
 
-  // DataStoreHost methods
-  bool onContactLoaded(const ContactInfo& contact) override;
-  bool getContactForSave(uint32_t idx, ContactInfo& contact) override { return getContactByIdx(idx, contact); }
-  bool onChannelLoaded(uint8_t channel_idx, const ChannelDetails& ch) override { return setChannel(channel_idx, ch); }
-  bool getChannelForSave(uint8_t channel_idx, ChannelDetails& ch) override { return getChannel(channel_idx, ch); }
+    // DataStoreHost methods
+    bool onContactLoaded(const ContactInfo &contact) override;
+    bool getContactForSave(uint32_t idx, ContactInfo &contact) override
+    {
+        return getContactByIdx(idx, contact);
+    }
+    bool onChannelLoaded(uint8_t channel_idx, const ChannelDetails &ch) override
+    {
+        return setChannel(channel_idx, ch);
+    }
+    bool getChannelForSave(uint8_t channel_idx, ChannelDetails &ch) override
+    {
+        return getChannel(channel_idx, ch);
+    }
 
-  void clearPendingReqs() {
-    pending_login = pending_status = pending_telemetry = pending_discovery = pending_req = 0;
-  }
+    void clearPendingReqs()
+    {
+        pending_login = pending_status = pending_telemetry = pending_discovery = pending_req = 0;
+    }
 
-public:
-  void trackExpectedAck(uint32_t expected_ack, ContactInfo* contact);
+  public:
+    void trackExpectedAck(uint32_t expected_ack, ContactInfo *contact);
 
-  void savePrefs() {
-    _store->savePrefs(_prefs, sensors.node_lat, sensors.node_lon);
-  }
+    void savePrefs()
+    {
+        _store->savePrefs(_prefs, sensors.node_lat, sensors.node_lon);
+    }
 
-private:
-  mesh::Packet* createPolicySelfAdvert(bool require_live_location);
-  void recordContactLocationReceipt(const uint8_t pub_key[PUB_KEY_SIZE], bool advertised,
-                                    int32_t lat_micro, int32_t lon_micro);
-  void clearContactLocationReceipt(const uint8_t pub_key[PUB_KEY_SIZE]);
-  void clearContactLocationReceipts();
-  void dedupeContactsByUniqueName();
-  uint32_t contactLocationFingerprint();
-  void notifyContactLocationChangedIfNeeded();
-  void writeOKFrame();
-  void writeErrFrame(uint8_t err_code);
-  void writeDisabledFrame();
-  void writeContactRespFrame(uint8_t code, const ContactInfo &contact);
-  void updateContactFromFrame(ContactInfo &contact, uint32_t& last_mod, const uint8_t *frame, int len);
-  void addToOfflineQueue(const uint8_t frame[], int len);
-  int getFromOfflineQueue(uint8_t frame[]);
-  int getBlobByKey(const uint8_t key[], int key_len, uint8_t dest_buf[]) override { 
-    return _store->getBlobByKey(key, key_len, dest_buf);
-  }
-  bool putBlobByKey(const uint8_t key[], int key_len, const uint8_t src_buf[], int len) override {
-    return _store->putBlobByKey(key, key_len, src_buf, len);
-  }
+  private:
+    mesh::Packet *createPolicySelfAdvert(bool require_live_location);
+    void recordContactLocationReceipt(const uint8_t pub_key[PUB_KEY_SIZE], bool advertised,
+                                      int32_t lat_micro, int32_t lon_micro);
+    void clearContactLocationReceipt(const uint8_t pub_key[PUB_KEY_SIZE]);
+    void clearContactLocationReceipts();
+    void dedupeContactsByUniqueName();
+    uint32_t contactLocationFingerprint();
+    void notifyContactLocationChangedIfNeeded();
+    void writeOKFrame();
+    void writeErrFrame(uint8_t err_code);
+    void writeDisabledFrame();
+    void writeContactRespFrame(uint8_t code, const ContactInfo &contact);
+    void updateContactFromFrame(ContactInfo &contact, uint32_t &last_mod, const uint8_t *frame,
+                                int len);
+    void addToOfflineQueue(const uint8_t frame[], int len);
+    int getFromOfflineQueue(uint8_t frame[]);
+    int getBlobByKey(const uint8_t key[], int key_len, uint8_t dest_buf[]) override
+    {
+        return _store->getBlobByKey(key, key_len, dest_buf);
+    }
+    bool putBlobByKey(const uint8_t key[], int key_len, const uint8_t src_buf[], int len) override
+    {
+        return _store->putBlobByKey(key, key_len, src_buf, len);
+    }
 
-  void checkCLIRescueCmd();
-  void checkSerialInterface();
-  void checkUsbCompanionJsonInput();
-  bool isValidClientRepeatFreq(uint32_t f) const;
-  uint16_t currentBatteryMilliVolts() const;
+    void checkCLIRescueCmd();
+    void checkSerialInterface();
+    void checkUsbCompanionJsonInput();
+    bool isValidClientRepeatFreq(uint32_t f) const;
+    uint16_t currentBatteryMilliVolts() const;
 
-  void handleCompanionJsonCmdLineTo(BaseSerialInterface* outSerial, Print* outPrint, const char* line, size_t len);
+    void handleCompanionJsonCmdLineTo(BaseSerialInterface *outSerial, Print *outPrint,
+                                      const char *line, size_t len);
 
-  // helpers, short-cuts
-  void saveChannels() { _store->saveChannels(this); }
-  void saveContacts() { _store->saveContacts(this); }
+    // helpers, short-cuts
+    void saveChannels()
+    {
+        _store->saveChannels(this);
+    }
+    void saveContacts()
+    {
+        _store->saveContacts(this);
+    }
 
-  DataStore* _store;
-  NodePrefs _prefs;
-  uint32_t pending_login;
-  uint32_t pending_status;
-  uint32_t pending_telemetry, pending_discovery;   // pending _TELEMETRY_REQ
-  uint32_t pending_req;   // pending _BINARY_REQ
-  BaseSerialInterface *_serial;
-  AbstractUITask* _ui;
-  heltec::meshcore::power::PowerMgr* _power_mgr = nullptr;
+    DataStore *_store;
+    NodePrefs _prefs;
+    uint32_t pending_login;
+    uint32_t pending_status;
+    uint32_t pending_telemetry, pending_discovery; // pending _TELEMETRY_REQ
+    uint32_t pending_req;                          // pending _BINARY_REQ
+    BaseSerialInterface *_serial;
+    AbstractUITask *_ui;
+    heltec::meshcore::power::PowerMgr *_power_mgr = nullptr;
 
-  ContactsIterator _iter;
-  uint32_t _iter_filter_since;
-  uint32_t _most_recent_lastmod;
-  uint32_t _active_ble_pin;
-  LastRxMetrics _last_rx_metrics{};
-  bool _iter_started;
-  bool _cli_rescue;
-  char cli_command[80];
-  uint8_t app_target_ver;
-  uint8_t *sign_data;
-  uint32_t sign_data_len;
-  unsigned long dirty_contacts_expiry;
+    ContactsIterator _iter;
+    uint32_t _iter_filter_since;
+    uint32_t _most_recent_lastmod;
+    uint32_t _active_ble_pin;
+    LastRxMetrics _last_rx_metrics{};
+    bool _iter_started;
+    bool _cli_rescue;
+    char cli_command[80];
+    uint8_t app_target_ver;
+    uint8_t *sign_data;
+    uint32_t sign_data_len;
+    unsigned long dirty_contacts_expiry;
 
-  TransportKey send_scope;
+    TransportKey send_scope;
 
-  uint8_t cmd_frame[MAX_FRAME_SIZE + 1];
-  uint8_t out_frame[MAX_FRAME_SIZE + 1];
+    uint8_t cmd_frame[MAX_FRAME_SIZE + 1];
+    uint8_t out_frame[MAX_FRAME_SIZE + 1];
 
-  // NDJSON RX reassembly for transports that may fragment writes (e.g. BLE UART).
-  // Keeps original binary-frame path intact: only activates once a '{' start byte is observed.
-  bool _json_rx_active = false;
-  uint16_t _json_rx_len = 0;
-  // Allow JSON lines longer than MAX_FRAME_SIZE (frames are chunked; JSON is delimited by '\n').
-  static constexpr uint16_t JSON_LINE_MAX = HELTEC_JSON_LINE_MAX;
-  char _json_rx_buf[JSON_LINE_MAX + 1] = {0};
+    // NDJSON RX reassembly for transports that may fragment writes (e.g. BLE UART).
+    // Keeps original binary-frame path intact: only activates once a '{' start byte is observed.
+    bool _json_rx_active = false;
+    uint16_t _json_rx_len = 0;
+    // Allow JSON lines longer than MAX_FRAME_SIZE (frames are chunked; JSON is delimited by '\n').
+    static constexpr uint16_t JSON_LINE_MAX = HELTEC_JSON_LINE_MAX;
+    char _json_rx_buf[JSON_LINE_MAX + 1] = { 0 };
 
-  // USB UART0 NDJSON input (plain text line) for companion JSON commands.
-  bool _usb_json_rx_active = false;
-  uint16_t _usb_json_rx_len = 0;
-  // JSON object reassembly state (handles nested objects).
-  int16_t _usb_json_depth = 0;
-  bool _usb_json_in_string = false;
-  bool _usb_json_esc = false;
-  char _usb_json_rx_buf[JSON_LINE_MAX + 1] = {0};
+    // USB UART0 NDJSON input (plain text line) for companion JSON commands.
+    bool _usb_json_rx_active = false;
+    uint16_t _usb_json_rx_len = 0;
+    // JSON object reassembly state (handles nested objects).
+    int16_t _usb_json_depth = 0;
+    bool _usb_json_in_string = false;
+    bool _usb_json_esc = false;
+    char _usb_json_rx_buf[JSON_LINE_MAX + 1] = { 0 };
 
-  CayenneLPP telemetry;
+    CayenneLPP telemetry;
 
-  struct Frame {
-    uint8_t len;
-    uint8_t buf[MAX_FRAME_SIZE];
+    struct Frame
+    {
+        uint8_t len;
+        uint8_t buf[MAX_FRAME_SIZE];
 
-    bool isChannelMsg() const;
-  };
-  int offline_queue_len;
-  Frame offline_queue[OFFLINE_QUEUE_SIZE];
+        bool isChannelMsg() const;
+    };
+    int offline_queue_len;
+    Frame offline_queue[OFFLINE_QUEUE_SIZE];
 
-  struct AckTableEntry {
-    unsigned long msg_sent;
-    uint32_t ack;
-    ContactInfo* contact;
-  };
-  #define EXPECTED_ACK_TABLE_SIZE 8
-  AckTableEntry expected_ack_table[EXPECTED_ACK_TABLE_SIZE]; // circular table
-  int next_ack_idx;
-  ContactInfo* txt_send_pending_contact;
+    struct AckTableEntry
+    {
+        unsigned long msg_sent;
+        uint32_t ack;
+        ContactInfo *contact;
+    };
+#define EXPECTED_ACK_TABLE_SIZE 8
+    AckTableEntry expected_ack_table[EXPECTED_ACK_TABLE_SIZE]; // circular table
+    int next_ack_idx;
+    ContactInfo *txt_send_pending_contact;
 
-  #define ADVERT_PATH_TABLE_SIZE   16
-  AdvertPath advert_paths[ADVERT_PATH_TABLE_SIZE]; // circular table
-  uint32_t _contact_location_fingerprint = 0;
-  bool _contact_location_fingerprint_valid = false;
+#define ADVERT_PATH_TABLE_SIZE 16
+    AdvertPath advert_paths[ADVERT_PATH_TABLE_SIZE]; // circular table
+    uint32_t _contact_location_fingerprint = 0;
+    bool _contact_location_fingerprint_valid = false;
 
-  struct ContactLocationEntry {
-    bool occupied = false;
-    bool advertised = false;
-    uint8_t pub_key[PUB_KEY_SIZE] = {};
-    int32_t lat_micro = 0;
-    int32_t lon_micro = 0;
-    uint32_t received_ms = 0;
-  };
-  static constexpr size_t kContactLocationReceiptCapacity =
-      MAX_CONTACTS < 32 ? MAX_CONTACTS : 32;
-  ContactLocationEntry _contact_location_receipts[kContactLocationReceiptCapacity]{};
-  bool _contact_location_receipt_pin_valid = false;
-  uint8_t _contact_location_receipt_pin[PUB_KEY_SIZE] = {};
+    struct ContactLocationEntry
+    {
+        bool occupied = false;
+        bool advertised = false;
+        uint8_t pub_key[PUB_KEY_SIZE] = {};
+        int32_t lat_micro = 0;
+        int32_t lon_micro = 0;
+        uint32_t received_ms = 0;
+    };
+    static constexpr size_t kContactLocationReceiptCapacity = MAX_CONTACTS < 32 ? MAX_CONTACTS : 32;
+    ContactLocationEntry _contact_location_receipts[kContactLocationReceiptCapacity]{};
+    bool _contact_location_receipt_pin_valid = false;
+    uint8_t _contact_location_receipt_pin[PUB_KEY_SIZE] = {};
 
 #if defined(ENV_INCLUDE_GPS) && ENV_INCLUDE_GPS
-  mutable bool _stable_gps_fix_seen = false;
-  mutable bool _stable_gps_raw_valid = false;
-  mutable uint32_t _stable_gps_last_fix_ms = 0;
-  mutable long _stable_gps_last_timestamp = 0;
-  mutable long _stable_gps_last_lat = 0;
-  mutable long _stable_gps_last_lon = 0;
-  mutable long _stable_gps_last_alt = 0;
-  mutable long _stable_gps_last_sats = 0;
+    mutable bool _stable_gps_fix_seen = false;
+    mutable bool _stable_gps_raw_valid = false;
+    mutable uint32_t _stable_gps_last_fix_ms = 0;
+    mutable long _stable_gps_last_timestamp = 0;
+    mutable long _stable_gps_last_lat = 0;
+    mutable long _stable_gps_last_lon = 0;
+    mutable long _stable_gps_last_alt = 0;
+    mutable long _stable_gps_last_sats = 0;
 #endif
 };
 

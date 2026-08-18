@@ -1,6 +1,7 @@
 #pragma once
 
-namespace heltec::meshcore::geo {
+namespace heltec::meshcore::geo
+{
 
 /**
  * Solve the WGS-84 inverse geodesic problem.
@@ -10,13 +11,10 @@ namespace heltec::meshcore::geo {
  * Vincenty's ellipsoidal solution is used normally, with a spherical fallback
  * for the near-antipodal cases where the iteration does not converge.
  */
-void geodesic_inverse_wgs84(double lat1_deg, double lon1_deg,
-                            double lat2_deg, double lon2_deg,
-                            double& distance_m,
-                            double* initial_bearing_deg = nullptr);
+void geodesic_inverse_wgs84(double lat1_deg, double lon1_deg, double lat2_deg, double lon2_deg,
+                            double &distance_m, double *initial_bearing_deg = nullptr);
 
 /** WGS-84 geodesic distance in meters. */
-double geodesic_distance_m(double lat1_deg, double lon1_deg,
-                           double lat2_deg, double lon2_deg);
+double geodesic_distance_m(double lat1_deg, double lon1_deg, double lat2_deg, double lon2_deg);
 
-}  // namespace heltec::meshcore::geo
+} // namespace heltec::meshcore::geo

@@ -21,22 +21,23 @@
 #endif
 
 #if defined(HELTEC_MESH_UI) && HELTEC_MESH_UI && HELTEC_LICENSE_BOOT_GATE
-#include <lvgl.h>
 #include "heltec/drivers/display/display_port.hpp"
 #include "heltec/drivers/input/momentary_button.hpp"
 #include "ui/core/ht_meta_data.hpp"
 #include "ui/core/license_gate_ids.hpp"
+
+#include <lvgl.h>
 #endif
 
 #if defined(MESH_DEBUG) && MESH_DEBUG
-#define LICENSE_VERBOSE(...) Serial.printf("[license] " __VA_ARGS__)
+#define LICENSE_VERBOSE(...)   Serial.printf("[license] " __VA_ARGS__)
 #define LICENSE_VERBOSELN(msg) Serial.println("[license] " msg)
 #else
-#define LICENSE_VERBOSE(...) ((void)0)
+#define LICENSE_VERBOSE(...)   ((void)0)
 #define LICENSE_VERBOSELN(msg) ((void)0)
 #endif
 
-#define LICENSE_LOG(...) Serial.printf("[license] " __VA_ARGS__)
+#define LICENSE_LOG(...)   Serial.printf("[license] " __VA_ARGS__)
 #define LICENSE_LOGLN(msg) Serial.println("[license] " msg)
 
 #if defined(NRF52_PLATFORM) || defined(ESP32) || defined(ESP_PLATFORM)
@@ -48,458 +49,550 @@ static constexpr const char kLicenseNvsKey[] = "cdkey";
 #endif
 
 static bool licenseWordsEqual(const uint32_t a[HT_LICENSE_WORDS],
-                              const uint32_t b[HT_LICENSE_WORDS]) {
-  return memcmp(a, b, HT_LICENSE_WORDS * sizeof(uint32_t)) == 0;
+                              const uint32_t b[HT_LICENSE_WORDS])
+{
+    return memcmp(a, b, HT_LICENSE_WORDS * sizeof(uint32_t)) == 0;
 }
 
-enum class NativeLicenseState : uint8_t {
-  Unsupported,
-  Empty,
-  Present,
-  Error,
+enum class NativeLicenseState : uint8_t
+{
+    Unsupported,
+    Empty,
+    Present,
+    Error,
 };
 
-static NativeLicenseState licenseReadNative(uint32_t license[HT_LICENSE_WORDS]) {
-  if (!license) return NativeLicenseState::Error;
+static NativeLicenseState licenseReadNative(uint32_t license[HT_LICENSE_WORDS])
+{
+    if (!license)
+        return NativeLicenseState::Error;
 
 #if defined(NRF52_PLATFORM) && defined(NRF52840_XXAA)
-  bool empty = true;
-  for (uint32_t i = 0; i < HT_LICENSE_WORDS; ++i) {
-    license[i] = NRF_UICR->CUSTOMER[28U + i];
-    if (license[i] != 0xFFFFFFFFU) empty = false;
-  }
-  return empty ? NativeLicenseState::Empty : NativeLicenseState::Present;
-#elif (defined(ESP32) || defined(ESP_PLATFORM)) && defined(CONFIG_IDF_TARGET_ESP32S3)
-  nvs_handle_t handle = 0;
-  const esp_err_t open_err =
-      nvs_open_from_partition(kLicenseNvsPartition, kLicenseNvsNamespace, NVS_READONLY, &handle);
-  if (open_err == ESP_ERR_NVS_NOT_FOUND) return NativeLicenseState::Empty;
-  if (open_err != ESP_OK) {
-    LICENSE_LOG("NVS open failed: %s\n", esp_err_to_name(open_err));
-    return NativeLicenseState::Error;
-  }
-
-  size_t size = HT_LICENSE_WORDS * sizeof(uint32_t);
-  const esp_err_t read_err = nvs_get_blob(handle, kLicenseNvsKey, license, &size);
-  nvs_close(handle);
-  if (read_err == ESP_ERR_NVS_NOT_FOUND) return NativeLicenseState::Empty;
-  if (read_err != ESP_OK || size != HT_LICENSE_WORDS * sizeof(uint32_t)) {
-    LICENSE_LOG("NVS read failed: %s size=%u\n", esp_err_to_name(read_err), (unsigned)size);
-    return NativeLicenseState::Error;
-  }
-  return NativeLicenseState::Present;
-#else
-  memset(license, 0, HT_LICENSE_WORDS * sizeof(uint32_t));
-  return NativeLicenseState::Unsupported;
-#endif
-}
-
-#if defined(NRF52_PLATFORM) && defined(NRF52840_XXAA)
-static bool licenseWriteUicrWord(volatile uint32_t* address, uint32_t value) {
-  if (*address == value) return true;
-  if (*address != 0xFFFFFFFFU) return false;
-
-  const uint32_t primask = __get_PRIMASK();
-  __disable_irq();
-  NRF_NVMC->CONFIG = NVMC_CONFIG_WEN_Wen;
-  while (NRF_NVMC->READY == NVMC_READY_READY_Busy) {}
-  *address = value;
-  while (NRF_NVMC->READY == NVMC_READY_READY_Busy) {}
-  NRF_NVMC->CONFIG = NVMC_CONFIG_WEN_Ren;
-  while (NRF_NVMC->READY == NVMC_READY_READY_Busy) {}
-  __DSB();
-  __ISB();
-  if (primask == 0U) __enable_irq();
-  return *address == value;
-}
-#endif
-
-static bool licenseWriteNative(const uint32_t license[HT_LICENSE_WORDS]) {
-  if (!license) return false;
-
-#if defined(NRF52_PLATFORM) && defined(NRF52840_XXAA)
-  uint8_t softdevice_enabled = 0;
-  const uint32_t sd_err = sd_softdevice_is_enabled(&softdevice_enabled);
-  if (sd_err != NRF_SUCCESS || softdevice_enabled) {
-    LICENSE_LOG("UICR write rejected: SoftDevice state err=%lu enabled=%u\n",
-                (unsigned long)sd_err, (unsigned)softdevice_enabled);
-    return false;
-  }
-
-  for (uint32_t i = 0; i < HT_LICENSE_WORDS; ++i) {
-    const uint32_t current = NRF_UICR->CUSTOMER[28U + i];
-    if (current != 0xFFFFFFFFU && current != license[i]) {
-      LICENSE_LOG("UICR CUSTOMER[%u] conflicts with stored data\n", (unsigned)(28U + i));
-      return false;
+    bool empty = true;
+    for (uint32_t i = 0; i < HT_LICENSE_WORDS; ++i)
+    {
+        license[i] = NRF_UICR->CUSTOMER[28U + i];
+        if (license[i] != 0xFFFFFFFFU)
+            empty = false;
     }
-  }
-  for (uint32_t i = 0; i < HT_LICENSE_WORDS; ++i) {
-    if (!licenseWriteUicrWord(&NRF_UICR->CUSTOMER[28U + i], license[i])) {
-      LICENSE_LOG("UICR CUSTOMER[%u] write failed\n", (unsigned)(28U + i));
-      return false;
-    }
-  }
-  return true;
+    return empty ? NativeLicenseState::Empty : NativeLicenseState::Present;
 #elif (defined(ESP32) || defined(ESP_PLATFORM)) && defined(CONFIG_IDF_TARGET_ESP32S3)
-  nvs_handle_t handle = 0;
-  esp_err_t err =
-      nvs_open_from_partition(kLicenseNvsPartition, kLicenseNvsNamespace, NVS_READWRITE, &handle);
-  if (err != ESP_OK) {
-    LICENSE_LOG("NVS open for write failed: %s\n", esp_err_to_name(err));
-    return false;
-  }
-  err = nvs_set_blob(handle, kLicenseNvsKey, license,
-                     HT_LICENSE_WORDS * sizeof(uint32_t));
-  if (err == ESP_OK) err = nvs_commit(handle);
-  nvs_close(handle);
-  if (err != ESP_OK) {
-    LICENSE_LOG("NVS write failed: %s\n", esp_err_to_name(err));
-    return false;
-  }
-  return true;
+    nvs_handle_t handle = 0;
+    const esp_err_t open_err =
+        nvs_open_from_partition(kLicenseNvsPartition, kLicenseNvsNamespace, NVS_READONLY, &handle);
+    if (open_err == ESP_ERR_NVS_NOT_FOUND)
+        return NativeLicenseState::Empty;
+    if (open_err != ESP_OK)
+    {
+        LICENSE_LOG("NVS open failed: %s\n", esp_err_to_name(open_err));
+        return NativeLicenseState::Error;
+    }
+
+    size_t size = HT_LICENSE_WORDS * sizeof(uint32_t);
+    const esp_err_t read_err = nvs_get_blob(handle, kLicenseNvsKey, license, &size);
+    nvs_close(handle);
+    if (read_err == ESP_ERR_NVS_NOT_FOUND)
+        return NativeLicenseState::Empty;
+    if (read_err != ESP_OK || size != HT_LICENSE_WORDS * sizeof(uint32_t))
+    {
+        LICENSE_LOG("NVS read failed: %s size=%u\n", esp_err_to_name(read_err), (unsigned)size);
+        return NativeLicenseState::Error;
+    }
+    return NativeLicenseState::Present;
 #else
-  return false;
+    memset(license, 0, HT_LICENSE_WORDS * sizeof(uint32_t));
+    return NativeLicenseState::Unsupported;
+#endif
+}
+
+#if defined(NRF52_PLATFORM) && defined(NRF52840_XXAA)
+static bool licenseWriteUicrWord(volatile uint32_t *address, uint32_t value)
+{
+    if (*address == value)
+        return true;
+    if (*address != 0xFFFFFFFFU)
+        return false;
+
+    const uint32_t primask = __get_PRIMASK();
+    __disable_irq();
+    NRF_NVMC->CONFIG = NVMC_CONFIG_WEN_Wen;
+    while (NRF_NVMC->READY == NVMC_READY_READY_Busy)
+    {
+    }
+    *address = value;
+    while (NRF_NVMC->READY == NVMC_READY_READY_Busy)
+    {
+    }
+    NRF_NVMC->CONFIG = NVMC_CONFIG_WEN_Ren;
+    while (NRF_NVMC->READY == NVMC_READY_READY_Busy)
+    {
+    }
+    __DSB();
+    __ISB();
+    if (primask == 0U)
+        __enable_irq();
+    return *address == value;
+}
+#endif
+
+static bool licenseWriteNative(const uint32_t license[HT_LICENSE_WORDS])
+{
+    if (!license)
+        return false;
+
+#if defined(NRF52_PLATFORM) && defined(NRF52840_XXAA)
+    uint8_t softdevice_enabled = 0;
+    const uint32_t sd_err = sd_softdevice_is_enabled(&softdevice_enabled);
+    if (sd_err != NRF_SUCCESS || softdevice_enabled)
+    {
+        LICENSE_LOG("UICR write rejected: SoftDevice state err=%lu enabled=%u\n",
+                    (unsigned long)sd_err, (unsigned)softdevice_enabled);
+        return false;
+    }
+
+    for (uint32_t i = 0; i < HT_LICENSE_WORDS; ++i)
+    {
+        const uint32_t current = NRF_UICR->CUSTOMER[28U + i];
+        if (current != 0xFFFFFFFFU && current != license[i])
+        {
+            LICENSE_LOG("UICR CUSTOMER[%u] conflicts with stored data\n", (unsigned)(28U + i));
+            return false;
+        }
+    }
+    for (uint32_t i = 0; i < HT_LICENSE_WORDS; ++i)
+    {
+        if (!licenseWriteUicrWord(&NRF_UICR->CUSTOMER[28U + i], license[i]))
+        {
+            LICENSE_LOG("UICR CUSTOMER[%u] write failed\n", (unsigned)(28U + i));
+            return false;
+        }
+    }
+    return true;
+#elif (defined(ESP32) || defined(ESP_PLATFORM)) && defined(CONFIG_IDF_TARGET_ESP32S3)
+    nvs_handle_t handle = 0;
+    esp_err_t err =
+        nvs_open_from_partition(kLicenseNvsPartition, kLicenseNvsNamespace, NVS_READWRITE, &handle);
+    if (err != ESP_OK)
+    {
+        LICENSE_LOG("NVS open for write failed: %s\n", esp_err_to_name(err));
+        return false;
+    }
+    err = nvs_set_blob(handle, kLicenseNvsKey, license, HT_LICENSE_WORDS * sizeof(uint32_t));
+    if (err == ESP_OK)
+        err = nvs_commit(handle);
+    nvs_close(handle);
+    if (err != ESP_OK)
+    {
+        LICENSE_LOG("NVS write failed: %s\n", esp_err_to_name(err));
+        return false;
+    }
+    return true;
+#else
+    return false;
 #endif
 }
 
 #endif
 
-static uint8_t hexNibble(char c) {
-  if (c >= '0' && c <= '9') return (uint8_t)(c - '0');
-  if (c >= 'a' && c <= 'f') return (uint8_t)(c - 'a' + 10);
-  if (c >= 'A' && c <= 'F') return (uint8_t)(c - 'A' + 10);
-  return 0xFF;
+static uint8_t hexNibble(char c)
+{
+    if (c >= '0' && c <= '9')
+        return (uint8_t)(c - '0');
+    if (c >= 'a' && c <= 'f')
+        return (uint8_t)(c - 'a' + 10);
+    if (c >= 'A' && c <= 'F')
+        return (uint8_t)(c - 'A' + 10);
+    return 0xFF;
 }
 
-static bool parseHexU32(const char* hex8, uint32_t& out) {
-  if (!hex8) return false;
-  uint32_t v = 0;
-  for (int i = 0; i < 8; ++i) {
-    const uint8_t n = hexNibble(hex8[i]);
-    if (n > 0x0F) return false;
-    v = (v << 4) | n;
-  }
-  out = v;
-  return true;
+static bool parseHexU32(const char *hex8, uint32_t &out)
+{
+    if (!hex8)
+        return false;
+    uint32_t v = 0;
+    for (int i = 0; i < 8; ++i)
+    {
+        const uint8_t n = hexNibble(hex8[i]);
+        if (n > 0x0F)
+            return false;
+        v = (v << 4) | n;
+    }
+    out = v;
+    return true;
 }
 
 /** Collect 32 hex digits after '=' (or from start if no '='); ignores non-hex. */
-static bool extractCdkeyHex32(const char* ascii, char hex32[33]) {
-  if (!ascii || !hex32) return false;
+static bool extractCdkeyHex32(const char *ascii, char hex32[33])
+{
+    if (!ascii || !hex32)
+        return false;
 
-  const char* p = ascii;
-  while (*p == ' ' || *p == '\t') ++p;
+    const char *p = ascii;
+    while (*p == ' ' || *p == '\t')
+        ++p;
 
-  const char* eq = strchr(p, '=');
-  if (eq) {
-    p = eq + 1;
-  }
-  while (*p == ' ' || *p == '\t') ++p;
+    const char *eq = strchr(p, '=');
+    if (eq)
+    {
+        p = eq + 1;
+    }
+    while (*p == ' ' || *p == '\t')
+        ++p;
 
-  size_t n = 0;
-  for (; *p != '\0' && n < 32; ++p) {
-    const char ch = *p;
-    if (ch == '\r' || ch == '\n') continue;
-    if (hexNibble(ch) > 0x0F) continue;
-    hex32[n++] = ch;
-  }
-  hex32[n] = '\0';
-  return n == 32;
+    size_t n = 0;
+    for (; *p != '\0' && n < 32; ++p)
+    {
+        const char ch = *p;
+        if (ch == '\r' || ch == '\n')
+            continue;
+        if (hexNibble(ch) > 0x0F)
+            continue;
+        hex32[n++] = ch;
+    }
+    hex32[n] = '\0';
+    return n == 32;
 }
 
-uint64_t heltecLicenseGetChipId64() {
+uint64_t heltecLicenseGetChipId64()
+{
 #if defined(NRF52_PLATFORM)
-  const uint64_t id =
-      ((uint64_t)NRF_FICR->DEVICEID[1] << 32) | (uint64_t)NRF_FICR->DEVICEID[0];
-  return id & 0x0000FFFFFFFFFFFFULL;
+    const uint64_t id = ((uint64_t)NRF_FICR->DEVICEID[1] << 32) | (uint64_t)NRF_FICR->DEVICEID[0];
+    return id & 0x0000FFFFFFFFFFFFULL;
 #elif defined(ESP32) || defined(ESP_PLATFORM)
 #if defined(CONFIG_IDF_TARGET_ESP32C6) && defined(CONFIG_SOC_IEEE802154_SUPPORTED)
-  uint8_t mac[6] = {0};
-  esp_base_mac_addr_get(mac);
-  return ((uint64_t)mac[0] << 40) | ((uint64_t)mac[1] << 32) | ((uint64_t)mac[2] << 24) |
-         ((uint64_t)mac[3] << 16) | ((uint64_t)mac[4] << 8) | ((uint64_t)mac[5]);
+    uint8_t mac[6] = { 0 };
+    esp_base_mac_addr_get(mac);
+    return ((uint64_t)mac[0] << 40) | ((uint64_t)mac[1] << 32) | ((uint64_t)mac[2] << 24) |
+           ((uint64_t)mac[3] << 16) | ((uint64_t)mac[4] << 8) | ((uint64_t)mac[5]);
 #else
-  return (uint64_t)ESP.getEfuseMac();
+    return (uint64_t)ESP.getEfuseMac();
 #endif
 #else
-  return 0;
+    return 0;
 #endif
 }
 
-void heltecLicenseFormatChipIdHex(char out13[13]) {
-  if (!out13) return;
-  uint64_t id = heltecLicenseGetChipId64();
-  static const char kHex[] = "0123456789ABCDEF";
-  for (int i = 11; i >= 0; --i) {
-    out13[i] = kHex[id & 0xFULL];
-    id >>= 4;
-  }
-  out13[12] = '\0';
+void heltecLicenseFormatChipIdHex(char out13[13])
+{
+    if (!out13)
+        return;
+    uint64_t id = heltecLicenseGetChipId64();
+    static const char kHex[] = "0123456789ABCDEF";
+    for (int i = 11; i >= 0; --i)
+    {
+        out13[i] = kHex[id & 0xFULL];
+        id >>= 4;
+    }
+    out13[12] = '\0';
 }
 
-void heltecLicenseFormatSerialLine(char* out, size_t out_len) {
-  if (!out || out_len == 0) return;
-  char chip[13];
-  heltecLicenseFormatChipIdHex(chip);
+void heltecLicenseFormatSerialLine(char *out, size_t out_len)
+{
+    if (!out || out_len == 0)
+        return;
+    char chip[13];
+    heltecLicenseFormatChipIdHex(chip);
 #if defined(NRF52_PLATFORM)
-  snprintf(out, out_len, "NRFChipID=%s", chip);
+    snprintf(out, out_len, "NRFChipID=%s", chip);
 #elif defined(ESP32) || defined(ESP_PLATFORM)
-  snprintf(out, out_len, "ESP32ChipID=%s", chip);
+    snprintf(out, out_len, "ESP32ChipID=%s", chip);
 #else
-  snprintf(out, out_len, "ChipID=%s", chip);
+    snprintf(out, out_len, "ChipID=%s", chip);
 #endif
 }
 
-int heltecLicenseCalRtc(const uint32_t license[HT_LICENSE_WORDS]) {
-  if (!license) return 0;
+int heltecLicenseCalRtc(const uint32_t license[HT_LICENSE_WORDS])
+{
+    if (!license)
+        return 0;
 
-  uint32_t correctlicense[HT_LICENSE_WORDS];
-  uint64_t temp0 = heltecLicenseGetChipId64();
-  temp0 = temp0 + ((temp0 >> 16) & 0x00000000FFFF0000ULL) - ((temp0 >> 32) & 0x000000000000FFFFULL);
-  uint32_t temp = (uint32_t)(temp0 >> 16);
-  temp += 0x7F94C959U;
-  temp = ((temp >> 4) & 0x0F0F0F0FU) | ((temp << 4) & 0xF0F0F0F0U);
-  temp -= 0xF5B1C7B2U;
-  temp = ((temp >> 2) & 0x33333333U) | ((temp << 2) & 0xCCCCCCCCU);
-  temp += 0x572384DCU;
-  temp = ((temp >> 1) & 0x55555555U) | ((temp << 1) & 0xAAAAAAAAU);
-  temp -= 0x572384DCU;
-  temp = ((temp >> 8) & 0x00FF00FFU) | ((temp << 8) & 0xFF00FF00U);
-  correctlicense[0] = temp;
+    uint32_t correctlicense[HT_LICENSE_WORDS];
+    uint64_t temp0 = heltecLicenseGetChipId64();
+    temp0 =
+        temp0 + ((temp0 >> 16) & 0x00000000FFFF0000ULL) - ((temp0 >> 32) & 0x000000000000FFFFULL);
+    uint32_t temp = (uint32_t)(temp0 >> 16);
+    temp += 0x7F94C959U;
+    temp = ((temp >> 4) & 0x0F0F0F0FU) | ((temp << 4) & 0xF0F0F0F0U);
+    temp -= 0xF5B1C7B2U;
+    temp = ((temp >> 2) & 0x33333333U) | ((temp << 2) & 0xCCCCCCCCU);
+    temp += 0x572384DCU;
+    temp = ((temp >> 1) & 0x55555555U) | ((temp << 1) & 0xAAAAAAAAU);
+    temp -= 0x572384DCU;
+    temp = ((temp >> 8) & 0x00FF00FFU) | ((temp << 8) & 0xFF00FF00U);
+    correctlicense[0] = temp;
 
-  temp = (uint32_t)(temp0 >> 16);
-  temp = (temp & 0xFFF0FFFFU) | ((uint32_t)(temp0 << 4) & 0x000F0000U);
-  temp += 0x394BBD41U;
-  temp = ((temp >> 8) & 0x00FF00FFU) | ((temp << 8) & 0xFF00FF00U);
-  temp -= 0xC05309BAU;
-  temp = ((temp >> 2) & 0x33333333U) | ((~temp << 2) & 0xCCCCCCCCU);
-  temp += 0x414DE9DAU;
-  temp = ((~temp >> 4) & 0x0F0F0F0FU) | ((temp << 4) & 0xF0F0F0F0U);
-  temp -= 0x818666BEU;
-  temp = ((temp >> 1) & 0x55555555U) | ((temp << 1) & 0xAAAAAAAAU);
-  correctlicense[1] = temp;
+    temp = (uint32_t)(temp0 >> 16);
+    temp = (temp & 0xFFF0FFFFU) | ((uint32_t)(temp0 << 4) & 0x000F0000U);
+    temp += 0x394BBD41U;
+    temp = ((temp >> 8) & 0x00FF00FFU) | ((temp << 8) & 0xFF00FF00U);
+    temp -= 0xC05309BAU;
+    temp = ((temp >> 2) & 0x33333333U) | ((~temp << 2) & 0xCCCCCCCCU);
+    temp += 0x414DE9DAU;
+    temp = ((~temp >> 4) & 0x0F0F0F0FU) | ((temp << 4) & 0xF0F0F0F0U);
+    temp -= 0x818666BEU;
+    temp = ((temp >> 1) & 0x55555555U) | ((temp << 1) & 0xAAAAAAAAU);
+    correctlicense[1] = temp;
 
-  temp = (uint32_t)(temp0 >> 16);
-  temp = (temp & 0xF0FFFF0FU) | ((uint32_t)(temp0 << 16) & 0x0F000000U) | ((uint32_t)(temp0)&0x000000F0U);
-  temp += 0xB2F6B12DU;
-  temp = ((~temp >> 8) & 0x00FF00FFU) | ((temp << 8) & 0xFF00FF00U);
-  temp -= 0xE4123C4EU;
-  temp = ((temp >> 4) & 0x0F0F0F0FU) | ((~temp << 4) & 0xF0F0F0F0U);
-  temp += 0xF5941F73U;
-  temp = ((~temp >> 2) & 0x33333333U) | ((~temp << 2) & 0xCCCCCCCCU);
-  temp -= 0x8C165125U;
-  temp = ((temp >> 1) & 0x55555555U) | ((temp << 1) & 0xAAAAAAAAU);
-  correctlicense[2] = temp;
+    temp = (uint32_t)(temp0 >> 16);
+    temp = (temp & 0xF0FFFF0FU) | ((uint32_t)(temp0 << 16) & 0x0F000000U) |
+           ((uint32_t)(temp0) & 0x000000F0U);
+    temp += 0xB2F6B12DU;
+    temp = ((~temp >> 8) & 0x00FF00FFU) | ((temp << 8) & 0xFF00FF00U);
+    temp -= 0xE4123C4EU;
+    temp = ((temp >> 4) & 0x0F0F0F0FU) | ((~temp << 4) & 0xF0F0F0F0U);
+    temp += 0xF5941F73U;
+    temp = ((~temp >> 2) & 0x33333333U) | ((~temp << 2) & 0xCCCCCCCCU);
+    temp -= 0x8C165125U;
+    temp = ((temp >> 1) & 0x55555555U) | ((temp << 1) & 0xAAAAAAAAU);
+    correctlicense[2] = temp;
 
-  temp = (uint32_t)(temp0 >> 16);
-  temp = (temp & 0xFFFFF0FFU) | ((uint32_t)(temp0 << 8) & 0x00000F00U);
-  temp = ((~temp >> 1) & 0x55555555U) | ((temp << 1) & 0xAAAAAAAAU);
-  temp += 0x237CE438U;
-  temp = ((temp >> 4) & 0x0F0F0F0FU) | ((~temp << 4) & 0xF0F0F0F0U);
-  temp -= 0x263821C7U;
-  temp = ((~temp >> 8) & 0x00FF00FFU) | ((temp << 8) & 0xFF00FF00U);
-  temp += 0x41EC0F9AU;
-  temp = ((~temp >> 2) & 0x33333333U) | ((~temp << 2) & 0xCCCCCCCCU);
-  temp -= 0xD7393F00U;
-  correctlicense[3] = temp;
+    temp = (uint32_t)(temp0 >> 16);
+    temp = (temp & 0xFFFFF0FFU) | ((uint32_t)(temp0 << 8) & 0x00000F00U);
+    temp = ((~temp >> 1) & 0x55555555U) | ((temp << 1) & 0xAAAAAAAAU);
+    temp += 0x237CE438U;
+    temp = ((temp >> 4) & 0x0F0F0F0FU) | ((~temp << 4) & 0xF0F0F0F0U);
+    temp -= 0x263821C7U;
+    temp = ((~temp >> 8) & 0x00FF00FFU) | ((temp << 8) & 0xFF00FF00U);
+    temp += 0x41EC0F9AU;
+    temp = ((~temp >> 2) & 0x33333333U) | ((~temp << 2) & 0xCCCCCCCCU);
+    temp -= 0xD7393F00U;
+    correctlicense[3] = temp;
 
-  return (license[0] == correctlicense[0] && license[1] == correctlicense[1] &&
-          license[2] == correctlicense[2] && license[3] == correctlicense[3])
-             ? 1
-             : 0;
+    return (license[0] == correctlicense[0] && license[1] == correctlicense[1] &&
+            license[2] == correctlicense[2] && license[3] == correctlicense[3])
+               ? 1
+               : 0;
 }
 
-bool heltecLicenseReadStored(uint32_t license[HT_LICENSE_WORDS]) {
-  if (!license) return false;
+bool heltecLicenseReadStored(uint32_t license[HT_LICENSE_WORDS])
+{
+    if (!license)
+        return false;
 
 #if defined(NRF52_PLATFORM) || defined(ESP32) || defined(ESP_PLATFORM)
-  if (licenseReadNative(license) == NativeLicenseState::Present) return true;
-  memset(license, 0, HT_LICENSE_WORDS * sizeof(uint32_t));
-  return false;
+    if (licenseReadNative(license) == NativeLicenseState::Present)
+        return true;
+    memset(license, 0, HT_LICENSE_WORDS * sizeof(uint32_t));
+    return false;
 #else
-  memset(license, 0, HT_LICENSE_WORDS * sizeof(uint32_t));
-  return false;
+    memset(license, 0, HT_LICENSE_WORDS * sizeof(uint32_t));
+    return false;
 #endif
 }
 
-bool heltecLicenseWriteStored(const uint32_t license[HT_LICENSE_WORDS]) {
-  if (!license) return false;
-  if (!heltecLicenseCalRtc(license)) {
-    LICENSE_LOGLN("store rejected: invalid license");
-    return false;
-  }
+bool heltecLicenseWriteStored(const uint32_t license[HT_LICENSE_WORDS])
+{
+    if (!license)
+        return false;
+    if (!heltecLicenseCalRtc(license))
+    {
+        LICENSE_LOGLN("store rejected: invalid license");
+        return false;
+    }
 
 #if defined(NRF52_PLATFORM) || defined(ESP32) || defined(ESP_PLATFORM)
-  uint32_t probe[HT_LICENSE_WORDS] = {0};
-  const NativeLicenseState native_state = licenseReadNative(probe);
-  if (native_state == NativeLicenseState::Unsupported) {
-    LICENSE_LOGLN("native storage is unsupported on this platform");
-    return false;
-  }
+    uint32_t probe[HT_LICENSE_WORDS] = { 0 };
+    const NativeLicenseState native_state = licenseReadNative(probe);
+    if (native_state == NativeLicenseState::Unsupported)
+    {
+        LICENSE_LOGLN("native storage is unsupported on this platform");
+        return false;
+    }
 
-  if (!licenseWriteNative(license)) {
-    LICENSE_LOGLN("native storage write failed");
-    return false;
-  }
+    if (!licenseWriteNative(license))
+    {
+        LICENSE_LOGLN("native storage write failed");
+        return false;
+    }
 
-  uint32_t readback[HT_LICENSE_WORDS] = {0};
-  if (licenseReadNative(readback) != NativeLicenseState::Present ||
-      !licenseWordsEqual(readback, license) || !heltecLicenseCalRtc(readback)) {
-    LICENSE_LOGLN("native storage verification failed");
-    return false;
-  }
+    uint32_t readback[HT_LICENSE_WORDS] = { 0 };
+    if (licenseReadNative(readback) != NativeLicenseState::Present ||
+        !licenseWordsEqual(readback, license) || !heltecLicenseCalRtc(readback))
+    {
+        LICENSE_LOGLN("native storage verification failed");
+        return false;
+    }
 
-  LICENSE_LOGLN("license stored in native storage");
-  return true;
+    LICENSE_LOGLN("license stored in native storage");
+    return true;
 #else
-  (void)license;
-  LICENSE_LOGLN("file write: unsupported platform");
-  return false;
+    (void)license;
+    LICENSE_LOGLN("file write: unsupported platform");
+    return false;
 #endif
 }
 
 #if defined(NRF52_PLATFORM) || defined(ESP32) || defined(ESP_PLATFORM)
-bool heltecLicenseClearStored() {
-  LICENSE_LOGLN("native license clear is not supported");
-  return false;
+bool heltecLicenseClearStored()
+{
+    LICENSE_LOGLN("native license clear is not supported");
+    return false;
 }
 #endif
 
-bool heltecLicensePrepareFactoryReset() {
+bool heltecLicensePrepareFactoryReset()
+{
 #if (defined(ESP32) || defined(ESP_PLATFORM)) && defined(CONFIG_IDF_TARGET_ESP32S3)
-  std::vector<std::string> namespaces;
+    std::vector<std::string> namespaces;
 
 #if ESP_IDF_VERSION_MAJOR >= 5
-  nvs_iterator_t iterator = nullptr;
-  esp_err_t find_err =
-      nvs_entry_find(kLicenseNvsPartition, nullptr, NVS_TYPE_ANY, &iterator);
-  while (find_err == ESP_OK) {
-    nvs_entry_info_t info = {};
-    nvs_entry_info(iterator, &info);
-    if (info.namespace_name[0] != '\0') {
-      const std::string name(info.namespace_name);
-      bool found = false;
-      for (const std::string& existing : namespaces) {
-        if (existing == name) {
-          found = true;
-          break;
+    nvs_iterator_t iterator = nullptr;
+    esp_err_t find_err = nvs_entry_find(kLicenseNvsPartition, nullptr, NVS_TYPE_ANY, &iterator);
+    while (find_err == ESP_OK)
+    {
+        nvs_entry_info_t info = {};
+        nvs_entry_info(iterator, &info);
+        if (info.namespace_name[0] != '\0')
+        {
+            const std::string name(info.namespace_name);
+            bool found = false;
+            for (const std::string &existing : namespaces)
+            {
+                if (existing == name)
+                {
+                    found = true;
+                    break;
+                }
+            }
+            if (!found)
+                namespaces.push_back(name);
         }
-      }
-      if (!found) namespaces.push_back(name);
+        find_err = nvs_entry_next(&iterator);
     }
-    find_err = nvs_entry_next(&iterator);
-  }
-  nvs_release_iterator(iterator);
-  if (find_err != ESP_ERR_NVS_NOT_FOUND) {
-    LICENSE_LOG("NVS enumeration failed: %s\n", esp_err_to_name(find_err));
-    return false;
-  }
+    nvs_release_iterator(iterator);
+    if (find_err != ESP_ERR_NVS_NOT_FOUND)
+    {
+        LICENSE_LOG("NVS enumeration failed: %s\n", esp_err_to_name(find_err));
+        return false;
+    }
 #else
-  nvs_iterator_t iterator =
-      nvs_entry_find(kLicenseNvsPartition, nullptr, NVS_TYPE_ANY);
-  while (iterator != nullptr) {
-    nvs_entry_info_t info = {};
-    nvs_entry_info(iterator, &info);
-    if (info.namespace_name[0] != '\0') {
-      const std::string name(info.namespace_name);
-      bool found = false;
-      for (const std::string& existing : namespaces) {
-        if (existing == name) {
-          found = true;
-          break;
+    nvs_iterator_t iterator = nvs_entry_find(kLicenseNvsPartition, nullptr, NVS_TYPE_ANY);
+    while (iterator != nullptr)
+    {
+        nvs_entry_info_t info = {};
+        nvs_entry_info(iterator, &info);
+        if (info.namespace_name[0] != '\0')
+        {
+            const std::string name(info.namespace_name);
+            bool found = false;
+            for (const std::string &existing : namespaces)
+            {
+                if (existing == name)
+                {
+                    found = true;
+                    break;
+                }
+            }
+            if (!found)
+                namespaces.push_back(name);
         }
-      }
-      if (!found) namespaces.push_back(name);
+        iterator = nvs_entry_next(iterator);
     }
-    iterator = nvs_entry_next(iterator);
-  }
 #endif
 
-  for (const std::string& name : namespaces) {
-    if (name == kLicenseNvsNamespace) continue;
+    for (const std::string &name : namespaces)
+    {
+        if (name == kLicenseNvsNamespace)
+            continue;
 
-    nvs_handle_t handle = 0;
-    esp_err_t err = nvs_open_from_partition(kLicenseNvsPartition, name.c_str(),
-                                            NVS_READWRITE, &handle);
-    if (err != ESP_OK) {
-      LICENSE_LOG("factory reset: NVS namespace open failed: %s\n",
-                  esp_err_to_name(err));
-      return false;
+        nvs_handle_t handle = 0;
+        esp_err_t err =
+            nvs_open_from_partition(kLicenseNvsPartition, name.c_str(), NVS_READWRITE, &handle);
+        if (err != ESP_OK)
+        {
+            LICENSE_LOG("factory reset: NVS namespace open failed: %s\n", esp_err_to_name(err));
+            return false;
+        }
+        err = nvs_erase_all(handle);
+        if (err == ESP_OK)
+            err = nvs_commit(handle);
+        nvs_close(handle);
+        if (err != ESP_OK)
+        {
+            LICENSE_LOG("factory reset: NVS namespace erase failed: %s\n", esp_err_to_name(err));
+            return false;
+        }
     }
-    err = nvs_erase_all(handle);
-    if (err == ESP_OK) err = nvs_commit(handle);
-    nvs_close(handle);
-    if (err != ESP_OK) {
-      LICENSE_LOG("factory reset: NVS namespace erase failed: %s\n",
-                  esp_err_to_name(err));
-      return false;
-    }
-  }
-  return true;
+    return true;
 #elif defined(ESP32) || defined(ESP_PLATFORM)
-  return nvs_flash_erase() == ESP_OK;
+    return nvs_flash_erase() == ESP_OK;
 #else
-  return true;
+    return true;
 #endif
 }
 
-bool heltecLicenseIsAuthorized() {
-  uint32_t license[HT_LICENSE_WORDS];
-  if (!heltecLicenseReadStored(license)) {
-    LICENSE_LOGLN("check: no stored license");
-    return false;
-  }
-  const int ok = heltecLicenseCalRtc(license);
-  if (ok) {
-    LICENSE_LOGLN("check: stored license valid");
-  } else {
-    LICENSE_LOGLN("check: stored license invalid (chip mismatch)");
-  }
-  return ok != 0;
+bool heltecLicenseIsAuthorized()
+{
+    uint32_t license[HT_LICENSE_WORDS];
+    if (!heltecLicenseReadStored(license))
+    {
+        LICENSE_LOGLN("check: no stored license");
+        return false;
+    }
+    const int ok = heltecLicenseCalRtc(license);
+    if (ok)
+    {
+        LICENSE_LOGLN("check: stored license valid");
+    }
+    else
+    {
+        LICENSE_LOGLN("check: stored license invalid (chip mismatch)");
+    }
+    return ok != 0;
 }
 
-bool heltecLicenseParseCdkeyHex(const char* hex32, uint32_t license[HT_LICENSE_WORDS]) {
-  if (!hex32 || !license) return false;
-  for (int w = 0; w < (int)HT_LICENSE_WORDS; ++w) {
-    if (!parseHexU32(hex32 + w * 8, license[w])) return false;
-  }
-  return true;
+bool heltecLicenseParseCdkeyHex(const char *hex32, uint32_t license[HT_LICENSE_WORDS])
+{
+    if (!hex32 || !license)
+        return false;
+    for (int w = 0; w < (int)HT_LICENSE_WORDS; ++w)
+    {
+        if (!parseHexU32(hex32 + w * 8, license[w]))
+            return false;
+    }
+    return true;
 }
 
-bool heltecLicenseTryCdkeyCommand(const char* line) {
-  if (!line) {
-    LICENSE_LOGLN("cdkey: empty input");
-    return false;
-  }
+bool heltecLicenseTryCdkeyCommand(const char *line)
+{
+    if (!line)
+    {
+        LICENSE_LOGLN("cdkey: empty input");
+        return false;
+    }
 
-  char hex32[33] = {0};
-  if (!extractCdkeyHex32(line, hex32)) {
-    const char* eq = strchr(line, '=');
-    LICENSE_LOG("cdkey: need 32 hex digits after '=' (input len=%u, payload len=%u)\n",
-                (unsigned)strlen(line), eq ? (unsigned)strlen(eq + 1) : 0u);
-    return false;
-  }
+    char hex32[33] = { 0 };
+    if (!extractCdkeyHex32(line, hex32))
+    {
+        const char *eq = strchr(line, '=');
+        LICENSE_LOG("cdkey: need 32 hex digits after '=' (input len=%u, payload len=%u)\n",
+                    (unsigned)strlen(line), eq ? (unsigned)strlen(eq + 1) : 0u);
+        return false;
+    }
 
-  LICENSE_LOGLN("cdkey: received 32 hex digits");
+    LICENSE_LOGLN("cdkey: received 32 hex digits");
 
-  uint32_t license[HT_LICENSE_WORDS];
-  if (!heltecLicenseParseCdkeyHex(hex32, license)) {
-    LICENSE_LOGLN("cdkey: hex parse to words failed");
-    return false;
-  }
+    uint32_t license[HT_LICENSE_WORDS];
+    if (!heltecLicenseParseCdkeyHex(hex32, license))
+    {
+        LICENSE_LOGLN("cdkey: hex parse to words failed");
+        return false;
+    }
 
-  if (!heltecLicenseCalRtc(license)) {
-    LICENSE_LOGLN("cdkey: validation failed (chip mismatch)");
-    return false;
-  }
+    if (!heltecLicenseCalRtc(license))
+    {
+        LICENSE_LOGLN("cdkey: validation failed (chip mismatch)");
+        return false;
+    }
 
-  if (!heltecLicenseWriteStored(license)) {
-    LICENSE_LOGLN("cdkey: native store failed");
-    return false;
-  }
+    if (!heltecLicenseWriteStored(license))
+    {
+        LICENSE_LOGLN("cdkey: native store failed");
+        return false;
+    }
 
-  LICENSE_LOGLN("cdkey: authorized and stored");
-  return true;
+    LICENSE_LOGLN("cdkey: authorized and stored");
+    return true;
 }
 
 #if defined(HELTEC_MESH_UI) && HELTEC_MESH_UI && HELTEC_LICENSE_BOOT_GATE
@@ -512,173 +605,212 @@ bool heltecLicenseTryCdkeyCommand(const char* line) {
 #define HELTEC_LICENSE_GATE_RX_GAP_MS 5U
 #endif
 
-static lv_obj_t* s_gate_root = nullptr;
-static lv_obj_t* s_gate_title = nullptr;
-static lv_obj_t* s_gate_chip = nullptr;
+static lv_obj_t *s_gate_root = nullptr;
+static lv_obj_t *s_gate_title = nullptr;
+static lv_obj_t *s_gate_chip = nullptr;
 static uint32_t s_gate_display_last_activity_ms = 0;
 
-static void heltecLicenseGateNotifyDisplayActivity(uint32_t now) {
-  s_gate_display_last_activity_ms = now;
-  if (!heltec::meshcore::dal::display_port::isBacklightOn()) {
-    heltec::meshcore::dal::display_port::setBacklightOn(true);
-    if (lv_disp_t* d = lv_disp_get_default()) {
-      lv_refr_now(d);
+static void heltecLicenseGateNotifyDisplayActivity(uint32_t now)
+{
+    s_gate_display_last_activity_ms = now;
+    if (!heltec::meshcore::dal::display_port::isBacklightOn())
+    {
+        heltec::meshcore::dal::display_port::setBacklightOn(true);
+        if (lv_disp_t *d = lv_disp_get_default())
+        {
+            lv_refr_now(d);
+        }
     }
-  }
 }
 
-static void heltecLicenseGateTickDisplayAutoOff(uint32_t now) {
-  if (!s_gate_display_last_activity_ms) return;
-  if (!heltec::meshcore::dal::display_port::isBacklightOn()) return;
-  if ((now - s_gate_display_last_activity_ms) >= HELTEC_LICENSE_GATE_AUTO_OFF_MS) {
-    heltec::meshcore::dal::display_port::setBacklightOn(false);
-  }
+static void heltecLicenseGateTickDisplayAutoOff(uint32_t now)
+{
+    if (!s_gate_display_last_activity_ms)
+        return;
+    if (!heltec::meshcore::dal::display_port::isBacklightOn())
+        return;
+    if ((now - s_gate_display_last_activity_ms) >= HELTEC_LICENSE_GATE_AUTO_OFF_MS)
+    {
+        heltec::meshcore::dal::display_port::setBacklightOn(false);
+    }
 }
 
-static void heltecLicenseGatePollInputWake(uint32_t now) {
-  if (heltec::meshcore::dal::momentary_button::anyPhysicalPressed()) {
-    heltecLicenseGateNotifyDisplayActivity(now);
-  }
+static void heltecLicenseGatePollInputWake(uint32_t now)
+{
+    if (heltec::meshcore::dal::momentary_button::anyPhysicalPressed())
+    {
+        heltecLicenseGateNotifyDisplayActivity(now);
+    }
 }
 
-static void heltecLicenseShowUnauthorizedUi(const char* display_id) {
-  if (s_gate_root) {
-    if (s_gate_chip && display_id) lv_label_set_text(s_gate_chip, display_id);
-    return;
-  }
-
-  using namespace heltec::meshcore::ui;
-
-  s_gate_root = ht_obj_create(lv_layer_top(), meta_id::LicenseGateRoot);
-  if (!s_gate_root) return;
-
-  lv_obj_clear_flag(s_gate_root, LV_OBJ_FLAG_SCROLLABLE);
-
-  s_gate_title = ht_label_create(s_gate_root, meta_id::LicenseGateTitle);
-  if (s_gate_title) {
-    lv_label_set_text(s_gate_title, "Not Authorized");
-  }
-
-  s_gate_chip = ht_label_create(s_gate_root, meta_id::LicenseGateChip);
-  if (s_gate_chip) {
-    lv_label_set_text(s_gate_chip, display_id ? display_id : "ID:");
-    lv_label_set_long_mode(s_gate_chip, LV_LABEL_LONG_WRAP);
-  }
-
-  heltecLicenseGateNotifyDisplayActivity(millis());
-}
-
-static void heltecLicenseHideUnauthorizedUi() {
-  if (!s_gate_root) return;
-  lv_obj_del(s_gate_root);
-  s_gate_root = nullptr;
-  s_gate_title = nullptr;
-  s_gate_chip = nullptr;
-}
-
-void heltecLicenseUiTick() {
-  lv_timer_handler();
-  if (lv_disp_t* d = lv_disp_get_default()) {
-    lv_refr_now(d);
-  }
-}
-
-bool heltecLicenseBootGate(bool has_display) {
-  if (heltecLicenseIsAuthorized()) {
-    LICENSE_LOGLN("boot gate: already authorized");
-    return true;
-  }
-
-  char chip_hex[13] = {0};
-  heltecLicenseFormatChipIdHex(chip_hex);
-  char display_id[20] = {0};
-  snprintf(display_id, sizeof(display_id), "ID:%s", chip_hex);
-  char serial_line[40] = {0};
-  heltecLicenseFormatSerialLine(serial_line, sizeof(serial_line));
-
-  LICENSE_LOG("boot gate: waiting for CDKEY (chip=%s, ui=%d, gap=%ums)\n", chip_hex,
-              has_display ? 1 : 0, (unsigned)HELTEC_LICENSE_GATE_RX_GAP_MS);
-
-  if (has_display) {
-    heltecLicenseShowUnauthorizedUi(display_id);
-    heltecLicenseUiTick();
-    LICENSE_LOGLN("boot gate: unauthorized UI shown");
-  }
-
-  Serial.println(serial_line);
-
-  char rx_buf[96];
-  size_t rx_len = 0;
-  uint32_t last_serial_ms = millis();
-  uint32_t last_rx_char_ms = 0;
-  bool rx_active = false;
-
-  for (;;) {
-    while (Serial.available() > 0) {
-      const int c = Serial.read();
-      if (c < 0) break;
-      const char ch = (char)c;
-      const uint32_t char_ms = millis();
-      if (has_display) {
-        heltecLicenseGateNotifyDisplayActivity(char_ms);
-      }
-#if defined(MESH_DEBUG) && MESH_DEBUG
-      Serial.printf("%c", ch);
-#endif
-      if (rx_len + 1 < sizeof(rx_buf)) {
-        rx_buf[rx_len++] = ch;
-        last_rx_char_ms = char_ms;
-        rx_active = true;
-      } else {
-        LICENSE_LOGLN("boot gate: rx buffer full, dropping frame");
-        rx_len = 0;
-        rx_active = false;
-        last_rx_char_ms = 0;
-      }
+static void heltecLicenseShowUnauthorizedUi(const char *display_id)
+{
+    if (s_gate_root)
+    {
+        if (s_gate_chip && display_id)
+            lv_label_set_text(s_gate_chip, display_id);
+        return;
     }
 
-    if (rx_active && rx_len > 0 &&
-        (uint32_t)(millis() - last_rx_char_ms) >= HELTEC_LICENSE_GATE_RX_GAP_MS) {
-      rx_buf[rx_len] = '\0';
-      if (heltecLicenseTryCdkeyCommand(rx_buf)) {
-        LICENSE_LOGLN("boot gate: authorization OK, continuing boot");
-        heltecLicenseHideUnauthorizedUi();
+    using namespace heltec::meshcore::ui;
+
+    s_gate_root = ht_obj_create(lv_layer_top(), meta_id::LicenseGateRoot);
+    if (!s_gate_root)
+        return;
+
+    lv_obj_clear_flag(s_gate_root, LV_OBJ_FLAG_SCROLLABLE);
+
+    s_gate_title = ht_label_create(s_gate_root, meta_id::LicenseGateTitle);
+    if (s_gate_title)
+    {
+        lv_label_set_text(s_gate_title, "Not Authorized");
+    }
+
+    s_gate_chip = ht_label_create(s_gate_root, meta_id::LicenseGateChip);
+    if (s_gate_chip)
+    {
+        lv_label_set_text(s_gate_chip, display_id ? display_id : "ID:");
+        lv_label_set_long_mode(s_gate_chip, LV_LABEL_LONG_WRAP);
+    }
+
+    heltecLicenseGateNotifyDisplayActivity(millis());
+}
+
+static void heltecLicenseHideUnauthorizedUi()
+{
+    if (!s_gate_root)
+        return;
+    lv_obj_del(s_gate_root);
+    s_gate_root = nullptr;
+    s_gate_title = nullptr;
+    s_gate_chip = nullptr;
+}
+
+void heltecLicenseUiTick()
+{
+    lv_timer_handler();
+    if (lv_disp_t *d = lv_disp_get_default())
+    {
+        lv_refr_now(d);
+    }
+}
+
+bool heltecLicenseBootGate(bool has_display)
+{
+    if (heltecLicenseIsAuthorized())
+    {
+        LICENSE_LOGLN("boot gate: already authorized");
         return true;
-      }
-      LICENSE_LOGLN("boot gate: CDKEY rejected, waiting for next frame");
-      rx_len = 0;
-      rx_active = false;
     }
 
-    const uint32_t now = millis();
-    if ((uint32_t)(now - last_serial_ms) >= 5000U) {
-      Serial.println(serial_line);
-      last_serial_ms = now;
+    char chip_hex[13] = { 0 };
+    heltecLicenseFormatChipIdHex(chip_hex);
+    char display_id[20] = { 0 };
+    snprintf(display_id, sizeof(display_id), "ID:%s", chip_hex);
+    char serial_line[40] = { 0 };
+    heltecLicenseFormatSerialLine(serial_line, sizeof(serial_line));
+
+    LICENSE_LOG("boot gate: waiting for CDKEY (chip=%s, ui=%d, gap=%ums)\n", chip_hex,
+                has_display ? 1 : 0, (unsigned)HELTEC_LICENSE_GATE_RX_GAP_MS);
+
+    if (has_display)
+    {
+        heltecLicenseShowUnauthorizedUi(display_id);
+        heltecLicenseUiTick();
+        LICENSE_LOGLN("boot gate: unauthorized UI shown");
     }
 
-    if (has_display) {
-      heltecLicenseGatePollInputWake(now);
-      heltecLicenseGateTickDisplayAutoOff(now);
-      heltecLicenseUiTick();
+    Serial.println(serial_line);
+
+    char rx_buf[96];
+    size_t rx_len = 0;
+    uint32_t last_serial_ms = millis();
+    uint32_t last_rx_char_ms = 0;
+    bool rx_active = false;
+
+    for (;;)
+    {
+        while (Serial.available() > 0)
+        {
+            const int c = Serial.read();
+            if (c < 0)
+                break;
+            const char ch = (char)c;
+            const uint32_t char_ms = millis();
+            if (has_display)
+            {
+                heltecLicenseGateNotifyDisplayActivity(char_ms);
+            }
+#if defined(MESH_DEBUG) && MESH_DEBUG
+            Serial.printf("%c", ch);
+#endif
+            if (rx_len + 1 < sizeof(rx_buf))
+            {
+                rx_buf[rx_len++] = ch;
+                last_rx_char_ms = char_ms;
+                rx_active = true;
+            }
+            else
+            {
+                LICENSE_LOGLN("boot gate: rx buffer full, dropping frame");
+                rx_len = 0;
+                rx_active = false;
+                last_rx_char_ms = 0;
+            }
+        }
+
+        if (rx_active && rx_len > 0 &&
+            (uint32_t)(millis() - last_rx_char_ms) >= HELTEC_LICENSE_GATE_RX_GAP_MS)
+        {
+            rx_buf[rx_len] = '\0';
+            if (heltecLicenseTryCdkeyCommand(rx_buf))
+            {
+                LICENSE_LOGLN("boot gate: authorization OK, continuing boot");
+                heltecLicenseHideUnauthorizedUi();
+                return true;
+            }
+            LICENSE_LOGLN("boot gate: CDKEY rejected, waiting for next frame");
+            rx_len = 0;
+            rx_active = false;
+        }
+
+        const uint32_t now = millis();
+        if ((uint32_t)(now - last_serial_ms) >= 5000U)
+        {
+            Serial.println(serial_line);
+            last_serial_ms = now;
+        }
+
+        if (has_display)
+        {
+            heltecLicenseGatePollInputWake(now);
+            heltecLicenseGateTickDisplayAutoOff(now);
+            heltecLicenseUiTick();
+        }
+        delay(1);
     }
-    delay(1);
-  }
 }
 
 #elif defined(HELTEC_MESH_UI) && HELTEC_MESH_UI
 
-bool heltecLicenseBootGate(bool) {
-  return true;
+bool heltecLicenseBootGate(bool)
+{
+    return true;
 }
 
-void heltecLicenseUiTick() {}
+void heltecLicenseUiTick()
+{
+}
 
 #else
 
-bool heltecLicenseBootGate(bool) {
-  return heltecLicenseIsAuthorized();
+bool heltecLicenseBootGate(bool)
+{
+    return heltecLicenseIsAuthorized();
 }
 
-void heltecLicenseUiTick() {}
+void heltecLicenseUiTick()
+{
+}
 
 #endif
