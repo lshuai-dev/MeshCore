@@ -29,6 +29,15 @@ void configure_gps_row(_lv_obj_t *row)
     lv_obj_clear_flag(row, LV_OBJ_FLAG_SCROLLABLE);
 }
 
+void configure_gps_info_row(_lv_obj_t *row, lv_coord_t height)
+{
+    if (!row)
+        return;
+    lv_obj_set_width(row, lv_pct(100));
+    if (height > 0)
+        lv_obj_set_height(row, height);
+}
+
 bool cycle_open_dropdown(_lv_obj_t *dropdown, uint32_t key)
 {
     if (!dropdown || !lv_dropdown_is_open(dropdown))
@@ -211,6 +220,13 @@ _lv_obj_t *GPSScreen::create(_lv_obj_t *parent)
     _lbl_speed = ht_label_create(_root, meta_id::GpsSpeedLabel);
     lv_label_set_text_static(_lbl_speed, _speed_text);
 
+    lv_coord_t info_row_height = 0;
+    if (_row_power)
+    {
+        lv_obj_update_layout(_row_power);
+        info_row_height = lv_obj_get_height(_row_power);
+    }
+
     _lv_obj_t *const labels[] = {
         _lbl_gps_prefix, _lbl_location_share, _lbl_adv_interval, _lbl_fix,
         _lbl_sat,        _lbl_latlon,         _lbl_alt,          _lbl_speed,
@@ -243,7 +259,7 @@ _lv_obj_t *GPSScreen::create(_lv_obj_t *parent)
     {
         if (!row)
             continue;
-        lv_obj_set_width(row, lv_pct(100));
+        configure_gps_info_row(row, info_row_height);
         addFocusItem(row, nullptr, false, FocusVisual::Row);
         // Read-only rows participate in keypad focus scrolling without consuming
         // pointer gestures intended for the scrollable screen root.
