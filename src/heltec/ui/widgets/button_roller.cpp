@@ -179,6 +179,7 @@ lv_obj_t *ButtonRoller::addItem(const char *label, uint16_t item_id, uint16_t la
             lv_obj_t *const target = lv_event_get_target(e);
             if (roller && target && roller->root())
             {
+                ui_theme_set_focus_emphasis(target, true);
                 roller->layoutItems(lv_obj_get_index(target), LV_ANIM_ON, true);
             }
         },
@@ -190,7 +191,10 @@ lv_obj_t *ButtonRoller::addItem(const char *label, uint16_t item_id, uint16_t la
         {
             lv_obj_t *btn = lv_event_get_target(e);
             if (btn)
+            {
+                ui_theme_set_focus_emphasis(btn, false);
                 setItemSelected(btn, false);
+            }
         },
         LV_EVENT_DEFOCUSED, this);
 

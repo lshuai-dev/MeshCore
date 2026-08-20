@@ -379,10 +379,12 @@ void RadialNavigator::layoutRing(bool animate, bool snap_theta, bool update_emph
         if (_emphasis_index != kNoEmphasis && id == _emphasis_index)
         {
             lv_obj_add_state(btn, LV_STATE_FOCUS_KEY);
+            ui_theme_set_focus_emphasis(btn, true);
         }
         else
         {
             lv_obj_clear_state(btn, LV_STATE_FOCUS_KEY);
+            ui_theme_set_focus_emphasis(btn, false);
         }
     }
     lv_obj_invalidate(_nav);
