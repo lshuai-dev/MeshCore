@@ -31,13 +31,29 @@ void set_focus_text_scroll(lv_obj_t *object, bool focused)
                                focused ? LV_LABEL_LONG_SCROLL_CIRCULAR : LV_LABEL_LONG_CLIP);
         if (focused)
         {
-            lv_obj_set_style_text_color(object, ui_color_highlight_fg(), LV_PART_MAIN);
-            lv_obj_set_style_text_opa(object, LV_OPA_COVER, LV_PART_MAIN);
+            static const lv_style_selector_t selectors[] = {
+                LV_PART_MAIN,
+                LV_PART_MAIN | LV_STATE_FOCUSED,
+                LV_PART_MAIN | LV_STATE_FOCUS_KEY,
+            };
+            for (lv_style_selector_t selector : selectors)
+            {
+                lv_obj_set_style_text_color(object, ui_color_highlight_fg(), selector);
+                lv_obj_set_style_text_opa(object, LV_OPA_COVER, selector);
+            }
         }
         else
         {
-            lv_obj_remove_local_style_prop(object, LV_STYLE_TEXT_COLOR, LV_PART_MAIN);
-            lv_obj_remove_local_style_prop(object, LV_STYLE_TEXT_OPA, LV_PART_MAIN);
+            static const lv_style_selector_t selectors[] = {
+                LV_PART_MAIN,
+                LV_PART_MAIN | LV_STATE_FOCUSED,
+                LV_PART_MAIN | LV_STATE_FOCUS_KEY,
+            };
+            for (lv_style_selector_t selector : selectors)
+            {
+                lv_obj_remove_local_style_prop(object, LV_STYLE_TEXT_COLOR, selector);
+                lv_obj_remove_local_style_prop(object, LV_STYLE_TEXT_OPA, selector);
+            }
         }
     }
 

@@ -125,6 +125,12 @@ void AbstractScreen::activateFocusMode(FocusMode mode, _lv_obj_t *focus)
         return;
     }
 
+    if (mode == FocusMode::Idle)
+    {
+        setFocusStateRecursive(_root, nullptr, false);
+        ui_theme_set_focus_text_scroll(_root, false);
+    }
+
     _focus_mode = mode;
     _active_group = mode == FocusMode::Idle ? _idle_group : _focus_group;
     lv_group_focus_obj(focus);
