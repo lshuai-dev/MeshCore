@@ -2658,19 +2658,6 @@ static bool apply_screen_child_theme(_lv_obj_t *obj)
            apply_find_friend_screen_child_theme(obj) || apply_system_screen_child_theme(obj);
 }
 
-static bool apply_ht_container_theme(_lv_obj_t *obj)
-{
-    if (!obj || !lv_obj_check_type(obj, &ht_container_class))
-    {
-        return false;
-    }
-
-    style_plain_container(obj);
-    init_screen_system_styles();
-    lv_obj_add_style(obj, &s_settings_row_layout_style, LV_PART_MAIN);
-    return true;
-}
-
 static bool apply_ht_container_child_theme(_lv_obj_t *obj)
 {
     if (!obj || !lv_obj_check_type(obj, &lv_label_class))
@@ -3389,7 +3376,6 @@ bool ui_widget_theme_apply(_lv_obj_t *obj)
 
     const auto apply_custom = [](lv_obj_t *target)
     {
-        const bool container_applied = apply_ht_container_theme(target);
         const bool custom_applied = apply_app_frame_theme(target) ||
                apply_top_pane_theme(target) ||
                apply_surface_root_theme(target) || apply_screen_child_theme(target) ||
@@ -3398,7 +3384,7 @@ bool ui_widget_theme_apply(_lv_obj_t *obj)
                apply_navigation_theme(target) || apply_navigation_ring_theme(target) ||
                ui_license_gate_apply_theme(target) || ui_button_roller_apply_theme(target) ||
                ui_compass_widget_apply_theme(target) || ui_map_widget_apply_theme(target);
-        return container_applied || custom_applied;
+        return custom_applied;
     };
 
     return apply_custom(obj);
