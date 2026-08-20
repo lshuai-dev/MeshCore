@@ -19,92 +19,8 @@ lv_style_t s_screen_row_focus_highlight;
 bool s_screen_row_focus_highlight_ready = false;
 lv_style_t s_screen_focus_control;
 bool s_screen_focus_control_ready = false;
-lv_style_transition_dsc_t s_focus_transition;
-bool s_focus_transition_ready = false;
-
-static const lv_style_prop_t kFocusTransitionProps[] = {
-    LV_STYLE_TRANSFORM_ZOOM, LV_STYLE_BORDER_COLOR, LV_STYLE_BORDER_OPA,
-    LV_STYLE_SHADOW_WIDTH,   LV_STYLE_SHADOW_OPA,   LV_STYLE_PROP_INV,
-};
-
-void init_focus_transition()
-{
-    if (s_focus_transition_ready)
-        return;
-
-    lv_style_transition_dsc_init(&s_focus_transition, kFocusTransitionProps, lv_anim_path_ease_out,
-                                 180, 0, nullptr);
-    s_focus_transition_ready = true;
-}
-
-void apply_focus_emphasis(lv_style_t *style)
-{
-    init_focus_transition();
-    lv_style_set_transform_zoom(style, 307);
-    lv_style_set_transform_pivot_x(style, 128);
-    lv_style_set_transform_pivot_y(style, 128);
-    lv_style_set_shadow_color(style, ui_color_highlight_bg());
-    lv_style_set_shadow_width(style, LV_DPX(12));
-    lv_style_set_shadow_opa(style, LV_OPA_30);
-    lv_style_set_shadow_ofs_x(style, 0);
-    lv_style_set_shadow_ofs_y(style, 0);
-    lv_style_set_transition(style, &s_focus_transition);
-}
-
-void focus_zoom_exec(void *object, int32_t zoom)
-{
-    lv_obj_set_style_transform_zoom(static_cast<lv_obj_t *>(object), zoom, LV_PART_MAIN);
-}
-
-void start_focus_zoom(lv_obj_t *object, bool focused)
-{
-    if (!object)
-        return;
-
-    const lv_coord_t target_zoom = focused ? 307 : 256;
-    lv_anim_del(object, focus_zoom_exec);
-    lv_obj_set_style_transform_zoom(object, focused ? 256 : 307, LV_PART_MAIN);
-    if (focused)
-    {
-        lv_obj_set_style_text_color(object, ui_color_fg(), LV_PART_MAIN);
-        lv_obj_set_style_text_opa(object, LV_OPA_COVER, LV_PART_MAIN);
-        lv_obj_set_style_outline_color(object, ui_color_fg(), LV_PART_MAIN);
-        lv_obj_set_style_outline_width(object, LV_DPX(1), LV_PART_MAIN);
-        lv_obj_set_style_outline_opa(object, LV_OPA_COVER, LV_PART_MAIN);
-    }
-
-    lv_anim_t animation;
-    lv_anim_init(&animation);
-    lv_anim_set_var(&animation, object);
-    lv_anim_set_values(&animation, focused ? 256 : 307, target_zoom);
-    lv_anim_set_time(&animation, 180);
-    lv_anim_set_path_cb(&animation, lv_anim_path_ease_out);
-    lv_anim_set_exec_cb(&animation, focus_zoom_exec);
-    lv_anim_start(&animation);
-}
-
-void focus_zoom_event(lv_event_t *event)
-{
-    const lv_event_code_t event_code = lv_event_get_code(event);
-    if (event_code != LV_EVENT_FOCUSED && event_code != LV_EVENT_DEFOCUSED)
-        return;
-
-    start_focus_zoom(lv_event_get_target(event), event_code == LV_EVENT_FOCUSED);
-}
-
-void install_focus_zoom(_lv_obj_t *object)
-{
-    lv_obj_add_event_cb(object, focus_zoom_event, LV_EVENT_FOCUSED, nullptr);
-    lv_obj_add_event_cb(object, focus_zoom_event, LV_EVENT_DEFOCUSED, nullptr);
-    lv_obj_add_flag(object, LV_OBJ_FLAG_OVERFLOW_VISIBLE);
-}
 
 } // namespace
-
-void ui_theme_set_focus_emphasis(_lv_obj_t *object, bool focused)
-{
-    start_focus_zoom(object, focused);
-}
 
 void ui_theme_apply_focus_frame(_lv_obj_t *frame)
 {
@@ -132,13 +48,11 @@ void ui_theme_apply_focus_frame(_lv_obj_t *frame)
         lv_style_set_outline_width(&s_screen_focus_highlight, 0);
         lv_style_set_outline_opa(&s_screen_focus_highlight, LV_OPA_TRANSP);
 #endif
-        apply_focus_emphasis(&s_screen_focus_highlight);
         lv_style_set_radius(&s_screen_focus_highlight, ui_widget_radius_px());
         s_screen_focus_highlight_ready = true;
     }
     lv_obj_add_style(frame, &s_screen_focus_highlight, LV_PART_MAIN | LV_STATE_FOCUSED);
     lv_obj_add_style(frame, &s_screen_focus_highlight, LV_PART_MAIN | LV_STATE_FOCUS_KEY);
-    install_focus_zoom(frame);
 }
 
 void ui_theme_apply_focus_row(_lv_obj_t *row)
@@ -179,12 +93,10 @@ void ui_theme_apply_focus_control(_lv_obj_t *control)
         lv_style_set_border_opa(&s_screen_focus_control, LV_OPA_TRANSP);
         lv_style_set_outline_width(&s_screen_focus_control, 0);
         lv_style_set_outline_opa(&s_screen_focus_control, LV_OPA_TRANSP);
-        apply_focus_emphasis(&s_screen_focus_control);
         s_screen_focus_control_ready = true;
     }
     lv_obj_add_style(control, &s_screen_focus_control, LV_PART_MAIN | LV_STATE_FOCUSED);
     lv_obj_add_style(control, &s_screen_focus_control, LV_PART_MAIN | LV_STATE_FOCUS_KEY);
-    install_focus_zoom(control);
 }
 
 void ui_theme_apply_switch_row_focus(_lv_obj_t *row, _lv_obj_t *sw)
