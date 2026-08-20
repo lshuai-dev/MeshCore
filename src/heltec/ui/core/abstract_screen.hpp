@@ -23,10 +23,10 @@ namespace heltec::meshcore::ui
 class AbstractScreen : public UiSurface
 {
   public:
-    enum class FocusVisual : uint8_t
+    enum class FocusMode : uint8_t
     {
-        Control,
-        Row,
+        Idle,
+        Active,
     };
 
     AbstractScreen(biz::IBizFacade &biz, const char *title, const lv_img_dsc_t *icon,
@@ -36,6 +36,7 @@ class AbstractScreen : public UiSurface
     virtual const char *title() const;
     virtual const lv_img_dsc_t *icon() const;
     virtual eScreenId screenId() const = 0;
+    lv_group_t *group() const override;
     _lv_obj_t *tile() const;
     void onEnter() override;
     void onExit() override;
@@ -46,20 +47,23 @@ class AbstractScreen : public UiSurface
     _lv_obj_t *createRoot(_lv_obj_t *parent) override;
     bool onKey(uint32_t key) override;
     void addFocusItem(_lv_obj_t *object, _lv_obj_t *frame = nullptr,
-                      bool focus_on_pointer_press = true,
-                      FocusVisual visual = FocusVisual::Control);
+                      bool propagate_focus = true);
 
   private:
     static constexpr uint8_t kMaxFocusItems = 16;
 
     bool isAvailableFocusItem(const _lv_obj_t *obj) const;
     _lv_obj_t *firstAvailableFocusItem() const;
+    void activateFocusMode(FocusMode mode, _lv_obj_t *focus);
+    static void setFocusStateRecursive(_lv_obj_t *object, _lv_obj_t *source, bool focused);
     static void onFocusItemChanged(lv_event_t *e);
 
     const char *_title;
     const lv_img_dsc_t *_icon;
     bool _root_scroll_focus;
-    bool _root_focus_fallback = false;
+    lv_group_t *_idle_group = nullptr;
+    lv_group_t *_active_group = nullptr;
+    FocusMode _focus_mode = FocusMode::Idle;
     _lv_obj_t *_focus_items[kMaxFocusItems] = {};
     uint8_t _focus_item_count = 0;
 };

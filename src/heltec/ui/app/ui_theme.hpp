@@ -175,6 +175,14 @@ constexpr lv_coord_t ui_settings_row_height()
     return LV_SIZE_CONTENT;
 #endif
 }
+constexpr lv_coord_t ui_settings_row_min_height()
+{
+#if defined(HELTEC_V4_R8_TFT)
+    return 32;
+#else
+    return 18;
+#endif
+}
 constexpr lv_coord_t ui_settings_row_pad_hor()
 {
 #if defined(HELTEC_V4_R8_TFT)
@@ -204,6 +212,8 @@ bool ui_theme_init(lv_disp_t *disp);
 void ui_theme_apply_focus_frame(_lv_obj_t *frame);
 /** Applies a borderless row highlight on TFT while preserving legacy themes elsewhere. */
 void ui_theme_apply_focus_row(_lv_obj_t *row);
+/** Synchronizes the visual state of a focused container and its text children. */
+void ui_theme_set_container_focused(_lv_obj_t *container, bool focused);
 /** Removes the native focus border from a control whose parent row is highlighted. */
 void ui_theme_apply_focus_control(_lv_obj_t *control);
 void ui_theme_set_focus_text_scroll(_lv_obj_t *row, bool focused);

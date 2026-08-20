@@ -1,6 +1,7 @@
 #include "radio_screen.hpp"
 
 #include "ui/app/ui_theme.hpp"
+#include "ui/core/ht_container.hpp"
 #include "ui/core/ht_meta_data.hpp"
 #include "ui/core/ui_events.h"
 
@@ -34,10 +35,14 @@ _lv_obj_t *RadioScreen::create(_lv_obj_t *parent)
     if (!AbstractScreen::create(parent))
         return nullptr;
 
-    _line1 = ht_label_create(_root, meta_id::RadioLineLabel);
-    _line2 = ht_label_create(_root, meta_id::RadioLineLabel);
-    _line3 = ht_label_create(_root, meta_id::RadioLineLabel);
-    _line4 = ht_label_create(_root, meta_id::RadioLineLabel);
+    _lv_obj_t *const row_line1 = ht_container_create(_root);
+    _lv_obj_t *const row_line2 = ht_container_create(_root);
+    _lv_obj_t *const row_line3 = ht_container_create(_root);
+    _lv_obj_t *const row_line4 = ht_container_create(_root);
+    _line1 = ht_label_create(row_line1, meta_id::RadioLineLabel);
+    _line2 = ht_label_create(row_line2, meta_id::RadioLineLabel);
+    _line3 = ht_label_create(row_line3, meta_id::RadioLineLabel);
+    _line4 = ht_label_create(row_line4, meta_id::RadioLineLabel);
 
     _lv_obj_t *const labels[] = { _line1, _line2, _line3, _line4 };
     for (int i = 0; i < 4; ++i)
@@ -59,14 +64,11 @@ _lv_obj_t *RadioScreen::create(_lv_obj_t *parent)
 #endif
     if (show_lna)
     {
-        _row_lna = ht_obj_create(_root, meta_id::RadioLnaRow);
+        _row_lna = ht_container_create(_root, meta_id::RadioLnaRow);
         if (_row_lna)
         {
-            lv_obj_set_size(_row_lna, lv_pct(100), ui_settings_row_height());
-            lv_obj_set_flex_flow(_row_lna, LV_FLEX_FLOW_ROW);
             lv_obj_set_flex_align(_row_lna, LV_FLEX_ALIGN_SPACE_BETWEEN, LV_FLEX_ALIGN_CENTER,
                                   LV_FLEX_ALIGN_START);
-            lv_obj_clear_flag(_row_lna, LV_OBJ_FLAG_SCROLLABLE);
             _lbl_lna = ht_label_create(_row_lna, meta_id::RadioLnaLabel, "LNA");
             _sw_lna = ht_switch_create(_row_lna, meta_id::RadioLnaSwitch);
             if (_lbl_lna)

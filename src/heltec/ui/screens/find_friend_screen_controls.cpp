@@ -2,6 +2,7 @@
 
 #include "find_friend_screen.hpp"
 #include "ui/app/ui_theme.hpp"
+#include "ui/core/ht_container.hpp"
 #include "ui/core/ht_meta_data.hpp"
 #include "ui/core/ht_meta_data_internal.hpp"
 #include "ui/core/ui_deferred_queue.hpp"
@@ -65,11 +66,8 @@ void configure_row(_lv_obj_t *row, lv_flex_align_t main_align)
 {
     if (!row)
         return;
-    lv_obj_set_size(row, lv_pct(100), kFindFriendRowHeight);
     lv_obj_set_flex_flow(row, LV_FLEX_FLOW_ROW);
     lv_obj_set_flex_align(row, main_align, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
-    lv_obj_clear_flag(row, LV_OBJ_FLAG_SCROLLABLE);
-    lv_obj_set_scrollbar_mode(row, LV_SCROLLBAR_MODE_OFF);
 }
 
 void configure_label(_lv_obj_t *label, lv_coord_t width)
@@ -115,7 +113,7 @@ bool cycle_dropdown(_lv_obj_t *dropdown, uint32_t key)
 
 _lv_obj_t *FindFriendScreen::addSwitchRow(const char *title, _lv_obj_t **out_switch)
 {
-    _lv_obj_t *row = ht_obj_create(_right_column, meta_id::FindFriendSettingRow);
+    _lv_obj_t *row = ht_container_create(_right_column, meta_id::FindFriendSettingRow);
     if (!row)
         return nullptr;
     configure_row(row, LV_FLEX_ALIGN_SPACE_BETWEEN);
@@ -137,7 +135,7 @@ _lv_obj_t *FindFriendScreen::addDropdownRow(ChoiceRow &choice, const char *title
                                             const char *options)
 {
     choice = ChoiceRow{};
-    choice.row = ht_obj_create(_right_column, meta_id::FindFriendSettingRow);
+    choice.row = ht_container_create(_right_column, meta_id::FindFriendSettingRow);
     if (!choice.row)
         return nullptr;
     configure_row(choice.row, LV_FLEX_ALIGN_START);
@@ -174,7 +172,7 @@ _lv_obj_t *FindFriendScreen::addDropdownRow(ChoiceRow &choice, const char *title
 
 _lv_obj_t *FindFriendScreen::addActionRow(const char *title, Action action)
 {
-    _lv_obj_t *row = ht_obj_create(_right_column, meta_id::FindFriendActionRow);
+    _lv_obj_t *row = ht_container_create(_right_column, meta_id::FindFriendActionRow);
     if (!row)
         return nullptr;
     configure_row(row, LV_FLEX_ALIGN_START);
@@ -210,20 +208,14 @@ void FindFriendScreen::createControls()
 void FindFriendScreen::configureFocusItems()
 {
 
-#if defined(HELTEC_V4_R8_TFT) && defined(HELTEC_HAS_TOUCH) && HELTEC_HAS_TOUCH
-    constexpr bool kFocusOnPointerPress = false;
-#else
-    constexpr bool kFocusOnPointerPress = true;
-#endif
-    addFocusItem(_sw_enabled, _sw_enabled ? lv_obj_get_parent(_sw_enabled) : nullptr,
-                 kFocusOnPointerPress);
-    addFocusItem(_choice_mode.dropdown, _choice_mode.row, kFocusOnPointerPress);
-    addFocusItem(_choice_friend.dropdown, _choice_friend.row, kFocusOnPointerPress);
-    addFocusItem(_row_wp_gps, nullptr, kFocusOnPointerPress, FocusVisual::Row);
-    addFocusItem(_row_wp_manual, nullptr, kFocusOnPointerPress, FocusVisual::Row);
+    addFocusItem(_sw_enabled, _sw_enabled ? lv_obj_get_parent(_sw_enabled) : nullptr);
+    addFocusItem(_choice_mode.dropdown, _choice_mode.row);
+    addFocusItem(_choice_friend.dropdown, _choice_friend.row);
+    addFocusItem(_row_wp_gps);
+    addFocusItem(_row_wp_manual);
     if (_lbl_info)
     {
-        addFocusItem(_lbl_info, nullptr, false, FocusVisual::Row);
+        addFocusItem(_lbl_info);
         // The read-only row takes part in keypad focus scrolling without intercepting
         // touch gestures intended to scroll the right column.
         lv_obj_clear_flag(_lbl_info, LV_OBJ_FLAG_CLICKABLE | LV_OBJ_FLAG_CLICK_FOCUSABLE);

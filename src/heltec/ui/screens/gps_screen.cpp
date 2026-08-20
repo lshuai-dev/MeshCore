@@ -1,6 +1,7 @@
 #include "gps_screen.hpp"
 
 #include "ui/app/ui_theme.hpp"
+#include "ui/core/ht_container.hpp"
 #include "ui/core/ht_meta_data.hpp"
 #include "ui/core/ht_meta_data_internal.hpp"
 #include "ui/core/ui_deferred_queue.hpp"
@@ -17,26 +18,6 @@ namespace
 #if defined(HELTEC_V4_R8_TFT)
 constexpr lv_coord_t kGpsDropdownHeight = ui_settings_row_height() - 2 * ui_settings_row_pad_ver();
 #endif
-
-void configure_gps_row(_lv_obj_t *row)
-{
-    if (!row)
-        return;
-    lv_obj_set_size(row, lv_pct(100), ui_settings_row_height());
-    lv_obj_set_flex_flow(row, LV_FLEX_FLOW_ROW);
-    lv_obj_set_flex_align(row, LV_FLEX_ALIGN_SPACE_BETWEEN, LV_FLEX_ALIGN_CENTER,
-                          LV_FLEX_ALIGN_START);
-    lv_obj_clear_flag(row, LV_OBJ_FLAG_SCROLLABLE);
-}
-
-void configure_gps_info_row(_lv_obj_t *row, lv_coord_t height)
-{
-    if (!row)
-        return;
-    lv_obj_set_width(row, lv_pct(100));
-    if (height > 0)
-        lv_obj_set_height(row, height);
-}
 
 bool cycle_open_dropdown(_lv_obj_t *dropdown, uint32_t key)
 {
@@ -99,11 +80,10 @@ _lv_obj_t *GPSScreen::create(_lv_obj_t *parent)
     if (!AbstractScreen::create(parent))
         return nullptr;
 
-    _row_power = ht_obj_create(_root, meta_id::GpsPowerRow);
+    _row_power = ht_container_create(_root);
     if (_row_power)
     {
-        configure_gps_row(_row_power);
-        _lbl_gps_prefix = ht_label_create(_row_power, meta_id::GpsPowerPrefix, "gps");
+        _lbl_gps_prefix = ht_label_create(_row_power, HT_META_ID_UNSET, "gps");
         _sw_gps = ht_switch_create(_row_power, meta_id::GpsPowerSwitch);
         if (_lbl_gps_prefix)
             lv_obj_set_width(_lbl_gps_prefix, LV_SIZE_CONTENT);
@@ -117,12 +97,11 @@ _lv_obj_t *GPSScreen::create(_lv_obj_t *parent)
         }
     }
 
-    _row_location_share = ht_obj_create(_root, meta_id::GpsLocationShareRow);
+    _row_location_share = ht_container_create(_root);
     if (_row_location_share)
     {
-        configure_gps_row(_row_location_share);
-        _lbl_location_share =
-            ht_label_create(_row_location_share, meta_id::GpsLocationShareLabel, "location share");
+        _lbl_location_share = ht_label_create(_row_location_share, HT_META_ID_UNSET,
+                                               "location share");
         _sw_location_share = ht_switch_create(_row_location_share, meta_id::GpsLocationShareSwitch);
         if (_lbl_location_share)
             lv_obj_set_width(_lbl_location_share, LV_SIZE_CONTENT);
@@ -137,12 +116,10 @@ _lv_obj_t *GPSScreen::create(_lv_obj_t *parent)
         }
     }
 
-    _row_adv_interval = ht_obj_create(_root, meta_id::GpsAdvIntervalRow);
+    _row_adv_interval = ht_container_create(_root);
     if (_row_adv_interval)
     {
-        configure_gps_row(_row_adv_interval);
-        _lbl_adv_interval =
-            ht_label_create(_row_adv_interval, meta_id::GpsAdvIntervalLabel, "adv interval");
+        _lbl_adv_interval = ht_label_create(_row_adv_interval, HT_META_ID_UNSET, "adv interval");
         if (_lbl_adv_interval)
             lv_obj_set_width(_lbl_adv_interval, LV_SIZE_CONTENT);
         _dd_adv_interval = ht_dropdown_create(_row_adv_interval, meta_id::GpsAdvIntervalDropdown);
@@ -190,11 +167,10 @@ _lv_obj_t *GPSScreen::create(_lv_obj_t *parent)
     }
 
 #if defined(ENV_INCLUDE_GPS) && ENV_INCLUDE_GPS
-    _row_track = ht_obj_create(_root, meta_id::GpsTrackRow);
+    _row_track = ht_container_create(_root);
     if (_row_track)
     {
-        configure_gps_row(_row_track);
-        _lbl_track = ht_label_create(_row_track, meta_id::GpsTrackLabel, "gps track");
+        _lbl_track = ht_label_create(_row_track, HT_META_ID_UNSET, "gps track");
         _sw_track = ht_switch_create(_row_track, meta_id::GpsTrackSwitch);
         if (_lbl_track)
             lv_obj_set_width(_lbl_track, LV_SIZE_CONTENT);
@@ -209,23 +185,21 @@ _lv_obj_t *GPSScreen::create(_lv_obj_t *parent)
     }
 #endif
 
-    _lbl_fix = ht_label_create(_root, meta_id::GpsFixLabel);
+    _lv_obj_t *const row_fix = ht_container_create(_root);
+    _lbl_fix = ht_label_create(row_fix);
     lv_label_set_text_static(_lbl_fix, "no fix");
-    _lbl_sat = ht_label_create(_root, meta_id::GpsSatLabel);
+    _lv_obj_t *const row_sat = ht_container_create(_root);
+    _lbl_sat = ht_label_create(row_sat);
     lv_label_set_text_static(_lbl_sat, _sat_text);
-    _lbl_latlon = ht_label_create(_root, meta_id::GpsLatLonLabel);
+    _lv_obj_t *const row_latlon = ht_container_create(_root);
+    _lbl_latlon = ht_label_create(row_latlon);
     lv_label_set_text_static(_lbl_latlon, _latlon_text);
-    _lbl_alt = ht_label_create(_root, meta_id::GpsAltLabel);
+    _lv_obj_t *const row_alt = ht_container_create(_root);
+    _lbl_alt = ht_label_create(row_alt);
     lv_label_set_text_static(_lbl_alt, _alt_text);
-    _lbl_speed = ht_label_create(_root, meta_id::GpsSpeedLabel);
+    _lv_obj_t *const row_speed = ht_container_create(_root);
+    _lbl_speed = ht_label_create(row_speed);
     lv_label_set_text_static(_lbl_speed, _speed_text);
-
-    lv_coord_t info_row_height = 0;
-    if (_row_power)
-    {
-        lv_obj_update_layout(_row_power);
-        info_row_height = lv_obj_get_height(_row_power);
-    }
 
     _lv_obj_t *const labels[] = {
         _lbl_gps_prefix, _lbl_location_share, _lbl_adv_interval, _lbl_fix,
@@ -242,28 +216,32 @@ _lv_obj_t *GPSScreen::create(_lv_obj_t *parent)
         lv_label_set_long_mode(label, LV_LABEL_LONG_CLIP);
     }
 
-#if defined(HELTEC_V4_R8_TFT) && defined(HELTEC_HAS_TOUCH) && HELTEC_HAS_TOUCH
-    constexpr bool kFocusOnPointerPress = false;
-#else
-    constexpr bool kFocusOnPointerPress = true;
-#endif
-    addFocusItem(_sw_gps, _row_power, kFocusOnPointerPress);
-    addFocusItem(_sw_location_share, _row_location_share, kFocusOnPointerPress);
-    addFocusItem(_dd_adv_interval, _row_adv_interval, kFocusOnPointerPress);
+    addFocusItem(_sw_gps, _row_power);
+    addFocusItem(_sw_location_share, _row_location_share);
+    addFocusItem(_dd_adv_interval, _row_adv_interval);
 #if defined(ENV_INCLUDE_GPS) && ENV_INCLUDE_GPS
-    addFocusItem(_sw_track, _row_track, kFocusOnPointerPress);
+    addFocusItem(_sw_track, _row_track);
 #endif
 
-    _lv_obj_t *const info_rows[] = { _lbl_fix, _lbl_sat, _lbl_latlon, _lbl_alt, _lbl_speed };
-    for (_lv_obj_t *row : info_rows)
+    const struct
     {
-        if (!row)
+        _lv_obj_t *label;
+        _lv_obj_t *row;
+    } info_rows[] = {
+        { _lbl_fix, row_fix },       { _lbl_sat, row_sat },
+        { _lbl_latlon, row_latlon }, { _lbl_alt, row_alt },
+        { _lbl_speed, row_speed },
+    };
+    for (const auto &info_row : info_rows)
+    {
+        if (!info_row.label || !info_row.row)
             continue;
-        configure_gps_info_row(row, info_row_height);
-        addFocusItem(row, nullptr, false, FocusVisual::Row);
+        lv_obj_set_width(info_row.label, lv_pct(100));
+        addFocusItem(info_row.label, info_row.row);
         // Read-only rows participate in keypad focus scrolling without consuming
         // pointer gestures intended for the scrollable screen root.
-        lv_obj_clear_flag(row, LV_OBJ_FLAG_CLICKABLE | LV_OBJ_FLAG_CLICK_FOCUSABLE);
+        lv_obj_clear_flag(info_row.label,
+                          LV_OBJ_FLAG_CLICKABLE | LV_OBJ_FLAG_CLICK_FOCUSABLE);
     }
 
     return _root;

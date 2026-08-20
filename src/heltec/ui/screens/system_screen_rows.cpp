@@ -1,5 +1,6 @@
 #include "system_screen.hpp"
 #include "ui/app/ui_theme.hpp"
+#include "ui/core/ht_container.hpp"
 #include "ui/core/ht_meta_data.hpp"
 #include "ui/core/ht_meta_data_internal.hpp"
 #include "ui/core/ui_deferred_queue.hpp"
@@ -20,12 +21,13 @@ void configure_system_row(_lv_obj_t *row, lv_flex_flow_t flow, lv_flex_align_t m
 {
     if (!row)
         return;
-    lv_obj_set_size(row, lv_pct(100), single_line ? ui_settings_row_height() : LV_SIZE_CONTENT);
     lv_obj_set_flex_flow(row, flow);
     lv_obj_set_flex_align(row, main, cross, cross);
-    lv_obj_clear_flag(row, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_add_flag(row, LV_OBJ_FLAG_EVENT_BUBBLE);
-    lv_obj_set_scrollbar_mode(row, LV_SCROLLBAR_MODE_OFF);
+    if (!single_line)
+    {
+        lv_obj_set_height(row, LV_SIZE_CONTENT);
+    }
 }
 void configure_system_label(_lv_obj_t *label, lv_coord_t width)
 {
@@ -121,7 +123,7 @@ SystemScreen::SysAction SystemScreen::actionForRow(_lv_obj_t *obj) const
 
 _lv_obj_t *SystemScreen::addActionRow(_lv_obj_t *scroll, const char *title, _lv_obj_t **out_row)
 {
-    _lv_obj_t *row = ht_obj_create(scroll, meta_id::SystemActionRow);
+    _lv_obj_t *row = ht_container_create(scroll, meta_id::SystemActionRow);
     if (!row)
         return nullptr;
     configure_system_row(row, LV_FLEX_FLOW_ROW, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER);
@@ -139,7 +141,7 @@ _lv_obj_t *SystemScreen::addActionRow(_lv_obj_t *scroll, const char *title, _lv_
 
 _lv_obj_t *SystemScreen::addSwitchRow(_lv_obj_t *scroll, const char *title, _lv_obj_t **out_sw)
 {
-    _lv_obj_t *row = ht_obj_create(scroll, meta_id::SystemSwitchRow);
+    _lv_obj_t *row = ht_container_create(scroll, meta_id::SystemSwitchRow);
     if (!row)
         return nullptr;
     configure_system_row(row, LV_FLEX_FLOW_ROW, LV_FLEX_ALIGN_SPACE_BETWEEN, LV_FLEX_ALIGN_CENTER);
@@ -158,7 +160,7 @@ _lv_obj_t *SystemScreen::addSwitchRow(_lv_obj_t *scroll, const char *title, _lv_
 
 _lv_obj_t *SystemScreen::addDropdownRow(_lv_obj_t *scroll, ChoiceRow &choice, const char *title)
 {
-    _lv_obj_t *row = ht_obj_create(scroll, meta_id::SystemDropdownRow);
+    _lv_obj_t *row = ht_container_create(scroll, meta_id::SystemDropdownRow);
     if (!row)
         return nullptr;
     configure_system_row(row, LV_FLEX_FLOW_ROW, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER);
@@ -501,7 +503,7 @@ void SystemScreen::onActionRowEvent(lv_event_t *e)
 
 _lv_obj_t *SystemScreen::addBuzzerVolumeRow(_lv_obj_t *scroll)
 {
-    _lv_obj_t *row = ht_obj_create(scroll, meta_id::SystemVolumeRow);
+    _lv_obj_t *row = ht_container_create(scroll, meta_id::SystemVolumeRow);
     if (!row)
         return nullptr;
     configure_system_row(row, LV_FLEX_FLOW_COLUMN, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_START, false);

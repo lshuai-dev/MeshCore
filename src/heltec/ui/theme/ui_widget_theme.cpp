@@ -3,6 +3,7 @@
 #include "ui/app/ui_app_ids.hpp"
 #include "ui/app/ui_theme.hpp"
 #include "ui/core/abstract_overlay.hpp"
+#include "ui/core/ht_container.hpp"
 #include "ui/core/ht_meta_data.hpp"
 #include "ui/core/screen_id.hpp"
 #include "ui/menus/context_menu.hpp"
@@ -1373,6 +1374,7 @@ static void init_screen_system_styles()
     lv_style_set_pad_all(&s_settings_row_layout_style, 0);
     lv_style_set_pad_hor(&s_settings_row_layout_style, ui_settings_row_pad_hor());
     lv_style_set_pad_ver(&s_settings_row_layout_style, ui_settings_row_pad_ver());
+    lv_style_set_min_height(&s_settings_row_layout_style, ui_settings_row_min_height());
 
     lv_style_init(&s_find_friend_row_layout_style);
 #if defined(HELTEC_V4_R8_TFT)
@@ -2380,20 +2382,6 @@ static bool apply_gps_screen_child_theme(_lv_obj_t *obj)
 {
     switch (ht_id(obj))
     {
-    case meta_id::GpsPowerRow:
-    case meta_id::GpsLocationShareRow:
-    case meta_id::GpsAdvIntervalRow:
-    case meta_id::GpsTrackRow:
-        style_plain_container(obj);
-        init_screen_system_styles();
-        lv_obj_add_style(obj, &s_settings_row_layout_style, LV_PART_MAIN);
-        return true;
-
-    case meta_id::GpsFixLabel:
-    case meta_id::GpsSatLabel:
-    case meta_id::GpsLatLonLabel:
-    case meta_id::GpsAltLabel:
-    case meta_id::GpsSpeedLabel:
     case meta_id::GpsRawLabel:
         style_screen_label(obj);
         if (ht_id(obj) == meta_id::GpsRawLabel)
@@ -2401,13 +2389,6 @@ static bool apply_gps_screen_child_theme(_lv_obj_t *obj)
             init_screen_system_styles();
             lv_obj_add_style(obj, &s_warning_text_style, LV_PART_MAIN);
         }
-        return true;
-
-    case meta_id::GpsPowerPrefix:
-    case meta_id::GpsLocationShareLabel:
-    case meta_id::GpsAdvIntervalLabel:
-    case meta_id::GpsTrackLabel:
-        style_screen_label(obj);
         return true;
 
     case meta_id::GpsPowerSwitch:
@@ -2675,6 +2656,36 @@ static bool apply_screen_child_theme(_lv_obj_t *obj)
     return apply_home_screen_child_theme(obj) || apply_gps_screen_child_theme(obj) ||
            apply_recent_screen_child_theme(obj) || apply_radio_screen_child_theme(obj) ||
            apply_find_friend_screen_child_theme(obj) || apply_system_screen_child_theme(obj);
+}
+
+static bool apply_ht_container_theme(_lv_obj_t *obj)
+{
+    if (!obj || !lv_obj_check_type(obj, &ht_container_class))
+    {
+        return false;
+    }
+
+    style_plain_container(obj);
+    init_screen_system_styles();
+    lv_obj_add_style(obj, &s_settings_row_layout_style, LV_PART_MAIN);
+    return true;
+}
+
+static bool apply_ht_container_child_theme(_lv_obj_t *obj)
+{
+    if (!obj || !lv_obj_check_type(obj, &lv_label_class))
+    {
+        return false;
+    }
+
+    _lv_obj_t *const parent = lv_obj_get_parent(obj);
+    if (!parent || !lv_obj_check_type(parent, &ht_container_class))
+    {
+        return false;
+    }
+
+    style_screen_label(obj);
+    return true;
 }
 
 static bool apply_preview_overlay_child_theme(_lv_obj_t *obj)
@@ -3378,12 +3389,16 @@ bool ui_widget_theme_apply(_lv_obj_t *obj)
 
     const auto apply_custom = [](lv_obj_t *target)
     {
-        return apply_app_frame_theme(target) || apply_top_pane_theme(target) ||
+        const bool container_applied = apply_ht_container_theme(target);
+        const bool custom_applied = apply_app_frame_theme(target) ||
+               apply_top_pane_theme(target) ||
                apply_surface_root_theme(target) || apply_screen_child_theme(target) ||
+               apply_ht_container_child_theme(target) ||
                apply_overlay_child_theme(target) || apply_context_menu_child_theme(target) ||
                apply_navigation_theme(target) || apply_navigation_ring_theme(target) ||
                ui_license_gate_apply_theme(target) || ui_button_roller_apply_theme(target) ||
                ui_compass_widget_apply_theme(target) || ui_map_widget_apply_theme(target);
+        return container_applied || custom_applied;
     };
 
     return apply_custom(obj);

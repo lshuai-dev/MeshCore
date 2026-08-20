@@ -12,24 +12,11 @@ namespace heltec::meshcore::ui
 
 namespace meta_id
 {
-constexpr uint16_t GpsPowerRow = ht_meta_id(MetaIdScope::Screen, 0x40);
-constexpr uint16_t GpsPowerPrefix = ht_meta_id(MetaIdScope::Screen, 0x41);
 constexpr uint16_t GpsPowerSwitch = ht_meta_id(MetaIdScope::Screen, 0x42);
-constexpr uint16_t GpsFixLabel = ht_meta_id(MetaIdScope::Screen, 0x43);
-constexpr uint16_t GpsSatLabel = ht_meta_id(MetaIdScope::Screen, 0x44);
-constexpr uint16_t GpsLatLonLabel = ht_meta_id(MetaIdScope::Screen, 0x45);
-constexpr uint16_t GpsAltLabel = ht_meta_id(MetaIdScope::Screen, 0x46);
 constexpr uint16_t GpsRawLabel = ht_meta_id(MetaIdScope::Screen, 0x47);
-constexpr uint16_t GpsTrackRow = ht_meta_id(MetaIdScope::Screen, 0x48);
-constexpr uint16_t GpsTrackLabel = ht_meta_id(MetaIdScope::Screen, 0x49);
 constexpr uint16_t GpsTrackSwitch = ht_meta_id(MetaIdScope::Screen, 0x4A);
-constexpr uint16_t GpsLocationShareRow = ht_meta_id(MetaIdScope::Screen, 0x4B);
-constexpr uint16_t GpsLocationShareLabel = ht_meta_id(MetaIdScope::Screen, 0x4C);
 constexpr uint16_t GpsLocationShareSwitch = ht_meta_id(MetaIdScope::Screen, 0x4D);
-constexpr uint16_t GpsAdvIntervalRow = ht_meta_id(MetaIdScope::Screen, 0x4E);
-constexpr uint16_t GpsAdvIntervalLabel = ht_meta_id(MetaIdScope::Screen, 0x4F);
 constexpr uint16_t GpsAdvIntervalDropdown = ht_meta_id(MetaIdScope::Screen, 0x50);
-constexpr uint16_t GpsSpeedLabel = ht_meta_id(MetaIdScope::Screen, 0x51);
 constexpr uint16_t GpsDropdownList = ht_meta_id(MetaIdScope::Screen, 0x52);
 } // namespace meta_id
 

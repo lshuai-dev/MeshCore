@@ -90,29 +90,19 @@ _lv_obj_t *SystemScreen::create(_lv_obj_t *parent)
     addActionRow(_root, "> Factory reset", &_row_factory_reset);
     addActionRow(_root, "> Clear data", &_row_clear_data);
 
-#if defined(HELTEC_V4_R8_TFT) && defined(HELTEC_HAS_TOUCH) && HELTEC_HAS_TOUCH
-    // LVGL does not emit CLICKED after a drag, so defer pointer focus until the
-    // gesture has been classified as an actual tap.
-    constexpr bool kFocusOnPointerPress = false;
-#else
-    constexpr bool kFocusOnPointerPress = true;
-#endif
-
-    addFocusItem(_dd_region, _choice_region.row, kFocusOnPointerPress);
-    addFocusItem(_swForwarding, _swForwarding ? lv_obj_get_parent(_swForwarding) : nullptr,
-                 kFocusOnPointerPress);
-    addFocusItem(_dd_screen_off, _choice_screen_off.row, kFocusOnPointerPress);
-    addFocusItem(_swBle, _swBle ? lv_obj_get_parent(_swBle) : nullptr, kFocusOnPointerPress);
+    addFocusItem(_dd_region, _choice_region.row);
+    addFocusItem(_swForwarding, _swForwarding ? lv_obj_get_parent(_swForwarding) : nullptr);
+    addFocusItem(_dd_screen_off, _choice_screen_off.row);
+    addFocusItem(_swBle, _swBle ? lv_obj_get_parent(_swBle) : nullptr);
 #ifdef PIN_BUZZER
-    addFocusItem(_swBuzzer, _swBuzzer ? lv_obj_get_parent(_swBuzzer) : nullptr,
-                 kFocusOnPointerPress);
+    addFocusItem(_swBuzzer, _swBuzzer ? lv_obj_get_parent(_swBuzzer) : nullptr);
 #endif
 #if defined(HAS_BUZZER_VOLUME_CONTROL) && HAS_BUZZER_VOLUME_CONTROL
-    addFocusItem(_btnBuzzerVolumeDown, nullptr, kFocusOnPointerPress);
-    addFocusItem(_btnBuzzerVolumeUp, nullptr, kFocusOnPointerPress);
+    addFocusItem(_btnBuzzerVolumeDown);
+    addFocusItem(_btnBuzzerVolumeUp);
 #endif
-    addFocusItem(_row_factory_reset, nullptr, kFocusOnPointerPress, FocusVisual::Row);
-    addFocusItem(_row_clear_data, nullptr, kFocusOnPointerPress, FocusVisual::Row);
+    addFocusItem(_row_factory_reset);
+    addFocusItem(_row_clear_data);
 
     // System owns focus scrolling. Disable LVGL's implicit auto-scroll so focus
     // restore, pointer focus and modal transitions cannot move the page behind us.

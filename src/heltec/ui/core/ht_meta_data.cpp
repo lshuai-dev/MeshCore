@@ -64,8 +64,8 @@ MetaData *meta_allocate(uint16_t id, void *user_data)
     return meta;
 }
 
-lv_obj_t *create_object(const lv_obj_class_t *class_p, lv_obj_t *parent, uint16_t id,
-                        void *user_data)
+lv_obj_t *create_object_impl(const lv_obj_class_t *class_p, lv_obj_t *parent, uint16_t id,
+                              void *user_data)
 {
     const bool needs_meta = id != HT_META_ID_UNSET;
     MetaData *meta = nullptr;
@@ -113,6 +113,17 @@ lv_obj_t *create_object(const lv_obj_class_t *class_p, lv_obj_t *parent, uint16_
 }
 
 } // namespace
+
+namespace detail
+{
+
+lv_obj_t *create_object(const lv_obj_class_t *class_p, lv_obj_t *parent, uint16_t id,
+                        void *user_data)
+{
+    return create_object_impl(class_p, parent, id, user_data);
+}
+
+} // namespace detail
 
 void detail::set_meta_id(lv_obj_t *obj, uint16_t id)
 {
@@ -187,12 +198,13 @@ void ht_set_user_data(lv_obj_t *obj, void *user_data)
 
 lv_obj_t *ht_obj_create(lv_obj_t *parent, uint16_t id, void *user_data)
 {
-    return create_object(&lv_obj_class, parent, id, user_data);
+    return create_object_impl(&lv_obj_class, parent, id, user_data);
 }
+
 
 lv_obj_t *ht_label_create(lv_obj_t *parent, uint16_t id, const char *text, void *user_data)
 {
-    lv_obj_t *const obj = create_object(&lv_label_class, parent, id, user_data);
+    lv_obj_t *const obj = create_object_impl(&lv_label_class, parent, id, user_data);
     if (obj && text)
         lv_label_set_text(obj, text);
     return obj;
@@ -200,69 +212,69 @@ lv_obj_t *ht_label_create(lv_obj_t *parent, uint16_t id, const char *text, void 
 
 lv_obj_t *ht_btn_create(lv_obj_t *parent, uint16_t id, void *user_data)
 {
-    return create_object(&lv_btn_class, parent, id, user_data);
+    return create_object_impl(&lv_btn_class, parent, id, user_data);
 }
 
 #if LV_USE_SWITCH
 lv_obj_t *ht_switch_create(lv_obj_t *parent, uint16_t id, void *user_data)
 {
-    return create_object(&lv_switch_class, parent, id, user_data);
+    return create_object_impl(&lv_switch_class, parent, id, user_data);
 }
 #endif
 
 #if LV_USE_SLIDER
 lv_obj_t *ht_slider_create(lv_obj_t *parent, uint16_t id, void *user_data)
 {
-    return create_object(&lv_slider_class, parent, id, user_data);
+    return create_object_impl(&lv_slider_class, parent, id, user_data);
 }
 #endif
 
 #if LV_USE_DROPDOWN
 lv_obj_t *ht_dropdown_create(lv_obj_t *parent, uint16_t id, void *user_data)
 {
-    return create_object(&lv_dropdown_class, parent, id, user_data);
+    return create_object_impl(&lv_dropdown_class, parent, id, user_data);
 }
 #endif
 
 #if LV_USE_ROLLER
 lv_obj_t *ht_roller_create(lv_obj_t *parent, uint16_t id, void *user_data)
 {
-    return create_object(&lv_roller_class, parent, id, user_data);
+    return create_object_impl(&lv_roller_class, parent, id, user_data);
 }
 #endif
 
 #if LV_USE_TEXTAREA
 lv_obj_t *ht_textarea_create(lv_obj_t *parent, uint16_t id, void *user_data)
 {
-    return create_object(&lv_textarea_class, parent, id, user_data);
+    return create_object_impl(&lv_textarea_class, parent, id, user_data);
 }
 #endif
 
 #if LV_USE_KEYBOARD
 lv_obj_t *ht_keyboard_create(lv_obj_t *parent, uint16_t id, void *user_data)
 {
-    return create_object(&lv_keyboard_class, parent, id, user_data);
+    return create_object_impl(&lv_keyboard_class, parent, id, user_data);
 }
 #endif
 
 #if LV_USE_IMG
 lv_obj_t *ht_img_create(lv_obj_t *parent, uint16_t id, void *user_data)
 {
-    return create_object(&lv_img_class, parent, id, user_data);
+    return create_object_impl(&lv_img_class, parent, id, user_data);
 }
 #endif
 
 #if LV_USE_IMGBTN
 lv_obj_t *ht_imgbtn_create(lv_obj_t *parent, uint16_t id, void *user_data)
 {
-    return create_object(&lv_imgbtn_class, parent, id, user_data);
+    return create_object_impl(&lv_imgbtn_class, parent, id, user_data);
 }
 #endif
 
 #if LV_USE_MENU
 lv_obj_t *ht_menu_create(lv_obj_t *parent, uint16_t id, void *user_data)
 {
-    return create_object(&lv_menu_class, parent, id, user_data);
+    return create_object_impl(&lv_menu_class, parent, id, user_data);
 }
 
 lv_obj_t *ht_menu_page_create(lv_obj_t *parent, const char *title, uint16_t id, void *user_data)
@@ -280,7 +292,7 @@ lv_obj_t *ht_menu_page_create(lv_obj_t *parent, const char *title, uint16_t id, 
 #if LV_USE_TILEVIEW
 lv_obj_t *ht_tileview_create(lv_obj_t *parent, uint16_t id, void *user_data)
 {
-    return create_object(&lv_tileview_class, parent, id, user_data);
+    return create_object_impl(&lv_tileview_class, parent, id, user_data);
 }
 
 lv_obj_t *ht_tileview_add_tile(lv_obj_t *tileview, uint8_t col_id, uint8_t row_id, lv_dir_t dir,

@@ -116,6 +116,17 @@ void ui_theme_apply_focus_row(_lv_obj_t *row)
 #endif
 }
 
+void ui_theme_set_container_focused(_lv_obj_t *container, bool focused)
+{
+    if (!container)
+    {
+        return;
+    }
+
+    ui_theme_set_focus_text_scroll(container, focused);
+    lv_obj_invalidate(container);
+}
+
 void ui_theme_apply_focus_control(_lv_obj_t *control)
 {
     if (!control)

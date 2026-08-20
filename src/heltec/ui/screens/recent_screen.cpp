@@ -1,5 +1,6 @@
 #include "recent_screen.hpp"
 
+#include "ui/core/ht_container.hpp"
 #include "ui/core/ht_meta_data.hpp"
 
 #include <lvgl.h>
@@ -83,15 +84,9 @@ bool RecentScreen::createRowControl(int index)
     if (index < 0 || index >= kAdvertCapacity)
         return false;
 
-    _rows[index] = ht_obj_create(_root, meta_id::RecentRow);
+    _rows[index] = ht_container_create(_root, meta_id::RecentRow);
     if (!_rows[index])
         return false;
-    lv_obj_set_size(_rows[index], lv_pct(100), LV_SIZE_CONTENT);
-    lv_obj_set_flex_flow(_rows[index], LV_FLEX_FLOW_ROW);
-    lv_obj_set_flex_align(_rows[index], LV_FLEX_ALIGN_SPACE_BETWEEN, LV_FLEX_ALIGN_CENTER,
-                          LV_FLEX_ALIGN_CENTER);
-    lv_obj_clear_flag(_rows[index], LV_OBJ_FLAG_SCROLLABLE);
-
     _names[index] = ht_label_create(_rows[index], meta_id::RecentName, "");
     _ages[index] = ht_label_create(_rows[index], meta_id::RecentAge, "");
     if (!_names[index] || !_ages[index])
@@ -109,7 +104,7 @@ bool RecentScreen::createRowControl(int index)
     lv_label_set_long_mode(_names[index], LV_LABEL_LONG_DOT);
     lv_obj_set_width(_ages[index], LV_SIZE_CONTENT);
     lv_obj_add_event_cb(_rows[index], onRowFocused, LV_EVENT_FOCUSED, this);
-    addFocusItem(_rows[index], nullptr, true, FocusVisual::Row);
+    addFocusItem(_rows[index]);
     return true;
 }
 
@@ -155,7 +150,6 @@ void RecentScreen::onEnter()
         lv_timer_resume(_refresh_timer);
     }
     AbstractScreen::onEnter();
-    focusSelection();
 }
 
 void RecentScreen::onExit()
