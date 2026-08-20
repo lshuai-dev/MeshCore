@@ -55,6 +55,7 @@ class AbstractScreen : public UiSurface
     bool isAvailableFocusItem(const _lv_obj_t *obj) const;
     _lv_obj_t *firstAvailableFocusItem() const;
     void activateFocusMode(FocusMode mode, _lv_obj_t *focus);
+    static void activateFocusModeDeferred(void *user_data);
     static void setFocusStateRecursive(_lv_obj_t *object, _lv_obj_t *source, bool focused);
     static void onFocusItemChanged(lv_event_t *e);
 
@@ -66,6 +67,7 @@ class AbstractScreen : public UiSurface
     FocusMode _focus_mode = FocusMode::Idle;
     _lv_obj_t *_focus_items[kMaxFocusItems] = {};
     uint8_t _focus_item_count = 0;
+    bool _focus_activation_pending = false;
 };
 
 } // namespace heltec::meshcore::ui

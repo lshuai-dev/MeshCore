@@ -222,7 +222,6 @@ static UiQuickPingStyleConfig s_quick_ping_style_config = { 104 };
 
 static lv_style_t s_warning_text_style;
 static lv_style_t s_accent_text_style;
-static lv_style_t s_system_row_style;
 static lv_style_t s_settings_row_layout_style;
 static lv_style_t s_find_friend_row_layout_style;
 static lv_style_t s_find_friend_dial_layout_style;
@@ -1348,28 +1347,6 @@ static void init_screen_system_styles()
     lv_style_set_text_color(&s_accent_text_style, ui_color_accent());
     set_overlay_text_spacing(&s_accent_text_style);
 
-    lv_style_init(&s_system_row_style);
-    lv_style_set_bg_opa(&s_system_row_style, LV_OPA_TRANSP);
-    lv_style_set_border_width(&s_system_row_style, 0);
-    lv_style_set_border_opa(&s_system_row_style, LV_OPA_TRANSP);
-    lv_style_set_border_side(&s_system_row_style, LV_BORDER_SIDE_NONE);
-    lv_style_set_outline_width(&s_system_row_style, 0);
-    lv_style_set_outline_opa(&s_system_row_style, LV_OPA_TRANSP);
-    lv_style_set_shadow_width(&s_system_row_style, 0);
-    lv_style_set_shadow_opa(&s_system_row_style, LV_OPA_TRANSP);
-#if LV_COLOR_DEPTH == 1
-    lv_style_set_pad_all(&s_system_row_style, 0);
-    lv_style_set_pad_row(&s_system_row_style, 0);
-    lv_style_set_pad_column(&s_system_row_style, 2);
-#elif defined(HELTEC_V4_R8_TFT)
-    lv_style_set_pad_hor(&s_system_row_style, ui_settings_row_pad_hor());
-    lv_style_set_pad_ver(&s_system_row_style, ui_settings_row_pad_ver());
-    lv_style_set_pad_row(&s_system_row_style, LV_DPX(10));
-    lv_style_set_pad_column(&s_system_row_style, LV_DPX(10));
-#else
-    lv_style_set_pad_all(&s_system_row_style, 2);
-#endif
-
     lv_style_init(&s_settings_row_layout_style);
     lv_style_set_pad_all(&s_settings_row_layout_style, 0);
     lv_style_set_pad_hor(&s_settings_row_layout_style, ui_settings_row_pad_hor());
@@ -2490,14 +2467,6 @@ static bool apply_find_friend_screen_child_theme(_lv_obj_t *obj)
     }
 }
 
-static void style_system_row_common(_lv_obj_t *row)
-{
-    if (!row)
-        return;
-    init_screen_system_styles();
-    lv_obj_add_style(row, &s_system_row_style, LV_PART_MAIN);
-}
-
 static bool apply_system_screen_child_theme(_lv_obj_t *obj)
 {
     if (!obj)
@@ -2505,18 +2474,6 @@ static bool apply_system_screen_child_theme(_lv_obj_t *obj)
 
     switch (ht_id(obj))
     {
-    case meta_id::SystemActionRow:
-        style_system_row_common(obj);
-        return true;
-
-    case meta_id::SystemSwitchRow:
-        style_system_row_common(obj);
-        return true;
-
-    case meta_id::SystemDropdownRow:
-        style_system_row_common(obj);
-        return true;
-
     case meta_id::SystemActionLabel:
         init_screen_system_styles();
         lv_obj_add_style(obj, &s_system_label_style, LV_PART_MAIN);
@@ -2571,10 +2528,6 @@ static bool apply_system_screen_child_theme(_lv_obj_t *obj)
         return true;
 
 #if defined(HAS_BUZZER_VOLUME_CONTROL) && HAS_BUZZER_VOLUME_CONTROL
-    case meta_id::SystemVolumeRow:
-        style_system_row_common(obj);
-        return true;
-
     case meta_id::SystemVolumeLabel:
     case meta_id::SystemVolumeButtonLabel:
         init_screen_system_styles();

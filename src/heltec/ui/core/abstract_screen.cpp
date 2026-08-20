@@ -2,6 +2,7 @@
 
 #include "ht_meta_data.hpp"
 #include "ui/app/ui_theme.hpp"
+#include "ui/core/ui_deferred_queue.hpp"
 #include "ui/core/ui_events.h"
 
 namespace heltec::meshcore::ui
@@ -75,6 +76,8 @@ _lv_obj_t *AbstractScreen::tile() const
 void AbstractScreen::onEnter()
 {
     UiSurface::onEnter();
+    (void)ui_defer_cancel(activateFocusModeDeferred, this);
+    _focus_activation_pending = false;
     if (!_focus_group || !_idle_group || !_root)
         return;
     lv_group_set_editing(_idle_group, false);
@@ -85,6 +88,8 @@ void AbstractScreen::onEnter()
 
 void AbstractScreen::onExit()
 {
+    (void)ui_defer_cancel(activateFocusModeDeferred, this);
+    _focus_activation_pending = false;
     if (_focus_group)
     {
         lv_group_set_editing(_focus_group, false);
@@ -139,6 +144,25 @@ void AbstractScreen::activateFocusMode(FocusMode mode, _lv_obj_t *focus)
         lv_obj_clear_state(_root, LV_STATE_FOCUSED | LV_STATE_FOCUS_KEY);
     }
     (void)emitEvent(UiEventType::RebindInput);
+}
+
+void AbstractScreen::activateFocusModeDeferred(void *user_data)
+{
+    auto *const screen = static_cast<AbstractScreen *>(user_data);
+    if (!screen)
+    {
+        return;
+    }
+    screen->_focus_activation_pending = false;
+    if (screen->_focus_mode != FocusMode::Idle)
+    {
+        return;
+    }
+    _lv_obj_t *const first = screen->firstAvailableFocusItem();
+    if (first)
+    {
+        screen->activateFocusMode(FocusMode::Active, first);
+    }
 }
 
 void AbstractScreen::addFocusItem(_lv_obj_t *object, _lv_obj_t *frame, bool propagate_focus)
@@ -298,9 +322,9 @@ bool AbstractScreen::onKey(uint32_t key)
     }
     if (key == LV_KEY_ENTER && _focus_mode == FocusMode::Idle)
     {
-        if (_lv_obj_t *const first = firstAvailableFocusItem())
+        if (!_focus_activation_pending && firstAvailableFocusItem())
         {
-            activateFocusMode(FocusMode::Active, first);
+            _focus_activation_pending = ui_defer(activateFocusModeDeferred, this);
         }
         return true;
     }
