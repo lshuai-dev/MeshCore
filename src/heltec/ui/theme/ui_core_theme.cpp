@@ -20,6 +20,24 @@ bool s_screen_row_focus_highlight_ready = false;
 lv_style_t s_screen_focus_control;
 bool s_screen_focus_control_ready = false;
 
+void set_focus_text_scroll(lv_obj_t *object, bool focused)
+{
+    if (!object)
+        return;
+
+    if (lv_obj_check_type(object, &lv_label_class))
+    {
+        lv_label_set_long_mode(object,
+                               focused ? LV_LABEL_LONG_SCROLL_CIRCULAR : LV_LABEL_LONG_CLIP);
+    }
+
+    const uint32_t child_count = lv_obj_get_child_cnt(object);
+    for (uint32_t index = 0; index < child_count; ++index)
+    {
+        set_focus_text_scroll(lv_obj_get_child(object, index), focused);
+    }
+}
+
 } // namespace
 
 void ui_theme_apply_focus_frame(_lv_obj_t *frame)
@@ -30,21 +48,22 @@ void ui_theme_apply_focus_frame(_lv_obj_t *frame)
     {
         lv_style_init(&s_screen_focus_highlight);
 #if defined(HELTEC_V4_R8_TFT)
-        lv_style_set_bg_color(&s_screen_focus_highlight, ui_color_accent());
-        lv_style_set_bg_opa(&s_screen_focus_highlight, LV_OPA_30);
+        lv_style_set_bg_color(&s_screen_focus_highlight, ui_color_highlight_bg());
+        lv_style_set_bg_opa(&s_screen_focus_highlight, LV_OPA_COVER);
+        lv_style_set_text_color(&s_screen_focus_highlight, ui_color_highlight_fg());
+        lv_style_set_text_opa(&s_screen_focus_highlight, LV_OPA_COVER);
         lv_style_set_border_width(&s_screen_focus_highlight, 0);
         lv_style_set_border_opa(&s_screen_focus_highlight, LV_OPA_TRANSP);
         lv_style_set_border_side(&s_screen_focus_highlight, LV_BORDER_SIDE_NONE);
-        lv_style_set_outline_width(&s_screen_focus_highlight, 1);
-        lv_style_set_outline_color(&s_screen_focus_highlight, ui_color_accent());
-        lv_style_set_outline_opa(&s_screen_focus_highlight, LV_OPA_COVER);
-        lv_style_set_outline_pad(&s_screen_focus_highlight, 0);
+        lv_style_set_outline_width(&s_screen_focus_highlight, 0);
+        lv_style_set_outline_opa(&s_screen_focus_highlight, LV_OPA_TRANSP);
 #else
-        lv_style_set_bg_opa(&s_screen_focus_highlight, LV_OPA_TRANSP);
-        lv_style_set_border_width(&s_screen_focus_highlight, LV_DPX(1));
-        lv_style_set_border_color(&s_screen_focus_highlight, ui_color_highlight_bg());
-        lv_style_set_border_opa(&s_screen_focus_highlight, LV_OPA_COVER);
-        lv_style_set_border_side(&s_screen_focus_highlight, LV_BORDER_SIDE_FULL);
+        lv_style_set_bg_color(&s_screen_focus_highlight, ui_color_highlight_bg());
+        lv_style_set_bg_opa(&s_screen_focus_highlight, LV_OPA_COVER);
+        lv_style_set_text_color(&s_screen_focus_highlight, ui_color_highlight_fg());
+        lv_style_set_text_opa(&s_screen_focus_highlight, LV_OPA_COVER);
+        lv_style_set_border_width(&s_screen_focus_highlight, 0);
+        lv_style_set_border_opa(&s_screen_focus_highlight, LV_OPA_TRANSP);
         lv_style_set_outline_width(&s_screen_focus_highlight, 0);
         lv_style_set_outline_opa(&s_screen_focus_highlight, LV_OPA_TRANSP);
 #endif
@@ -53,6 +72,11 @@ void ui_theme_apply_focus_frame(_lv_obj_t *frame)
     }
     lv_obj_add_style(frame, &s_screen_focus_highlight, LV_PART_MAIN | LV_STATE_FOCUSED);
     lv_obj_add_style(frame, &s_screen_focus_highlight, LV_PART_MAIN | LV_STATE_FOCUS_KEY);
+}
+
+void ui_theme_set_focus_text_scroll(_lv_obj_t *row, bool focused)
+{
+    set_focus_text_scroll(row, focused);
 }
 
 void ui_theme_apply_focus_row(_lv_obj_t *row)

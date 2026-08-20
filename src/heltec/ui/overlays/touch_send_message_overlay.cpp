@@ -218,8 +218,12 @@ void SendMessageOverlay::clearTouchList()
             continue;
         lv_obj_add_flag(_row_objs[i], LV_OBJ_FLAG_HIDDEN);
         lv_obj_clear_state(_row_objs[i], LV_STATE_FOCUSED);
+        ui_theme_set_focus_text_scroll(_row_objs[i], false);
         if (_row_labels[i])
+        {
             lv_obj_clear_state(_row_labels[i], LV_STATE_FOCUSED);
+            ui_theme_set_focus_text_scroll(_row_labels[i], false);
+        }
     }
 }
 
@@ -312,14 +316,22 @@ void SendMessageOverlay::syncSelectionVisual()
         if (i == selected)
         {
             lv_obj_add_state(row, LV_STATE_FOCUSED);
+            ui_theme_set_focus_text_scroll(row, true);
             if (label)
+            {
                 lv_obj_add_state(label, LV_STATE_FOCUSED);
+                ui_theme_set_focus_text_scroll(label, true);
+            }
         }
         else
         {
             lv_obj_clear_state(row, LV_STATE_FOCUSED);
+            ui_theme_set_focus_text_scroll(row, false);
             if (label)
+            {
                 lv_obj_clear_state(label, LV_STATE_FOCUSED);
+                ui_theme_set_focus_text_scroll(label, false);
+            }
         }
     }
     if (_focus_group && selected < kMaxListItems && _row_objs[selected])

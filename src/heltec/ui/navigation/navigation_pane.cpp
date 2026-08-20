@@ -361,10 +361,12 @@ void NavigationPane::layoutGrid(bool update_emphasis)
             if (id == focus)
             {
                 lv_obj_add_state(cell, LV_STATE_FOCUS_KEY);
+                ui_theme_set_focus_text_scroll(cell, true);
             }
             else
             {
                 lv_obj_clear_state(cell, LV_STATE_FOCUS_KEY);
+                ui_theme_set_focus_text_scroll(cell, false);
             }
             continue;
         }
@@ -375,10 +377,12 @@ void NavigationPane::layoutGrid(bool update_emphasis)
         if (id == focus)
         {
             lv_obj_add_state(cell, LV_STATE_FOCUS_KEY);
+            ui_theme_set_focus_text_scroll(cell, true);
         }
         else
         {
             lv_obj_clear_state(cell, LV_STATE_FOCUS_KEY);
+            ui_theme_set_focus_text_scroll(cell, false);
         }
     }
 

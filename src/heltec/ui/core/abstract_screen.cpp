@@ -234,10 +234,12 @@ void AbstractScreen::onFocusItemChanged(lv_event_t *e)
     if (code == LV_EVENT_FOCUSED)
     {
         lv_obj_add_state(frame, LV_STATE_FOCUSED | LV_STATE_FOCUS_KEY);
+        ui_theme_set_focus_text_scroll(frame, true);
     }
     else
     {
         lv_obj_clear_state(frame, LV_STATE_FOCUSED | LV_STATE_FOCUS_KEY);
+        ui_theme_set_focus_text_scroll(frame, false);
     }
     lv_obj_invalidate(frame);
 }

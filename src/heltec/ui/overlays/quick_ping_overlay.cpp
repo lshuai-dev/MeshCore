@@ -256,10 +256,12 @@ void syncControlFocusToRow(lv_event_t *event)
     if (code == LV_EVENT_FOCUSED)
     {
         lv_obj_add_state(row, LV_STATE_FOCUSED | LV_STATE_FOCUS_KEY);
+        ui_theme_set_focus_text_scroll(row, true);
     }
     else
     {
         lv_obj_clear_state(row, LV_STATE_FOCUSED | LV_STATE_FOCUS_KEY);
+        ui_theme_set_focus_text_scroll(row, false);
     }
     if (ht_id(control) == meta_id::QuickPingMessageInput)
     {
@@ -269,10 +271,12 @@ void syncControlFocusToRow(lv_event_t *event)
             if (code == LV_EVENT_FOCUSED)
             {
                 lv_obj_add_state(label, LV_STATE_FOCUSED | LV_STATE_FOCUS_KEY);
+                ui_theme_set_focus_text_scroll(label, true);
             }
             else
             {
                 lv_obj_clear_state(label, LV_STATE_FOCUSED | LV_STATE_FOCUS_KEY);
+                ui_theme_set_focus_text_scroll(label, false);
             }
             lv_obj_invalidate(label);
         }
