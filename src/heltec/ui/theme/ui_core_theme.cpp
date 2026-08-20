@@ -29,6 +29,16 @@ void set_focus_text_scroll(lv_obj_t *object, bool focused)
     {
         lv_label_set_long_mode(object,
                                focused ? LV_LABEL_LONG_SCROLL_CIRCULAR : LV_LABEL_LONG_CLIP);
+        if (focused)
+        {
+            lv_obj_set_style_text_color(object, ui_color_highlight_fg(), LV_PART_MAIN);
+            lv_obj_set_style_text_opa(object, LV_OPA_COVER, LV_PART_MAIN);
+        }
+        else
+        {
+            lv_obj_remove_local_style_prop(object, LV_STYLE_TEXT_COLOR, LV_PART_MAIN);
+            lv_obj_remove_local_style_prop(object, LV_STYLE_TEXT_OPA, LV_PART_MAIN);
+        }
     }
 
     const uint32_t child_count = lv_obj_get_child_cnt(object);
