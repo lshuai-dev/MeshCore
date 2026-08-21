@@ -816,7 +816,7 @@ void HeltecEnvironmentSensorManager::pollGpsModuleConfiguration()
 #elif defined(GPS_L76K)
     if (gps_config_step == 1)
     {
-        _location->sendSentence("$PCAS04,7");
+        _location->sendSentence("$PCAS04,7*1E");
         settle_ms = 500;
     }
     else if (gps_config_step == 2)
