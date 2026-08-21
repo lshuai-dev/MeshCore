@@ -457,7 +457,7 @@ void QuickPingOverlay::onExit()
         ui_motion_cancel(_root, slideYExec);
         lv_obj_set_y(_root, kPaneInset);
     }
-    ui_defer_cancel(openPendingKeyboardAsync, this);
+    defer_cancel(openPendingKeyboardAsync, this);
     clearRepeatSelection();
     _close_animating = false;
     _close_animation_ready = false;
@@ -552,7 +552,7 @@ void QuickPingOverlay::closeAnimationReady(void *user_data)
         return;
     self->_close_animating = false;
     self->_close_animation_ready = true;
-    (void)self->emitEvent(UiEventType::QuickPingClose);
+    (void)self->emit(UiEventType::QuickPingClose);
 }
 
 bool QuickPingOverlay::onKey(uint32_t key)
@@ -572,7 +572,7 @@ bool QuickPingOverlay::onKey(uint32_t key)
         rebuildFocusGroup(_ta_message);
         return true;
     }
-    return emitEvent(UiEventType::QuickPingClose);
+    return emit(UiEventType::QuickPingClose);
 }
 
 _lv_obj_t *QuickPingOverlay::focusedObject() const
@@ -1513,7 +1513,7 @@ void QuickPingOverlay::handleMessageInput()
     if (keyboardVisible() || _keyboard_open_pending)
         return;
     _keyboard_open_pending = true;
-    if (!ui_defer(openPendingKeyboardAsync, this))
+    if (!defer(openPendingKeyboardAsync, this))
         _keyboard_open_pending = false;
 }
 
@@ -1629,7 +1629,7 @@ void QuickPingOverlay::activateDropdown(_lv_obj_t *dropdown)
 
 void QuickPingOverlay::clearRepeatSelection()
 {
-    ui_defer_cancel(finishRepeatSelectionAsync, this);
+    defer_cancel(finishRepeatSelectionAsync, this);
     _repeat_pending = false;
     _repeat_index = 0;
     _repeat_dropdown = nullptr;
@@ -1643,7 +1643,7 @@ void QuickPingOverlay::armRepeatSelection(_lv_obj_t *dropdown)
     _repeat_pending = true;
     _repeat_index = lv_dropdown_get_selected(dropdown);
     _repeat_dropdown = dropdown;
-    if (!ui_defer(finishRepeatSelectionAsync, this))
+    if (!defer(finishRepeatSelectionAsync, this))
         clearRepeatSelection();
 }
 

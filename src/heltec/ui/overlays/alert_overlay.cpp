@@ -89,7 +89,7 @@ _lv_obj_t *AlertOverlay::create(lv_obj_t *parent)
                           (unsigned long)kClickGuardMs);
                 return;
             }
-            (void)self->emitEvent(UiEventType::AlertClose);
+            (void)self->emit(UiEventType::AlertClose);
         },
         LV_EVENT_CLICKED, this);
 
@@ -178,7 +178,7 @@ bool AlertOverlay::onKey(uint32_t key)
     if (key == LV_KEY_ESC)
     {
         ALERT_LOG("key esc close");
-        return emitEvent(UiEventType::AlertClose);
+        return emit(UiEventType::AlertClose);
     }
     return false;
 }

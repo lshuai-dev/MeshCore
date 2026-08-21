@@ -177,22 +177,22 @@ bool UiApp::inputOnActiveScreen() const
 
 void UiApp::reconcileInput()
 {
-    _surfaces.reconcileVisibility();
-    if (_surfaces.contains(&_previewOvl) && !ui_task().isPreviewActive())
+    _surfaces.reconcile();
+    if (_surfaces.isVisible(&_previewOvl) && !ui_task().isPreviewActive())
     {
-        (void)_surfaces.dismissBranch(&_previewOvl);
+        (void)_surfaces.hide(&_previewOvl);
         return;
     }
-    if (_surfaces.contains(&_alertOvl) && !ui_task().isAlertActive())
+    if (_surfaces.isVisible(&_alertOvl) && !ui_task().isAlertActive())
     {
-        UI_ALERT_LOG("reconcile alert inactive depth=%u active=%p alert=%p",
-                     (unsigned)_surfaces.modalDepth(), _surfaces.active(), &_alertOvl);
-        const bool dismissed = _surfaces.dismissBranch(&_alertOvl);
-        UI_ALERT_LOG("reconcile alert dismiss=%d depth=%u contains=%d", dismissed ? 1 : 0,
-                     (unsigned)_surfaces.modalDepth(), _surfaces.contains(&_alertOvl) ? 1 : 0);
+        UI_ALERT_LOG("reconcile alert inactive active=%p alert=%p", _surfaces.active(),
+                     &_alertOvl);
+        const bool dismissed = _surfaces.hide(&_alertOvl);
+        UI_ALERT_LOG("reconcile alert dismiss=%d visible=%d", dismissed ? 1 : 0,
+                     _surfaces.isVisible(&_alertOvl) ? 1 : 0);
         return;
     }
-    _surfaces.reconcileFocus();
+    _surfaces.reconcile();
 }
 
 void UiApp::setTopPaneTitle(const char *title)
@@ -208,7 +208,7 @@ void UiApp::onTopPaneShortPress()
     if (!_inited)
         return;
     notifyDisplayActivity(millis());
-    if (_surfaces.contains(&_navigation))
+    if (_surfaces.isVisible(&_navigation))
     {
         closeNavigationPane();
         return;
@@ -275,8 +275,6 @@ void UiApp::init()
     if (!disp)
         return;
     if (!heltec::meshcore::ui::ui_theme_init(disp))
-        return;
-    if (!_surfaces.createTimers())
         return;
     if (!initTimers())
         return;
@@ -484,7 +482,7 @@ void UiApp::handleFrameEvent(lv_event_t *e)
         if (!request || !inputOnActiveScreen())
             break;
         _confirmOvl.setRequest(request->action);
-        if (!_surfaces.contains(&_confirmOvl) && !_surfaces.present(&_confirmOvl))
+        if (!_surfaces.isVisible(&_confirmOvl) && !_surfaces.show(&_confirmOvl))
         {
             _biz.showAlert("Unable to open confirmation", 2000);
         }
@@ -493,27 +491,27 @@ void UiApp::handleFrameEvent(lv_event_t *e)
     case UiEventType::ConfirmAccepted:
     {
         const auto *action = static_cast<const UiConfirmAction *>(event->payload);
-        if (!action || !_surfaces.contains(&_confirmOvl))
+        if (!action || !_surfaces.isVisible(&_confirmOvl))
             break;
         const UiConfirmAction accepted_action = *action;
-        if (_surfaces.dismissBranch(&_confirmOvl) && !_surfaces.contains(&_confirmOvl))
+        if (_surfaces.hide(&_confirmOvl) && !_surfaces.isVisible(&_confirmOvl))
         {
-            (void)_surfaces.dispatchEventToActive(UiEventType::ConfirmAccepted, &accepted_action);
+            (void)_surfaces.dispatchToActive(UiEventType::ConfirmAccepted, &accepted_action);
         }
         break;
     }
     case UiEventType::ConfirmCancelled:
-        (void)_surfaces.dismissBranch(&_confirmOvl);
+        (void)_surfaces.hide(&_confirmOvl);
         break;
 #if !defined(HELTEC_V4_R8_TFT) || !defined(HELTEC_HAS_TOUCH) || !HELTEC_HAS_TOUCH
     case UiEventType::ContextOpen:
-        (void)ui_defer(
+        (void)defer(
             +[](void *user_data)
             {
                 auto *app = static_cast<UiApp *>(user_data);
                 if (!app)
                     return;
-                if (!app->_inited || app->_surfaces.contains(&app->_contextMenu))
+                if (!app->_inited || app->_surfaces.isVisible(&app->_contextMenu))
                     return;
                 app->reconcileInput();
 #if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
@@ -527,7 +525,7 @@ void UiApp::handleFrameEvent(lv_event_t *e)
                     return;
                 if (!app->inputOnActiveScreen())
                     return;
-                (void)app->_surfaces.present(&app->_contextMenu);
+                (void)app->_surfaces.show(&app->_contextMenu);
             },
             this);
         break;
@@ -549,15 +547,15 @@ void UiApp::handleFrameEvent(lv_event_t *e)
         break;
 #if defined(HELTEC_V4_R8_TFT) && defined(HELTEC_HAS_TOUCH) && HELTEC_HAS_TOUCH
     case UiEventType::QuickPingOpen:
-        if (!_surfaces.contains(&_quickPingOverlay) && inputOnActiveScreen())
+        if (!_surfaces.isVisible(&_quickPingOverlay) && inputOnActiveScreen())
         {
-            (void)_surfaces.present(&_quickPingOverlay, _surfaces.root());
+            (void)_surfaces.show(&_quickPingOverlay);
         }
         break;
     case UiEventType::QuickPingClose:
         if (!_quickPingOverlay.requestCloseAnimation())
         {
-            (void)_surfaces.dismissBranch(&_quickPingOverlay);
+            (void)_surfaces.hide(&_quickPingOverlay);
         }
         break;
 #endif
@@ -576,8 +574,8 @@ void UiApp::handleFrameEvent(lv_event_t *e)
         closePreviewOverlay();
         break;
     case UiEventType::AlertClose:
-        UI_ALERT_LOG("event close depth=%u active=%p contains=%d", (unsigned)_surfaces.modalDepth(),
-                     _surfaces.active(), _surfaces.contains(&_alertOvl) ? 1 : 0);
+        UI_ALERT_LOG("event close active=%p visible=%d", _surfaces.active(),
+                     _surfaces.isVisible(&_alertOvl) ? 1 : 0);
         closeAlertOverlay();
         break;
     case UiEventType::RadioSyncClose:
@@ -604,7 +602,7 @@ void UiApp::handleFrameEvent(lv_event_t *e)
             break;
         if (!_keyboardOvl.prepareMessageInput(req->title ? req->title : "broadcast"))
             break;
-        (void)ui_defer(
+        (void)defer(
             +[](void *user_data)
             {
                 auto *app = static_cast<UiApp *>(user_data);
@@ -623,7 +621,7 @@ void UiApp::handleFrameEvent(lv_event_t *e)
         auto *submit = static_cast<const UiMessageKeyboardSubmit *>(event->payload);
         if (submit && submit->text)
         {
-            if (_surfaces.contains(&_sendMessageOvl))
+            if (_surfaces.isVisible(&_sendMessageOvl))
             {
                 _sendMessageOvl.submitCustomMessage(submit->text);
             }
@@ -634,11 +632,11 @@ void UiApp::handleFrameEvent(lv_event_t *e)
     {
         auto *submit = static_cast<const UiWaypointKeyboardSubmit *>(event->payload);
         if (submit)
-            _surfaces.dispatchEventToActive(UiEventType::WaypointKeyboardSubmit, submit);
+            _surfaces.dispatchToActive(UiEventType::WaypointKeyboardSubmit, submit);
         break;
     }
     case UiEventType::RebindInput:
-        _surfaces.reconcileFocus();
+        _surfaces.reconcile();
         break;
     default:
         break;
@@ -757,7 +755,7 @@ bool UiApp::initScreens(_lv_obj_t *content)
 
 bool UiApp::initTimers()
 {
-    if (!ui_deferred_init())
+    if (!deferred_init())
         return false;
     if (!ui_motion_init())
         return false;

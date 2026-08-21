@@ -365,7 +365,7 @@ void CompassScreen::refresh()
     {
         _pending_auto_cal = false;
         _auto_cal_due_ms = 0;
-        (void)emitEvent(UiEventType::CalibrationOpen);
+        (void)emit(UiEventType::CalibrationOpen);
         return;
     }
 

@@ -116,13 +116,13 @@ bool point_inside_any_open_dropdown_list(int16_t x, int16_t y)
 
 void UiApp::openNavigationPaneFromEdgeSwipe()
 {
-    if (!_surfaces.contains(&_navigation) && inputOnActiveScreen())
+    if (!_surfaces.isVisible(&_navigation) && inputOnActiveScreen())
         openNavigationPane();
 }
 
 void UiApp::closeNavigationPaneFromSwipe()
 {
-    if (!_surfaces.contains(&_navigation))
+    if (!_surfaces.isVisible(&_navigation))
         return;
     _nav_last_activity_ms = 0;
     stopNavigationAutoCommitTimer();
@@ -132,26 +132,26 @@ void UiApp::closeNavigationPaneFromSwipe()
 
 void UiApp::openQuickPingFromTopSwipe()
 {
-    if (_surfaces.contains(&_quickPingOverlay))
+    if (_surfaces.isVisible(&_quickPingOverlay))
         return;
 
-    if (_surfaces.contains(&_navigation))
+    if (_surfaces.isVisible(&_navigation))
     {
         closeNavigationImmediate();
     }
     if (inputOnActiveScreen())
     {
-        (void)_surfaces.present(&_quickPingOverlay, _surfaces.root());
+        (void)_surfaces.show(&_quickPingOverlay);
     }
 }
 
 void UiApp::closeQuickPingFromSwipe()
 {
-    if (_surfaces.contains(&_quickPingOverlay))
+    if (_surfaces.isVisible(&_quickPingOverlay))
     {
         if (!_quickPingOverlay.requestCloseAnimation())
         {
-            (void)_surfaces.dismissBranch(&_quickPingOverlay);
+            (void)_surfaces.hide(&_quickPingOverlay);
         }
     }
 }
@@ -228,8 +228,8 @@ void UiApp::onTouchSwipe(lv_dir_t direction, int16_t start_x, int16_t start_y)
         return;
     }
 
-    const bool nav_open = _surfaces.contains(&_navigation);
-    const bool quick_ping_open = _surfaces.contains(&_quickPingOverlay);
+    const bool nav_open = _surfaces.isVisible(&_navigation);
+    const bool quick_ping_open = _surfaces.isVisible(&_quickPingOverlay);
     const lv_coord_t w = current_display_width();
     const lv_coord_t h = current_display_height();
 
@@ -270,14 +270,14 @@ void UiApp::onTouchSwipe(lv_dir_t direction, int16_t start_x, int16_t start_y)
         }
         notifyDisplayActivity(millis());
 #if defined(HELTEC_V4_R8_TFT) && defined(HELTEC_HAS_TOUCH) && HELTEC_HAS_TOUCH
-        if (!_surfaces.contains(&_navigation))
+        if (!_surfaces.isVisible(&_navigation))
         {
             deferTouchAction(DeferredTouchAction::OpenNavigation);
         }
 #else
-        if (_surfaces.contains(&_contextMenu))
+        if (_surfaces.isVisible(&_contextMenu))
             return;
-        const bool nav_open = _surfaces.contains(&_navigation);
+        const bool nav_open = _surfaces.isVisible(&_navigation);
         if (nav_open)
         {
             closeNavigationPane();
@@ -294,14 +294,14 @@ void UiApp::onTouchSwipe(lv_dir_t direction, int16_t start_x, int16_t start_y)
     {
         notifyDisplayActivity(millis());
 #if defined(HELTEC_V4_R8_TFT) && defined(HELTEC_HAS_TOUCH) && HELTEC_HAS_TOUCH
-        if (!_surfaces.contains(&_quickPingOverlay))
+        if (!_surfaces.isVisible(&_quickPingOverlay))
         {
             deferTouchAction(DeferredTouchAction::OpenQuickPing);
         }
 #else
-        if (_surfaces.contains(&_navigation))
+        if (_surfaces.isVisible(&_navigation))
             return;
-        if (_surfaces.contains(&_contextMenu))
+        if (_surfaces.isVisible(&_contextMenu))
         {
             dismissTopContextMenu();
         }
@@ -315,13 +315,13 @@ void UiApp::onTouchSwipe(lv_dir_t direction, int16_t start_x, int16_t start_y)
 
     if (direction != LV_DIR_LEFT && direction != LV_DIR_RIGHT)
         return;
-    if (_surfaces.contains(&_navigation))
+    if (_surfaces.isVisible(&_navigation))
         return;
 #if defined(HELTEC_V4_R8_TFT) && defined(HELTEC_HAS_TOUCH) && HELTEC_HAS_TOUCH
-    if (_surfaces.contains(&_quickPingOverlay))
+    if (_surfaces.isVisible(&_quickPingOverlay))
         return;
 #else
-    if (_surfaces.contains(&_contextMenu))
+    if (_surfaces.isVisible(&_contextMenu))
         return;
 #endif
     const int8_t step = direction == LV_DIR_LEFT ? 1 : -1;

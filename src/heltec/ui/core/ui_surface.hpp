@@ -39,10 +39,6 @@ class UiSurface
     virtual _lv_obj_t *focusedObject() const;
     virtual bool canPresent() const;
     virtual bool canBindInput() const;
-    virtual uint16_t inputRebindDelayMs() const
-    {
-        return 0;
-    }
     virtual void onEnter()
     {
     }
@@ -69,7 +65,7 @@ class UiSurface
     {
         (void)event;
     }
-    bool emitEvent(UiEventType type, const void *payload = nullptr) const;
+    bool emit(UiEventType type, const void *payload = nullptr) const;
     virtual _lv_obj_t *defaultFocus() const;
     virtual bool onKey(uint32_t key)
     {

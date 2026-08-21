@@ -635,11 +635,6 @@ void RadialNavigator::onExit()
     UiSurface::onExit();
 }
 
-uint16_t RadialNavigator::inputRebindDelayMs() const
-{
-    return 0;
-}
-
 void RadialNavigator::sendTilePreview(uint8_t tile_idx)
 {
     if (_tileview && tile_idx < kMaxButtons)

@@ -281,7 +281,7 @@ void RepeatModeOverlay::applySelection(uint8_t item_index)
     if (!error && _biz.forwardingEnabled())
     {
         _biz.showAlert("Repeat mode enabled", 1200);
-        (void)emitEvent(UiEventType::RepeatModeClose);
+        (void)emit(UiEventType::RepeatModeClose);
         return;
     }
 
@@ -293,7 +293,7 @@ void RepeatModeOverlay::cancelSelection()
 {
     if (_applying)
         return;
-    (void)emitEvent(UiEventType::RepeatModeClose);
+    (void)emit(UiEventType::RepeatModeClose);
 }
 
 void RepeatModeOverlay::setApplying(bool applying)

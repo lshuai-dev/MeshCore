@@ -196,7 +196,7 @@ void ContextMenu::bindPendingLeaf()
         return;
     _pending_leaf_bind = false;
     _leaf_menu->resetInputState(true);
-    emitEvent(UiEventType::RebindInput);
+    emit(UiEventType::RebindInput);
 }
 
 void ContextMenu::bindPendingMenu()
@@ -204,7 +204,7 @@ void ContextMenu::bindPendingMenu()
     if (!_pending_menu_bind || !_root || lv_obj_has_flag(_root, LV_OBJ_FLAG_HIDDEN))
         return;
     _pending_menu_bind = false;
-    emitEvent(UiEventType::RebindInput);
+    emit(UiEventType::RebindInput);
 }
 
 void ContextMenu::schedulePendingBind(uint32_t delay_ms)
@@ -271,7 +271,7 @@ void ContextMenu::leaveMenuLeaf()
         _leaf_menu->resetInputState(false);
     _in_leaf = false;
     _leaf_menu = nullptr;
-    emitEvent(UiEventType::RebindInput);
+    emit(UiEventType::RebindInput);
 }
 
 void ContextMenu::onEnter()
@@ -344,7 +344,7 @@ _lv_obj_t *ContextMenu::create(_lv_obj_t *parent)
             auto *self = static_cast<ContextMenu *>(lv_event_get_user_data(e));
             if (!self)
                 return;
-            self->emitEvent(UiEventType::RebindInput);
+            self->emit(UiEventType::RebindInput);
             lv_event_stop_bubbling(e);
             lv_event_stop_processing(e);
         },
@@ -487,7 +487,7 @@ bool ContextMenu::registerMenu(const char *title, const lv_img_dsc_t *icon, Abst
 
             if (lv_event_get_key(e) != LV_KEY_ESC)
                 return;
-            ctx_menu->emitEvent(UiEventType::ContextClose);
+            ctx_menu->emit(UiEventType::ContextClose);
             lv_event_stop_bubbling(e);
             lv_event_stop_processing(e);
         },

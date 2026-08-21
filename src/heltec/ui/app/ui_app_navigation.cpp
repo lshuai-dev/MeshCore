@@ -11,16 +11,16 @@ namespace heltec::meshcore::ui
 
 void UiApp::openNavigationPane()
 {
-    if (!_inited || _surfaces.contains(&_navigation))
+    if (!_inited || _surfaces.isVisible(&_navigation))
         return;
 
     reconcileInput();
-    if (_surfaces.contains(&_navigation))
+    if (_surfaces.isVisible(&_navigation))
         return;
 
     _navigation.setSelectedIndex(activeTileIndex(), true);
     notifyNavActivity(millis());
-    (void)_surfaces.present(&_navigation);
+    (void)_surfaces.show(&_navigation);
 }
 
 void UiApp::scheduleNavTileCommit(uint8_t tile_idx)
@@ -35,7 +35,7 @@ void UiApp::scheduleNavTileCommit(uint8_t tile_idx)
         return;
     stopNavigationAutoCommitTimer();
     _scheduled_nav_tile = tile_idx;
-    if (!ui_defer(
+    if (!defer(
             +[](void *user_data)
             {
                 auto *app = static_cast<UiApp *>(user_data);
@@ -95,11 +95,11 @@ bool UiApp::switchAdjacentTile(int8_t dir)
 
 void UiApp::closeNavigationPane()
 {
-    if (!_surfaces.contains(&_navigation))
+    if (!_surfaces.isVisible(&_navigation))
         return;
     _nav_last_activity_ms = 0;
     stopNavigationAutoCommitTimer();
-    (void)_surfaces.dismissBranch(&_navigation);
+    (void)_surfaces.hide(&_navigation);
     if (AbstractScreen *scr = activeScreen())
     {
         setTopPaneTitle(scr->title());
@@ -177,17 +177,17 @@ void UiApp::ensureTileKeypadFocus()
     _nav_last_activity_ms = 0;
     stopNavigationAutoCommitTimer();
 
-    if (_surfaces.contains(&_navigation))
+    if (_surfaces.isVisible(&_navigation))
     {
         closeNavigationPane();
         return;
     }
-    if (_surfaces.contains(&_navigation))
+    if (_surfaces.isVisible(&_navigation))
     {
         closeNavigationImmediate();
     }
 #if !defined(HELTEC_V4_R8_TFT) || !defined(HELTEC_HAS_TOUCH) || !HELTEC_HAS_TOUCH
-    if (_surfaces.contains(&_contextMenu))
+    if (_surfaces.isVisible(&_contextMenu))
         dismissContextMenuStack();
 #endif
     bindScreen(resolveActiveScreen());
@@ -225,7 +225,7 @@ void UiApp::onTileActiveChanged()
     if (AbstractScreen *scr = activeScreen())
     {
         setTopPaneTitle(scr->title());
-        if (!_surfaces.contains(&_navigation))
+        if (!_surfaces.isVisible(&_navigation))
         {
             bindScreen(resolveActiveScreen());
         }
@@ -236,7 +236,7 @@ void UiApp::closeNavigationImmediate()
 {
     _nav_last_activity_ms = 0;
     stopNavigationAutoCommitTimer();
-    (void)_surfaces.dismissBranch(&_navigation);
+    (void)_surfaces.hide(&_navigation);
 }
 
 void UiApp::restartNavigationAutoCommitTimer()

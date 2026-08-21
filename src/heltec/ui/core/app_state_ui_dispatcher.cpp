@@ -104,7 +104,7 @@ void AppStateUiDispatcher::dispatchPending()
         }
         if (_surfaces)
         {
-            _surfaces->dispatchEventToActive(UiEventType::AppStateChanged, &event);
+            _surfaces->dispatchToActive(UiEventType::AppStateChanged, &event);
         }
     }
 }

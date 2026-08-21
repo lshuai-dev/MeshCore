@@ -70,7 +70,7 @@ void SystemScreen::onSwitchValueChanged(lv_event_t *e)
                 self->_feedback.showAlert("No forwarding frequency", 2000);
                 return;
             }
-            if (!self->emitEvent(UiEventType::RepeatModeOpen))
+            if (!self->emit(UiEventType::RepeatModeOpen))
             {
                 self->_feedback.showAlert("Unable to open frequency picker", 2000);
             }
@@ -166,7 +166,7 @@ void SystemScreen::onDropdownStateEvent(lv_event_t *e)
         if (self->group())
             lv_group_set_editing(self->group(), true);
         self->syncDropdownLayout(dropdown);
-        if (!ui_defer(realignDropdownListAsync, dropdown))
+        if (!defer(realignDropdownListAsync, dropdown))
         {
             self->realignDropdownList(dropdown);
         }

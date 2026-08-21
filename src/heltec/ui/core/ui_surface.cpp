@@ -131,7 +131,7 @@ void UiSurface::clearFocusObjects()
     _default_focus = nullptr;
 }
 
-bool UiSurface::emitEvent(UiEventType type, const void *payload) const
+bool UiSurface::emit(UiEventType type, const void *payload) const
 {
     return ui_event_send(_event_target, type, payload);
 }

@@ -402,7 +402,7 @@ void SystemScreen::onWidgetKeyPreprocess(lv_event_t *e)
 #if LV_USE_DROPDOWN != 0
     if (self->_open_dropdown == target && cycle_open_dropdown(target, key))
     {
-        if (!ui_defer(realignDropdownListAsync, target))
+        if (!defer(realignDropdownListAsync, target))
         {
             self->realignDropdownList(target);
         }

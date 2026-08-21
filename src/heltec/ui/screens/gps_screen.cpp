@@ -468,7 +468,7 @@ void GPSScreen::onAdvDropdownKey(lv_event_t *e)
     const uint32_t key = lv_event_get_key(e);
     if (self->_adv_dropdown_open && cycle_open_dropdown(dropdown, key))
     {
-        if (!ui_defer(realignAdvDropdownListAsync, self))
+        if (!defer(realignAdvDropdownListAsync, self))
         {
             self->realignAdvDropdownList();
         }
@@ -563,7 +563,7 @@ void GPSScreen::onAdvDropdownStateEvent(lv_event_t *e)
         lv_obj_add_state(dropdown, LV_STATE_EDITED);
         if (self->group())
             lv_group_set_editing(self->group(), true);
-        if (!ui_defer(realignAdvDropdownListAsync, self))
+        if (!defer(realignAdvDropdownListAsync, self))
         {
             self->realignAdvDropdownList();
         }

@@ -422,7 +422,7 @@ void KeyboardOverlay::on_keyboard_key_pre(lv_event_t *e)
     }
     if (key == LV_KEY_ESC)
     {
-        self->emitEvent(UiEventType::KeyboardClose);
+        self->emit(UiEventType::KeyboardClose);
         lv_event_stop_processing(e);
         lv_event_stop_bubbling(e);
     }
@@ -458,7 +458,7 @@ void KeyboardOverlay::on_keyboard_events(lv_event_t *e)
     }
     else if (code == LV_EVENT_CANCEL)
     {
-        self->emitEvent(UiEventType::KeyboardClose);
+        self->emit(UiEventType::KeyboardClose);
     }
     else if (code == LV_EVENT_VALUE_CHANGED)
     {
@@ -629,7 +629,7 @@ bool KeyboardOverlay::onKey(uint32_t key)
 {
     if (key == LV_KEY_ESC)
     {
-        emitEvent(UiEventType::KeyboardClose);
+        emit(UiEventType::KeyboardClose);
         return true;
     }
     return false;
@@ -651,11 +651,11 @@ void KeyboardOverlay::submitMessageInput()
     strncpy(_submitted_text, txt, sizeof(_submitted_text) - 1);
     _submitted_text[sizeof(_submitted_text) - 1] = '\0';
 
-    emitEvent(UiEventType::KeyboardClose);
+    emit(UiEventType::KeyboardClose);
 
     UiMessageKeyboardSubmit submit;
     submit.text = _submitted_text;
-    emitEvent(UiEventType::MessageKeyboardSubmit, &submit);
+    emit(UiEventType::MessageKeyboardSubmit, &submit);
 }
 
 void KeyboardOverlay::submitWaypointInput()
@@ -674,12 +674,12 @@ void KeyboardOverlay::submitWaypointInput()
     }
 
     // Close before returning the parsed value so the owning screen is active.
-    emitEvent(UiEventType::KeyboardClose);
+    emit(UiEventType::KeyboardClose);
 
     UiWaypointKeyboardSubmit submit;
     submit.lat = lat;
     submit.lon = lon;
-    emitEvent(UiEventType::WaypointKeyboardSubmit, &submit);
+    emit(UiEventType::WaypointKeyboardSubmit, &submit);
 }
 
 #else /* !LV_USE_KEYBOARD */

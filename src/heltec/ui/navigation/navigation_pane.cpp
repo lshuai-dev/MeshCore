@@ -820,11 +820,6 @@ void NavigationPane::onExit()
     resetPanel();
 }
 
-uint16_t NavigationPane::inputRebindDelayMs() const
-{
-    return 0;
-}
-
 void NavigationPane::sendTilePreview(uint8_t tile_idx)
 {
     if (!_tileview || tile_idx >= kMaxButtons)

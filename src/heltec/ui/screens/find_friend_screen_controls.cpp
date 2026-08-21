@@ -476,7 +476,7 @@ void FindFriendScreen::onDropdownStateEvent(lv_event_t *e)
         lv_obj_add_state(dropdown, LV_STATE_EDITED);
         if (self->group())
             lv_group_set_editing(self->group(), true);
-        if (!ui_defer(realignDropdownListAsync, dropdown))
+        if (!defer(realignDropdownListAsync, dropdown))
         {
             self->realignDropdownList(dropdown);
         }
@@ -740,7 +740,7 @@ void FindFriendScreen::onControlKeyPreprocess(lv_event_t *e)
             direction = -1;
         if (direction != 0 && self->moveFriendDropdownSelection(direction))
         {
-            if (!ui_defer(realignDropdownListAsync, target))
+            if (!defer(realignDropdownListAsync, target))
                 self->realignDropdownList(target);
             lv_event_stop_processing(e);
             lv_event_stop_bubbling(e);
@@ -750,7 +750,7 @@ void FindFriendScreen::onControlKeyPreprocess(lv_event_t *e)
 
     if (self->_open_dropdown == target && cycle_dropdown(target, key))
     {
-        if (!ui_defer(realignDropdownListAsync, target))
+        if (!defer(realignDropdownListAsync, target))
             self->realignDropdownList(target);
         lv_event_stop_processing(e);
         lv_event_stop_bubbling(e);
@@ -834,7 +834,7 @@ void FindFriendScreen::handleAction(Action action, _lv_obj_t *source)
     if (action == Action::WaypointManual)
     {
         _waypoint_keyboard_return_focus = source;
-        emitEvent(UiEventType::WaypointKeyboardOpen);
+        emit(UiEventType::WaypointKeyboardOpen);
     }
 }
 

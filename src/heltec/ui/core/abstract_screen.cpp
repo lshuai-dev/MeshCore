@@ -76,7 +76,7 @@ _lv_obj_t *AbstractScreen::tile() const
 void AbstractScreen::onEnter()
 {
     UiSurface::onEnter();
-    (void)ui_defer_cancel(activateFocusModeDeferred, this);
+    (void)defer_cancel(activateFocusModeDeferred, this);
     _focus_activation_pending = false;
     if (!_focus_group || !_idle_group || !_root)
         return;
@@ -88,7 +88,7 @@ void AbstractScreen::onEnter()
 
 void AbstractScreen::onExit()
 {
-    (void)ui_defer_cancel(activateFocusModeDeferred, this);
+    (void)defer_cancel(activateFocusModeDeferred, this);
     _focus_activation_pending = false;
     if (_focus_group)
     {
@@ -143,7 +143,7 @@ void AbstractScreen::activateFocusMode(FocusMode mode, _lv_obj_t *focus)
     {
         lv_obj_clear_state(_root, LV_STATE_FOCUSED | LV_STATE_FOCUS_KEY);
     }
-    (void)emitEvent(UiEventType::RebindInput);
+    (void)emit(UiEventType::RebindInput);
 }
 
 void AbstractScreen::activateFocusModeDeferred(void *user_data)
@@ -318,13 +318,13 @@ bool AbstractScreen::onKey(uint32_t key)
 {
     if (key == LV_KEY_ESC)
     {
-        return emitEvent(UiEventType::NavOpen);
+        return emit(UiEventType::NavOpen);
     }
     if (key == LV_KEY_ENTER && _focus_mode == FocusMode::Idle)
     {
         if (!_focus_activation_pending && firstAvailableFocusItem())
         {
-            _focus_activation_pending = ui_defer(activateFocusModeDeferred, this);
+            _focus_activation_pending = defer(activateFocusModeDeferred, this);
         }
         return true;
     }

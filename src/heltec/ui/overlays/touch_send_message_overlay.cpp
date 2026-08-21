@@ -398,7 +398,7 @@ void SendMessageOverlay::sendMessageText(const char *text, bool alert_on_direct_
     memcpy(pub_key_prefix, target.pub_key_prefix, 6);
 
     // Close before alert/send so the result overlay becomes the top surface.
-    emitEvent(UiEventType::SendMessageClose);
+    emit(UiEventType::SendMessageClose);
 
     bool ok = false;
     if (kind == TargetKind::Personal)
@@ -426,7 +426,7 @@ void SendMessageOverlay::scheduleSendResultAlert(bool ok)
     if (_send_alert_scheduled)
         return;
     _send_alert_scheduled = true;
-    if (!ui_defer(showSendResultAlertAsync, this))
+    if (!defer(showSendResultAlertAsync, this))
     {
         _send_alert_scheduled = false;
         _biz.showAlert(ok ? "Queued" : "Failed", 1600);
@@ -452,7 +452,7 @@ void SendMessageOverlay::openCustomKeyboard()
     const Target &target = _model.target();
     UiMessageKeyboardRequest req;
     req.title = target.label;
-    const bool ok = emitEvent(UiEventType::MessageKeyboardOpen, &req);
+    const bool ok = emit(UiEventType::MessageKeyboardOpen, &req);
     BTN_UI_LOG("sendmsg custom keyboard emit ok=%d page=%u sel=%d target=%s kind=%u channel=%d",
                ok ? 1 : 0, (unsigned)static_cast<uint8_t>(_model.page()), _model.selectedIndex(),
                req.title ? req.title : "", (unsigned)static_cast<uint8_t>(target.kind),
@@ -476,7 +476,7 @@ void SendMessageOverlay::handleBack()
         renderRows();
         return;
     }
-    emitEvent(UiEventType::SendMessageClose);
+    emit(UiEventType::SendMessageClose);
 }
 
 void SendMessageOverlay::applySelection()

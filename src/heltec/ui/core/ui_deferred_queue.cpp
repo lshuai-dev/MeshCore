@@ -41,17 +41,17 @@ class UiDeferredQueue
 UiDeferredQueue s_ui_deferred_queue;
 } // namespace
 
-bool ui_deferred_init()
+bool deferred_init()
 {
     return s_ui_deferred_queue.createTimer();
 }
 
-bool ui_defer(UiDeferredCallback callback, void *user_data)
+bool defer(UiDeferredCallback callback, void *user_data)
 {
     return s_ui_deferred_queue.post(callback, user_data);
 }
 
-uint8_t ui_defer_cancel(UiDeferredCallback callback, void *user_data)
+uint8_t defer_cancel(UiDeferredCallback callback, void *user_data)
 {
     return s_ui_deferred_queue.cancel(callback, user_data);
 }

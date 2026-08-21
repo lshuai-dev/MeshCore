@@ -164,7 +164,7 @@ bool RadioParamSyncOverlay::onKey(uint32_t key)
     }
     if (key == LV_KEY_ESC)
     {
-        emitEvent(UiEventType::RadioSyncClose);
+        emit(UiEventType::RadioSyncClose);
         return true;
     }
     return false;
@@ -370,7 +370,7 @@ void RadioParamSyncOverlay::applySelection()
 #endif
     _biz.setLoRaBandPresetIndex((int)_select);
     _biz.showAlert("LoRa band set", 800);
-    emitEvent(UiEventType::RadioSyncClose);
+    emit(UiEventType::RadioSyncClose);
 }
 
 } // namespace heltec::meshcore::ui

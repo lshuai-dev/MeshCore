@@ -12,7 +12,7 @@ void SystemScreen::handleAction(SysAction action)
     UiConfirmRequest request{};
     request.action = action == SysAction::FactoryReset ? UiConfirmAction::FactoryReset
                                                        : UiConfirmAction::ClearData;
-    if (!emitEvent(UiEventType::ConfirmOpen, &request))
+    if (!emit(UiEventType::ConfirmOpen, &request))
     {
         _feedback.showAlert("Unable to open confirmation", 2000);
     }

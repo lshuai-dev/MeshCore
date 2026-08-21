@@ -99,7 +99,7 @@ bool CalibrationOverlay::onKey(uint32_t key)
         return true;
     if (key == LV_KEY_ESC)
     {
-        return emitEvent(UiEventType::CalibrationClose);
+        return emit(UiEventType::CalibrationClose);
     }
     return false;
 }
@@ -114,7 +114,7 @@ void CalibrationOverlay::confirm()
     }
     if (_phase != Phase::Calibrating)
     {
-        (void)emitEvent(UiEventType::CalibrationClose);
+        (void)emit(UiEventType::CalibrationClose);
     }
 }
 

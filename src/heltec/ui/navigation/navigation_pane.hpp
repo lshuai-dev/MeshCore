@@ -45,7 +45,6 @@ class NavigationPane : public UiSurface
 
     void onEnter() override;
     void onExit() override;
-    uint16_t inputRebindDelayMs() const override;
 
   private:
     uint16_t rootMetaId() const override
