@@ -264,7 +264,7 @@ _lv_obj_t *AbstractScreen::firstAvailableFocusItem() const
     return nullptr;
 }
 
-bool AbstractScreen::cycleRootPage()
+bool AbstractScreen::cycleRootPage(bool forward)
 {
     if (!_root || !_root_scroll_focus ||
         !lv_obj_has_flag(_root, LV_OBJ_FLAG_SCROLLABLE))
@@ -280,8 +280,10 @@ bool AbstractScreen::cycleRootPage()
     }
 
     const lv_coord_t page = lv_obj_get_height(_root);
-    const lv_coord_t next = current + page;
-    const lv_coord_t target = next >= current + remaining ? 0 : next;
+    const lv_coord_t maximum = current + remaining;
+    const lv_coord_t target = forward
+                                  ? (current + page >= maximum ? 0 : current + page)
+                                  : (current <= page ? maximum : current - page);
     lv_obj_scroll_to_y(_root, target, LV_ANIM_ON);
     return true;
 }
@@ -346,11 +348,20 @@ bool AbstractScreen::onKey(uint32_t key)
         {
             _focus_activation_pending = defer(activateFocusModeDeferred, this);
         }
-        else if (!first)
-        {
-            (void)cycleRootPage();
-        }
         return true;
+    }
+    if (_focus_mode == FocusMode::Idle && !firstAvailableFocusItem())
+    {
+        if (key == LV_KEY_NEXT || key == LV_KEY_RIGHT)
+        {
+            (void)cycleRootPage(true);
+            return true;
+        }
+        if (key == LV_KEY_PREV || key == LV_KEY_LEFT)
+        {
+            (void)cycleRootPage(false);
+            return true;
+        }
     }
     return false;
 }
