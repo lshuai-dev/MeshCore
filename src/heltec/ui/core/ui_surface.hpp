@@ -63,6 +63,7 @@ class UiSurface
 
     void addFocusObject(_lv_obj_t *obj);
     void clearFocusObjects();
+    bool ensureFocusGroup();
 
     _lv_obj_t *_root = nullptr;
     _lv_obj_t *_event_target = nullptr;

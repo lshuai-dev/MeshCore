@@ -41,8 +41,7 @@ _lv_obj_t *UiSurface::create(_lv_obj_t *parent)
     _root = createRoot(parent);
     if (!_root) return nullptr;
 
-    _focus_group = lv_group_create();
-    if (!_focus_group)
+    if (!ensureFocusGroup())
     {
         lv_obj_del(_root);
         _root = nullptr;
@@ -79,6 +78,20 @@ _lv_obj_t *UiSurface::create(_lv_obj_t *parent)
         HT_EVENT_USER, this);
 
     return _root;
+}
+
+bool UiSurface::ensureFocusGroup()
+{
+    if (_focus_group)
+        return true;
+
+    _focus_group = lv_group_create();
+    if (!_focus_group)
+        return false;
+
+    lv_group_set_wrap(_focus_group, true);
+    lv_group_set_editing(_focus_group, false);
+    return true;
 }
 
 _lv_obj_t *UiSurface::defaultFocus() const

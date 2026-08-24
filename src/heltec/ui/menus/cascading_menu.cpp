@@ -76,17 +76,11 @@ bool CascadingMenu::create(lv_obj_t *menu, const char *title)
     ui_theme_apply_cascading_menu_page(_page);
     lv_obj_clear_flag(_page, LV_OBJ_FLAG_SCROLLABLE);
 
-    if (!_focus_group)
+    if (!ensureFocusGroup())
     {
-        _focus_group = lv_group_create();
-        if (!_focus_group)
-        {
-            lv_obj_del(_page);
-            _page = nullptr;
-            return false;
-        }
-        lv_group_set_wrap(_focus_group, true);
-        lv_group_set_editing(_focus_group, false);
+        lv_obj_del(_page);
+        _page = nullptr;
+        return false;
     }
     _root = _page;
 
