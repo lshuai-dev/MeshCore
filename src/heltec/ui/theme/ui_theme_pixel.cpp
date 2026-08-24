@@ -119,6 +119,9 @@ static void initWidgetStyles()
 
     lv_style_init(&s_switch_main);
     styleSetBorderFrame(&s_switch_main);
+#if !defined(HELTEC_V4_R8_TFT)
+    lv_style_set_border_width(&s_switch_main, 2);
+#endif
     lv_style_set_width(&s_switch_main, 30);
     lv_style_set_height(&s_switch_main, 16);
     lv_style_set_bg_color(&s_switch_main, ui_color_switch_bg());
@@ -127,10 +130,10 @@ static void initWidgetStyles()
 
     lv_style_init(&s_switch_main_focus);
     styleSetBorderFrame(&s_switch_main_focus);
-    lv_style_set_border_color(&s_switch_main_focus, s_color_fg);
 #if !defined(HELTEC_V4_R8_TFT)
-    lv_style_set_border_width(&s_switch_main_focus, 1);
+    lv_style_set_border_width(&s_switch_main_focus, 2);
 #endif
+    lv_style_set_border_color(&s_switch_main_focus, s_color_fg);
     lv_style_set_bg_color(&s_switch_main_focus, ui_color_highlight_bg());
     lv_style_set_bg_opa(&s_switch_main_focus, LV_OPA_COVER);
 

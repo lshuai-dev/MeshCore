@@ -137,6 +137,9 @@ static void init_widget_styles()
 
     lv_style_init(&s_switch_main);
     style_set_border_frame(&s_switch_main);
+#if !defined(HELTEC_V4_R8_TFT)
+    lv_style_set_border_width(&s_switch_main, 2);
+#endif
 #if LV_COLOR_DEPTH == 1
     // One physical pixel is the thinnest useful frame on a 1-bit panel. Give
     // it a little more area so it does not dominate the control visually.
@@ -159,12 +162,12 @@ static void init_widget_styles()
 
     lv_style_init(&s_switch_main_focus);
     style_set_border_frame(&s_switch_main_focus);
+#if !defined(HELTEC_V4_R8_TFT)
+    lv_style_set_border_width(&s_switch_main_focus, 2);
+#endif
     lv_style_set_bg_color(&s_switch_main_focus,
                           heltec::meshcore::ui::ui_color_highlight_bg());
     lv_style_set_bg_opa(&s_switch_main_focus, LV_OPA_COVER);
-#if !defined(HELTEC_V4_R8_TFT)
-    lv_style_set_border_width(&s_switch_main_focus, 1);
-#endif
     lv_style_set_border_color(&s_switch_main_focus,
                               heltec::meshcore::ui::ui_color_highlight_fg());
 
