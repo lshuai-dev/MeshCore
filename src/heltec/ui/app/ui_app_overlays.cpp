@@ -1,5 +1,5 @@
 #include "ui/app/ui_app.hpp"
-#include "ui/core/ui_events.h"
+#include "ui/core/ht_event.h"
 #include "ui/core/ui_task.hpp"
 
 #include <Arduino.h>
@@ -26,12 +26,12 @@ void cm_send_advert(biz::IBizFacade &app, _lv_obj_t *)
 }
 void cm_open_send_message(biz::IBizFacade &, _lv_obj_t *target)
 {
-    (void)ui_event_send(target, UiEventType::SendMessageOpen);
+    (void)ht_event_send(target, EventType::SEND_MESSAGE_OPEN);
 }
 #if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
 void cm_calibrate_compass(biz::IBizFacade &, _lv_obj_t *target)
 {
-    (void)ui_event_send(target, UiEventType::CalibrationOpen);
+    (void)ht_event_send(target, EventType::CALIBRATION_OPEN);
 }
 #endif
 } // namespace
@@ -79,13 +79,13 @@ void UiApp::openPreviewOverlay(uint8_t unread, uint32_t received_ms, const char 
     _previewOvl.applyContent(unread, received_ms, origin, text);
     if (_surfaces.isVisible(&_previewOvl))
         return;
-    (void)_surfaces.show(&_previewOvl);
+    (void)_surfaces.show(&_previewOvl, true);
 }
 
 void UiApp::closePreviewOverlay()
 {
     const bool was_present = _surfaces.isVisible(&_previewOvl);
-    const bool dismissed = _surfaces.hide(&_previewOvl);
+    const bool dismissed = _surfaces.show(&_previewOvl, false);
     if (!was_present || dismissed)
         ui_task().dismissPreview();
 }
@@ -100,11 +100,11 @@ void UiApp::openAlertOverlay(const char *text)
                  _surfaces.isVisible(&_alertOvl) ? 1 : 0, _surfaces.active());
     if (_surfaces.isVisible(&_alertOvl))
     {
-        const bool ok = _surfaces.show(&_alertOvl);
+        const bool ok = _surfaces.show(&_alertOvl, true);
         UI_ALERT_LOG("raise ok=%d active=%p", ok ? 1 : 0, _surfaces.active());
         return;
     }
-    const bool ok = _surfaces.show(&_alertOvl);
+        const bool ok = _surfaces.show(&_alertOvl, true);
     UI_ALERT_LOG("present ok=%d active=%p", ok ? 1 : 0, _surfaces.active());
 }
 
@@ -114,7 +114,7 @@ void UiApp::closeAlertOverlay()
     UI_ALERT_LOG("close begin now=%lu was_present=%d active=%d active_surface=%p",
                  (unsigned long)millis(), was_present ? 1 : 0,
                  _surfaces.isActive(&_alertOvl) ? 1 : 0, _surfaces.active());
-    const bool dismissed = _surfaces.hide(&_alertOvl);
+    const bool dismissed = _surfaces.show(&_alertOvl, false);
     UI_ALERT_LOG("close dismissed=%d visible=%d active_surface=%p", dismissed ? 1 : 0,
                  _surfaces.isVisible(&_alertOvl) ? 1 : 0, _surfaces.active());
     if (!was_present || dismissed)
@@ -127,16 +127,16 @@ bool UiApp::openSendMessageOverlay()
         return false;
     if (_surfaces.isVisible(&_sendMessageOvl))
         return true;
-    return _surfaces.show(&_sendMessageOvl);
+    return _surfaces.show(&_sendMessageOvl, true);
 }
 
 void UiApp::closeSendMessageOverlay()
 {
     if (_surfaces.isVisible(&_keyboardOvl))
     {
-        (void)_surfaces.hide(&_keyboardOvl);
+        (void)_surfaces.show(&_keyboardOvl, false);
     }
-    (void)_surfaces.hide(&_sendMessageOvl);
+    (void)_surfaces.show(&_sendMessageOvl, false);
 }
 
 void UiApp::openRadioParamSyncOverlay()
@@ -146,12 +146,12 @@ void UiApp::openRadioParamSyncOverlay()
     if (_surfaces.isVisible(&_radioParamSyncOvl))
         return;
     notifyDisplayActivity(millis());
-    (void)_surfaces.show(&_radioParamSyncOvl);
+    (void)_surfaces.show(&_radioParamSyncOvl, true);
 }
 
 void UiApp::closeRadioParamSyncOverlay()
 {
-    (void)_surfaces.hide(&_radioParamSyncOvl);
+    (void)_surfaces.show(&_radioParamSyncOvl, false);
 }
 
 void UiApp::openRepeatModeOverlay()
@@ -159,7 +159,7 @@ void UiApp::openRepeatModeOverlay()
     if (!_inited || _surfaces.isVisible(&_repeatModeOvl))
         return;
     notifyDisplayActivity(millis());
-    if (!_surfaces.show(&_repeatModeOvl))
+    if (!_surfaces.show(&_repeatModeOvl, true))
     {
         _biz.showAlert("Unable to open frequency picker", 2000);
     }
@@ -167,7 +167,7 @@ void UiApp::openRepeatModeOverlay()
 
 void UiApp::closeRepeatModeOverlay()
 {
-    (void)_surfaces.hide(&_repeatModeOvl);
+    (void)_surfaces.show(&_repeatModeOvl, false);
 }
 
 void UiApp::presentMessageKeyboard()
@@ -179,7 +179,7 @@ void UiApp::presentMessageKeyboard()
         return;
     if (_surfaces.isVisible(&_keyboardOvl))
         return;
-    (void)_surfaces.show(&_keyboardOvl);
+        (void)_surfaces.show(&_keyboardOvl, true);
 }
 
 void UiApp::openWaypointKeyboard()
@@ -190,7 +190,7 @@ void UiApp::openWaypointKeyboard()
         return;
     if (_surfaces.isVisible(&_keyboardOvl))
         return;
-    (void)_surfaces.show(&_keyboardOvl);
+        (void)_surfaces.show(&_keyboardOvl, true);
 }
 
 void UiApp::closeKeyboardOverlay()
@@ -198,10 +198,10 @@ void UiApp::closeKeyboardOverlay()
     if (!_surfaces.isVisible(&_keyboardOvl))
         return;
     const bool waypoint = _keyboardOvl.isWaypointCompose();
-    (void)_surfaces.hide(&_keyboardOvl);
+    (void)_surfaces.show(&_keyboardOvl, false);
     if (waypoint)
     {
-        _surfaces.dispatchToActive(UiEventType::WaypointKeyboardClosed);
+        _surfaces.dispatchToActive(EventType::WAYPOINT_KEYBOARD_CLOSED);
     }
 }
 
@@ -209,7 +209,7 @@ void UiApp::closeKeyboardOverlay()
 
 bool UiApp::registerRadioContextMenu()
 {
-    _ctxRadioMenu.setTarget(_frame_root);
+    _ctxRadioMenu.setEventTarget(_frame_root);
     (void)_ctxRadioMenu.addCommandHandler("send message", cm_open_send_message);
     (void)_ctxRadioMenu.addCommandHandler("send advert", cm_send_advert);
     return _contextMenu.registerMenu("QuickPing", _scrRadio.icon(), _ctxRadioMenu);
@@ -218,7 +218,7 @@ bool UiApp::registerRadioContextMenu()
 bool UiApp::registerCompassContextMenu()
 {
 #if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
-    _ctxCompassMenu.setTarget(_frame_root);
+    _ctxCompassMenu.setEventTarget(_frame_root);
     (void)_ctxCompassMenu.addCommandHandler("calibrate", cm_calibrate_compass);
     return _contextMenu.registerMenu(_scrCompass.title(), _scrCompass.icon(), _ctxCompassMenu);
 #else
@@ -244,27 +244,17 @@ bool UiApp::openContextMenu()
 {
     if (!_inited || !_frame_root || _surfaces.isVisible(&_contextMenu))
         return false;
-    return ui_event_send(_frame_root, UiEventType::ContextOpen);
+    return ht_event_send(_frame_root, EventType::CONTEXT_OPEN);
 }
 
-void UiApp::dismissTopContextMenu()
+void UiApp::closeContextMenu()
 {
     if (!_surfaces.isVisible(&_contextMenu))
     {
         return;
     }
     _contextMenu.leaveMenuLeaf();
-    (void)_surfaces.hide(&_contextMenu);
-}
-
-void UiApp::dismissContextMenuStack()
-{
-    if (!_surfaces.isVisible(&_contextMenu))
-    {
-        return;
-    }
-    _contextMenu.leaveMenuLeaf();
-    (void)_surfaces.hide(&_contextMenu);
+    (void)_surfaces.show(&_contextMenu, false);
 }
 
 #endif
@@ -275,7 +265,7 @@ bool UiApp::openCalibrationOverlay()
 {
     if (!_inited)
         return false;
-    return _surfaces.show(&_calibrationOvl);
+    return _surfaces.show(&_calibrationOvl, true);
 }
 
 void UiApp::closeCalibrationOverlay()
@@ -283,7 +273,7 @@ void UiApp::closeCalibrationOverlay()
     if (!_surfaces.isVisible(&_calibrationOvl))
         return;
     _scrCompass.skipAutoCalibrationOnce();
-    if (!_surfaces.hide(&_calibrationOvl))
+    if (!_surfaces.show(&_calibrationOvl, false))
         return;
 }
 

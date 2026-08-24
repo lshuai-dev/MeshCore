@@ -14,16 +14,12 @@ namespace heltec::meshcore::ui
 
 namespace meta_id
 {
-constexpr uint16_t SystemActionRow = ht_meta_id(MetaIdScope::Screen, 0xA0);
 constexpr uint16_t SystemActionLabel = ht_meta_id(MetaIdScope::Screen, 0xA1);
-constexpr uint16_t SystemSwitchRow = ht_meta_id(MetaIdScope::Screen, 0xA2);
 constexpr uint16_t SystemSwitchLabel = ht_meta_id(MetaIdScope::Screen, 0xA3);
 constexpr uint16_t SystemSwitch = ht_meta_id(MetaIdScope::Screen, 0xA4);
-constexpr uint16_t SystemDropdownRow = ht_meta_id(MetaIdScope::Screen, 0xA5);
 constexpr uint16_t SystemDropdownLabel = ht_meta_id(MetaIdScope::Screen, 0xA6);
 constexpr uint16_t SystemDropdown = ht_meta_id(MetaIdScope::Screen, 0xA7);
 #if defined(HAS_BUZZER_VOLUME_CONTROL) && HAS_BUZZER_VOLUME_CONTROL
-constexpr uint16_t SystemVolumeRow = ht_meta_id(MetaIdScope::Screen, 0xA8);
 constexpr uint16_t SystemVolumeLabel = ht_meta_id(MetaIdScope::Screen, 0xA9);
 constexpr uint16_t SystemVolumeControls = ht_meta_id(MetaIdScope::Screen, 0xAA);
 constexpr uint16_t SystemVolumeButton = ht_meta_id(MetaIdScope::Screen, 0xAB);
@@ -51,9 +47,8 @@ class SystemScreen : public AbstractScreen
     _lv_obj_t *create(_lv_obj_t *parent) override;
 
   private:
-    _lv_obj_t *createRoot(_lv_obj_t *parent) override;
     void onAppStateChanged(const AppStateEvent &event) override;
-    void onRefreshRequested() override;
+    void onSurfaceRefresh() override;
     void onUiEvent(const UiEvent &event) override;
     enum class SysAction : uint8_t
     {
@@ -64,7 +59,6 @@ class SystemScreen : public AbstractScreen
     struct ChoiceRow
     {
         _lv_obj_t *row = nullptr;
-        _lv_obj_t *label = nullptr;
         _lv_obj_t *dropdown = nullptr;
     };
 
@@ -92,22 +86,17 @@ class SystemScreen : public AbstractScreen
     SysAction actionForRow(_lv_obj_t *obj) const;
     void syncDropdownLayout(_lv_obj_t *dropdown) const;
     void realignDropdownList(_lv_obj_t *dropdown);
-    void clearGroupFocusVisual();
-    void scrollFocusedIntoView(_lv_obj_t *focused) const;
     void closeOpenDropdown();
-    void applyGroupFocus(_lv_obj_t *focused);
     void syncDropdownsFromApp(const biz::IBizFacade &app);
     void syncSwitchesFromApp(const biz::IBizFacade &app);
     void syncControlsFromApp(const biz::IBizFacade &app);
     void refreshControls();
     uint16_t regionDropdownIndex(const biz::IBizFacade &app) const;
 
-    bool anyDropdownOpen() const;
     void setDropdownIndex(_lv_obj_t *dd, uint16_t index, bool fire_changed, bool force = false);
     void setDropdownOptions(_lv_obj_t *dd, const char *options);
     ChoiceRow *dropdownChoice(_lv_obj_t *dd);
-    const ChoiceRow *dropdownChoice(_lv_obj_t *dd) const;
-    bool isDropdownRow(_lv_obj_t *obj) const;
+    bool isDropdownRow(_lv_obj_t *obj);
     void setSwitchState(_lv_obj_t *sw, bool on);
 #if defined(HAS_BUZZER_VOLUME_CONTROL) && HAS_BUZZER_VOLUME_CONTROL
     void setBuzzerVolumeSlider(uint8_t level);

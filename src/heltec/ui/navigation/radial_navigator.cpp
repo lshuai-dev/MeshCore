@@ -5,7 +5,7 @@
 #include "ui/app/ui_behavior_profile.hpp"
 #include "ui/app/ui_theme.hpp"
 #include "ui/core/ht_meta_data.hpp"
-#include "ui/core/ui_events.h"
+#include "ui/core/ht_event.h"
 #include "ui/core/ui_motion_scheduler.hpp"
 #include "ui/navigation/ui_navigator.hpp"
 #include "ui/theme/ui_widget_theme.hpp"
@@ -433,6 +433,11 @@ void RadialNavigator::updateGeometry()
     _updating_geometry = false;
 }
 
+_lv_obj_t *RadialNavigator::createRoot(_lv_obj_t *parent)
+{
+    return ht_obj_create(parent, meta_id::NavigationRoot);
+}
+
 _lv_obj_t *RadialNavigator::create(_lv_obj_t *parent)
 {
     if (_root)
@@ -445,7 +450,7 @@ _lv_obj_t *RadialNavigator::create(_lv_obj_t *parent)
     lv_obj_clear_flag(_root, LV_OBJ_FLAG_OVERFLOW_VISIBLE);
     lv_group_set_wrap(group(), false);
 
-    _nav = ht_obj_create(_root, meta_id::NavigationRing);
+    _nav = ht_navigator_create(_root, meta_id::NavigationRing);
     if (!_nav)
     {
         if (_focus_group)
@@ -484,7 +489,7 @@ _lv_obj_t *RadialNavigator::create(_lv_obj_t *parent)
                 return;
             if (self->_ring_layout_focus >= kMaxButtons)
                 return;
-            ui_event_send(self->_tileview, UiEventType::TileCommit, &self->_ring_layout_focus);
+            ht_event_send(self->_tileview, EventType::TILE_COMMIT, &self->_ring_layout_focus);
             lv_event_stop_processing(e);
             lv_event_stop_bubbling(e);
         },
@@ -536,8 +541,8 @@ void RadialNavigator::setIcon(uint8_t id, const lv_img_dsc_t *img)
         return;
     }
 
-    _lv_obj_t *btn = ht_imgbtn_create(host, meta_id::NavigationRingItem,
-                                      reinterpret_cast<void *>(static_cast<uintptr_t>(id)));
+    _lv_obj_t *btn = ht_imgbtn_create(
+        host, HT_META_ID_UNSET, reinterpret_cast<void *>(static_cast<uintptr_t>(id)));
     if (!btn)
         return;
     invalidateSlotCache();
@@ -579,7 +584,10 @@ void RadialNavigator::setIcon(uint8_t id, const lv_img_dsc_t *img)
             nav->_touch_active = false;
             nav->onCellClicked(lv_event_get_target(e));
         },
-        LV_EVENT_ALL, this);
+        static_cast<lv_event_code_t>(LV_EVENT_PRESSED | LV_EVENT_PRESSING |
+                                     LV_EVENT_RELEASED | LV_EVENT_PRESS_LOST |
+                                     LV_EVENT_CLICKED),
+        this);
     layoutRing(false);
 }
 
@@ -639,7 +647,7 @@ void RadialNavigator::sendTilePreview(uint8_t tile_idx)
 {
     if (_tileview && tile_idx < kMaxButtons)
     {
-        ui_event_send(_tileview, UiEventType::TilePreview, &tile_idx);
+        ht_event_send(_tileview, EventType::TILE_PREVIEW, &tile_idx);
     }
 }
 
@@ -716,7 +724,7 @@ void RadialNavigator::onCellClicked(_lv_obj_t *cell)
     sendTilePreview(id);
     if (_lv_obj_t *frame = frameRoot())
     {
-        ui_event_send(frame, UiEventType::NavActivity);
+        ht_event_send(frame, EventType::NAV_ACTIVITY);
     }
 }
 
@@ -747,7 +755,7 @@ bool RadialNavigator::onKey(uint32_t lv_key)
     {
         if (_lv_obj_t *frame = frameRoot())
         {
-            ui_event_send(frame, UiEventType::NavClose);
+            ht_event_send(frame, EventType::NAV_CLOSE);
         }
         return true;
     }
@@ -755,7 +763,7 @@ bool RadialNavigator::onKey(uint32_t lv_key)
     {
         if (_lv_obj_t *frame = frameRoot())
         {
-            ui_event_send(frame, UiEventType::NavActivity);
+            ht_event_send(frame, EventType::NAV_ACTIVITY);
         }
         stepNavFocus(navStepDelta(lv_key));
         return true;

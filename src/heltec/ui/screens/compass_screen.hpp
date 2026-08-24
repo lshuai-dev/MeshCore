@@ -33,9 +33,8 @@ class CompassScreen : public AbstractScreen
     _lv_obj_t *create(_lv_obj_t *parent) override;
 
   private:
-    _lv_obj_t *createRoot(_lv_obj_t *parent) override;
     void onAppStateChanged(const AppStateEvent &event) override;
-    void onRefreshRequested() override;
+    void onSurfaceRefresh() override;
     void refresh_ui(const biz::CompassUi &c);
     void refresh();
     void showUnavailable(const biz::CompassUi &c, const char *hdg_text);

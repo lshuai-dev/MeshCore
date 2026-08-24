@@ -4,7 +4,7 @@
 
 #include "compass_ui_common.hpp"
 #include "ui/core/ht_meta_data.hpp"
-#include "ui/core/ui_events.h"
+#include "ui/core/ht_event.h"
 
 #include <Arduino.h>
 #include <lvgl.h>
@@ -28,11 +28,6 @@
 
 namespace heltec::meshcore::ui
 {
-
-_lv_obj_t *CompassScreen::createRoot(_lv_obj_t *parent)
-{
-    return ht_obj_create(parent, meta_id::CompassScreenRoot);
-}
 
 namespace
 {
@@ -365,7 +360,7 @@ void CompassScreen::refresh()
     {
         _pending_auto_cal = false;
         _auto_cal_due_ms = 0;
-        (void)emit(UiEventType::CalibrationOpen);
+        (void)emit(EventType::CALIBRATION_OPEN);
         return;
     }
 
@@ -382,7 +377,7 @@ void CompassScreen::onAppStateChanged(const AppStateEvent &event)
     }
 }
 
-void CompassScreen::onRefreshRequested()
+void CompassScreen::onSurfaceRefresh()
 {
     refresh();
     maybeScheduleAutoCal();

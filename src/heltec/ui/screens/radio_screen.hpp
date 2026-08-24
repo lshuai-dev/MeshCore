@@ -34,9 +34,8 @@ class RadioScreen : public AbstractScreen
     _lv_obj_t *create(_lv_obj_t *parent) override;
 
   private:
-    _lv_obj_t *createRoot(_lv_obj_t *parent) override;
     void onAppStateChanged(const AppStateEvent &event) override;
-    void onRefreshRequested() override;
+    void onSurfaceRefresh() override;
     void updateRadio(const biz::IBizFacade::RadioStatus &radio);
     void refreshSnapshot();
 #if defined(HAS_LNA_CONTROL) && HAS_LNA_CONTROL

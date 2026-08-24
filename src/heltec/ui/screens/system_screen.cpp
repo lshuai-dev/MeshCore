@@ -4,7 +4,7 @@
 #include "config/LoRaBandPresets.h"
 #include "ui/app/ui_theme.hpp"
 #include "ui/core/ht_meta_data.hpp"
-#include "ui/core/ui_events.h"
+#include "ui/core/ht_event.h"
 
 #include <Arduino.h>
 #include <lvgl.h>
@@ -12,11 +12,6 @@
 
 namespace heltec::meshcore::ui
 {
-
-_lv_obj_t *SystemScreen::createRoot(_lv_obj_t *parent)
-{
-    return ht_obj_create(parent, meta_id::SystemRoot);
-}
 
 namespace
 {
@@ -98,34 +93,11 @@ _lv_obj_t *SystemScreen::create(_lv_obj_t *parent)
     addFocusItem(_swBuzzer, _swBuzzer ? lv_obj_get_parent(_swBuzzer) : nullptr);
 #endif
 #if defined(HAS_BUZZER_VOLUME_CONTROL) && HAS_BUZZER_VOLUME_CONTROL
-    addFocusItem(_btnBuzzerVolumeDown);
-    addFocusItem(_btnBuzzerVolumeUp);
+    addFocusItem(_btnBuzzerVolumeDown, nullptr, false);
+    addFocusItem(_btnBuzzerVolumeUp, nullptr, false);
 #endif
     addFocusItem(_row_factory_reset);
     addFocusItem(_row_clear_data);
-
-    // System owns focus scrolling. Disable LVGL's implicit auto-scroll so focus
-    // restore, pointer focus and modal transitions cannot move the page behind us.
-    _lv_obj_t *const focus_controls[] = {
-        _dd_region,
-        _swForwarding,
-        _dd_screen_off,
-        _swBle,
-#ifdef PIN_BUZZER
-        _swBuzzer,
-#endif
-#if defined(HAS_BUZZER_VOLUME_CONTROL) && HAS_BUZZER_VOLUME_CONTROL
-        _btnBuzzerVolumeDown,
-        _btnBuzzerVolumeUp,
-#endif
-        _row_factory_reset,
-        _row_clear_data,
-    };
-    for (_lv_obj_t *control : focus_controls)
-    {
-        if (control)
-            lv_obj_clear_flag(control, LV_OBJ_FLAG_SCROLL_ON_FOCUS);
-    }
 
     ht_set_user_data(_root, this);
 
@@ -144,7 +116,8 @@ _lv_obj_t *SystemScreen::create(_lv_obj_t *parent)
                 auto *self = static_cast<SystemScreen *>(ud);
                 if (self->root() == p)
                 {
-                    self->applyGroupFocus(foc);
+                    if (!self->isDropdownRow(foc))
+                        self->closeOpenDropdown();
                     return;
                 }
             }

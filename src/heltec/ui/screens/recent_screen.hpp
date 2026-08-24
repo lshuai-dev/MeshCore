@@ -40,9 +40,8 @@ class RecentScreen : public AbstractScreen
     // created; those controls are reused for each data window.
     static constexpr int kAdvertCapacity = 16;
 
-    _lv_obj_t *createRoot(_lv_obj_t *parent) override;
     void onAppStateChanged(const AppStateEvent &event) override;
-    void onRefreshRequested() override;
+    void onSurfaceRefresh() override;
     bool createRowControl(int index);
     int calculateRowControlCount();
     void refreshRows();

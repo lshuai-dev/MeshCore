@@ -52,11 +52,16 @@ class AbstractScreen : public UiSurface
   private:
     static constexpr uint8_t kMaxFocusItems = 16;
 
+    struct FocusItem
+    {
+        _lv_obj_t *object;
+        _lv_obj_t *frame;
+    };
+
     bool isAvailableFocusItem(const _lv_obj_t *obj) const;
     _lv_obj_t *firstAvailableFocusItem() const;
     void activateFocusMode(FocusMode mode, _lv_obj_t *focus);
     static void activateFocusModeDeferred(void *user_data);
-    static void setFocusStateRecursive(_lv_obj_t *object, _lv_obj_t *source, bool focused);
     static void onFocusItemChanged(lv_event_t *e);
 
     const char *_title;
@@ -65,7 +70,7 @@ class AbstractScreen : public UiSurface
     lv_group_t *_idle_group = nullptr;
     lv_group_t *_active_group = nullptr;
     FocusMode _focus_mode = FocusMode::Idle;
-    _lv_obj_t *_focus_items[kMaxFocusItems] = {};
+    FocusItem _focus_items[kMaxFocusItems] = {};
     uint8_t _focus_item_count = 0;
     bool _focus_activation_pending = false;
 };

@@ -17,13 +17,15 @@ constexpr lv_coord_t kSystemDropdownHeight =
     ui_settings_row_height() - 2 * ui_settings_row_pad_ver();
 #endif
 void configure_system_row(_lv_obj_t *row, lv_flex_flow_t flow, lv_flex_align_t main,
-                          lv_flex_align_t cross, bool single_line = true)
+                          lv_flex_align_t cross, bool single_line = true,
+                          bool event_bubble = true)
 {
     if (!row)
         return;
     lv_obj_set_flex_flow(row, flow);
     lv_obj_set_flex_align(row, main, cross, cross);
-    lv_obj_add_flag(row, LV_OBJ_FLAG_EVENT_BUBBLE);
+    if (event_bubble)
+        lv_obj_add_flag(row, LV_OBJ_FLAG_EVENT_BUBBLE);
     if (!single_line)
     {
         lv_obj_set_height(row, LV_SIZE_CONTENT);
@@ -42,7 +44,7 @@ bool keypad_suppresses_bubble(_lv_obj_t *obj)
 {
     if (!obj)
         return false;
-    if (ht_id(obj) == meta_id::SystemActionRow)
+    if (lv_obj_check_type(obj, &ht_container_class) && lv_obj_has_flag(obj, LV_OBJ_FLAG_CLICKABLE))
         return true;
 #if LV_USE_SWITCH != 0
     if (lv_obj_check_type(obj, &lv_switch_class))
@@ -57,20 +59,6 @@ bool keypad_suppresses_bubble(_lv_obj_t *obj)
         return true;
 #endif
     return false;
-}
-void clear_group_widget_states(_lv_obj_t *obj, lv_group_t *g)
-{
-    if (!obj)
-        return;
-    if (lv_obj_get_group(obj) == g)
-    {
-        lv_obj_clear_state(obj, LV_STATE_FOCUSED);
-        lv_obj_clear_state(obj, LV_STATE_FOCUS_KEY);
-        lv_obj_invalidate(obj);
-    }
-    const uint32_t n = lv_obj_get_child_cnt(obj);
-    for (uint32_t i = 0; i < n; ++i)
-        clear_group_widget_states(lv_obj_get_child(obj, i), g);
 }
 #if LV_USE_DROPDOWN != 0
 bool cycle_open_dropdown(_lv_obj_t *dropdown, uint32_t key)
@@ -123,7 +111,7 @@ SystemScreen::SysAction SystemScreen::actionForRow(_lv_obj_t *obj) const
 
 _lv_obj_t *SystemScreen::addActionRow(_lv_obj_t *scroll, const char *title, _lv_obj_t **out_row)
 {
-    _lv_obj_t *row = ht_container_create(scroll, meta_id::SystemActionRow);
+    _lv_obj_t *row = ht_container_create(scroll);
     if (!row)
         return nullptr;
     configure_system_row(row, LV_FLEX_FLOW_ROW, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER);
@@ -141,7 +129,7 @@ _lv_obj_t *SystemScreen::addActionRow(_lv_obj_t *scroll, const char *title, _lv_
 
 _lv_obj_t *SystemScreen::addSwitchRow(_lv_obj_t *scroll, const char *title, _lv_obj_t **out_sw)
 {
-    _lv_obj_t *row = ht_container_create(scroll, meta_id::SystemSwitchRow);
+    _lv_obj_t *row = ht_container_create(scroll);
     if (!row)
         return nullptr;
     configure_system_row(row, LV_FLEX_FLOW_ROW, LV_FLEX_ALIGN_SPACE_BETWEEN, LV_FLEX_ALIGN_CENTER);
@@ -160,14 +148,13 @@ _lv_obj_t *SystemScreen::addSwitchRow(_lv_obj_t *scroll, const char *title, _lv_
 
 _lv_obj_t *SystemScreen::addDropdownRow(_lv_obj_t *scroll, ChoiceRow &choice, const char *title)
 {
-    _lv_obj_t *row = ht_container_create(scroll, meta_id::SystemDropdownRow);
+    _lv_obj_t *row = ht_container_create(scroll);
     if (!row)
         return nullptr;
     configure_system_row(row, LV_FLEX_FLOW_ROW, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER);
     _lv_obj_t *label = ht_label_create(row, meta_id::SystemDropdownLabel);
     configure_system_label(label, LV_SIZE_CONTENT);
     choice.row = row;
-    choice.label = label;
     choice.dropdown = nullptr;
     if (label)
     {
@@ -223,55 +210,6 @@ void SystemScreen::bindWidget(_lv_obj_t *obj)
 #endif
 }
 
-void SystemScreen::scrollFocusedIntoView(_lv_obj_t *focused) const
-{
-    if (!_root || !focused)
-        return;
-
-    _lv_obj_t *row = focused;
-    while (row && lv_obj_get_parent(row) != _root)
-    {
-        row = lv_obj_get_parent(row);
-    }
-    if (!row || row == _root)
-        return;
-
-    lv_obj_update_layout(_root);
-    lv_area_t viewport{};
-    lv_area_t row_area{};
-    lv_obj_get_content_coords(_root, &viewport);
-    lv_obj_get_coords(row, &row_area);
-
-    const lv_coord_t margin =
-#if defined(HELTEC_V4_R8_TFT)
-        LV_DPX(6);
-#else
-        1;
-#endif
-    const lv_coord_t visible_top = viewport.y1 + margin;
-    const lv_coord_t visible_bottom = viewport.y2 - margin;
-    lv_coord_t target = lv_obj_get_scroll_top(_root);
-    if (row_area.y1 < visible_top)
-    {
-        target -= visible_top - row_area.y1;
-    }
-    else if (row_area.y2 > visible_bottom)
-    {
-        target += row_area.y2 - visible_bottom;
-    }
-    else
-    {
-        return;
-    }
-
-    const lv_coord_t max_scroll = lv_obj_get_scroll_top(_root) + lv_obj_get_scroll_bottom(_root);
-    if (target < 0)
-        target = 0;
-    if (target > max_scroll)
-        target = max_scroll;
-    lv_obj_scroll_to_y(_root, target, LV_ANIM_OFF);
-}
-
 void SystemScreen::closeOpenDropdown()
 {
     if (!_open_dropdown)
@@ -290,37 +228,6 @@ void SystemScreen::closeOpenDropdown()
         lv_obj_clear_state(closing, LV_STATE_EDITED);
     if (group())
         lv_group_set_editing(group(), false);
-}
-
-void SystemScreen::applyGroupFocus(_lv_obj_t *focused)
-{
-    if (!focused)
-        return;
-
-    if (!isDropdownRow(focused))
-        closeOpenDropdown();
-
-    // Pointer focus must not snap the page after a drag or tap. Only physical
-    // focus traversal is allowed to bring a row into the safe viewport.
-    lv_indev_t *const indev = lv_indev_get_act();
-    if (!indev)
-        return;
-    const lv_indev_type_t type = lv_indev_get_type(indev);
-    if (type == LV_INDEV_TYPE_KEYPAD || type == LV_INDEV_TYPE_ENCODER)
-    {
-        scrollFocusedIntoView(focused);
-    }
-}
-
-void SystemScreen::clearGroupFocusVisual()
-{
-    if (!group() || !_root)
-        return;
-    lv_group_t *const g = group();
-    lv_obj_t *const foc = lv_group_get_focused(g);
-    if (foc)
-        lv_event_send(foc, LV_EVENT_DEFOCUSED, nullptr);
-    clear_group_widget_states(_root, g);
 }
 
 void SystemScreen::syncDropdownLayout(_lv_obj_t *dropdown) const
@@ -347,7 +254,7 @@ void SystemScreen::realignDropdownListAsync(void *user_data)
 
     for (_lv_obj_t *obj = dropdown; obj; obj = lv_obj_get_parent(obj))
     {
-        if (ht_id(obj) != meta_id::SystemRoot)
+        if (!ht_user_data(obj))
             continue;
         auto *self = static_cast<SystemScreen *>(ht_user_data(obj));
         if (self)
@@ -375,11 +282,8 @@ void SystemScreen::realignDropdownList(_lv_obj_t *dropdown)
     if (width > 0)
         lv_obj_set_width(list, width);
     lv_obj_set_scrollbar_mode(list, LV_SCROLLBAR_MODE_OFF);
-    if (ht_id(list) != meta_id::SystemDropdownList)
-    {
-        detail::set_meta_id(list, meta_id::SystemDropdownList);
-        ui_widget_theme_apply(list);
-    }
+    detail::set_meta_id(list, meta_id::SystemDropdownList);
+    ui_widget_theme_apply(list);
     ui_theme_match_dropdown_list_padding(dropdown, list);
     _lv_obj_t *const viewport = tile();
     ui_dropdown_fit_list_to_viewport(dropdown, viewport ? viewport : _root, _root);
@@ -503,10 +407,13 @@ void SystemScreen::onActionRowEvent(lv_event_t *e)
 
 _lv_obj_t *SystemScreen::addBuzzerVolumeRow(_lv_obj_t *scroll)
 {
-    _lv_obj_t *row = ht_container_create(scroll, meta_id::SystemVolumeRow);
+    _lv_obj_t *row = ht_container_create(scroll);
     if (!row)
         return nullptr;
-    configure_system_row(row, LV_FLEX_FLOW_COLUMN, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_START, false);
+    configure_system_row(row, LV_FLEX_FLOW_COLUMN, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_START, false,
+                         false);
+    lv_obj_clear_flag(row, LV_OBJ_FLAG_CLICKABLE | LV_OBJ_FLAG_CLICK_FOCUSABLE |
+                            LV_OBJ_FLAG_SCROLL_ON_FOCUS);
 
     _lv_obj_t *title = ht_label_create(row, meta_id::SystemVolumeLabel, "Volume");
     configure_system_label(title, lv_pct(100));
@@ -518,7 +425,8 @@ _lv_obj_t *SystemScreen::addBuzzerVolumeRow(_lv_obj_t *scroll)
     lv_obj_set_flex_flow(controls, LV_FLEX_FLOW_ROW);
     lv_obj_set_flex_align(controls, LV_FLEX_ALIGN_SPACE_BETWEEN, LV_FLEX_ALIGN_CENTER,
                           LV_FLEX_ALIGN_CENTER);
-    lv_obj_clear_flag(controls, LV_OBJ_FLAG_SCROLLABLE | LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_clear_flag(controls, LV_OBJ_FLAG_SCROLLABLE | LV_OBJ_FLAG_CLICKABLE |
+                               LV_OBJ_FLAG_CLICK_FOCUSABLE | LV_OBJ_FLAG_SCROLL_ON_FOCUS);
 
     const auto add_button = [this, controls](const char *text, _lv_obj_t **out)
     {
@@ -527,9 +435,6 @@ _lv_obj_t *SystemScreen::addBuzzerVolumeRow(_lv_obj_t *scroll)
             return;
         lv_obj_set_size(btn, 26, 24);
 #if defined(HELTEC_V4_R8_TFT)
-        // Pointer focus and modal focus restoration must not reposition the
-        // System list. Keypad navigation is scrolled explicitly by applyGroupFocus().
-        lv_obj_clear_flag(btn, LV_OBJ_FLAG_SCROLL_ON_FOCUS);
         lv_obj_set_ext_click_area(btn, 5);
 #endif
         _lv_obj_t *label = ht_label_create(btn, meta_id::SystemVolumeButtonLabel, text);

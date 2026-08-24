@@ -20,7 +20,7 @@ CJK_PATTERN = re.compile(r"([\u3400-\u4dbf\u4e00-\u9fff\u3000-\u303f\uff00-\uffe
 # 章节顺序与《软件说明书》完全一致。quota 包含章节、文件和功能注释行。
 CHAPTERS = [
     (1, "项目概述", 80, ["src/heltec/ui/app/ui_app.hpp"]),
-    (2, "项目组成与开发环境", 120, ["src/heltec/ui/app/ui_app_ids.hpp", "src/heltec/ui/core/screen_id.hpp", "src/heltec/ui/core/ui_events.h", "src/heltec/ui/core/ui_events.cpp"]),
+    (2, "项目组成与开发环境", 120, ["src/heltec/ui/app/ui_app_ids.hpp", "src/heltec/ui/core/screen_id.hpp", "src/heltec/ui/core/ht_event.h", "src/heltec/ui/core/ht_event.cpp"]),
     (3, "支持的终端与固件形态", 120, ["src/heltec/drivers/display/display_port.cpp", "src/heltec/drivers/display/display_port.hpp", "src/heltec/ui/core/board_features.cpp", "variants/heltec_e213/HeltecE213Board.cpp"]),
     (4, "软件总体设计", 180, ["src/heltec/ui/core/ui_surface.cpp", "src/heltec/ui/core/ui_surface.hpp", "src/heltec/ui/core/surface_manager.hpp", "src/heltec/ui/core/surface_manager.cpp"]),
     (5, "启动与主界面", 170, ["src/heltec/ui/overlays/splash_overlay.cpp", "src/heltec/ui/screens/home_screen.cpp", "src/heltec/ui/screens/home_screen.hpp"]),

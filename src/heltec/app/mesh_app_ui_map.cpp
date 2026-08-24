@@ -4,7 +4,6 @@
 
 #include "HeltecMesh.h"
 #include "map_geo.hpp"
-#include "ui/map/map_fixed_test.hpp"
 
 #include <helpers/ContactInfo.h>
 #include <math.h>
@@ -116,12 +115,6 @@ uint32_t fnv1a_u32(uint32_t h, uint32_t v)
 
 uint32_t mapPlotInputFingerprint(const GpsStatus &gps)
 {
-#if defined(HELTEC_MAP_FIXED_TEST) && HELTEC_MAP_FIXED_TEST
-    if (heltec::meshcore::ui::map::mapFixedTestEnabled())
-    {
-        return 0xF17E0001u;
-    }
-#endif
     uint32_t h = 2166136261u;
     const bool gps_usable = usable_gps(gps);
     h = fnv1a_u32(h, gps_usable ? 1u : 0u);
@@ -153,60 +146,6 @@ uint32_t mapPlotInputFingerprint(const GpsStatus &gps)
 MapPlotUi buildMapPlotUi(const GpsStatus &gps)
 {
     MapPlotUi out{};
-#if defined(HELTEC_MAP_FIXED_TEST) && HELTEC_MAP_FIXED_TEST
-    if (heltec::meshcore::ui::map::mapFixedTestEnabled())
-    {
-        RawPoint raw[3];
-        int raw_count = 0;
-        int self_idx = 0;
-
-        RawPoint &me = raw[raw_count++];
-        me.lat_deg = HELTEC_MAP_FIXED_GPS_LAT;
-        me.lon_deg = HELTEC_MAP_FIXED_GPS_LON;
-        me.glyph = 'M';
-        me.is_self = true;
-        me.contact_index = -1;
-
-        RawPoint &a = raw[raw_count++];
-        a.lat_deg = HELTEC_MAP_FIXED_A_LAT;
-        a.lon_deg = HELTEC_MAP_FIXED_A_LON;
-        a.glyph = 'A';
-        a.is_self = false;
-        a.contact_index = -1;
-
-        RawPoint &b = raw[raw_count++];
-        b.lat_deg = HELTEC_MAP_FIXED_B_LAT;
-        b.lon_deg = HELTEC_MAP_FIXED_B_LON;
-        b.glyph = 'B';
-        b.is_self = false;
-        b.contact_index = -1;
-
-        out.contact_gps_count = 2;
-        out.drawable = true;
-        compute_map_center(raw, raw_count, self_idx, out.center_lat, out.center_lon);
-
-        uint32_t width_m = 50;
-        uint32_t height_m = 50;
-        for (int i = 0; i < raw_count && out.marker_count < MapPlotUi::kMaxMarkers; ++i)
-        {
-            MapPlotMarker &m = out.markers[out.marker_count++];
-            m.lat_micro = (int32_t)llround(raw[i].lat_deg * 1000000.0);
-            m.lon_micro = (int32_t)llround(raw[i].lon_deg * 1000000.0);
-            m.glyph = raw[i].glyph;
-            m.is_self = raw[i].is_self;
-            m.contact_index = raw[i].contact_index;
-            float east_m = 0.f;
-            float north_m = 0.f;
-            geo::offset_from_center(out.center_lat, out.center_lon, raw[i].lat_deg, raw[i].lon_deg,
-                                    east_m, north_m);
-            width_m = (uint32_t)fmax((double)width_m, fabs((double)east_m) * 2.0);
-            height_m = (uint32_t)fmax((double)height_m, fabs((double)north_m) * 2.0);
-        }
-        out.span_w_m = (uint32_t)((double)width_m * 1.1);
-        out.span_h_m = (uint32_t)((double)height_m * 1.1);
-        return out;
-    }
-#endif
     RawPoint raw[MapPlotUi::kMaxMarkers];
     int raw_count = 0;
     int self_idx = -1;

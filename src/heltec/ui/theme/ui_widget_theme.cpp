@@ -220,7 +220,6 @@ static bool s_quick_ping_styles_ready = false;
 #endif
 static UiQuickPingStyleConfig s_quick_ping_style_config = { 104 };
 
-static lv_style_t s_warning_text_style;
 static lv_style_t s_accent_text_style;
 static lv_style_t s_settings_row_layout_style;
 static lv_style_t s_find_friend_row_layout_style;
@@ -1339,10 +1338,6 @@ static void init_screen_system_styles()
     if (s_screen_system_styles_ready)
         return;
 
-    lv_style_init(&s_warning_text_style);
-    lv_style_set_text_color(&s_warning_text_style, ui_color_warning());
-    set_overlay_text_spacing(&s_warning_text_style);
-
     lv_style_init(&s_accent_text_style);
     lv_style_set_text_color(&s_accent_text_style, ui_color_accent());
     set_overlay_text_spacing(&s_accent_text_style);
@@ -1447,6 +1442,12 @@ static void init_screen_system_styles()
     lv_style_set_shadow_opa(&s_system_dropdown_style, LV_OPA_TRANSP);
 
     lv_style_init(&s_system_dropdown_focus_style);
+#if LV_COLOR_DEPTH != 1
+    lv_style_set_bg_color(&s_system_dropdown_focus_style, ui_color_highlight_bg());
+    lv_style_set_bg_opa(&s_system_dropdown_focus_style, LV_OPA_COVER);
+    lv_style_set_text_color(&s_system_dropdown_focus_style, ui_color_highlight_fg());
+    lv_style_set_text_opa(&s_system_dropdown_focus_style, LV_OPA_COVER);
+#endif
 #if LV_COLOR_DEPTH == 1
     lv_style_set_border_width(&s_system_dropdown_focus_style, 1);
     lv_style_set_border_color(&s_system_dropdown_focus_style, ui_color_fg());
@@ -1702,23 +1703,16 @@ static lv_style_t *overlay_root_chrome_style()
     return &s_overlay_root_chrome_style;
 }
 
-static bool is_screen_root_id(uint16_t id)
+static bool is_screen_root(_lv_obj_t *obj, uint16_t id)
 {
-    switch (id)
-    {
-    case meta_id::ScreenRoot:
-    case meta_id::HomeScreenRoot:
-    case meta_id::GpsScreenRoot:
-    case meta_id::RadioScreenRoot:
-    case meta_id::RecentScreenRoot:
-    case meta_id::CompassScreenRoot:
-    case meta_id::FindFriendScreenRoot:
-    case meta_id::TrackerScreenRoot:
-    case meta_id::SystemRoot:
-        return true;
-    default:
+    if (!obj)
         return false;
-    }
+    if (id == meta_id::HomeScreenRoot || id == meta_id::TrackerScreenRoot)
+        return true;
+    if (id != HT_META_ID_UNSET)
+        return false;
+    _lv_obj_t *const parent = lv_obj_get_parent(obj);
+    return parent && ht_id(parent) == meta_id::AppTile;
 }
 
 static bool is_overlay_root_id(uint16_t id)
@@ -1924,7 +1918,7 @@ static bool apply_top_pane_nested_child(_lv_obj_t *obj)
 static bool apply_surface_root_theme(_lv_obj_t *obj)
 {
     const uint16_t id = ht_id(obj);
-    if (is_screen_root_id(id))
+    if (is_screen_root(obj, id))
     {
         apply_surface_root_common(obj);
         init_common_widget_styles();
@@ -2265,7 +2259,6 @@ static bool apply_quick_ping_overlay_theme(_lv_obj_t *obj)
         return true;
 
     case meta_id::QuickPingMessageRow:
-    case meta_id::QuickPingMessageHeader:
         init_quick_ping_styles();
         reset_touch_object(obj);
         lv_obj_add_style(obj, &s_quick_ping_plain_container_style, LV_PART_MAIN);
@@ -2359,15 +2352,6 @@ static bool apply_gps_screen_child_theme(_lv_obj_t *obj)
 {
     switch (ht_id(obj))
     {
-    case meta_id::GpsRawLabel:
-        style_screen_label(obj);
-        if (ht_id(obj) == meta_id::GpsRawLabel)
-        {
-            init_screen_system_styles();
-            lv_obj_add_style(obj, &s_warning_text_style, LV_PART_MAIN);
-        }
-        return true;
-
     case meta_id::GpsPowerSwitch:
     case meta_id::GpsLocationShareSwitch:
     case meta_id::GpsTrackSwitch:
@@ -2601,11 +2585,6 @@ static bool apply_confirm_overlay_child_theme(_lv_obj_t *obj)
 
 static bool apply_screen_child_theme(_lv_obj_t *obj)
 {
-    if (ht_id(obj) == meta_id::ScreenClipLabel)
-    {
-        style_screen_label(obj);
-        return true;
-    }
     return apply_home_screen_child_theme(obj) || apply_gps_screen_child_theme(obj) ||
            apply_recent_screen_child_theme(obj) || apply_radio_screen_child_theme(obj) ||
            apply_find_friend_screen_child_theme(obj) || apply_system_screen_child_theme(obj);
@@ -2613,7 +2592,12 @@ static bool apply_screen_child_theme(_lv_obj_t *obj)
 
 static bool apply_ht_container_child_theme(_lv_obj_t *obj)
 {
-    if (!obj || !lv_obj_check_type(obj, &lv_label_class))
+    if (!obj)
+    {
+        return false;
+    }
+
+    if (!lv_obj_check_type(obj, &lv_label_class))
     {
         return false;
     }
@@ -3216,6 +3200,18 @@ static bool apply_navigation_theme(_lv_obj_t *obj)
 {
     if (!obj)
         return false;
+
+    if (lv_obj_check_type(obj, &ht_navigator_class) && ht_id(obj) == HT_META_ID_UNSET)
+    {
+        apply_navigator_panel_chrome(obj);
+        if (_lv_obj_t *content = ui_navigator_content(obj))
+        {
+            if (content != obj)
+                style_navigator_content_host(content);
+        }
+        return true;
+    }
+
     switch (ht_id(obj))
     {
     case meta_id::NavigationRoot:
@@ -3228,14 +3224,6 @@ static bool apply_navigation_theme(_lv_obj_t *obj)
 #endif
         return true;
 
-    case meta_id::NavigationPanel:
-        apply_navigator_panel_chrome(obj);
-        if (_lv_obj_t *content = ui_navigator_content(obj))
-        {
-            if (content != obj)
-                style_navigator_content_host(content);
-        }
-        return true;
     case meta_id::NavigationContent:
         style_navigator_content_host(obj);
         return true;
@@ -3326,6 +3314,11 @@ bool ui_widget_theme_apply(_lv_obj_t *obj)
 {
     if (!obj)
         return false;
+
+    if (lv_obj_check_type(obj, &ht_container_class))
+    {
+        ui_theme_apply_focus_row(obj);
+    }
 
     const auto apply_custom = [](lv_obj_t *target)
     {

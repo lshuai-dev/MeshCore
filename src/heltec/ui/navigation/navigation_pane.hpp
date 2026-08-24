@@ -47,10 +47,7 @@ class NavigationPane : public UiSurface
     void onExit() override;
 
   private:
-    uint16_t rootMetaId() const override
-    {
-        return meta_id::NavigationRoot;
-    }
+    _lv_obj_t *createRoot(_lv_obj_t *parent) override;
     bool onKey(uint32_t lv_key) override;
     _lv_obj_t *itemHost() const;
     _lv_obj_t *findCellById(uint8_t id) const;

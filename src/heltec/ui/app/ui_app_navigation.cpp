@@ -2,7 +2,7 @@
 #include "ui/app/ui_behavior_profile.hpp"
 #include "ui/core/screen_id.hpp"
 #include "ui/core/ui_deferred_queue.hpp"
-#include "ui/core/ui_events.h"
+#include "ui/core/ht_event.h"
 
 #include <Arduino.h>
 
@@ -20,7 +20,7 @@ void UiApp::openNavigationPane()
 
     _navigation.setSelectedIndex(activeTileIndex(), true);
     notifyNavActivity(millis());
-    (void)_surfaces.show(&_navigation);
+    (void)_surfaces.show(&_navigation, true);
 }
 
 void UiApp::scheduleNavTileCommit(uint8_t tile_idx)
@@ -99,7 +99,7 @@ void UiApp::closeNavigationPane()
         return;
     _nav_last_activity_ms = 0;
     stopNavigationAutoCommitTimer();
-    (void)_surfaces.hide(&_navigation);
+    (void)_surfaces.show(&_navigation, false);
     if (AbstractScreen *scr = activeScreen())
     {
         setTopPaneTitle(scr->title());
@@ -188,7 +188,7 @@ void UiApp::ensureTileKeypadFocus()
     }
 #if !defined(HELTEC_V4_R8_TFT) || !defined(HELTEC_HAS_TOUCH) || !HELTEC_HAS_TOUCH
     if (_surfaces.isVisible(&_contextMenu))
-        dismissContextMenuStack();
+        closeContextMenu();
 #endif
     bindScreen(resolveActiveScreen());
     if (AbstractScreen *scr = activeScreen())
@@ -236,7 +236,7 @@ void UiApp::closeNavigationImmediate()
 {
     _nav_last_activity_ms = 0;
     stopNavigationAutoCommitTimer();
-    (void)_surfaces.hide(&_navigation);
+    (void)_surfaces.show(&_navigation, false);
 }
 
 void UiApp::restartNavigationAutoCommitTimer()

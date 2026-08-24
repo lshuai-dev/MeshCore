@@ -11,7 +11,7 @@
 #include "ui/core/input_pipeline.hpp"
 #include "ui/core/screen_id.hpp"
 #include "ui/core/ui_deferred_queue.hpp"
-#include "ui/core/ui_events.h"
+#include "ui/core/ht_event.h"
 #include "ui/core/ui_motion_scheduler.hpp"
 #include "ui/core/ui_surface.hpp"
 #include "ui/core/ui_task.hpp"
@@ -180,14 +180,14 @@ void UiApp::reconcileInput()
     _surfaces.reconcile();
     if (_surfaces.isVisible(&_previewOvl) && !ui_task().isPreviewActive())
     {
-        (void)_surfaces.hide(&_previewOvl);
+        (void)_surfaces.show(&_previewOvl, false);
         return;
     }
     if (_surfaces.isVisible(&_alertOvl) && !ui_task().isAlertActive())
     {
         UI_ALERT_LOG("reconcile alert inactive active=%p alert=%p", _surfaces.active(),
                      &_alertOvl);
-        const bool dismissed = _surfaces.hide(&_alertOvl);
+        const bool dismissed = _surfaces.show(&_alertOvl, false);
         UI_ALERT_LOG("reconcile alert dismiss=%d visible=%d", dismissed ? 1 : 0,
                      _surfaces.isVisible(&_alertOvl) ? 1 : 0);
         return;
@@ -230,7 +230,7 @@ void UiApp::onTopPaneLongPress()
 void UiApp::init()
 {
     _inited = false;
-    ui_events_init();
+    ht_event_init();
     ui_task().attachHost(this);
     _app_state_dispatcher.bindSurfaceManager(_surfaces);
     _app_state_dispatcher.bindGlobalHandler(
@@ -369,19 +369,19 @@ void UiApp::init()
                 auto *app = static_cast<UiApp *>(lv_event_get_user_data(e));
                 if (!app)
                     return;
-                const UiEvent *event = ui_event_get(e);
+                const UiEvent *event = ht_event_get(e);
                 if (!event)
                     return;
                 switch (event->type)
                 {
-                case UiEventType::TilePreview:
+                case EventType::TILE_PREVIEW:
                 {
                     const auto *idx = static_cast<const uint8_t *>(event->payload);
                     if (idx)
                         app->previewNavTile(*idx);
                     break;
                 }
-                case UiEventType::TileCommit:
+                case EventType::TILE_COMMIT:
                 {
                     const auto *idx = static_cast<const uint8_t *>(event->payload);
                     if (idx)
@@ -392,25 +392,25 @@ void UiApp::init()
                     break;
                 }
             },
-            ui_event_code(), this);
+            HT_EVENT_USER, this);
     }
-    _previewOvl.setTarget(_frame_root);
-    _alertOvl.setTarget(_frame_root);
-    _confirmOvl.setTarget(_frame_root);
-    _radioParamSyncOvl.setTarget(_frame_root);
-    _repeatModeOvl.setTarget(_frame_root);
-    _keyboardOvl.setTarget(_frame_root);
-    _sendMessageOvl.setTarget(_frame_root);
+    _previewOvl.setEventTarget(_frame_root);
+    _alertOvl.setEventTarget(_frame_root);
+    _confirmOvl.setEventTarget(_frame_root);
+    _radioParamSyncOvl.setEventTarget(_frame_root);
+    _repeatModeOvl.setEventTarget(_frame_root);
+    _keyboardOvl.setEventTarget(_frame_root);
+    _sendMessageOvl.setEventTarget(_frame_root);
 #if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
-    _calibrationOvl.setTarget(_frame_root);
+    _calibrationOvl.setEventTarget(_frame_root);
 #endif
 #if defined(HELTEC_V4_R8_TFT) && defined(HELTEC_HAS_TOUCH) && HELTEC_HAS_TOUCH
-    _quickPingOverlay.setTarget(_frame_root);
+    _quickPingOverlay.setEventTarget(_frame_root);
 #else
-    _contextMenu.setTarget(_frame_root);
-    _ctxRadioMenu.setTarget(_frame_root);
+    _contextMenu.setEventTarget(_frame_root);
+    _ctxRadioMenu.setEventTarget(_frame_root);
 #if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
-    _ctxCompassMenu.setTarget(_frame_root);
+    _ctxCompassMenu.setEventTarget(_frame_root);
 #endif
 #endif
 
@@ -448,35 +448,35 @@ void UiApp::bindFrameEvents()
             if (app)
                 app->handleFrameEvent(e);
         },
-        ui_event_code(), this);
+        HT_EVENT_USER, this);
     _frame_events_bound = true;
 }
 
 void UiApp::handleFrameEvent(lv_event_t *e)
 {
-    const UiEvent *event = ui_event_get(e);
+    const UiEvent *event = ht_event_get(e);
     if (!event)
         return;
 
     switch (event->type)
     {
-    case UiEventType::NavOpen:
+    case EventType::NAV_OPEN:
         openNavigationPane();
         break;
-    case UiEventType::NavClose:
+    case EventType::NAV_CLOSE:
         closeNavigationPane();
         break;
-    case UiEventType::NavActivity:
+    case EventType::NAV_ACTIVITY:
         notifyNavActivity(millis());
         break;
-    case UiEventType::ActionOpen:
+    case EventType::ACTION_OPEN:
 #if defined(HELTEC_V4_R8_TFT) && defined(HELTEC_HAS_TOUCH) && HELTEC_HAS_TOUCH
-        (void)ui_event_send(_frame_root, UiEventType::QuickPingOpen);
+        (void)ht_event_send(_frame_root, EventType::QUICK_PING_OPEN);
 #else
-        (void)ui_event_send(_frame_root, UiEventType::ContextOpen);
+        (void)ht_event_send(_frame_root, EventType::CONTEXT_OPEN);
 #endif
         break;
-    case UiEventType::ConfirmOpen:
+    case EventType::CONFIRM_OPEN:
     {
         const auto *request = static_cast<const UiConfirmRequest *>(event->payload);
         if (!request || !inputOnActiveScreen())
@@ -488,23 +488,23 @@ void UiApp::handleFrameEvent(lv_event_t *e)
         }
         break;
     }
-    case UiEventType::ConfirmAccepted:
+    case EventType::CONFIRM_ACCEPTED:
     {
         const auto *action = static_cast<const UiConfirmAction *>(event->payload);
         if (!action || !_surfaces.isVisible(&_confirmOvl))
             break;
         const UiConfirmAction accepted_action = *action;
-        if (_surfaces.hide(&_confirmOvl) && !_surfaces.isVisible(&_confirmOvl))
+        if (_surfaces.show(&_confirmOvl, false) && !_surfaces.isVisible(&_confirmOvl))
         {
-            (void)_surfaces.dispatchToActive(UiEventType::ConfirmAccepted, &accepted_action);
+            (void)_surfaces.dispatchToActive(EventType::CONFIRM_ACCEPTED, &accepted_action);
         }
         break;
     }
-    case UiEventType::ConfirmCancelled:
-        (void)_surfaces.hide(&_confirmOvl);
+    case EventType::CONFIRM_CANCELLED:
+        (void)_surfaces.show(&_confirmOvl, false);
         break;
 #if !defined(HELTEC_V4_R8_TFT) || !defined(HELTEC_HAS_TOUCH) || !HELTEC_HAS_TOUCH
-    case UiEventType::ContextOpen:
+    case EventType::CONTEXT_OPEN:
         (void)defer(
             +[](void *user_data)
             {
@@ -525,41 +525,41 @@ void UiApp::handleFrameEvent(lv_event_t *e)
                     return;
                 if (!app->inputOnActiveScreen())
                     return;
-                (void)app->_surfaces.show(&app->_contextMenu);
+                (void)app->_surfaces.show(&app->_contextMenu, true);
             },
             this);
         break;
-    case UiEventType::ContextClose:
-        dismissTopContextMenu();
+    case EventType::CONTEXT_CLOSE:
+        closeContextMenu();
         break;
 #endif
-    case UiEventType::SendMessageOpen:
+    case EventType::SEND_MESSAGE_OPEN:
         _sendMessageOvl.prepareTarget(static_cast<const UiSendMessageTarget *>(event->payload));
         (void)openSendMessageOverlay();
         break;
-    case UiEventType::CalibrationOpen:
+    case EventType::CALIBRATION_OPEN:
 #if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
         (void)openCalibrationOverlay();
 #endif
         break;
-    case UiEventType::RepeatModeOpen:
+    case EventType::REPEAT_MODE_OPEN:
         openRepeatModeOverlay();
         break;
 #if defined(HELTEC_V4_R8_TFT) && defined(HELTEC_HAS_TOUCH) && HELTEC_HAS_TOUCH
-    case UiEventType::QuickPingOpen:
+    case EventType::QUICK_PING_OPEN:
         if (!_surfaces.isVisible(&_quickPingOverlay) && inputOnActiveScreen())
         {
-            (void)_surfaces.show(&_quickPingOverlay);
+            (void)_surfaces.show(&_quickPingOverlay, true);
         }
         break;
-    case UiEventType::QuickPingClose:
+    case EventType::QUICK_PING_CLOSE:
         if (!_quickPingOverlay.requestCloseAnimation())
         {
-            (void)_surfaces.hide(&_quickPingOverlay);
+            (void)_surfaces.show(&_quickPingOverlay, false);
         }
         break;
 #endif
-    case UiEventType::PreviewNext:
+    case EventType::PREVIEW_NEXT:
         if (ui_task().advancePreview())
         {
             openPreviewOverlay(ui_task().previewUnread(), ui_task().previewReceivedMillis(),
@@ -570,32 +570,32 @@ void UiApp::handleFrameEvent(lv_event_t *e)
             closePreviewOverlay();
         }
         break;
-    case UiEventType::PreviewClose:
+    case EventType::PREVIEW_CLOSE:
         closePreviewOverlay();
         break;
-    case UiEventType::AlertClose:
+    case EventType::ALERT_CLOSE:
         UI_ALERT_LOG("event close active=%p visible=%d", _surfaces.active(),
                      _surfaces.isVisible(&_alertOvl) ? 1 : 0);
         closeAlertOverlay();
         break;
-    case UiEventType::RadioSyncClose:
+    case EventType::RADIO_SYNC_CLOSE:
         closeRadioParamSyncOverlay();
         break;
-    case UiEventType::RepeatModeClose:
+    case EventType::REPEAT_MODE_CLOSE:
         closeRepeatModeOverlay();
         break;
-    case UiEventType::CalibrationClose:
+    case EventType::CALIBRATION_CLOSE:
 #if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
         closeCalibrationOverlay();
 #endif
         break;
-    case UiEventType::KeyboardClose:
+    case EventType::KEYBOARD_CLOSE:
         closeKeyboardOverlay();
         break;
-    case UiEventType::SendMessageClose:
+    case EventType::SEND_MESSAGE_CLOSE:
         closeSendMessageOverlay();
         break;
-    case UiEventType::MessageKeyboardOpen:
+    case EventType::MESSAGE_KEYBOARD_OPEN:
     {
         auto *req = static_cast<const UiMessageKeyboardRequest *>(event->payload);
         if (!req || !_surfaces.isActive(&_sendMessageOvl))
@@ -613,10 +613,10 @@ void UiApp::handleFrameEvent(lv_event_t *e)
             this);
         break;
     }
-    case UiEventType::WaypointKeyboardOpen:
+    case EventType::WAYPOINT_KEYBOARD_OPEN:
         openWaypointKeyboard();
         break;
-    case UiEventType::MessageKeyboardSubmit:
+    case EventType::MESSAGE_KEYBOARD_SUBMIT:
     {
         auto *submit = static_cast<const UiMessageKeyboardSubmit *>(event->payload);
         if (submit && submit->text)
@@ -628,14 +628,14 @@ void UiApp::handleFrameEvent(lv_event_t *e)
         }
         break;
     }
-    case UiEventType::WaypointKeyboardSubmit:
+    case EventType::WAYPOINT_KEYBOARD_SUBMIT:
     {
         auto *submit = static_cast<const UiWaypointKeyboardSubmit *>(event->payload);
         if (submit)
-            _surfaces.dispatchToActive(UiEventType::WaypointKeyboardSubmit, submit);
+            _surfaces.dispatchToActive(EventType::WAYPOINT_KEYBOARD_SUBMIT, submit);
         break;
     }
-    case UiEventType::RebindInput:
+    case EventType::REBIND_INPUT:
         _surfaces.reconcile();
         break;
     default:
@@ -729,7 +729,7 @@ bool UiApp::initScreens(_lv_obj_t *content)
         ui_widget_theme_apply(tile);
         lv_obj_set_scrollbar_mode(tile, LV_SCROLLBAR_MODE_OFF);
         lv_obj_clear_flag(tile, LV_OBJ_FLAG_SCROLLABLE);
-        scr->setTarget(_frame_root);
+        scr->setEventTarget(_frame_root);
         if (!scr->init(tile))
             return false;
         lv_obj_t *scr_root = scr->root();

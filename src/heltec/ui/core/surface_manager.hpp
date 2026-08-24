@@ -1,6 +1,6 @@
 #pragma once
 
-#include "ui_events.h"
+#include "ht_event.h"
 
 #include <stdint.h>
 
@@ -14,21 +14,17 @@ class SurfaceManager
   public:
     static constexpr uint8_t kMaxPresentedSurfaces = 4;
 
+    /* Replaces the single base surface; TileView owns old screen visibility. */
     void setRoot(UiSurface *surface);
 
-    bool show(UiSurface *surface);
-    bool hide(UiSurface *surface);
+    bool show(UiSurface *surface, bool visible = true);
 
-    UiSurface *root() const
-    {
-        return _root;
-    }
     UiSurface *active() const;
 
     bool isActive(const UiSurface *surface) const;
     bool isVisible(const UiSurface *surface) const;
 
-    bool dispatchToActive(UiEventType type, const void *payload = nullptr);
+    bool dispatchToActive(EventType type, const void *payload = nullptr);
     void reconcile();
 
   private:
@@ -36,6 +32,7 @@ class SurfaceManager
     void enter(UiSurface *surface);
     void exit(UiSurface *surface);
     void bindInput(UiSurface *surface);
+    void clearInput();
     int find(const UiSurface *surface) const;
     void remove(uint8_t index);
 

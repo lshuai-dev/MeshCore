@@ -208,17 +208,9 @@ inline lv_color_t ui_navigation_focus_color()
     return ui_color_accent();
 }
 bool ui_theme_init(lv_disp_t *disp);
-/** Applies the platform-specific highlight used by a focused Screen row/control. */
-void ui_theme_apply_focus_frame(_lv_obj_t *frame);
 /** Applies a borderless row highlight on TFT while preserving legacy themes elsewhere. */
 void ui_theme_apply_focus_row(_lv_obj_t *row);
-/** Synchronizes the visual state of a focused container and its text children. */
-void ui_theme_set_container_focused(_lv_obj_t *container, bool focused);
-/** Removes the native focus border from a control whose parent row is highlighted. */
-void ui_theme_apply_focus_control(_lv_obj_t *control);
 void ui_theme_set_focus_text_scroll(_lv_obj_t *row, bool focused);
-/** Applies the active theme's row focus style for a row associated with a switch. */
-void ui_theme_apply_switch_row_focus(_lv_obj_t *row, _lv_obj_t *sw);
 /** Applies the active theme's popup dropdown list chrome/background/selection style. */
 void ui_theme_apply_dropdown_list(_lv_obj_t *list);
 /** Matches popup-list horizontal text padding to its closed dropdown control. */

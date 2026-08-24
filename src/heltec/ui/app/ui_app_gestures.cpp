@@ -141,7 +141,7 @@ void UiApp::openQuickPingFromTopSwipe()
     }
     if (inputOnActiveScreen())
     {
-        (void)_surfaces.show(&_quickPingOverlay);
+        (void)_surfaces.show(&_quickPingOverlay, true);
     }
 }
 
@@ -151,7 +151,7 @@ void UiApp::closeQuickPingFromSwipe()
     {
         if (!_quickPingOverlay.requestCloseAnimation())
         {
-            (void)_surfaces.hide(&_quickPingOverlay);
+            (void)_surfaces.show(&_quickPingOverlay, false);
         }
     }
 }
@@ -303,7 +303,7 @@ void UiApp::onTouchSwipe(lv_dir_t direction, int16_t start_x, int16_t start_y)
             return;
         if (_surfaces.isVisible(&_contextMenu))
         {
-            dismissTopContextMenu();
+            closeContextMenu();
         }
         else
         {

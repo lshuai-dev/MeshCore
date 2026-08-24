@@ -40,8 +40,6 @@ static lv_style_t s_switch_indicator_focus_checked;
 static lv_style_t s_switch_knob;
 static lv_style_t s_switch_knob_checked;
 
-static lv_style_t s_row_focus_key;
-static bool s_row_focus_key_ready = false;
 
 static const heltec::meshcore::ui::UiThemeColors kMonoFlatColors = {
     0xFFFFFF, // fg
@@ -300,49 +298,6 @@ extern "C" void ui_mono_flat_apply(lv_theme_t *th, lv_obj_t *obj)
 
 namespace heltec::meshcore::ui
 {
-
-void ui_mono_flat_apply_switch_row_focus(lv_obj_t *row, lv_obj_t *sw)
-{
-    if (!row || !sw || !s_widget_styles_inited)
-        return;
-
-    if (!s_row_focus_key_ready)
-    {
-        lv_style_init(&s_row_focus_key);
-        s_row_focus_key_ready = true;
-    }
-
-    const lv_style_selector_t sel = LV_PART_MAIN | LV_STATE_FOCUS_KEY;
-    lv_coord_t bw = lv_obj_get_style_border_width(sw, sel);
-    lv_color_t bc = lv_obj_get_style_border_color(sw, sel);
-    lv_opa_t bo = lv_obj_get_style_border_opa(sw, sel);
-#if defined(HELTEC_V4_R8_TFT)
-    (void)bw;
-    (void)bc;
-    (void)bo;
-    lv_style_set_border_width(&s_row_focus_key, 0);
-    lv_style_set_border_opa(&s_row_focus_key, LV_OPA_TRANSP);
-    lv_style_set_border_side(&s_row_focus_key, LV_BORDER_SIDE_NONE);
-    lv_style_set_outline_width(&s_row_focus_key, 0);
-    lv_style_set_shadow_width(&s_row_focus_key, 0);
-    lv_style_set_bg_color(&s_row_focus_key, heltec::meshcore::ui::ui_color_highlight_bg());
-    lv_style_set_bg_opa(&s_row_focus_key, LV_OPA_20);
-#else
-    if (bw <= 0)
-    {
-        bw = 1;
-        bc = s_color_border;
-        bo = LV_OPA_COVER;
-    }
-
-    lv_style_set_border_width(&s_row_focus_key, bw);
-    lv_style_set_border_color(&s_row_focus_key, bc);
-    lv_style_set_border_opa(&s_row_focus_key, bo);
-    lv_style_set_border_side(&s_row_focus_key, LV_BORDER_SIDE_FULL);
-    lv_style_set_outline_width(&s_row_focus_key, 0);
-#endif
-    lv_obj_add_style(row, &s_row_focus_key, LV_PART_MAIN | LV_STATE_FOCUS_KEY);
-}
 
 static lv_theme_t *init_mono_flat_theme_variant(lv_disp_t *disp, const lv_font_t *font,
                                                 bool ssd1306, UiTheme &theme_storage)

@@ -13,7 +13,6 @@ namespace heltec::meshcore::ui
 namespace meta_id
 {
 constexpr uint16_t GpsPowerSwitch = ht_meta_id(MetaIdScope::Screen, 0x42);
-constexpr uint16_t GpsRawLabel = ht_meta_id(MetaIdScope::Screen, 0x47);
 constexpr uint16_t GpsTrackSwitch = ht_meta_id(MetaIdScope::Screen, 0x4A);
 constexpr uint16_t GpsLocationShareSwitch = ht_meta_id(MetaIdScope::Screen, 0x4D);
 constexpr uint16_t GpsAdvIntervalDropdown = ht_meta_id(MetaIdScope::Screen, 0x50);
@@ -38,9 +37,8 @@ class GPSScreen : public AbstractScreen
     _lv_obj_t *create(_lv_obj_t *parent) override;
 
   private:
-    _lv_obj_t *createRoot(_lv_obj_t *parent) override;
     void onAppStateChanged(const AppStateEvent &event) override;
-    void onRefreshRequested() override;
+    void onSurfaceRefresh() override;
     void updateGps(const biz::IBizFacade::GpsStatus &s);
     void refreshSnapshot();
     void setSwitchState(_lv_obj_t *sw, bool on);

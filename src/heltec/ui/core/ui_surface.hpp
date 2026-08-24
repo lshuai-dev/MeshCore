@@ -2,10 +2,7 @@
 #include "app_state_event.hpp"
 #include "biz_facade.hpp"
 #include "ht_meta_data.hpp"
-#include "ui_events.h"
-
-#include <lvgl.h>
-#include <stdint.h>
+#include "ht_event.h"
 
 struct _lv_obj_t;
 namespace heltec::meshcore::ui
@@ -20,15 +17,12 @@ class UiSurface
 
     /** Initialize the surface once during UI startup. */
     bool init(_lv_obj_t *parent);
-    bool initialized() const
-    {
-        return _root != nullptr;
-    }
     virtual _lv_obj_t *root() const
     {
         return _root;
     }
-    void setTarget(_lv_obj_t *target)
+    /** Sets the object that receives events emitted through emit(). */
+    void setEventTarget(_lv_obj_t *target)
     {
         _event_target = target;
     }
@@ -37,8 +31,6 @@ class UiSurface
         return _focus_group;
     }
     virtual _lv_obj_t *focusedObject() const;
-    virtual bool canPresent() const;
-    virtual bool canBindInput() const;
     virtual void onEnter()
     {
     }
@@ -49,24 +41,20 @@ class UiSurface
   protected:
     /** Create the LVGL object tree. Called only by init(). */
     virtual _lv_obj_t *create(_lv_obj_t *parent);
-    virtual uint16_t rootMetaId() const
-    {
-        return HT_META_ID_UNSET;
-    }
     virtual _lv_obj_t *createRoot(_lv_obj_t *parent);
     virtual void onAppStateChanged(const AppStateEvent &event)
     {
         (void)event;
     }
-    virtual void onRefreshRequested()
+    virtual void onSurfaceRefresh()
     {
     }
     virtual void onUiEvent(const UiEvent &event)
     {
         (void)event;
     }
-    bool emit(UiEventType type, const void *payload = nullptr) const;
-    virtual _lv_obj_t *defaultFocus() const;
+    bool emit(EventType type, const void *payload = nullptr) const;
+    _lv_obj_t *defaultFocus() const;
     virtual bool onKey(uint32_t key)
     {
         (void)key;

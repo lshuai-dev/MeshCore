@@ -8,7 +8,7 @@
 #include "ui/core/ht_meta_data.hpp"
 #include "ui/core/operation_hints.hpp"
 #include "ui/core/ui_deferred_queue.hpp"
-#include "ui/core/ui_events.h"
+#include "ui/core/ht_event.h"
 
 #include <cstdio>
 #include <cstring>
@@ -357,7 +357,7 @@ void SendMessageOverlay::sendMessageText(const char *text, bool alert_on_direct_
     memcpy(pub_key_prefix, target.pub_key_prefix, 6);
 
     // Close before alert/send so the result overlay becomes the top surface.
-    emit(UiEventType::SendMessageClose);
+    emit(EventType::SEND_MESSAGE_CLOSE);
 
     bool ok = false;
     if (kind == TargetKind::Personal)
@@ -411,7 +411,7 @@ void SendMessageOverlay::openCustomKeyboard()
     const Target &target = _model.target();
     UiMessageKeyboardRequest req;
     req.title = target.label;
-    const bool ok = emit(UiEventType::MessageKeyboardOpen, &req);
+    const bool ok = emit(EventType::MESSAGE_KEYBOARD_OPEN, &req);
     SENDMSG_LOG("custom keyboard emit ok=%d page=%u sel=%d target=%s kind=%u channel=%d",
                 ok ? 1 : 0, (unsigned)static_cast<uint8_t>(_model.page()), _model.selectedIndex(),
                 req.title ? req.title : "", (unsigned)static_cast<uint8_t>(target.kind),
@@ -435,7 +435,7 @@ void SendMessageOverlay::handleBack()
         renderRows();
         return;
     }
-    emit(UiEventType::SendMessageClose);
+    emit(EventType::SEND_MESSAGE_CLOSE);
 }
 
 void SendMessageOverlay::applySelection()

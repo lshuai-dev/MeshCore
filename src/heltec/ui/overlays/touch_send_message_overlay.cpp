@@ -5,10 +5,11 @@
 #include "heltec/drivers/input/btn_debug.hpp"
 #include "heltec/ui/core/biz_facade.hpp"
 #include "keyboard_overlay.hpp"
+#include "ui/core/ht_container.hpp"
 #include "ui/core/ht_meta_data.hpp"
 #include "ui/core/operation_hints.hpp"
 #include "ui/core/ui_deferred_queue.hpp"
-#include "ui/core/ui_events.h"
+#include "ui/core/ht_event.h"
 
 #include <cstdio>
 #include <cstring>
@@ -217,13 +218,7 @@ void SendMessageOverlay::clearTouchList()
         if (!_row_objs[i])
             continue;
         lv_obj_add_flag(_row_objs[i], LV_OBJ_FLAG_HIDDEN);
-        lv_obj_clear_state(_row_objs[i], LV_STATE_FOCUSED);
-        ui_theme_set_focus_text_scroll(_row_objs[i], false);
-        if (_row_labels[i])
-        {
-            lv_obj_clear_state(_row_labels[i], LV_STATE_FOCUSED);
-            ui_theme_set_focus_text_scroll(_row_labels[i], false);
-        }
+        ht_container_set_focused(_row_objs[i], false);
     }
 }
 
@@ -231,8 +226,8 @@ _lv_obj_t *SendMessageOverlay::createTouchRow(uint8_t index, const char *text)
 {
     if (!_list)
         return nullptr;
-    lv_obj_t *row = ht_btn_create(_list, meta_id::SendMessageRow,
-                                  reinterpret_cast<void *>(static_cast<uintptr_t>(index)));
+    lv_obj_t *row = ht_container_create(_list, meta_id::SendMessageRow,
+                                        reinterpret_cast<void *>(static_cast<uintptr_t>(index)));
     if (!row)
         return nullptr;
     lv_obj_set_size(row, lv_pct(100), sendRowHeight());
@@ -312,26 +307,13 @@ void SendMessageOverlay::syncSelectionVisual()
         lv_obj_t *row = _row_objs[i];
         if (!row)
             continue;
-        lv_obj_t *label = lv_obj_get_child_cnt(row) > 0 ? lv_obj_get_child(row, 0) : nullptr;
         if (i == selected)
         {
-            lv_obj_add_state(row, LV_STATE_FOCUSED);
-            ui_theme_set_focus_text_scroll(row, true);
-            if (label)
-            {
-                lv_obj_add_state(label, LV_STATE_FOCUSED);
-                ui_theme_set_focus_text_scroll(label, true);
-            }
+            ht_container_set_focused(row, true);
         }
         else
         {
-            lv_obj_clear_state(row, LV_STATE_FOCUSED);
-            ui_theme_set_focus_text_scroll(row, false);
-            if (label)
-            {
-                lv_obj_clear_state(label, LV_STATE_FOCUSED);
-                ui_theme_set_focus_text_scroll(label, false);
-            }
+            ht_container_set_focused(row, false);
         }
     }
     if (_focus_group && selected < kMaxListItems && _row_objs[selected])
@@ -398,7 +380,7 @@ void SendMessageOverlay::sendMessageText(const char *text, bool alert_on_direct_
     memcpy(pub_key_prefix, target.pub_key_prefix, 6);
 
     // Close before alert/send so the result overlay becomes the top surface.
-    emit(UiEventType::SendMessageClose);
+    emit(EventType::SEND_MESSAGE_CLOSE);
 
     bool ok = false;
     if (kind == TargetKind::Personal)
@@ -452,7 +434,7 @@ void SendMessageOverlay::openCustomKeyboard()
     const Target &target = _model.target();
     UiMessageKeyboardRequest req;
     req.title = target.label;
-    const bool ok = emit(UiEventType::MessageKeyboardOpen, &req);
+    const bool ok = emit(EventType::MESSAGE_KEYBOARD_OPEN, &req);
     BTN_UI_LOG("sendmsg custom keyboard emit ok=%d page=%u sel=%d target=%s kind=%u channel=%d",
                ok ? 1 : 0, (unsigned)static_cast<uint8_t>(_model.page()), _model.selectedIndex(),
                req.title ? req.title : "", (unsigned)static_cast<uint8_t>(target.kind),
@@ -476,7 +458,7 @@ void SendMessageOverlay::handleBack()
         renderRows();
         return;
     }
-    emit(UiEventType::SendMessageClose);
+    emit(EventType::SEND_MESSAGE_CLOSE);
 }
 
 void SendMessageOverlay::applySelection()

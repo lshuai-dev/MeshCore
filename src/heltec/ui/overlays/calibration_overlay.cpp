@@ -4,7 +4,7 @@
 
 #include "ui/core/ht_meta_data.hpp"
 #include "ui/core/operation_hints.hpp"
-#include "ui/core/ui_events.h"
+#include "ui/core/ht_event.h"
 
 #include <Arduino.h>
 #include <lvgl.h>
@@ -99,7 +99,7 @@ bool CalibrationOverlay::onKey(uint32_t key)
         return true;
     if (key == LV_KEY_ESC)
     {
-        return emit(UiEventType::CalibrationClose);
+        return emit(EventType::CALIBRATION_CLOSE);
     }
     return false;
 }
@@ -114,7 +114,7 @@ void CalibrationOverlay::confirm()
     }
     if (_phase != Phase::Calibrating)
     {
-        (void)emit(UiEventType::CalibrationClose);
+        (void)emit(EventType::CALIBRATION_CLOSE);
     }
 }
 
@@ -336,7 +336,7 @@ void CalibrationOverlay::onAppStateChanged(const AppStateEvent &event)
     checkTimeout();
 }
 
-void CalibrationOverlay::onRefreshRequested()
+void CalibrationOverlay::onSurfaceRefresh()
 {
     render();
 }
@@ -375,7 +375,7 @@ void CalibrationOverlay::onExit()
 void CalibrationOverlay::onAppStateChanged(const AppStateEvent &)
 {
 }
-void CalibrationOverlay::onRefreshRequested()
+void CalibrationOverlay::onSurfaceRefresh()
 {
 }
 void CalibrationOverlay::startTimeoutTimer()

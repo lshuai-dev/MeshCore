@@ -5,7 +5,7 @@
 #include "MeshCore.h"
 #include "compass_ui_common.hpp"
 #include "ui/core/ht_meta_data.hpp"
-#include "ui/core/ui_events.h"
+#include "ui/core/ht_event.h"
 
 #include <Arduino.h>
 #include <lvgl.h>
@@ -99,11 +99,6 @@ void format_nav_distance(char *buf, size_t len, const biz::FindFriendUi &u)
     lv_snprintf(buf, len, "%s%lum", approximate, (unsigned long)rounded);
 }
 } // namespace
-
-_lv_obj_t *FindFriendScreen::createRoot(_lv_obj_t *parent)
-{
-    return ht_obj_create(parent, meta_id::FindFriendScreenRoot);
-}
 
 void FindFriendScreen::setInfoText(const char *info)
 {
@@ -475,19 +470,19 @@ void FindFriendScreen::onAppStateChanged(const AppStateEvent &event)
     }
 }
 
-void FindFriendScreen::onRefreshRequested()
+void FindFriendScreen::onSurfaceRefresh()
 {
     refresh();
 }
 
 void FindFriendScreen::onUiEvent(const UiEvent &event)
 {
-    if (event.type == UiEventType::WaypointKeyboardClosed)
+    if (event.type == EventType::WAYPOINT_KEYBOARD_CLOSED)
     {
         restoreWaypointKeyboardFocus();
         return;
     }
-    if (event.type != UiEventType::WaypointKeyboardSubmit || !event.payload)
+    if (event.type != EventType::WAYPOINT_KEYBOARD_SUBMIT || !event.payload)
         return;
 
     const auto *submit = static_cast<const UiWaypointKeyboardSubmit *>(event.payload);

@@ -1,13 +1,25 @@
 #include "ui_surface.hpp"
 
-#include "group_manager.hpp"
 #include "ht_meta_data.hpp"
-#include "ui_events.h"
+#include "ht_event.h"
 
 #include <lvgl.h>
 
 namespace heltec::meshcore::ui
 {
+namespace
+{
+
+void stop_focus_event_bubbling(lv_event_t *event)
+{
+    if (!event)
+    {
+        return;
+    }
+    lv_event_stop_bubbling(event);
+}
+
+} // namespace
 
 bool UiSurface::init(_lv_obj_t *parent)
 {
@@ -18,19 +30,16 @@ bool UiSurface::init(_lv_obj_t *parent)
 
 _lv_obj_t *UiSurface::createRoot(_lv_obj_t *parent)
 {
-    return ht_obj_create(parent, rootMetaId());
+    return ht_obj_create(parent);
 }
 
 _lv_obj_t *UiSurface::create(_lv_obj_t *parent)
 {
-    if (!parent)
-        return nullptr;
-    if (_root)
-        return _root;
+    if (!parent) return nullptr;
+    if (_root) return _root;
 
     _root = createRoot(parent);
-    if (!_root)
-        return nullptr;
+    if (!_root) return nullptr;
 
     _focus_group = lv_group_create();
     if (!_focus_group)
@@ -42,43 +51,32 @@ _lv_obj_t *UiSurface::create(_lv_obj_t *parent)
 
     lv_group_set_wrap(_focus_group, true);
     lv_group_set_editing(_focus_group, false);
-    lv_obj_add_event_cb(
-        _root,
-        [](lv_event_t *e)
-        {
-            if (LV_EVENT_KEY != lv_event_get_code(e))
-                return;
-            auto *self = static_cast<UiSurface *>(lv_event_get_user_data(e));
-            if (!self || !self->onKey(lv_event_get_key(e)))
-                return;
-            lv_event_stop_processing(e);
-            lv_event_stop_bubbling(e);
-        },
-        LV_EVENT_KEY, this);
-    lv_obj_add_event_cb(
-        _root,
-        [](lv_event_t *e)
-        {
-            const UiEvent *event = ui_event_get(e);
-            auto *self = static_cast<UiSurface *>(lv_event_get_user_data(e));
-            if (!self || !event)
-                return;
-            if (event->type == UiEventType::AppStateChanged)
-            {
-                const auto *state = static_cast<const AppStateEvent *>(event->payload);
-                if (state)
-                    self->onAppStateChanged(*state);
-            }
-            else if (event->type == UiEventType::SurfaceRefresh)
-            {
-                self->onRefreshRequested();
+
+    lv_obj_add_event_cb(_root, [](lv_event_t *e) {
+        if (LV_EVENT_KEY != lv_event_get_code(e)) return;
+        auto *self = static_cast<UiSurface *>(lv_event_get_user_data(e));
+        if (!self || !self->onKey(lv_event_get_key(e))) return;
+        lv_event_stop_processing(e);
+        lv_event_stop_bubbling(e);
+    }, LV_EVENT_KEY, this);
+
+    lv_obj_add_event_cb(_root, [](lv_event_t *e) {
+        const UiEvent *event = ht_event_get(e);
+        auto *self = static_cast<UiSurface *>(lv_event_get_user_data(e));
+        if (!self || !event) return;
+        if (event->type == EventType::APP_STATE_CHANGED) {
+            const auto *state = static_cast<const AppStateEvent *>(event->payload);
+            if (state) self->onAppStateChanged(*state);
+        }
+        else if (event->type == EventType::SURFACE_REFRESH) {
+                self->onSurfaceRefresh();
             }
             else
             {
                 self->onUiEvent(*event);
             }
         },
-        ui_event_code(), this);
+        HT_EVENT_USER, this);
 
     return _root;
 }
@@ -98,22 +96,21 @@ _lv_obj_t *UiSurface::focusedObject() const
     return defaultFocus();
 }
 
-bool UiSurface::canPresent() const
-{
-    return _root && lv_obj_is_valid(_root);
-}
-
-bool UiSurface::canBindInput() const
-{
-    return canPresent() && _focus_group;
-}
-
 void UiSurface::addFocusObject(_lv_obj_t *obj)
 {
     if (!_focus_group || !obj)
         return;
     lv_obj_add_flag(obj, LV_OBJ_FLAG_CLICKABLE | LV_OBJ_FLAG_EVENT_BUBBLE);
     lv_obj_add_flag(obj, LV_OBJ_FLAG_SCROLL_ON_FOCUS);
+    while (lv_obj_remove_event_cb(obj, stop_focus_event_bubbling))
+    {
+    }
+    lv_obj_add_event_cb(obj, stop_focus_event_bubbling,
+                        static_cast<lv_event_code_t>(LV_EVENT_FOCUSED | LV_EVENT_PREPROCESS),
+                        nullptr);
+    lv_obj_add_event_cb(obj, stop_focus_event_bubbling,
+                        static_cast<lv_event_code_t>(LV_EVENT_DEFOCUSED | LV_EVENT_PREPROCESS),
+                        nullptr);
     lv_group_add_obj(_focus_group, obj);
     if (!_default_focus || !lv_obj_is_valid(_default_focus))
         _default_focus = obj;
@@ -131,9 +128,9 @@ void UiSurface::clearFocusObjects()
     _default_focus = nullptr;
 }
 
-bool UiSurface::emit(UiEventType type, const void *payload) const
+bool UiSurface::emit(EventType type, const void *payload) const
 {
-    return ui_event_send(_event_target, type, payload);
+    return ht_event_send(_event_target, type, payload);
 }
 
 } // namespace heltec::meshcore::ui

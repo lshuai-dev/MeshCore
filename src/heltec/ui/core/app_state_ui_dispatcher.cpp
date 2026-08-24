@@ -2,7 +2,7 @@
 
 #include "app_state_notifier.hpp"
 #include "surface_manager.hpp"
-#include "ui_events.h"
+#include "ht_event.h"
 
 #include <lvgl.h>
 
@@ -104,7 +104,7 @@ void AppStateUiDispatcher::dispatchPending()
         }
         if (_surfaces)
         {
-            _surfaces->dispatchToActive(UiEventType::AppStateChanged, &event);
+            _surfaces->dispatchToActive(EventType::APP_STATE_CHANGED, &event);
         }
     }
 }

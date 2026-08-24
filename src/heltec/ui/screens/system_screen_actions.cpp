@@ -1,5 +1,5 @@
 #include "system_screen.hpp"
-#include "ui/core/ui_events.h"
+#include "ui/core/ht_event.h"
 
 namespace heltec::meshcore::ui
 {
@@ -12,7 +12,7 @@ void SystemScreen::handleAction(SysAction action)
     UiConfirmRequest request{};
     request.action = action == SysAction::FactoryReset ? UiConfirmAction::FactoryReset
                                                        : UiConfirmAction::ClearData;
-    if (!emit(UiEventType::ConfirmOpen, &request))
+    if (!emit(EventType::CONFIRM_OPEN, &request))
     {
         _feedback.showAlert("Unable to open confirmation", 2000);
     }
@@ -20,7 +20,7 @@ void SystemScreen::handleAction(SysAction action)
 
 void SystemScreen::onUiEvent(const UiEvent &event)
 {
-    if (event.type != UiEventType::ConfirmAccepted || !event.payload)
+    if (event.type != EventType::CONFIRM_ACCEPTED || !event.payload)
         return;
     const auto action = *static_cast<const UiConfirmAction *>(event.payload);
     executeAction(action == UiConfirmAction::FactoryReset ? SysAction::FactoryReset

@@ -6,7 +6,7 @@
 #include "ui/core/ht_meta_data.hpp"
 #include "ui/core/ht_meta_data_internal.hpp"
 #include "ui/core/ui_deferred_queue.hpp"
-#include "ui/core/ui_events.h"
+#include "ui/core/ht_event.h"
 #include "ui/theme/ui_widget_theme.hpp"
 
 #include <lvgl.h>
@@ -215,7 +215,7 @@ void FindFriendScreen::configureFocusItems()
     addFocusItem(_row_wp_manual);
     if (_lbl_info)
     {
-        addFocusItem(_lbl_info);
+        addFocusItem(_lbl_info, nullptr, false);
         // The read-only row takes part in keypad focus scrolling without intercepting
         // touch gestures intended to scroll the right column.
         lv_obj_clear_flag(_lbl_info, LV_OBJ_FLAG_CLICKABLE | LV_OBJ_FLAG_CLICK_FOCUSABLE);
@@ -245,7 +245,7 @@ void FindFriendScreen::configureFocusItems()
                     return;
                 for (_lv_obj_t *obj = focused; obj; obj = lv_obj_get_parent(obj))
                 {
-                    if (ht_id(obj) != meta_id::FindFriendScreenRoot)
+                    if (!ht_user_data(obj))
                         continue;
                     auto *const self = static_cast<FindFriendScreen *>(ht_user_data(obj));
                     if (self)
@@ -684,7 +684,7 @@ void FindFriendScreen::realignDropdownListAsync(void *user_data)
         return;
     for (_lv_obj_t *obj = dropdown; obj; obj = lv_obj_get_parent(obj))
     {
-        if (ht_id(obj) != meta_id::FindFriendScreenRoot)
+        if (!ht_user_data(obj))
             continue;
         auto *self = static_cast<FindFriendScreen *>(ht_user_data(obj));
         if (self)
@@ -710,11 +710,8 @@ void FindFriendScreen::realignDropdownList(_lv_obj_t *dropdown)
     if (width > 0)
         lv_obj_set_width(list, width);
     lv_obj_set_scrollbar_mode(list, LV_SCROLLBAR_MODE_OFF);
-    if (ht_id(list) != meta_id::FindFriendDropdownList)
-    {
-        detail::set_meta_id(list, meta_id::FindFriendDropdownList);
-        ui_widget_theme_apply(list);
-    }
+    detail::set_meta_id(list, meta_id::FindFriendDropdownList);
+    ui_widget_theme_apply(list);
     ui_theme_match_dropdown_list_padding(dropdown, list);
     _lv_obj_t *const viewport = tile();
     ui_dropdown_fit_list_to_viewport(dropdown, viewport ? viewport : _root, _root);
@@ -834,7 +831,7 @@ void FindFriendScreen::handleAction(Action action, _lv_obj_t *source)
     if (action == Action::WaypointManual)
     {
         _waypoint_keyboard_return_focus = source;
-        emit(UiEventType::WaypointKeyboardOpen);
+        emit(EventType::WAYPOINT_KEYBOARD_OPEN);
     }
 }
 

@@ -5,7 +5,7 @@
 #include "ui/app/ui_behavior_profile.hpp"
 #include "ui/core/ht_meta_data.hpp"
 #include "ui/core/ht_meta_data_internal.hpp"
-#include "ui/core/ui_events.h"
+#include "ui/core/ht_event.h"
 #include "ui/core/ui_motion_scheduler.hpp"
 #include "ui/theme/ui_widget_theme.hpp"
 
@@ -196,7 +196,7 @@ void ContextMenu::bindPendingLeaf()
         return;
     _pending_leaf_bind = false;
     _leaf_menu->resetInputState(true);
-    emit(UiEventType::RebindInput);
+    emit(EventType::REBIND_INPUT);
 }
 
 void ContextMenu::bindPendingMenu()
@@ -204,7 +204,7 @@ void ContextMenu::bindPendingMenu()
     if (!_pending_menu_bind || !_root || lv_obj_has_flag(_root, LV_OBJ_FLAG_HIDDEN))
         return;
     _pending_menu_bind = false;
-    emit(UiEventType::RebindInput);
+    emit(EventType::REBIND_INPUT);
 }
 
 void ContextMenu::schedulePendingBind(uint32_t delay_ms)
@@ -271,7 +271,7 @@ void ContextMenu::leaveMenuLeaf()
         _leaf_menu->resetInputState(false);
     _in_leaf = false;
     _leaf_menu = nullptr;
-    emit(UiEventType::RebindInput);
+    emit(EventType::REBIND_INPUT);
 }
 
 void ContextMenu::onEnter()
@@ -338,17 +338,17 @@ _lv_obj_t *ContextMenu::create(_lv_obj_t *parent)
         _menu,
         [](lv_event_t *e)
         {
-            const UiEvent *event = ui_event_get(e);
-            if (!event || event->type != UiEventType::RebindInput)
+            const UiEvent *event = ht_event_get(e);
+            if (!event || event->type != EventType::REBIND_INPUT)
                 return;
             auto *self = static_cast<ContextMenu *>(lv_event_get_user_data(e));
             if (!self)
                 return;
-            self->emit(UiEventType::RebindInput);
+            self->emit(EventType::REBIND_INPUT);
             lv_event_stop_bubbling(e);
             lv_event_stop_processing(e);
         },
-        ui_event_code(), this);
+        HT_EVENT_USER, this);
 
     lv_obj_t *mh = lv_menu_get_main_header(_menu);
     if (!mh)
@@ -473,7 +473,8 @@ bool ContextMenu::registerMenu(const char *title, const lv_img_dsc_t *icon, Abst
                 lv_event_stop_processing(e);
             }
         },
-        LV_EVENT_ALL, this);
+        static_cast<lv_event_code_t>(LV_EVENT_FOCUSED | LV_EVENT_CLICKED),
+        this);
 
     lv_obj_add_event_cb(
         btn,
@@ -487,7 +488,7 @@ bool ContextMenu::registerMenu(const char *title, const lv_img_dsc_t *icon, Abst
 
             if (lv_event_get_key(e) != LV_KEY_ESC)
                 return;
-            ctx_menu->emit(UiEventType::ContextClose);
+            ctx_menu->emit(EventType::CONTEXT_CLOSE);
             lv_event_stop_bubbling(e);
             lv_event_stop_processing(e);
         },

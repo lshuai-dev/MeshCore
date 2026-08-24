@@ -2,7 +2,7 @@
 
 #include "ui/core/biz_facade.hpp"
 #include "ui/core/ht_meta_data.hpp"
-#include "ui/core/ui_events.h"
+#include "ui/core/ht_event.h"
 #include "ui/theme/ui_widget_theme.hpp"
 
 #include <lvgl.h>
@@ -101,7 +101,7 @@ _lv_obj_t *RepeatModeOverlay::create(_lv_obj_t *parent)
     if (!_touch_roller)
         return nullptr;
     lv_obj_set_width(_touch_roller, lv_pct(100));
-    lv_obj_add_event_cb(_touch_roller, onRollerEvent, LV_EVENT_ALL, this);
+    lv_obj_add_event_cb(_touch_roller, onRollerEvent, LV_EVENT_CLICKED, this);
 #else
     if (!_roller.create(list, group()))
         return nullptr;
@@ -281,7 +281,7 @@ void RepeatModeOverlay::applySelection(uint8_t item_index)
     if (!error && _biz.forwardingEnabled())
     {
         _biz.showAlert("Repeat mode enabled", 1200);
-        (void)emit(UiEventType::RepeatModeClose);
+        (void)emit(EventType::REPEAT_MODE_CLOSE);
         return;
     }
 
@@ -293,7 +293,7 @@ void RepeatModeOverlay::cancelSelection()
 {
     if (_applying)
         return;
-    (void)emit(UiEventType::RepeatModeClose);
+    (void)emit(EventType::REPEAT_MODE_CLOSE);
 }
 
 void RepeatModeOverlay::setApplying(bool applying)

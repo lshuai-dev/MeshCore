@@ -115,9 +115,9 @@ void ConfirmOverlay::setRequest(UiConfirmAction action)
 bool ConfirmOverlay::onKey(uint32_t key)
 {
     if (key == LV_KEY_ESC)
-        return emit(UiEventType::ConfirmCancelled);
+        return emit(EventType::CONFIRM_CANCELLED);
     if (key == LV_KEY_ENTER)
-        return emit(UiEventType::ConfirmAccepted, &_action);
+        return emit(EventType::CONFIRM_ACCEPTED, &_action);
     return false;
 }
 
@@ -126,7 +126,7 @@ void ConfirmOverlay::onBackdropClicked(lv_event_t *e)
     auto *self = static_cast<ConfirmOverlay *>(lv_event_get_user_data(e));
     if (!self || lv_event_get_target(e) != self->_root)
         return;
-    (void)self->emit(UiEventType::ConfirmCancelled);
+    (void)self->emit(EventType::CONFIRM_CANCELLED);
     lv_event_stop_processing(e);
     lv_event_stop_bubbling(e);
 }
@@ -139,11 +139,11 @@ void ConfirmOverlay::onButtonClicked(lv_event_t *e)
     _lv_obj_t *const target = lv_event_get_target(e);
     if (target == self->_cancel)
     {
-        (void)self->emit(UiEventType::ConfirmCancelled);
+        (void)self->emit(EventType::CONFIRM_CANCELLED);
     }
     else if (target == self->_accept)
     {
-        (void)self->emit(UiEventType::ConfirmAccepted, &self->_action);
+        (void)self->emit(EventType::CONFIRM_ACCEPTED, &self->_action);
     }
     lv_event_stop_processing(e);
     lv_event_stop_bubbling(e);

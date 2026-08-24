@@ -1,7 +1,7 @@
 #include "alert_overlay.hpp"
 
 #include "ui/core/ht_meta_data.hpp"
-#include "ui/core/ui_events.h"
+#include "ui/core/ht_event.h"
 
 #include <lvgl.h>
 
@@ -89,7 +89,7 @@ _lv_obj_t *AlertOverlay::create(lv_obj_t *parent)
                           (unsigned long)kClickGuardMs);
                 return;
             }
-            (void)self->emit(UiEventType::AlertClose);
+            (void)self->emit(EventType::ALERT_CLOSE);
         },
         LV_EVENT_CLICKED, this);
 
@@ -178,7 +178,7 @@ bool AlertOverlay::onKey(uint32_t key)
     if (key == LV_KEY_ESC)
     {
         ALERT_LOG("key esc close");
-        return emit(UiEventType::AlertClose);
+        return emit(EventType::ALERT_CLOSE);
     }
     return false;
 }

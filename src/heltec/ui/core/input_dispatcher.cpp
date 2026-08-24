@@ -1,7 +1,7 @@
 #include "input_dispatcher.hpp"
 
 #include "input_host.hpp"
-#include "ui/core/ui_events.h"
+#include "ui/core/ht_event.h"
 
 #include <lvgl.h>
 
@@ -26,14 +26,14 @@ bool InputDispatcher::dispatch(InputHost &host, InputCommand command, uint32_t n
     case InputCommand::OpenNavigation:
         if (lv_obj_t *frame = host.frameRoot())
         {
-            ui_event_send(frame, UiEventType::NavOpen);
+            ht_event_send(frame, EventType::NAV_OPEN);
         }
         return true;
 
     case InputCommand::OpenAction:
         if (lv_obj_t *frame = host.frameRoot())
         {
-            ui_event_send(frame, UiEventType::ActionOpen);
+            ht_event_send(frame, EventType::ACTION_OPEN);
         }
         return true;
 

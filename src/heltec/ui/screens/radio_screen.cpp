@@ -3,7 +3,7 @@
 #include "ui/app/ui_theme.hpp"
 #include "ui/core/ht_container.hpp"
 #include "ui/core/ht_meta_data.hpp"
-#include "ui/core/ui_events.h"
+#include "ui/core/ht_event.h"
 
 #include <lvgl.h>
 
@@ -24,11 +24,6 @@ int round_tenths(float value)
 }
 
 } // namespace
-
-_lv_obj_t *RadioScreen::createRoot(_lv_obj_t *parent)
-{
-    return ht_obj_create(parent, meta_id::RadioScreenRoot);
-}
 
 _lv_obj_t *RadioScreen::create(_lv_obj_t *parent)
 {
@@ -217,7 +212,7 @@ void RadioScreen::onAppStateChanged(const AppStateEvent &event)
     }
 }
 
-void RadioScreen::onRefreshRequested()
+void RadioScreen::onSurfaceRefresh()
 {
     refreshSnapshot();
 }

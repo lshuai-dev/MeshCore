@@ -2,7 +2,7 @@
 
 #include "ui/core/ht_meta_data.hpp"
 #include "ui/core/operation_hints.hpp"
-#include "ui/core/ui_events.h"
+#include "ui/core/ht_event.h"
 
 #include <Arduino.h>
 #include <lvgl.h>
@@ -31,7 +31,7 @@ _lv_obj_t *PreviewOverlay::create(lv_obj_t *parent)
                 return;
             lv_event_stop_bubbling(e);
             lv_event_stop_processing(e);
-            self->emit(UiEventType::PreviewNext);
+            self->emit(EventType::PREVIEW_NEXT);
         },
         LV_EVENT_CLICKED, this);
 
@@ -89,7 +89,7 @@ bool PreviewOverlay::onKey(uint32_t key)
     if (key == LV_KEY_NEXT || key == LV_KEY_PREV || key == LV_KEY_LEFT || key == LV_KEY_RIGHT ||
         key == LV_KEY_UP || key == LV_KEY_DOWN)
     {
-        emit(UiEventType::PreviewNext);
+        emit(EventType::PREVIEW_NEXT);
         return true;
     }
     if (key == LV_KEY_ENTER || key == LV_KEY_ESC)
@@ -159,7 +159,7 @@ void PreviewOverlay::ageTimerCallback(lv_timer_t *timer)
 
 void PreviewOverlay::dismissByUser()
 {
-    emit(UiEventType::PreviewClose);
+    emit(EventType::PREVIEW_CLOSE);
 }
 
 } // namespace heltec::meshcore::ui

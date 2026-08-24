@@ -4,7 +4,7 @@
 #include "heltec/ui/core/biz_facade.hpp"
 #include "ui/core/ht_meta_data.hpp"
 #include "ui/core/operation_hints.hpp"
-#include "ui/core/ui_events.h"
+#include "ui/core/ht_event.h"
 #include "ui/theme/ui_widget_theme.hpp"
 
 #include <lvgl.h>
@@ -90,7 +90,9 @@ _lv_obj_t *RadioParamSyncOverlay::create(lv_obj_t *parent)
                 }
             }
         },
-        LV_EVENT_ALL, this);
+        static_cast<lv_event_code_t>(LV_EVENT_PRESSED | LV_EVENT_VALUE_CHANGED |
+                                     LV_EVENT_CLICKED),
+        this);
 #else
     for (uint8_t i = 0; i < _count; i++)
     {
@@ -164,7 +166,7 @@ bool RadioParamSyncOverlay::onKey(uint32_t key)
     }
     if (key == LV_KEY_ESC)
     {
-        emit(UiEventType::RadioSyncClose);
+        emit(EventType::RADIO_SYNC_CLOSE);
         return true;
     }
     return false;
@@ -370,7 +372,7 @@ void RadioParamSyncOverlay::applySelection()
 #endif
     _biz.setLoRaBandPresetIndex((int)_select);
     _biz.showAlert("LoRa band set", 800);
-    emit(UiEventType::RadioSyncClose);
+    emit(EventType::RADIO_SYNC_CLOSE);
 }
 
 } // namespace heltec::meshcore::ui

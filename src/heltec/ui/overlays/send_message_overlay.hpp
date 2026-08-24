@@ -30,8 +30,6 @@ class SendMessageOverlay : public AbstractOverlay
     explicit SendMessageOverlay(biz::IBizFacade &biz) : AbstractOverlay(biz)
     {
     }
-    using UiSurface::setTarget;
-
     void submitCustomMessage(const char *text);
     void prepareTarget(const UiSendMessageTarget *target);
 

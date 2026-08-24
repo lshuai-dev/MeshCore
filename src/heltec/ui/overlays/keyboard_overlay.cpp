@@ -3,7 +3,7 @@
 #include "../core/biz_facade.hpp"
 #include "MeshCore.h"
 #include "ui/core/ht_meta_data.hpp"
-#include "ui/core/ui_events.h"
+#include "ui/core/ht_event.h"
 
 #include <cstdio>
 #include <cstdlib>
@@ -422,7 +422,7 @@ void KeyboardOverlay::on_keyboard_key_pre(lv_event_t *e)
     }
     if (key == LV_KEY_ESC)
     {
-        self->emit(UiEventType::KeyboardClose);
+        self->emit(EventType::KEYBOARD_CLOSE);
         lv_event_stop_processing(e);
         lv_event_stop_bubbling(e);
     }
@@ -458,7 +458,7 @@ void KeyboardOverlay::on_keyboard_events(lv_event_t *e)
     }
     else if (code == LV_EVENT_CANCEL)
     {
-        self->emit(UiEventType::KeyboardClose);
+        self->emit(EventType::KEYBOARD_CLOSE);
     }
     else if (code == LV_EVENT_VALUE_CHANGED)
     {
@@ -629,7 +629,7 @@ bool KeyboardOverlay::onKey(uint32_t key)
 {
     if (key == LV_KEY_ESC)
     {
-        emit(UiEventType::KeyboardClose);
+        emit(EventType::KEYBOARD_CLOSE);
         return true;
     }
     return false;
@@ -651,11 +651,11 @@ void KeyboardOverlay::submitMessageInput()
     strncpy(_submitted_text, txt, sizeof(_submitted_text) - 1);
     _submitted_text[sizeof(_submitted_text) - 1] = '\0';
 
-    emit(UiEventType::KeyboardClose);
+    emit(EventType::KEYBOARD_CLOSE);
 
     UiMessageKeyboardSubmit submit;
     submit.text = _submitted_text;
-    emit(UiEventType::MessageKeyboardSubmit, &submit);
+    emit(EventType::MESSAGE_KEYBOARD_SUBMIT, &submit);
 }
 
 void KeyboardOverlay::submitWaypointInput()
@@ -674,12 +674,12 @@ void KeyboardOverlay::submitWaypointInput()
     }
 
     // Close before returning the parsed value so the owning screen is active.
-    emit(UiEventType::KeyboardClose);
+    emit(EventType::KEYBOARD_CLOSE);
 
     UiWaypointKeyboardSubmit submit;
     submit.lat = lat;
     submit.lon = lon;
-    emit(UiEventType::WaypointKeyboardSubmit, &submit);
+    emit(EventType::WAYPOINT_KEYBOARD_SUBMIT, &submit);
 }
 
 #else /* !LV_USE_KEYBOARD */

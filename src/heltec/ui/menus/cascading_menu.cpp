@@ -2,7 +2,7 @@
 
 #if LV_USE_MENU
 #include "ui/core/ht_meta_data.hpp"
-#include "ui/core/ui_events.h"
+#include "ui/core/ht_event.h"
 #include "ui/theme/ui_widget_theme.hpp"
 
 #include <cstdio>
@@ -46,7 +46,7 @@ bool CascadingMenu::enterSubmenuAt(uint8_t index)
     _active_child = item.submenu;
     lv_menu_set_page(_menu_host, item.submenu->page());
     item.submenu->resetInputState(true);
-    ui_event_send(_menu_host, UiEventType::RebindInput);
+    ht_event_send(_menu_host, EventType::REBIND_INPUT);
     return true;
 }
 
@@ -58,7 +58,7 @@ void CascadingMenu::leaveSubmenu()
     _active_child = nullptr;
     lv_menu_set_page(_menu_host, _page);
     resetInputState(true);
-    ui_event_send(_menu_host, UiEventType::RebindInput);
+    ht_event_send(_menu_host, EventType::REBIND_INPUT);
 }
 
 bool CascadingMenu::create(lv_obj_t *menu, const char *title)
@@ -131,14 +131,15 @@ bool CascadingMenu::create(lv_obj_t *menu, const char *title)
                         (void)menu->_roller.focusItem(menu->_focused_index, true);
                     }
                 },
-                LV_EVENT_ALL, this);
+                static_cast<lv_event_code_t>(LV_EVENT_FOCUSED | LV_EVENT_CLICKED),
+                this);
 
             if (MenuKind::Menu == _items[i].kind && _items[i].submenu && menu)
             {
                 memset(buf, 0, sizeof(buf));
                 snprintf(buf, sizeof(buf) - 1, "%s > %s", title ? title : "",
                          _items[i].label ? _items[i].label : "");
-                _items[i].submenu->setTarget(_event_target);
+                _items[i].submenu->setEventTarget(_event_target);
                 if (_items[i].submenu->create(menu, buf))
                 {
                     lv_obj_add_event_cb(
@@ -163,7 +164,7 @@ bool CascadingMenu::create(lv_obj_t *menu, const char *title)
                                 lv_event_stop_processing(e);
                             }
                         },
-                        LV_EVENT_ALL, this);
+                        LV_EVENT_CLICKED, this);
 
                     if (_items[i].submenu->root())
                     {
@@ -209,7 +210,7 @@ bool CascadingMenu::create(lv_obj_t *menu, const char *title)
                         lv_event_stop_bubbling(e);
                         lv_event_stop_processing(e);
                     },
-                    LV_EVENT_ALL, &_items[i]);
+                    LV_EVENT_CLICKED, &_items[i]);
             }
         }
     }

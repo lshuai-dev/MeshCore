@@ -70,7 +70,7 @@ void SystemScreen::onSwitchValueChanged(lv_event_t *e)
                 self->_feedback.showAlert("No forwarding frequency", 2000);
                 return;
             }
-            if (!self->emit(UiEventType::RepeatModeOpen))
+            if (!self->emit(EventType::REPEAT_MODE_OPEN))
             {
                 self->_feedback.showAlert("Unable to open frequency picker", 2000);
             }
@@ -113,12 +113,7 @@ SystemScreen::ChoiceRow *SystemScreen::dropdownChoice(_lv_obj_t *dd)
     return nullptr;
 }
 
-const SystemScreen::ChoiceRow *SystemScreen::dropdownChoice(_lv_obj_t *dd) const
-{
-    return const_cast<SystemScreen *>(this)->dropdownChoice(dd);
-}
-
-bool SystemScreen::isDropdownRow(_lv_obj_t *obj) const
+bool SystemScreen::isDropdownRow(_lv_obj_t *obj)
 {
     return dropdownChoice(obj) != nullptr;
 }
@@ -219,7 +214,6 @@ void SystemScreen::onDropdownValueChanged(lv_event_t *e)
 void SystemScreen::onExit()
 {
     closeOpenDropdown();
-    clearGroupFocusVisual();
     AbstractScreen::onExit();
 }
 
@@ -240,11 +234,6 @@ void SystemScreen::setDropdownIndex(_lv_obj_t *dd, uint16_t index, bool fire_cha
     _syncing_dropdown = false;
     if (fire_changed)
         lv_event_send(choice->dropdown, LV_EVENT_VALUE_CHANGED, nullptr);
-}
-
-bool SystemScreen::anyDropdownOpen() const
-{
-    return _open_dropdown && lv_obj_is_valid(_open_dropdown) && lv_dropdown_is_open(_open_dropdown);
 }
 
 uint16_t SystemScreen::regionDropdownIndex(const biz::IBizFacade &app) const
@@ -289,7 +278,9 @@ void SystemScreen::syncControlsFromApp(const biz::IBizFacade &app)
 void SystemScreen::refreshControls()
 {
     syncSwitchesFromApp(_biz);
-    if (!anyDropdownOpen())
+    const bool dropdown_open =
+        _open_dropdown && lv_obj_is_valid(_open_dropdown) && lv_dropdown_is_open(_open_dropdown);
+    if (!dropdown_open)
     {
         syncDropdownsFromApp(_biz);
     }
@@ -304,7 +295,7 @@ void SystemScreen::onAppStateChanged(const AppStateEvent &event)
     }
 }
 
-void SystemScreen::onRefreshRequested()
+void SystemScreen::onSurfaceRefresh()
 {
     syncSwitchesFromApp(_biz);
     syncDropdownsFromApp(_biz);

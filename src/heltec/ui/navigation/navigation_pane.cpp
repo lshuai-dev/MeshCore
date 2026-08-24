@@ -7,7 +7,7 @@
 #include "ui/app/ui_behavior_profile.hpp"
 #include "ui/app/ui_theme.hpp"
 #include "ui/core/ht_meta_data.hpp"
-#include "ui/core/ui_events.h"
+#include "ui/core/ht_event.h"
 #include "ui/core/ui_motion_scheduler.hpp"
 #include "ui/navigation/ui_navigator.hpp"
 #include "ui/theme/ui_widget_theme.hpp"
@@ -541,6 +541,11 @@ void NavigationPane::setTileView(_lv_obj_t *tileview)
     updateGeometry();
 }
 
+_lv_obj_t *NavigationPane::createRoot(_lv_obj_t *parent)
+{
+    return ht_obj_create(parent, meta_id::NavigationRoot);
+}
+
 _lv_obj_t *NavigationPane::create(_lv_obj_t *parent)
 {
     if (_root)
@@ -718,7 +723,10 @@ void NavigationPane::setIcon(uint8_t id, const lv_img_dsc_t *img)
             lv_event_stop_processing(e);
             lv_event_stop_bubbling(e);
         },
-        LV_EVENT_ALL, this);
+        static_cast<lv_event_code_t>(LV_EVENT_PRESSED | LV_EVENT_PRESSING |
+                                     LV_EVENT_RELEASED | LV_EVENT_PRESS_LOST |
+                                     LV_EVENT_CLICKED),
+        this);
 
     _geometry_valid = false;
     if (panelVisible())
@@ -824,7 +832,7 @@ void NavigationPane::sendTilePreview(uint8_t tile_idx)
 {
     if (!_tileview || tile_idx >= kMaxButtons)
         return;
-    ui_event_send(_tileview, UiEventType::TilePreview, &tile_idx);
+    ht_event_send(_tileview, EventType::TILE_PREVIEW, &tile_idx);
 }
 
 _lv_obj_t *NavigationPane::frameRoot() const
@@ -846,7 +854,7 @@ void NavigationPane::onCellClicked(_lv_obj_t *cell)
     sendTilePreview(_ring_layout_focus);
     if (_lv_obj_t *frame = frameRoot())
     {
-        ui_event_send(frame, UiEventType::NavActivity);
+        ht_event_send(frame, EventType::NAV_ACTIVITY);
     }
 }
 
@@ -910,7 +918,7 @@ bool NavigationPane::commitFocused()
     {
         return false;
     }
-    ui_event_send(_tileview, UiEventType::TileCommit, &_ring_layout_focus);
+    ht_event_send(_tileview, EventType::TILE_COMMIT, &_ring_layout_focus);
     return true;
 }
 
@@ -932,7 +940,7 @@ bool NavigationPane::onKey(uint32_t lv_key)
     {
         if (lv_obj_t *frame = frameRoot())
         {
-            ui_event_send(frame, UiEventType::NavClose);
+            ht_event_send(frame, EventType::NAV_CLOSE);
         }
         return true;
     }
@@ -944,7 +952,7 @@ bool NavigationPane::onKey(uint32_t lv_key)
     {
         if (_lv_obj_t *frame = frameRoot())
         {
-            ui_event_send(frame, UiEventType::NavActivity);
+            ht_event_send(frame, EventType::NAV_ACTIVITY);
         }
         stepNavFocus(navStepDelta(lv_key));
         return true;
@@ -989,7 +997,7 @@ bool NavigationPane::requestCloseAnimation()
         self->_ring_fade_busy = false;
         if (_lv_obj_t *frame = self->frameRoot())
         {
-            ui_event_send(frame, UiEventType::NavClose);
+            ht_event_send(frame, EventType::NAV_CLOSE);
         }
     };
     motion.ready_data = this;

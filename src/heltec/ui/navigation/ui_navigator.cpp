@@ -1,6 +1,7 @@
 #include "ui_navigator.hpp"
 
 #include "ui/core/ht_meta_data.hpp"
+#include "ui/core/ht_meta_data_internal.hpp"
 
 #include <lvgl.h>
 
@@ -20,7 +21,7 @@ typedef struct
 
 static NavigatorData *navigator_data(lv_obj_t *obj)
 {
-    if (!obj || heltec::meshcore::ui::ht_id(obj) != heltec::meshcore::ui::meta_id::NavigationPanel)
+    if (!obj || !lv_obj_check_type(obj, &heltec::meshcore::ui::ht_navigator_class))
     {
         return nullptr;
     }
@@ -50,8 +51,8 @@ static _lv_obj_t *ui_navigator_create_with_layout(_lv_obj_t *parent, uint8_t lay
     w->content = nullptr;
     w->layout = layout;
 
-    lv_obj_t *obj = heltec::meshcore::ui::ht_obj_create(
-        parent, heltec::meshcore::ui::meta_id::NavigationPanel, w);
+    lv_obj_t *obj = heltec::meshcore::ui::ht_navigator_create(
+        parent, heltec::meshcore::ui::HT_META_ID_UNSET, w);
     if (!obj)
     {
         lv_mem_free(w);
@@ -82,6 +83,37 @@ static _lv_obj_t *ui_navigator_create_with_layout(_lv_obj_t *parent, uint8_t lay
 namespace heltec::meshcore::ui
 {
 
+namespace
+{
+
+void navigator_constructor(const lv_obj_class_t *class_p, lv_obj_t *obj)
+{
+    (void)class_p;
+    (void)obj;
+}
+
+} // namespace
+
+const lv_obj_class_t ht_navigator_class = {
+    &lv_obj_class,
+    navigator_constructor,
+    nullptr,
+#if LV_USE_USER_DATA
+    nullptr,
+#endif
+    nullptr,
+    LV_SIZE_CONTENT,
+    LV_SIZE_CONTENT,
+    LV_OBJ_CLASS_EDITABLE_INHERIT,
+    LV_OBJ_CLASS_GROUP_DEF_INHERIT,
+    sizeof(ht_navigator_t),
+};
+
+lv_obj_t *ht_navigator_create(lv_obj_t *parent, uint16_t id, void *user_data)
+{
+    return detail::create_object(&ht_navigator_class, parent, id, user_data);
+}
+
 _lv_obj_t *ui_navigator_create_grid(_lv_obj_t *parent)
 {
 #if defined(UI_NAVIGATION_GRID) && UI_NAVIGATION_GRID
@@ -94,7 +126,7 @@ _lv_obj_t *ui_navigator_create_grid(_lv_obj_t *parent)
 
 bool ui_navigator_is(_lv_obj_t *obj)
 {
-    return obj && ht_id(obj) == meta_id::NavigationPanel;
+    return obj && navigator_data(obj) != nullptr;
 }
 
 bool ui_navigator_is_grid(_lv_obj_t *obj)

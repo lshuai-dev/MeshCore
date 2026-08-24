@@ -46,10 +46,9 @@ class FindFriendScreen : public AbstractScreen
         WaypointManual
     };
 
-    _lv_obj_t *createRoot(_lv_obj_t *parent) override;
     void onUiEvent(const UiEvent &event) override;
     void onAppStateChanged(const AppStateEvent &event) override;
-    void onRefreshRequested() override;
+    void onSurfaceRefresh() override;
     void render(const biz::FindFriendUi &u);
     void refresh();
     void showInfoOnly(const char *info);

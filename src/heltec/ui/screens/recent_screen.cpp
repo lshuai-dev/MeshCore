@@ -32,11 +32,6 @@ void formatAge(int32_t secs, char *buf, size_t buf_size)
 
 } // namespace
 
-_lv_obj_t *RecentScreen::createRoot(_lv_obj_t *parent)
-{
-    return ht_obj_create(parent, meta_id::RecentScreenRoot);
-}
-
 _lv_obj_t *RecentScreen::create(_lv_obj_t *parent)
 {
     if (!AbstractScreen::create(parent))
@@ -283,7 +278,7 @@ void RecentScreen::onAppStateChanged(const AppStateEvent &event)
         refreshRows();
 }
 
-void RecentScreen::onRefreshRequested()
+void RecentScreen::onSurfaceRefresh()
 {
     refreshRows();
 }

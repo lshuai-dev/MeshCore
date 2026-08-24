@@ -6,7 +6,7 @@
 #include "ui/core/biz_facade.hpp"
 #include "ui/core/input_host.hpp"
 #include "ui/core/surface_manager.hpp"
-#include "ui/core/ui_events.h"
+#include "ui/core/ht_event.h"
 #include "ui/core/ui_host.hpp"
 #include "ui/core/ui_surface.hpp"
 #include "ui/widgets/top_pane.hpp"
@@ -121,8 +121,7 @@ class UiApp final : public IUiHost, public InputHost
     void handleFrameEvent(lv_event_t *e);
     void handleAppStateEvent(const AppStateEvent &event);
 #if !defined(HELTEC_V4_R8_TFT) || !defined(HELTEC_HAS_TOUCH) || !HELTEC_HAS_TOUCH
-    void dismissTopContextMenu();
-    void dismissContextMenuStack();
+    void closeContextMenu();
 #endif
     void closeRadioParamSyncOverlay();
     void openRepeatModeOverlay();

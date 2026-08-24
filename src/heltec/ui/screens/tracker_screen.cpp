@@ -3,11 +3,10 @@
 #include "tracker_screen.hpp"
 
 #include "heltec/ui/map/geo_point.hpp"
-#include "heltec/ui/map/map_fixed_test.hpp"
 #include "heltec/ui/map/map_sd.hpp"
 #include "ui/app/ui_theme.hpp"
 #include "ui/core/ht_meta_data.hpp"
-#include "ui/core/ui_events.h"
+#include "ui/core/ht_event.h"
 
 #include <Arduino.h>
 #include <lvgl.h>
@@ -330,10 +329,6 @@ void TrackerScreen::refresh_from_biz()
     _panel.refreshSdTiles();
     const biz::MapPlotUi &plot = _biz.mapPlotUi();
     biz::IBizFacade::GpsStatus gps = _biz.gpsStatus();
-    if (map::mapFixedTestEnabled())
-    {
-        map::mapFixedTestOverrideGps(gps);
-    }
     const bool gps_usable = usable_gps(gps);
     _panel.set_gps((float)gps.lat_deg, (float)gps.lon_deg, gps_usable);
     if (gps_usable && _auto_center_on_first_fix && !_user_panned)
@@ -356,10 +351,6 @@ void TrackerScreen::refresh_markers_only()
     if (!_panel_attached)
         return;
     biz::IBizFacade::GpsStatus gps = _biz.gpsStatus();
-    if (map::mapFixedTestEnabled())
-    {
-        map::mapFixedTestOverrideGps(gps);
-    }
     const bool gps_usable = usable_gps(gps);
     const biz::MapPlotUi &plot = _biz.mapPlotUi();
     _panel.set_gps((float)gps.lat_deg, (float)gps.lon_deg, gps_usable);
@@ -383,10 +374,6 @@ void TrackerScreen::center_map_on_current_gps()
     if (!_panel_attached)
         return;
     biz::IBizFacade::GpsStatus gps = _biz.gpsStatus();
-    if (map::mapFixedTestEnabled())
-    {
-        map::mapFixedTestOverrideGps(gps);
-    }
     if (!usable_gps(gps))
     {
         syncMapToolbarVisibility();
@@ -406,10 +393,6 @@ void TrackerScreen::syncMapToolbarVisibility()
     if (!_btn_gps)
         return;
     biz::IBizFacade::GpsStatus gps = _biz.gpsStatus();
-    if (map::mapFixedTestEnabled())
-    {
-        map::mapFixedTestOverrideGps(gps);
-    }
     const bool gps_usable = usable_gps(gps);
     const int8_t gps_state = gps_usable ? 1 : 0;
     if (_toolbar_gps_usable == gps_state)
@@ -736,10 +719,6 @@ bool TrackerScreen::processStartupWork()
         if (_root)
             lv_obj_update_layout(_root);
         biz::IBizFacade::GpsStatus gps = _biz.gpsStatus();
-        if (map::mapFixedTestEnabled())
-        {
-            map::mapFixedTestOverrideGps(gps);
-        }
         const bool gps_usable = usable_gps(gps);
         float gps_home[2] = { (float)gps.lat_deg, (float)gps.lon_deg };
         _panel.load_prefs(gps_usable ? gps_home : nullptr);
@@ -912,7 +891,7 @@ void TrackerScreen::onAppStateChanged(const AppStateEvent &event)
     }
 }
 
-void TrackerScreen::onRefreshRequested()
+void TrackerScreen::onSurfaceRefresh()
 {
     requestMapWork(kMapWorkRefresh);
 }
@@ -994,7 +973,7 @@ _lv_obj_t *TrackerScreen::create(_lv_obj_t *parent)
                                                });
                     },
                     LV_EVENT_CLICKED, this);
-                addFocusItem(_btn_zoom_out);
+                addFocusItem(_btn_zoom_out, nullptr, false);
             }
             if (_btn_zoom_in)
             {
@@ -1014,7 +993,7 @@ _lv_obj_t *TrackerScreen::create(_lv_obj_t *parent)
                                                });
                     },
                     LV_EVENT_CLICKED, this);
-                addFocusItem(_btn_zoom_in);
+                addFocusItem(_btn_zoom_in, nullptr, false);
             }
             if (_btn_gps)
             {
@@ -1030,7 +1009,7 @@ _lv_obj_t *TrackerScreen::create(_lv_obj_t *parent)
                                                { scr.center_map_on_current_gps(); });
                     },
                     LV_EVENT_CLICKED, this);
-                addFocusItem(_btn_gps);
+                addFocusItem(_btn_gps, nullptr, false);
             }
             syncMapToolbarVisibility();
             raiseMapToolbar();

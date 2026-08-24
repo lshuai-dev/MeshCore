@@ -1,9 +1,9 @@
 #include "abstract_screen.hpp"
 
 #include "ht_meta_data.hpp"
-#include "ui/app/ui_theme.hpp"
 #include "ui/core/ui_deferred_queue.hpp"
-#include "ui/core/ui_events.h"
+#include "ui/core/ht_event.h"
+#include "ui/core/ht_container.hpp"
 
 namespace heltec::meshcore::ui
 {
@@ -16,7 +16,7 @@ AbstractScreen::AbstractScreen(biz::IBizFacade &biz, const char *title, const lv
 
 _lv_obj_t *AbstractScreen::createRoot(_lv_obj_t *parent)
 {
-    return ht_obj_create(parent, meta_id::ScreenRoot);
+    return ht_obj_create(parent);
 }
 
 _lv_obj_t *AbstractScreen::create(_lv_obj_t *parent)
@@ -47,6 +47,10 @@ _lv_obj_t *AbstractScreen::create(_lv_obj_t *parent)
     _idle_group = lv_group_create();
     if (!_idle_group)
     {
+        lv_group_del(_focus_group);
+        _focus_group = nullptr;
+        lv_obj_del(_root);
+        _root = nullptr;
         return nullptr;
     }
     lv_group_set_wrap(_idle_group, false);
@@ -132,8 +136,14 @@ void AbstractScreen::activateFocusMode(FocusMode mode, _lv_obj_t *focus)
 
     if (mode == FocusMode::Idle)
     {
-        setFocusStateRecursive(_root, nullptr, false);
-        ui_theme_set_focus_text_scroll(_root, false);
+        for (uint8_t index = 0; index < _focus_item_count; ++index)
+        {
+            _lv_obj_t *const frame = _focus_items[index].frame;
+            if (frame && lv_obj_check_type(frame, &ht_container_class))
+            {
+                ht_container_set_focused(frame, false);
+            }
+        }
     }
 
     _focus_mode = mode;
@@ -143,7 +153,7 @@ void AbstractScreen::activateFocusMode(FocusMode mode, _lv_obj_t *focus)
     {
         lv_obj_clear_state(_root, LV_STATE_FOCUSED | LV_STATE_FOCUS_KEY);
     }
-    (void)emit(UiEventType::RebindInput);
+    (void)emit(EventType::REBIND_INPUT);
 }
 
 void AbstractScreen::activateFocusModeDeferred(void *user_data)
@@ -173,36 +183,18 @@ void AbstractScreen::addFocusItem(_lv_obj_t *object, _lv_obj_t *frame, bool prop
     }
     for (uint8_t i = 0; i < _focus_item_count; ++i)
     {
-        if (_focus_items[i] == object)
+        if (_focus_items[i].object == object)
         {
             return;
         }
     }
 
     _lv_obj_t *const focus_frame = frame ? frame : object;
-    if (lv_obj_get_child_cnt(focus_frame) >= 2)
-    {
-        lv_obj_set_flex_align(focus_frame, LV_FLEX_ALIGN_SPACE_BETWEEN, LV_FLEX_ALIGN_CENTER,
-                              LV_FLEX_ALIGN_CENTER);
-    }
-    if (propagate_focus)
-    {
-        ui_theme_apply_focus_row(focus_frame);
-    }
-    else
-    {
-        ui_theme_apply_focus_frame(focus_frame);
-    }
     if (propagate_focus)
     {
         lv_obj_clear_flag(focus_frame, LV_OBJ_FLAG_CLICK_FOCUSABLE);
-        lv_obj_add_event_cb(
-            object, onFocusItemChanged,
-            static_cast<lv_event_code_t>(LV_EVENT_FOCUSED | LV_EVENT_DEFOCUSED), focus_frame);
-    }
-    else
-    {
-        ui_theme_apply_focus_control(object);
+        lv_obj_add_event_cb(object, onFocusItemChanged, LV_EVENT_FOCUSED, focus_frame);
+        lv_obj_add_event_cb(object, onFocusItemChanged, LV_EVENT_DEFOCUSED, focus_frame);
     }
     if (focus_frame != object)
     {
@@ -232,36 +224,7 @@ void AbstractScreen::addFocusItem(_lv_obj_t *object, _lv_obj_t *frame, bool prop
     }
     addFocusObject(object);
     lv_obj_add_flag(object, LV_OBJ_FLAG_CLICK_FOCUSABLE);
-    if (propagate_focus && lv_obj_has_state(object, LV_STATE_FOCUSED))
-    {
-        lv_obj_add_state(focus_frame, LV_STATE_FOCUSED | LV_STATE_FOCUS_KEY);
-        lv_obj_invalidate(focus_frame);
-    }
-    _focus_items[_focus_item_count++] = object;
-}
-
-void AbstractScreen::setFocusStateRecursive(_lv_obj_t *object, _lv_obj_t *source, bool focused)
-{
-    if (!object)
-    {
-        return;
-    }
-    if (object != source)
-    {
-        if (focused)
-        {
-            lv_obj_add_state(object, LV_STATE_FOCUSED | LV_STATE_FOCUS_KEY);
-        }
-        else
-        {
-            lv_obj_clear_state(object, LV_STATE_FOCUSED | LV_STATE_FOCUS_KEY);
-        }
-    }
-    const uint32_t child_count = lv_obj_get_child_cnt(object);
-    for (uint32_t index = 0; index < child_count; ++index)
-    {
-        setFocusStateRecursive(lv_obj_get_child(object, index), source, focused);
-    }
+    _focus_items[_focus_item_count++] = { object, focus_frame };
 }
 
 bool AbstractScreen::isAvailableFocusItem(const _lv_obj_t *obj) const
@@ -283,8 +246,8 @@ _lv_obj_t *AbstractScreen::firstAvailableFocusItem() const
 {
     for (uint8_t i = 0; i < _focus_item_count; ++i)
     {
-        if (isAvailableFocusItem(_focus_items[i]))
-            return _focus_items[i];
+        if (isAvailableFocusItem(_focus_items[i].object))
+            return _focus_items[i].object;
     }
     return nullptr;
 }
@@ -301,15 +264,17 @@ void AbstractScreen::onFocusItemChanged(lv_event_t *e)
 
     if (code == LV_EVENT_FOCUSED)
     {
-        lv_obj_add_state(frame, LV_STATE_FOCUSED | LV_STATE_FOCUS_KEY);
-        setFocusStateRecursive(frame, object, true);
-        ui_theme_set_container_focused(frame, true);
+        if (lv_obj_check_type(frame, &ht_container_class))
+        {
+            ht_container_set_focused(frame, true);
+        }
     }
     else
     {
-        lv_obj_clear_state(frame, LV_STATE_FOCUSED | LV_STATE_FOCUS_KEY);
-        setFocusStateRecursive(frame, object, false);
-        ui_theme_set_container_focused(frame, false);
+        if (lv_obj_check_type(frame, &ht_container_class))
+        {
+            ht_container_set_focused(frame, false);
+        }
     }
     lv_obj_invalidate(frame);
 }
@@ -318,7 +283,12 @@ bool AbstractScreen::onKey(uint32_t key)
 {
     if (key == LV_KEY_ESC)
     {
-        return emit(UiEventType::NavOpen);
+        if (_focus_mode == FocusMode::Active)
+        {
+            activateFocusMode(FocusMode::Idle, _root);
+            return true;
+        }
+        return emit(EventType::NAV_OPEN);
     }
     if (key == LV_KEY_ENTER && _focus_mode == FocusMode::Idle)
     {

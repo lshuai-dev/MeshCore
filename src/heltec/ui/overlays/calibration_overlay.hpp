@@ -36,7 +36,7 @@ class CalibrationOverlay : public AbstractOverlay
   private:
     _lv_obj_t *createRoot(_lv_obj_t *parent) override;
     void onAppStateChanged(const AppStateEvent &event) override;
-    void onRefreshRequested() override;
+    void onSurfaceRefresh() override;
     enum class Phase : uint8_t
     {
         Idle,

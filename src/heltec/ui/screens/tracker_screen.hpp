@@ -37,7 +37,7 @@ class TrackerScreen : public AbstractScreen
   private:
     _lv_obj_t *createRoot(_lv_obj_t *parent) override;
     void onAppStateChanged(const AppStateEvent &event) override;
-    void onRefreshRequested() override;
+    void onSurfaceRefresh() override;
     void ensure_panel_attached();
     void refresh_from_biz();
     void refresh_markers_only();

@@ -2,7 +2,7 @@
 
 #include "MeshCore.h"
 #include "ui/core/ht_meta_data.hpp"
-#include "ui/core/ui_events.h"
+#include "ui/core/ht_event.h"
 
 #include <lvgl.h>
 
@@ -44,7 +44,7 @@ void HomeScreen::onAppStateChanged(const AppStateEvent &event)
     }
 }
 
-void HomeScreen::onRefreshRequested()
+void HomeScreen::onSurfaceRefresh()
 {
     refreshSnapshot();
 }
