@@ -264,6 +264,44 @@ _lv_obj_t *AbstractScreen::firstAvailableFocusItem() const
     return nullptr;
 }
 
+bool AbstractScreen::scrollRootLoop(bool forward)
+{
+    if (!_root || !_root_scroll_focus ||
+        !lv_obj_has_flag(_root, LV_OBJ_FLAG_SCROLLABLE))
+    {
+        return false;
+    }
+
+    const lv_coord_t current = lv_obj_get_scroll_y(_root);
+    const lv_coord_t remaining = lv_obj_get_scroll_bottom(_root);
+    const lv_coord_t page = lv_obj_get_height(_root);
+    if (page <= 0 || (current <= 0 && remaining <= 0))
+    {
+        return false;
+    }
+
+    if (forward)
+    {
+        if (remaining <= 0)
+        {
+            lv_obj_scroll_to_y(_root, 0, LV_ANIM_OFF);
+        }
+        else
+        {
+            lv_obj_scroll_by_bounded(_root, 0, page, LV_ANIM_OFF);
+        }
+    }
+    else if (current <= 0)
+    {
+        lv_obj_scroll_to_y(_root, remaining, LV_ANIM_OFF);
+    }
+    else
+    {
+        lv_obj_scroll_by_bounded(_root, 0, -page, LV_ANIM_OFF);
+    }
+    return true;
+}
+
 void AbstractScreen::onFocusItemChanged(lv_event_t *e)
 {
     const lv_event_code_t code = lv_event_get_code(e);
@@ -325,6 +363,19 @@ bool AbstractScreen::onKey(uint32_t key)
             _focus_activation_pending = defer(activateFocusModeDeferred, this);
         }
         return true;
+    }
+    if (_focus_mode == FocusMode::Idle && !firstAvailableFocusItem())
+    {
+        if (key == LV_KEY_NEXT)
+        {
+            (void)scrollRootLoop(true);
+            return true;
+        }
+        if (key == LV_KEY_PREV)
+        {
+            (void)scrollRootLoop(false);
+            return true;
+        }
     }
     return false;
 }
