@@ -226,7 +226,6 @@ static lv_style_t s_find_friend_row_layout_style;
 static lv_style_t s_find_friend_dial_layout_style;
 static lv_style_t s_recent_row_layout_style;
 static lv_style_t s_screen_dropdown_list_layout_style;
-static lv_style_t s_system_label_style;
 static lv_style_t s_system_dropdown_style;
 static lv_style_t s_system_dropdown_focus_style;
 static lv_style_t s_system_dropdown_list_style;
@@ -1384,18 +1383,6 @@ static void init_screen_system_styles()
     lv_style_set_pad_bottom(&s_screen_dropdown_list_layout_style, 2);
 #endif
 
-    lv_style_init(&s_system_label_style);
-    lv_style_set_bg_opa(&s_system_label_style, LV_OPA_TRANSP);
-    lv_style_set_text_color(&s_system_label_style, ui_color_fg());
-    lv_style_set_text_align(&s_system_label_style, LV_TEXT_ALIGN_LEFT);
-    lv_style_set_border_width(&s_system_label_style, 0);
-    lv_style_set_border_opa(&s_system_label_style, LV_OPA_TRANSP);
-    lv_style_set_border_side(&s_system_label_style, LV_BORDER_SIDE_NONE);
-    lv_style_set_outline_width(&s_system_label_style, 0);
-    lv_style_set_outline_opa(&s_system_label_style, LV_OPA_TRANSP);
-    lv_style_set_shadow_width(&s_system_label_style, 0);
-    lv_style_set_shadow_opa(&s_system_label_style, LV_OPA_TRANSP);
-
     lv_style_init(&s_system_dropdown_style);
 #if LV_COLOR_DEPTH == 1
 #if defined(HELTEC_LORA_V4_OLED)
@@ -2458,21 +2445,6 @@ static bool apply_system_screen_child_theme(_lv_obj_t *obj)
 
     switch (ht_id(obj))
     {
-    case meta_id::SystemActionLabel:
-        init_screen_system_styles();
-        lv_obj_add_style(obj, &s_system_label_style, LV_PART_MAIN);
-        return true;
-
-    case meta_id::SystemSwitchLabel:
-        init_screen_system_styles();
-        lv_obj_add_style(obj, &s_system_label_style, LV_PART_MAIN);
-        return true;
-
-    case meta_id::SystemDropdownLabel:
-        init_screen_system_styles();
-        lv_obj_add_style(obj, &s_system_label_style, LV_PART_MAIN);
-        return true;
-
     case meta_id::SystemDropdown:
         init_screen_system_styles();
         apply_system_control_no_chrome(obj);
@@ -2512,12 +2484,6 @@ static bool apply_system_screen_child_theme(_lv_obj_t *obj)
         return true;
 
 #if defined(HAS_BUZZER_VOLUME_CONTROL) && HAS_BUZZER_VOLUME_CONTROL
-    case meta_id::SystemVolumeLabel:
-    case meta_id::SystemVolumeButtonLabel:
-        init_screen_system_styles();
-        lv_obj_add_style(obj, &s_system_label_style, LV_PART_MAIN);
-        return true;
-
     case meta_id::SystemVolumeControls:
         init_screen_system_styles();
         lv_obj_add_style(obj, &s_system_volume_controls_style, LV_PART_MAIN);

@@ -104,7 +104,7 @@ _lv_obj_t *SystemScreen::addActionRow(_lv_obj_t *scroll, const char *title, _lv_
     if (!row)
         return nullptr;
     configure_system_row(row, LV_FLEX_FLOW_ROW, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER);
-    _lv_obj_t *label = ht_label_create(row, meta_id::SystemActionLabel);
+    _lv_obj_t *label = ht_label_create(row);
     configure_system_label(label, lv_pct(100));
     if (label)
         lv_label_set_text_static(label, title ? title : "");
@@ -122,7 +122,7 @@ _lv_obj_t *SystemScreen::addSwitchRow(_lv_obj_t *scroll, const char *title, _lv_
     if (!row)
         return nullptr;
     configure_system_row(row, LV_FLEX_FLOW_ROW, LV_FLEX_ALIGN_SPACE_BETWEEN, LV_FLEX_ALIGN_CENTER);
-    _lv_obj_t *label = ht_label_create(row, meta_id::SystemSwitchLabel);
+    _lv_obj_t *label = ht_label_create(row);
     configure_system_label(label, LV_SIZE_CONTENT);
     if (label)
         lv_label_set_text_static(label, title ? title : "");
@@ -141,7 +141,7 @@ _lv_obj_t *SystemScreen::addDropdownRow(_lv_obj_t *scroll, ChoiceRow &choice, co
     if (!row)
         return nullptr;
     configure_system_row(row, LV_FLEX_FLOW_ROW, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER);
-    _lv_obj_t *label = ht_label_create(row, meta_id::SystemDropdownLabel);
+    _lv_obj_t *label = ht_label_create(row);
     configure_system_label(label, LV_SIZE_CONTENT);
     choice.row = row;
     choice.dropdown = nullptr;
@@ -404,7 +404,7 @@ _lv_obj_t *SystemScreen::addBuzzerVolumeRow(_lv_obj_t *scroll)
     lv_obj_clear_flag(row, LV_OBJ_FLAG_CLICKABLE | LV_OBJ_FLAG_CLICK_FOCUSABLE |
                             LV_OBJ_FLAG_SCROLL_ON_FOCUS);
 
-    _lv_obj_t *title = ht_label_create(row, meta_id::SystemVolumeLabel, "Volume");
+    _lv_obj_t *title = ht_label_create(row, HT_META_ID_UNSET, "Volume");
     configure_system_label(title, lv_pct(100));
 
     _lv_obj_t *controls = ht_obj_create(row, meta_id::SystemVolumeControls);
@@ -426,7 +426,7 @@ _lv_obj_t *SystemScreen::addBuzzerVolumeRow(_lv_obj_t *scroll)
 #if defined(HELTEC_V4_R8_TFT)
         lv_obj_set_ext_click_area(btn, 5);
 #endif
-        _lv_obj_t *label = ht_label_create(btn, meta_id::SystemVolumeButtonLabel, text);
+        _lv_obj_t *label = ht_label_create(btn, HT_META_ID_UNSET, text);
         if (label)
             lv_obj_center(label);
         bindWidget(btn);

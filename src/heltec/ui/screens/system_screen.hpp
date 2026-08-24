@@ -14,16 +14,11 @@ namespace heltec::meshcore::ui
 
 namespace meta_id
 {
-constexpr uint16_t SystemActionLabel = ht_meta_id(MetaIdScope::Screen, 0xA1);
-constexpr uint16_t SystemSwitchLabel = ht_meta_id(MetaIdScope::Screen, 0xA3);
 constexpr uint16_t SystemSwitch = ht_meta_id(MetaIdScope::Screen, 0xA4);
-constexpr uint16_t SystemDropdownLabel = ht_meta_id(MetaIdScope::Screen, 0xA6);
 constexpr uint16_t SystemDropdown = ht_meta_id(MetaIdScope::Screen, 0xA7);
 #if defined(HAS_BUZZER_VOLUME_CONTROL) && HAS_BUZZER_VOLUME_CONTROL
-constexpr uint16_t SystemVolumeLabel = ht_meta_id(MetaIdScope::Screen, 0xA9);
 constexpr uint16_t SystemVolumeControls = ht_meta_id(MetaIdScope::Screen, 0xAA);
 constexpr uint16_t SystemVolumeButton = ht_meta_id(MetaIdScope::Screen, 0xAB);
-constexpr uint16_t SystemVolumeButtonLabel = ht_meta_id(MetaIdScope::Screen, 0xAC);
 constexpr uint16_t SystemVolumeSlider = ht_meta_id(MetaIdScope::Screen, 0xAD);
 #endif
 constexpr uint16_t SystemDropdownList = ht_meta_id(MetaIdScope::Screen, 0xAE);
