@@ -33,12 +33,12 @@ static lv_style_t s_switch_main;
 static lv_style_t s_switch_main_focus;
 static lv_style_t s_switch_indicator;
 static lv_style_t s_switch_indicator_checked;
-#if defined(HELTEC_LORA_V4_OLED) && LV_COLOR_DEPTH == 1
 static lv_style_t s_switch_indicator_focus;
 static lv_style_t s_switch_indicator_focus_checked;
-#endif
 static lv_style_t s_switch_knob;
 static lv_style_t s_switch_knob_checked;
+static lv_style_t s_switch_knob_focus;
+static lv_style_t s_switch_knob_focus_checked;
 
 
 static const heltec::meshcore::ui::UiThemeColors kMonoFlatColors = {
@@ -163,6 +163,11 @@ static void init_widget_styles()
 
     lv_style_init(&s_switch_main_focus);
     style_set_border_frame(&s_switch_main_focus);
+    lv_style_set_bg_color(&s_switch_main_focus,
+                          heltec::meshcore::ui::ui_color_highlight_bg());
+    lv_style_set_bg_opa(&s_switch_main_focus, LV_OPA_COVER);
+    lv_style_set_border_color(&s_switch_main_focus,
+                              heltec::meshcore::ui::ui_color_highlight_fg());
 
     lv_style_init(&s_switch_indicator);
 #if LV_COLOR_DEPTH == 1
@@ -197,24 +202,17 @@ static void init_widget_styles()
     lv_style_set_radius(&s_switch_indicator_checked, 8);
 #endif
 
-#if defined(HELTEC_LORA_V4_OLED) && LV_COLOR_DEPTH == 1
     lv_style_init(&s_switch_indicator_focus);
-    // Use an outline for the focused OFF state. A border is drawn inward by
-    // LVGL and makes the 1-bit indicator look smaller when it gains focus.
-    lv_style_set_border_width(&s_switch_indicator_focus, 0);
-    lv_style_set_border_opa(&s_switch_indicator_focus, LV_OPA_TRANSP);
-    lv_style_set_outline_width(&s_switch_indicator_focus, 1);
-    lv_style_set_outline_color(&s_switch_indicator_focus, s_color_border);
-    lv_style_set_outline_opa(&s_switch_indicator_focus, LV_OPA_COVER);
-    lv_style_set_outline_pad(&s_switch_indicator_focus, 0);
+    lv_style_set_bg_color(&s_switch_indicator_focus,
+                          heltec::meshcore::ui::ui_color_highlight_fg());
+    lv_style_set_bg_opa(&s_switch_indicator_focus, LV_OPA_COVER);
     lv_style_set_radius(&s_switch_indicator_focus, LV_RADIUS_CIRCLE);
 
     lv_style_init(&s_switch_indicator_focus_checked);
-    lv_style_set_border_width(&s_switch_indicator_focus_checked, 0);
-    lv_style_set_border_opa(&s_switch_indicator_focus_checked, LV_OPA_TRANSP);
-    lv_style_set_outline_width(&s_switch_indicator_focus_checked, 0);
-    lv_style_set_outline_opa(&s_switch_indicator_focus_checked, LV_OPA_TRANSP);
-#endif
+    lv_style_set_bg_color(&s_switch_indicator_focus_checked,
+                          heltec::meshcore::ui::ui_color_highlight_fg());
+    lv_style_set_bg_opa(&s_switch_indicator_focus_checked, LV_OPA_COVER);
+    lv_style_set_radius(&s_switch_indicator_focus_checked, LV_RADIUS_CIRCLE);
 
     lv_style_init(&s_switch_knob);
     lv_style_set_bg_color(&s_switch_knob, s_color_fg);
@@ -243,6 +241,22 @@ static void init_widget_styles()
     lv_style_set_radius(&s_switch_knob_checked, LV_RADIUS_CIRCLE);
 #endif
 
+    lv_style_init(&s_switch_knob_focus);
+    lv_style_set_bg_color(&s_switch_knob_focus,
+                          heltec::meshcore::ui::ui_color_highlight_bg());
+    lv_style_set_bg_opa(&s_switch_knob_focus, LV_OPA_COVER);
+    lv_style_set_border_width(&s_switch_knob_focus, 0);
+    lv_style_set_border_opa(&s_switch_knob_focus, LV_OPA_TRANSP);
+    lv_style_set_radius(&s_switch_knob_focus, LV_RADIUS_CIRCLE);
+
+    lv_style_init(&s_switch_knob_focus_checked);
+    lv_style_set_bg_color(&s_switch_knob_focus_checked,
+                          heltec::meshcore::ui::ui_color_highlight_bg());
+    lv_style_set_bg_opa(&s_switch_knob_focus_checked, LV_OPA_COVER);
+    lv_style_set_border_width(&s_switch_knob_focus_checked, 0);
+    lv_style_set_border_opa(&s_switch_knob_focus_checked, LV_OPA_TRANSP);
+    lv_style_set_radius(&s_switch_knob_focus_checked, LV_RADIUS_CIRCLE);
+
     s_widget_styles_inited = true;
 }
 
@@ -256,17 +270,25 @@ static void mono_flat_apply_switch(lv_obj_t *obj)
 {
     lv_obj_add_style(obj, &s_switch_main, LV_PART_MAIN);
     lv_obj_add_style(obj, &s_switch_main_focus, LV_PART_MAIN | LV_STATE_FOCUS_KEY);
+    lv_obj_add_style(obj, &s_switch_main_focus, LV_PART_MAIN | LV_STATE_FOCUSED);
     lv_obj_add_style(obj, &s_switch_indicator, LV_PART_INDICATOR);
     lv_obj_add_style(obj, &s_switch_indicator_checked, LV_PART_INDICATOR | LV_STATE_CHECKED);
-#if defined(HELTEC_LORA_V4_OLED) && LV_COLOR_DEPTH == 1
     lv_obj_add_style(obj, &s_switch_indicator_focus, LV_PART_INDICATOR | LV_STATE_FOCUS_KEY);
+    lv_obj_add_style(obj, &s_switch_indicator_focus, LV_PART_INDICATOR | LV_STATE_FOCUSED);
     lv_obj_add_style(obj, &s_switch_indicator_focus_checked,
                      LV_PART_INDICATOR | LV_STATE_FOCUS_KEY | LV_STATE_CHECKED);
-#endif
+    lv_obj_add_style(obj, &s_switch_indicator_focus_checked,
+                     LV_PART_INDICATOR | LV_STATE_FOCUSED | LV_STATE_CHECKED);
     lv_obj_add_style(obj, &s_switch_knob, LV_PART_KNOB);
 #if LV_COLOR_DEPTH == 1
     lv_obj_add_style(obj, &s_switch_knob_checked, LV_PART_KNOB | LV_STATE_CHECKED);
 #endif
+    lv_obj_add_style(obj, &s_switch_knob_focus, LV_PART_KNOB | LV_STATE_FOCUS_KEY);
+    lv_obj_add_style(obj, &s_switch_knob_focus, LV_PART_KNOB | LV_STATE_FOCUSED);
+    lv_obj_add_style(obj, &s_switch_knob_focus_checked,
+                     LV_PART_KNOB | LV_STATE_FOCUS_KEY | LV_STATE_CHECKED);
+    lv_obj_add_style(obj, &s_switch_knob_focus_checked,
+                     LV_PART_KNOB | LV_STATE_FOCUSED | LV_STATE_CHECKED);
 }
 #endif
 
@@ -279,13 +301,7 @@ extern "C" void ui_mono_flat_apply(lv_theme_t *th, lv_obj_t *obj)
     const bool custom_applied = heltec::meshcore::ui::ui_widget_theme_apply(obj);
 
 #if LV_USE_SWITCH
-    const uint16_t id = heltec::meshcore::ui::ht_id(obj);
-    if (id == heltec::meshcore::ui::meta_id::SystemSwitch ||
-        id == heltec::meshcore::ui::meta_id::GpsPowerSwitch ||
-        id == heltec::meshcore::ui::meta_id::GpsLocationShareSwitch ||
-        id == heltec::meshcore::ui::meta_id::GpsTrackSwitch ||
-        id == heltec::meshcore::ui::meta_id::RadioLnaSwitch ||
-        id == heltec::meshcore::ui::meta_id::FindFriendSwitch)
+    if (lv_obj_check_type(obj, &lv_switch_class))
     {
         mono_flat_apply_switch(obj);
         return;

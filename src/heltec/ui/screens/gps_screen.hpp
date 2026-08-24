@@ -12,9 +12,6 @@ namespace heltec::meshcore::ui
 
 namespace meta_id
 {
-constexpr uint16_t GpsPowerSwitch = ht_meta_id(MetaIdScope::Screen, 0x42);
-constexpr uint16_t GpsTrackSwitch = ht_meta_id(MetaIdScope::Screen, 0x4A);
-constexpr uint16_t GpsLocationShareSwitch = ht_meta_id(MetaIdScope::Screen, 0x4D);
 constexpr uint16_t GpsAdvIntervalDropdown = ht_meta_id(MetaIdScope::Screen, 0x50);
 constexpr uint16_t GpsDropdownList = ht_meta_id(MetaIdScope::Screen, 0x52);
 } // namespace meta_id

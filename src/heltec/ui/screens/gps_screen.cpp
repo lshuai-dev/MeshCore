@@ -81,7 +81,7 @@ _lv_obj_t *GPSScreen::create(_lv_obj_t *parent)
         lv_obj_set_flex_align(_row_power, LV_FLEX_ALIGN_SPACE_BETWEEN, LV_FLEX_ALIGN_CENTER,
                               LV_FLEX_ALIGN_CENTER);
         _lbl_gps_prefix = ht_label_create(_row_power, HT_META_ID_UNSET, "gps");
-        _sw_gps = ht_switch_create(_row_power, meta_id::GpsPowerSwitch);
+        _sw_gps = ht_switch_create(_row_power);
         if (_lbl_gps_prefix)
             lv_obj_set_width(_lbl_gps_prefix, LV_SIZE_CONTENT);
         if (_sw_gps)
@@ -101,7 +101,7 @@ _lv_obj_t *GPSScreen::create(_lv_obj_t *parent)
                               LV_FLEX_ALIGN_CENTER);
         _lbl_location_share = ht_label_create(_row_location_share, HT_META_ID_UNSET,
                                                "location share");
-        _sw_location_share = ht_switch_create(_row_location_share, meta_id::GpsLocationShareSwitch);
+        _sw_location_share = ht_switch_create(_row_location_share);
         if (_lbl_location_share)
             lv_obj_set_width(_lbl_location_share, LV_SIZE_CONTENT);
         if (_sw_location_share)
@@ -172,7 +172,7 @@ _lv_obj_t *GPSScreen::create(_lv_obj_t *parent)
         lv_obj_set_flex_align(_row_track, LV_FLEX_ALIGN_SPACE_BETWEEN, LV_FLEX_ALIGN_CENTER,
                               LV_FLEX_ALIGN_CENTER);
         _lbl_track = ht_label_create(_row_track, HT_META_ID_UNSET, "gps track");
-        _sw_track = ht_switch_create(_row_track, meta_id::GpsTrackSwitch);
+        _sw_track = ht_switch_create(_row_track);
         if (_lbl_track)
             lv_obj_set_width(_lbl_track, LV_SIZE_CONTENT);
         if (_sw_track)

@@ -14,7 +14,6 @@ namespace heltec::meshcore::ui
 
 namespace meta_id
 {
-constexpr uint16_t SystemSwitch = ht_meta_id(MetaIdScope::Screen, 0xA4);
 constexpr uint16_t SystemDropdown = ht_meta_id(MetaIdScope::Screen, 0xA7);
 #if defined(HAS_BUZZER_VOLUME_CONTROL) && HAS_BUZZER_VOLUME_CONTROL
 constexpr uint16_t SystemVolumeControls = ht_meta_id(MetaIdScope::Screen, 0xAA);

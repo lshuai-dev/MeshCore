@@ -15,7 +15,6 @@ namespace meta_id
 constexpr uint16_t RadioLineLabel = ht_meta_id(MetaIdScope::Screen, 0x80);
 constexpr uint16_t RadioLnaRow = ht_meta_id(MetaIdScope::Screen, 0x81);
 constexpr uint16_t RadioLnaLabel = ht_meta_id(MetaIdScope::Screen, 0x82);
-constexpr uint16_t RadioLnaSwitch = ht_meta_id(MetaIdScope::Screen, 0x83);
 } // namespace meta_id
 
 class RadioScreen : public AbstractScreen

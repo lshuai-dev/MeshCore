@@ -126,7 +126,7 @@ _lv_obj_t *SystemScreen::addSwitchRow(_lv_obj_t *scroll, const char *title, _lv_
     configure_system_label(label, LV_SIZE_CONTENT);
     if (label)
         lv_label_set_text_static(label, title ? title : "");
-    *out_sw = ht_switch_create(row, meta_id::SystemSwitch);
+    *out_sw = ht_switch_create(row);
     if (!*out_sw)
         return row;
     lv_obj_clear_flag(*out_sw, LV_OBJ_FLAG_SCROLLABLE);

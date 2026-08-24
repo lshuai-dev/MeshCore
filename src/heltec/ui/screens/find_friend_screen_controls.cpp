@@ -119,7 +119,7 @@ _lv_obj_t *FindFriendScreen::addSwitchRow(const char *title, _lv_obj_t **out_swi
     configure_row(row, LV_FLEX_ALIGN_SPACE_BETWEEN);
     _lv_obj_t *label = ht_label_create(row, meta_id::FindFriendSettingLabel, title);
     configure_label(label, LV_SIZE_CONTENT);
-    _lv_obj_t *sw = ht_switch_create(row, meta_id::FindFriendSwitch);
+    _lv_obj_t *sw = ht_switch_create(row);
     if (out_switch)
         *out_switch = sw;
     if (sw)

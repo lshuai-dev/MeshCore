@@ -2339,12 +2339,6 @@ static bool apply_gps_screen_child_theme(_lv_obj_t *obj)
 {
     switch (ht_id(obj))
     {
-    case meta_id::GpsPowerSwitch:
-    case meta_id::GpsLocationShareSwitch:
-    case meta_id::GpsTrackSwitch:
-        // The active UI theme owns all switch-part styling.
-        return true;
-
     case meta_id::GpsAdvIntervalDropdown:
         init_screen_system_styles();
         apply_system_control_no_chrome(obj);
@@ -2392,8 +2386,6 @@ static bool apply_radio_screen_child_theme(_lv_obj_t *obj)
         init_screen_system_styles();
         lv_obj_add_style(obj, &s_settings_row_layout_style, LV_PART_MAIN);
         return true;
-    case meta_id::RadioLnaSwitch:
-        return true;
     default:
         return false;
     }
@@ -2419,9 +2411,6 @@ static bool apply_find_friend_screen_child_theme(_lv_obj_t *obj)
     case meta_id::FindFriendSettingLabel:
     case meta_id::FindFriendActionLabel:
         style_screen_label(obj);
-        return true;
-
-    case meta_id::FindFriendSwitch:
         return true;
 
     case meta_id::FindFriendDropdown:
@@ -2473,14 +2462,6 @@ static bool apply_system_screen_child_theme(_lv_obj_t *obj)
         ui_theme_apply_dropdown_list(obj);
         lv_obj_add_style(obj, &s_system_dropdown_list_style, LV_PART_MAIN);
         lv_obj_add_style(obj, &s_system_dropdown_list_style, LV_PART_SELECTED);
-        return true;
-
-    case meta_id::SystemSwitch:
-        init_screen_system_styles();
-        // The active UI theme fully styles each switch part. Applying the shared
-        // no-chrome style here also adds transparent FOCUSED/CHECKED selectors,
-        // which are more specific than the switch's base part styles and can
-        // make System switches render black/invisible across board themes.
         return true;
 
 #if defined(HAS_BUZZER_VOLUME_CONTROL) && HAS_BUZZER_VOLUME_CONTROL
