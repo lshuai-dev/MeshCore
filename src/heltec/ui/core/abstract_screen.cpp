@@ -264,40 +264,6 @@ _lv_obj_t *AbstractScreen::firstAvailableFocusItem() const
     return nullptr;
 }
 
-bool AbstractScreen::cycleRootPage(bool forward)
-{
-    if (!_root || !_root_scroll_focus ||
-        !lv_obj_has_flag(_root, LV_OBJ_FLAG_SCROLLABLE))
-    {
-        return false;
-    }
-
-    const lv_coord_t current = lv_obj_get_scroll_y(_root);
-    const lv_coord_t remaining = lv_obj_get_scroll_bottom(_root);
-    const lv_coord_t page = lv_obj_get_height(_root);
-    if (remaining <= 0)
-    {
-        if (forward && current > 0)
-        {
-            lv_obj_scroll_to_y(_root, 0, LV_ANIM_OFF);
-            return true;
-        }
-        if (!forward && current > 0)
-        {
-            lv_obj_scroll_to_y(_root, current <= page ? 0 : current - page, LV_ANIM_OFF);
-            return true;
-        }
-        return false;
-    }
-
-    const lv_coord_t maximum = current + remaining;
-    const lv_coord_t target = forward
-                                  ? (current + page >= maximum ? 0 : current + page)
-                                  : (current <= page ? maximum : current - page);
-    lv_obj_scroll_to_y(_root, target, LV_ANIM_OFF);
-    return true;
-}
-
 void AbstractScreen::onFocusItemChanged(lv_event_t *e)
 {
     const lv_event_code_t code = lv_event_get_code(e);
@@ -359,19 +325,6 @@ bool AbstractScreen::onKey(uint32_t key)
             _focus_activation_pending = defer(activateFocusModeDeferred, this);
         }
         return true;
-    }
-    if (_focus_mode == FocusMode::Idle && !firstAvailableFocusItem())
-    {
-        if (key == LV_KEY_NEXT)
-        {
-            (void)cycleRootPage(true);
-            return true;
-        }
-        if (key == LV_KEY_PREV)
-        {
-            (void)cycleRootPage(false);
-            return true;
-        }
     }
     return false;
 }
