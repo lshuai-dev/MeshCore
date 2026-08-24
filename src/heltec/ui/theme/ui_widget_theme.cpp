@@ -222,6 +222,7 @@ static UiQuickPingStyleConfig s_quick_ping_style_config = { 104 };
 
 static lv_style_t s_accent_text_style;
 static lv_style_t s_settings_row_layout_style;
+static lv_style_t s_container_focus_style;
 static lv_style_t s_find_friend_row_layout_style;
 static lv_style_t s_find_friend_dial_layout_style;
 static lv_style_t s_recent_row_layout_style;
@@ -1347,6 +1348,22 @@ static void init_screen_system_styles()
                          ui_layout_metrics().row_padding_horizontal);
     lv_style_set_pad_ver(&s_settings_row_layout_style,
                          ui_layout_metrics().row_padding_vertical);
+
+    lv_style_init(&s_container_focus_style);
+#if defined(HELTEC_V4_R8_TFT)
+    lv_style_set_bg_color(&s_container_focus_style, ui_color_accent());
+    lv_style_set_bg_opa(&s_container_focus_style, LV_OPA_30);
+#else
+    lv_style_set_bg_color(&s_container_focus_style, ui_color_highlight_bg());
+    lv_style_set_bg_opa(&s_container_focus_style, LV_OPA_COVER);
+#endif
+    lv_style_set_border_width(&s_container_focus_style, 0);
+    lv_style_set_border_opa(&s_container_focus_style, LV_OPA_TRANSP);
+    lv_style_set_outline_width(&s_container_focus_style, 0);
+    lv_style_set_outline_opa(&s_container_focus_style, LV_OPA_TRANSP);
+    lv_style_set_shadow_width(&s_container_focus_style, 0);
+    lv_style_set_shadow_opa(&s_container_focus_style, LV_OPA_TRANSP);
+    lv_style_set_radius(&s_container_focus_style, ui_widget_radius_px());
 
     lv_style_init(&s_find_friend_row_layout_style);
 #if defined(HELTEC_V4_R8_TFT)
@@ -3263,6 +3280,15 @@ bool ui_widget_theme_apply(_lv_obj_t *obj)
 {
     if (!obj)
         return false;
+
+    if (lv_obj_check_type(obj, &ht_container_class))
+    {
+        init_screen_system_styles();
+        lv_obj_add_style(obj, &s_container_focus_style,
+                         LV_PART_MAIN | LV_STATE_FOCUSED);
+        lv_obj_add_style(obj, &s_container_focus_style,
+                         LV_PART_MAIN | LV_STATE_FOCUS_KEY);
+    }
 
     const auto apply_custom = [](lv_obj_t *target)
     {

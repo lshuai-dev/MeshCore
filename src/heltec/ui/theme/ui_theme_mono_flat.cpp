@@ -175,6 +175,8 @@ static void init_widget_styles()
     lv_style_set_border_opa(&s_switch_indicator, LV_OPA_TRANSP);
 #else
     style_set_border_frame(&s_switch_indicator);
+    lv_style_set_border_width(&s_switch_indicator, 0);
+    lv_style_set_border_opa(&s_switch_indicator, LV_OPA_TRANSP);
     lv_style_set_bg_color(&s_switch_indicator, s_color_switch_indicator);
 #endif
     lv_style_set_bg_opa(&s_switch_indicator, LV_OPA_COVER);
