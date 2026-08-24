@@ -279,12 +279,12 @@ bool AbstractScreen::cycleRootPage(bool forward)
     {
         if (forward && current > 0)
         {
-            lv_obj_scroll_to_y(_root, 0, LV_ANIM_ON);
+            lv_obj_scroll_to_y(_root, 0, LV_ANIM_OFF);
             return true;
         }
         if (!forward && current > 0)
         {
-            lv_obj_scroll_to_y(_root, current <= page ? 0 : current - page, LV_ANIM_ON);
+            lv_obj_scroll_to_y(_root, current <= page ? 0 : current - page, LV_ANIM_OFF);
             return true;
         }
         return false;
@@ -294,7 +294,7 @@ bool AbstractScreen::cycleRootPage(bool forward)
     const lv_coord_t target = forward
                                   ? (current + page >= maximum ? 0 : current + page)
                                   : (current <= page ? maximum : current - page);
-    lv_obj_scroll_to_y(_root, target, LV_ANIM_ON);
+    lv_obj_scroll_to_y(_root, target, LV_ANIM_OFF);
     return true;
 }
 
