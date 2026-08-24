@@ -98,17 +98,6 @@ bool cycle_open_dropdown(_lv_obj_t *dropdown, uint32_t key)
 #endif
 } // namespace
 
-SystemScreen::SysAction SystemScreen::actionForRow(_lv_obj_t *obj) const
-{
-    if (!obj)
-        return SysAction::None;
-    if (obj == _row_factory_reset)
-        return SysAction::FactoryReset;
-    if (obj == _row_clear_data)
-        return SysAction::ClearData;
-    return SysAction::None;
-}
-
 _lv_obj_t *SystemScreen::addActionRow(_lv_obj_t *scroll, const char *title, _lv_obj_t **out_row)
 {
     _lv_obj_t *row = ht_container_create(scroll);

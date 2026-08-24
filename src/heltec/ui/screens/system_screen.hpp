@@ -117,8 +117,6 @@ class SystemScreen : public AbstractScreen
 #endif
     ChoiceRow _choice_region;
     ChoiceRow _choice_screen_off;
-    _lv_obj_t *_dd_region = nullptr;
-    _lv_obj_t *_dd_screen_off = nullptr;
     _lv_obj_t *_row_factory_reset = nullptr;
     _lv_obj_t *_row_clear_data = nullptr;
 

@@ -58,21 +58,21 @@ _lv_obj_t *SystemScreen::create(_lv_obj_t *parent)
 {
     if (!AbstractScreen::create(parent))
         return nullptr;
-    _dd_region = addDropdownRow(_root, _choice_region, "Region");
-    if (_dd_region)
+    addDropdownRow(_root, _choice_region, "Region");
+    if (_choice_region.dropdown)
     {
         build_region_options();
-        setDropdownOptions(_dd_region, s_region_options);
+        setDropdownOptions(_choice_region.dropdown, s_region_options);
     }
 
     addSwitchRow(_root, "Enable Repeat Mode", &_swForwarding);
 
-    _dd_screen_off = addDropdownRow(_root, _choice_screen_off, "Screen off");
-    if (_dd_screen_off)
+    addDropdownRow(_root, _choice_screen_off, "Screen off");
+    if (_choice_screen_off.dropdown)
     {
         append_options(s_screen_off_options, sizeof(s_screen_off_options), _biz,
                        _biz.displayAutoOffOptionCount(), screen_off_label);
-        setDropdownOptions(_dd_screen_off, s_screen_off_options);
+        setDropdownOptions(_choice_screen_off.dropdown, s_screen_off_options);
     }
 
     addSwitchRow(_root, "Bluetooth", &_swBle);
@@ -85,9 +85,9 @@ _lv_obj_t *SystemScreen::create(_lv_obj_t *parent)
     addActionRow(_root, "> Factory reset", &_row_factory_reset);
     addActionRow(_root, "> Clear data", &_row_clear_data);
 
-    addFocusItem(_dd_region, _choice_region.row);
+    addFocusItem(_choice_region.dropdown, _choice_region.row);
     addFocusItem(_swForwarding, _swForwarding ? lv_obj_get_parent(_swForwarding) : nullptr);
-    addFocusItem(_dd_screen_off, _choice_screen_off.row);
+    addFocusItem(_choice_screen_off.dropdown, _choice_screen_off.row);
     addFocusItem(_swBle, _swBle ? lv_obj_get_parent(_swBle) : nullptr);
 #ifdef PIN_BUZZER
     addFocusItem(_swBuzzer, _swBuzzer ? lv_obj_get_parent(_swBuzzer) : nullptr);

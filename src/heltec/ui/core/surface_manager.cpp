@@ -17,7 +17,15 @@ bool SurfaceManager::isAvailable(const UiSurface *surface)
 
 UiSurface *SurfaceManager::active() const
 {
-    return _presented_count > 0 ? _presented[_presented_count - 1] : _root;
+    for (uint8_t index = _presented_count; index > 0; --index)
+    {
+        UiSurface *const surface = _presented[index - 1U];
+        if (isAvailable(surface) && !lv_obj_has_flag(surface->root(), LV_OBJ_FLAG_HIDDEN))
+        {
+            return surface;
+        }
+    }
+    return _root;
 }
 
 void SurfaceManager::enter(UiSurface *surface)
@@ -239,10 +247,8 @@ void SurfaceManager::reconcile()
     while (index < _presented_count)
     {
         UiSurface *const surface = _presented[index];
-        if (!isAvailable(surface) ||
-            lv_obj_has_flag(surface->root(), LV_OBJ_FLAG_HIDDEN))
+        if (!isAvailable(surface))
         {
-            exit(surface);
             remove(index);
             continue;
         }

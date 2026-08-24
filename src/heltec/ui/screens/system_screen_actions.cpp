@@ -4,6 +4,17 @@
 namespace heltec::meshcore::ui
 {
 
+SystemScreen::SysAction SystemScreen::actionForRow(_lv_obj_t *object) const
+{
+    if (!object)
+        return SysAction::None;
+    if (object == _row_factory_reset)
+        return SysAction::FactoryReset;
+    if (object == _row_clear_data)
+        return SysAction::ClearData;
+    return SysAction::None;
+}
+
 void SystemScreen::handleAction(SysAction action)
 {
     if (action != SysAction::FactoryReset && action != SysAction::ClearData)

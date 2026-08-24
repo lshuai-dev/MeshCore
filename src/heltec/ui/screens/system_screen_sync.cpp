@@ -191,11 +191,12 @@ void SystemScreen::onDropdownValueChanged(lv_event_t *e)
         return;
     const int sel = (int)lv_dropdown_get_selected(dd);
 
-    if (dd == self->_dd_region)
+    if (dd == self->_choice_region.dropdown)
     {
         if (sel <= 0)
         {
-            self->setDropdownIndex(self->_dd_region, self->regionDropdownIndex(app), false, true);
+            self->setDropdownIndex(self->_choice_region.dropdown,
+                                   self->regionDropdownIndex(app), false, true);
             return;
         }
         const bool forwarding_was_enabled = app.forwardingEnabled();
@@ -204,7 +205,7 @@ void SystemScreen::onDropdownValueChanged(lv_event_t *e)
         self->_feedback.showAlert(
             forwarding_was_enabled ? "Region saved; forwarding off" : "LoRa region saved", 2000);
     }
-    else if (dd == self->_dd_screen_off)
+    else if (dd == self->_choice_screen_off.dropdown)
     {
         app.setDisplayAutoOffIndex(sel);
         self->_feedback.showAlert("Screen off saved", 2000);
@@ -248,8 +249,9 @@ uint16_t SystemScreen::regionDropdownIndex(const biz::IBizFacade &app) const
 
 void SystemScreen::syncDropdownsFromApp(const biz::IBizFacade &app)
 {
-    setDropdownIndex(_dd_region, regionDropdownIndex(app), false);
-    setDropdownIndex(_dd_screen_off, (uint16_t)app.displayAutoOffIndex(), false);
+    setDropdownIndex(_choice_region.dropdown, regionDropdownIndex(app), false);
+    setDropdownIndex(_choice_screen_off.dropdown,
+                     static_cast<uint16_t>(app.displayAutoOffIndex()), false);
 }
 
 void SystemScreen::setSwitchState(_lv_obj_t *sw, bool on)
