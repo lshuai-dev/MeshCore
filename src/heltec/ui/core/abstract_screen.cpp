@@ -4,6 +4,7 @@
 #include "ui/core/ui_deferred_queue.hpp"
 #include "ui/core/ht_event.h"
 #include "ui/core/ht_container.hpp"
+#include "ui/app/ui_theme.hpp"
 
 namespace heltec::meshcore::ui
 {
@@ -274,8 +275,8 @@ bool AbstractScreen::scrollRootLoop(bool forward)
 
     const lv_coord_t current = lv_obj_get_scroll_y(_root);
     const lv_coord_t remaining = lv_obj_get_scroll_bottom(_root);
-    const lv_coord_t page = lv_obj_get_height(_root);
-    if (page <= 0 || (current <= 0 && remaining <= 0))
+    const lv_coord_t step = ui_settings_row_min_height();
+    if (step <= 0 || (current <= 0 && remaining <= 0))
     {
         return false;
     }
@@ -288,7 +289,7 @@ bool AbstractScreen::scrollRootLoop(bool forward)
         }
         else
         {
-            lv_obj_scroll_by_bounded(_root, 0, -page, LV_ANIM_OFF);
+            lv_obj_scroll_by_bounded(_root, 0, -step, LV_ANIM_OFF);
         }
     }
     else if (current <= 0)
@@ -297,7 +298,7 @@ bool AbstractScreen::scrollRootLoop(bool forward)
     }
     else
     {
-        lv_obj_scroll_by_bounded(_root, 0, page, LV_ANIM_OFF);
+        lv_obj_scroll_by_bounded(_root, 0, step, LV_ANIM_OFF);
     }
     return true;
 }
