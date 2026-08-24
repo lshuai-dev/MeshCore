@@ -39,6 +39,7 @@ void clearItemFocusState(lv_obj_t *item)
 {
     if (!item)
         return;
+    ui_theme_set_focus_text_scroll(item, false);
     lv_obj_clear_state(item, LV_STATE_CHECKED | LV_STATE_FOCUSED | LV_STATE_FOCUS_KEY);
     if (lv_obj_t *label = itemLabel(item))
     {
