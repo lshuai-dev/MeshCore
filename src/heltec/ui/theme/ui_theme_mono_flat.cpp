@@ -148,11 +148,6 @@ static void init_widget_styles()
     lv_style_set_height(&s_switch_main, 16);
     lv_style_set_bg_color(&s_switch_main, s_color_switch_bg);
 #endif
-#if defined(HELTEC_T1)
-    /* A one-pixel white rounded border is heavily anti-aliased on T1's
-       small color panel. Two pixels keep the inactive frame visually solid. */
-    lv_style_set_border_width(&s_switch_main, 2);
-#endif
     lv_style_set_bg_opa(&s_switch_main, LV_OPA_COVER);
 #if LV_COLOR_DEPTH == 1
     lv_style_set_pad_all(&s_switch_main, 1);
@@ -167,6 +162,9 @@ static void init_widget_styles()
     lv_style_set_bg_color(&s_switch_main_focus,
                           heltec::meshcore::ui::ui_color_highlight_bg());
     lv_style_set_bg_opa(&s_switch_main_focus, LV_OPA_COVER);
+#if !defined(HELTEC_V4_R8_TFT)
+    lv_style_set_border_width(&s_switch_main_focus, 1);
+#endif
     lv_style_set_border_color(&s_switch_main_focus,
                               heltec::meshcore::ui::ui_color_highlight_fg());
 
