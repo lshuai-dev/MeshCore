@@ -60,13 +60,8 @@ class ContextMenu : public UiSurface
     bool activatePaneButton(_lv_obj_t *btn, bool enter_leaf);
     void updateIconSelection();
     void handleLeafEsc();
-    void bindPendingMenu();
-    void bindPendingLeaf();
-    void schedulePendingBind(uint32_t delay_ms = 0);
-    void cancelPendingBind();
 
     static void on_menu_leaf_esc(lv_event_t *e);
-    static void pendingBindTimerCb(lv_timer_t *timer);
 
     static constexpr uint8_t kMaxPanes = 8;
 
@@ -76,10 +71,7 @@ class ContextMenu : public UiSurface
     uint8_t _active_menu = 0;
     bool _in_leaf = false;
     bool _registering_panes = false;
-    bool _pending_menu_bind = false;
-    bool _pending_leaf_bind = false;
     AbstractMenu *_leaf_menu = nullptr;
-    lv_timer_t *_pending_bind_timer = nullptr;
 };
 
 } // namespace heltec::meshcore::ui

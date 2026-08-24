@@ -188,7 +188,7 @@ void UiApp::ensureTileKeypadFocus()
     }
 #if !defined(HELTEC_V4_R8_TFT) || !defined(HELTEC_HAS_TOUCH) || !HELTEC_HAS_TOUCH
     if (_surfaces.isVisible(&_contextMenu))
-        closeContextMenu();
+        (void)closeActionPane();
 #endif
     bindScreen(resolveActiveScreen());
     if (AbstractScreen *scr = activeScreen())

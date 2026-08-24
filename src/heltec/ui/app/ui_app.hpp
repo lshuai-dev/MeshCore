@@ -71,6 +71,9 @@ class UiApp final : public IUiHost, public InputHost
     bool openSendMessageOverlay();
     void closeSendMessageOverlay();
     void openRadioParamSyncOverlay();
+    bool openActionPane();
+    bool closeActionPane();
+    bool isActionPaneVisible() const;
 #if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
     bool openCalibrationOverlay();
 #endif
@@ -109,6 +112,7 @@ class UiApp final : public IUiHost, public InputHost
 
 #if !defined(HELTEC_V4_R8_TFT) || !defined(HELTEC_HAS_TOUCH) || !HELTEC_HAS_TOUCH
     bool openContextMenu();
+    void closeContextMenu();
     void ensureContextMenusRegistered();
     bool registerRadioContextMenu();
     bool registerCompassContextMenu();
@@ -120,9 +124,6 @@ class UiApp final : public IUiHost, public InputHost
     void bindFrameEvents();
     void handleFrameEvent(lv_event_t *e);
     void handleAppStateEvent(const AppStateEvent &event);
-#if !defined(HELTEC_V4_R8_TFT) || !defined(HELTEC_HAS_TOUCH) || !HELTEC_HAS_TOUCH
-    void closeContextMenu();
-#endif
     void closeRadioParamSyncOverlay();
     void openRepeatModeOverlay();
     void closeRepeatModeOverlay();

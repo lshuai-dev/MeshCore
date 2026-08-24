@@ -723,9 +723,7 @@ void NavigationPane::setIcon(uint8_t id, const lv_img_dsc_t *img)
             lv_event_stop_processing(e);
             lv_event_stop_bubbling(e);
         },
-        static_cast<lv_event_code_t>(LV_EVENT_PRESSED | LV_EVENT_PRESSING |
-                                     LV_EVENT_RELEASED | LV_EVENT_PRESS_LOST |
-                                     LV_EVENT_CLICKED),
+        LV_EVENT_ALL,
         this);
 
     _geometry_valid = false;

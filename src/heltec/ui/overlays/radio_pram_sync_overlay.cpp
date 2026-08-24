@@ -90,8 +90,7 @@ _lv_obj_t *RadioParamSyncOverlay::create(lv_obj_t *parent)
                 }
             }
         },
-        static_cast<lv_event_code_t>(LV_EVENT_PRESSED | LV_EVENT_VALUE_CHANGED |
-                                     LV_EVENT_CLICKED),
+        LV_EVENT_ALL,
         this);
 #else
     for (uint8_t i = 0; i < _count; i++)

@@ -18,6 +18,43 @@
 namespace heltec::meshcore::ui
 {
 
+bool UiApp::openActionPane()
+{
+    if (!_inited || !inputOnActiveScreen())
+        return false;
+#if defined(HELTEC_V4_R8_TFT) && defined(HELTEC_HAS_TOUCH) && HELTEC_HAS_TOUCH
+    if (_surfaces.isVisible(&_quickPingOverlay))
+        return true;
+    return _surfaces.show(&_quickPingOverlay, true);
+#else
+    return openContextMenu();
+#endif
+}
+
+bool UiApp::closeActionPane()
+{
+#if defined(HELTEC_V4_R8_TFT) && defined(HELTEC_HAS_TOUCH) && HELTEC_HAS_TOUCH
+    if (!_surfaces.isVisible(&_quickPingOverlay))
+        return false;
+    if (_quickPingOverlay.requestCloseAnimation())
+        return true;
+    return _surfaces.show(&_quickPingOverlay, false);
+#else
+    const bool visible = _surfaces.isVisible(&_contextMenu);
+    closeContextMenu();
+    return visible;
+#endif
+}
+
+bool UiApp::isActionPaneVisible() const
+{
+#if defined(HELTEC_V4_R8_TFT) && defined(HELTEC_HAS_TOUCH) && HELTEC_HAS_TOUCH
+    return _surfaces.isVisible(&_quickPingOverlay);
+#else
+    return _surfaces.isVisible(&_contextMenu);
+#endif
+}
+
 namespace
 {
 void cm_send_advert(biz::IBizFacade &app, _lv_obj_t *)

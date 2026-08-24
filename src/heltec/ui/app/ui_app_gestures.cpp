@@ -132,7 +132,7 @@ void UiApp::closeNavigationPaneFromSwipe()
 
 void UiApp::openQuickPingFromTopSwipe()
 {
-    if (_surfaces.isVisible(&_quickPingOverlay))
+    if (isActionPaneVisible())
         return;
 
     if (_surfaces.isVisible(&_navigation))
@@ -141,19 +141,13 @@ void UiApp::openQuickPingFromTopSwipe()
     }
     if (inputOnActiveScreen())
     {
-        (void)_surfaces.show(&_quickPingOverlay, true);
+        (void)openActionPane();
     }
 }
 
 void UiApp::closeQuickPingFromSwipe()
 {
-    if (_surfaces.isVisible(&_quickPingOverlay))
-    {
-        if (!_quickPingOverlay.requestCloseAnimation())
-        {
-            (void)_surfaces.show(&_quickPingOverlay, false);
-        }
-    }
+    (void)closeActionPane();
 }
 
 void UiApp::deferTouchAction(DeferredTouchAction action)

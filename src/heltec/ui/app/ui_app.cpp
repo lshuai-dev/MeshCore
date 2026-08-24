@@ -470,11 +470,7 @@ void UiApp::handleFrameEvent(lv_event_t *e)
         notifyNavActivity(millis());
         break;
     case EventType::ACTION_OPEN:
-#if defined(HELTEC_V4_R8_TFT) && defined(HELTEC_HAS_TOUCH) && HELTEC_HAS_TOUCH
-        (void)ht_event_send(_frame_root, EventType::QUICK_PING_OPEN);
-#else
-        (void)ht_event_send(_frame_root, EventType::CONTEXT_OPEN);
-#endif
+        (void)openActionPane();
         break;
     case EventType::CONFIRM_OPEN:
     {

@@ -109,24 +109,32 @@ bool CascadingMenu::create(lv_obj_t *menu, const char *title)
                 btn,
                 [](lv_event_t *e)
                 {
-                    const lv_event_code_t code = lv_event_get_code(e);
-                    if (code != LV_EVENT_FOCUSED && code != LV_EVENT_CLICKED)
-                        return;
                     CascadingMenu *const menu =
                         static_cast<CascadingMenu *>(ht_user_data(lv_event_get_target(e)));
                     if (!menu)
                         return;
                     const uint32_t index = lv_obj_get_index(lv_event_get_target(e));
-                    if (index >= menu->_item_count)
+                    if (index < menu->_item_count)
+                        menu->_focused_index = static_cast<uint8_t>(index);
+                },
+                LV_EVENT_FOCUSED, this);
+
+            lv_obj_add_event_cb(
+                btn,
+                [](lv_event_t *e)
+                {
+                    CascadingMenu *const menu =
+                        static_cast<CascadingMenu *>(ht_user_data(lv_event_get_target(e)));
+                    if (!menu)
                         return;
-                    menu->_focused_index = static_cast<uint8_t>(index);
-                    if (code != LV_EVENT_FOCUSED)
+                    const uint32_t index = lv_obj_get_index(lv_event_get_target(e));
+                    if (index < menu->_item_count)
                     {
+                        menu->_focused_index = static_cast<uint8_t>(index);
                         (void)menu->_roller.focusItem(menu->_focused_index, true);
                     }
                 },
-                static_cast<lv_event_code_t>(LV_EVENT_FOCUSED | LV_EVENT_CLICKED),
-                this);
+                LV_EVENT_CLICKED, this);
 
             if (MenuKind::Menu == _items[i].kind && _items[i].submenu && menu)
             {

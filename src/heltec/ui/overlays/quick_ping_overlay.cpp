@@ -618,12 +618,7 @@ _lv_obj_t *QuickPingOverlay::createDropdownRow(_lv_obj_t *parent, const char *la
     lv_obj_add_event_cb(dropdown, onDropdownConfirmPreprocess,
                         static_cast<lv_event_code_t>(LV_EVENT_RELEASED | LV_EVENT_PREPROCESS),
                         this);
-    lv_obj_add_event_cb(
-        dropdown,
-        onDropdownEvent,
-        static_cast<lv_event_code_t>(LV_EVENT_PRESSED | LV_EVENT_CLICKED | LV_EVENT_FOCUSED |
-                                     LV_EVENT_VALUE_CHANGED | LV_EVENT_READY),
-        this);
+    lv_obj_add_event_cb(dropdown, onDropdownEvent, LV_EVENT_ALL, this);
     lv_obj_add_event_cb(dropdown, syncControlFocusToRow, LV_EVENT_FOCUSED, nullptr);
     lv_obj_add_event_cb(dropdown, syncControlFocusToRow, LV_EVENT_DEFOCUSED, nullptr);
     if (out_dropdown)
@@ -710,13 +705,7 @@ _lv_obj_t *QuickPingOverlay::createMessageRow(_lv_obj_t *parent)
         lv_obj_add_event_cb(_dd_message, onDropdownConfirmPreprocess,
                             static_cast<lv_event_code_t>(LV_EVENT_RELEASED | LV_EVENT_PREPROCESS),
                             this);
-        lv_obj_add_event_cb(
-            _dd_message,
-            onDropdownEvent,
-            static_cast<lv_event_code_t>(LV_EVENT_PRESSED | LV_EVENT_CLICKED |
-                                         LV_EVENT_FOCUSED | LV_EVENT_VALUE_CHANGED |
-                                         LV_EVENT_READY),
-            this);
+        lv_obj_add_event_cb(_dd_message, onDropdownEvent, LV_EVENT_ALL, this);
         lv_obj_add_event_cb(_dd_message, syncControlFocusToRow, LV_EVENT_FOCUSED, nullptr);
         lv_obj_add_event_cb(_dd_message, syncControlFocusToRow, LV_EVENT_DEFOCUSED, nullptr);
     }

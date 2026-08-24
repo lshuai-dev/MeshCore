@@ -584,9 +584,7 @@ void RadialNavigator::setIcon(uint8_t id, const lv_img_dsc_t *img)
             nav->_touch_active = false;
             nav->onCellClicked(lv_event_get_target(e));
         },
-        static_cast<lv_event_code_t>(LV_EVENT_PRESSED | LV_EVENT_PRESSING |
-                                     LV_EVENT_RELEASED | LV_EVENT_PRESS_LOST |
-                                     LV_EVENT_CLICKED),
+        LV_EVENT_ALL,
         this);
     layoutRing(false);
 }

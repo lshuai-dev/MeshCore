@@ -98,8 +98,6 @@ lv_group_t *ContextMenu::group() const
 
 lv_obj_t *ContextMenu::focusedObject() const
 {
-    if (_pending_menu_bind)
-        return nullptr;
     if (_in_leaf && _leaf_menu)
     {
         if (lv_obj_t *foc = _leaf_menu->focusedObject())
@@ -158,6 +156,8 @@ void ContextMenu::selectPane(uint8_t index)
     {
         lv_menu_set_page(_menu, menu->page());
     }
+    if (!_in_leaf)
+        menu->resetInputState(false);
 }
 
 void ContextMenu::enterMenuLeaf(AbstractMenu *menu)
@@ -166,9 +166,8 @@ void ContextMenu::enterMenuLeaf(AbstractMenu *menu)
         return;
     _in_leaf = true;
     _leaf_menu = menu;
-    _pending_leaf_bind = true;
-    menu->resetInputState(false);
-    schedulePendingBind();
+    menu->resetInputState(true);
+    emit(EventType::REBIND_INPUT);
 }
 
 bool ContextMenu::activatePaneButton(lv_obj_t *btn, bool enter_leaf)
@@ -178,7 +177,7 @@ bool ContextMenu::activatePaneButton(lv_obj_t *btn, bool enter_leaf)
 
     const uint8_t index = static_cast<uint8_t>(lv_obj_get_index(btn));
     selectPane(index);
-    if (!enter_leaf || _pending_menu_bind)
+    if (!enter_leaf)
         return true;
 
     auto *menu = static_cast<AbstractMenu *>(ht_user_data(btn));
@@ -186,59 +185,6 @@ bool ContextMenu::activatePaneButton(lv_obj_t *btn, bool enter_leaf)
         return false;
     enterMenuLeaf(menu);
     return true;
-}
-
-void ContextMenu::bindPendingLeaf()
-{
-    if (!_pending_leaf_bind || !_in_leaf || !_leaf_menu || !_leaf_menu->group())
-        return;
-    _pending_leaf_bind = false;
-    _leaf_menu->resetInputState(true);
-    emit(EventType::REBIND_INPUT);
-}
-
-void ContextMenu::bindPendingMenu()
-{
-    if (!_pending_menu_bind || !_root || lv_obj_has_flag(_root, LV_OBJ_FLAG_HIDDEN))
-        return;
-    _pending_menu_bind = false;
-    emit(EventType::REBIND_INPUT);
-}
-
-void ContextMenu::schedulePendingBind(uint32_t delay_ms)
-{
-    if (_pending_bind_timer)
-    {
-        lv_timer_set_period(_pending_bind_timer, delay_ms);
-        lv_timer_set_repeat_count(_pending_bind_timer, -1);
-        lv_timer_reset(_pending_bind_timer);
-        lv_timer_resume(_pending_bind_timer);
-        return;
-    }
-}
-
-void ContextMenu::cancelPendingBind()
-{
-    if (!_pending_bind_timer)
-        return;
-    lv_timer_pause(_pending_bind_timer);
-}
-
-void ContextMenu::pendingBindTimerCb(lv_timer_t *timer)
-{
-    auto *self = timer ? static_cast<ContextMenu *>(timer->user_data) : nullptr;
-    if (!self)
-        return;
-    self->bindPendingMenu();
-    self->bindPendingLeaf();
-    if (self->_pending_menu_bind || self->_pending_leaf_bind)
-    {
-        self->schedulePendingBind(10U);
-    }
-    else if (timer)
-    {
-        lv_timer_pause(timer);
-    }
 }
 
 void ContextMenu::handleLeafEsc()
@@ -264,11 +210,11 @@ void ContextMenu::leaveMenuLeaf()
 {
     if (!_in_leaf)
         return;
-    _pending_leaf_bind = false;
     if (_leaf_menu)
         _leaf_menu->resetInputState(false);
     _in_leaf = false;
     _leaf_menu = nullptr;
+    selectPane(_active_menu);
     emit(EventType::REBIND_INPUT);
 }
 
@@ -278,7 +224,6 @@ void ContextMenu::onEnter()
         return;
     ui_motion_cancel(_root);
     leaveMenuLeaf();
-    _pending_menu_bind = true;
     selectPane(0);
     lv_menu_clear_history(_menu);
     const FrameGeometry geom = layoutFrame(_root);
@@ -300,14 +245,10 @@ void ContextMenu::onEnter()
         if (!ui_motion_start(motion))
             lv_obj_set_y(_root, geom.target_y);
     }
-    schedulePendingBind();
 }
 
 void ContextMenu::onExit()
 {
-    _pending_menu_bind = false;
-    _pending_leaf_bind = false;
-    cancelPendingBind();
     leaveMenuLeaf();
     if (_root)
         ui_motion_cancel(_root);
@@ -409,14 +350,6 @@ _lv_obj_t *ContextMenu::create(_lv_obj_t *parent)
 
     lv_group_set_wrap(_focus_group, true);
     lv_group_set_editing(_focus_group, false);
-    if (!_pending_bind_timer)
-    {
-        _pending_bind_timer = lv_timer_create(pendingBindTimerCb, 10U, this);
-        if (!_pending_bind_timer)
-            return nullptr;
-        lv_timer_set_repeat_count(_pending_bind_timer, -1);
-        lv_timer_pause(_pending_bind_timer);
-    }
     return _root;
 }
 
@@ -456,23 +389,23 @@ bool ContextMenu::registerMenu(const char *title, const lv_img_dsc_t *icon, Abst
         btn,
         [](lv_event_t *e)
         {
-            const lv_event_code_t code = lv_event_get_code(e);
-            if (code != LV_EVENT_FOCUSED && code != LV_EVENT_CLICKED)
-                return;
             auto *self = static_cast<ContextMenu *>(lv_event_get_user_data(e));
-            if (!self)
-                return;
-            const bool enter_leaf = (code == LV_EVENT_CLICKED);
-            if (!self->activatePaneButton(lv_event_get_target(e), enter_leaf))
-                return;
-            if (enter_leaf)
-            {
-                lv_event_stop_bubbling(e);
-                lv_event_stop_processing(e);
-            }
+            if (self)
+                (void)self->activatePaneButton(lv_event_get_target(e), false);
         },
-        static_cast<lv_event_code_t>(LV_EVENT_FOCUSED | LV_EVENT_CLICKED),
-        this);
+        LV_EVENT_FOCUSED, this);
+
+    lv_obj_add_event_cb(
+        btn,
+        [](lv_event_t *e)
+        {
+            auto *self = static_cast<ContextMenu *>(lv_event_get_user_data(e));
+            if (!self || !self->activatePaneButton(lv_event_get_target(e), true))
+                return;
+            lv_event_stop_bubbling(e);
+            lv_event_stop_processing(e);
+        },
+        LV_EVENT_CLICKED, this);
 
     lv_obj_add_event_cb(
         btn,
