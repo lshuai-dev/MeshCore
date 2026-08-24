@@ -1347,7 +1347,6 @@ static void init_screen_system_styles()
                          ui_layout_metrics().row_padding_horizontal);
     lv_style_set_pad_ver(&s_settings_row_layout_style,
                          ui_layout_metrics().row_padding_vertical);
-    lv_style_set_min_height(&s_settings_row_layout_style, ui_layout_metrics().row_height);
 
     lv_style_init(&s_find_friend_row_layout_style);
 #if defined(HELTEC_V4_R8_TFT)

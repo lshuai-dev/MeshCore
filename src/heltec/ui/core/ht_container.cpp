@@ -75,8 +75,7 @@ void container_constructor(const lv_obj_class_t *class_p, lv_obj_t *obj)
     }
 
     lv_obj_set_width(obj, lv_pct(100));
-    const lv_coord_t row_height = ui_layout_metrics().row_height;
-    lv_obj_set_height(obj, row_height > 0 ? row_height : LV_SIZE_CONTENT);
+    lv_obj_set_height(obj, LV_SIZE_CONTENT);
     lv_obj_set_flex_flow(obj, LV_FLEX_FLOW_ROW);
     lv_obj_set_flex_align(obj, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER,
                           LV_FLEX_ALIGN_CENTER);

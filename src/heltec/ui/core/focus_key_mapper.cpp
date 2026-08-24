@@ -1,5 +1,6 @@
 #include "focus_key_mapper.hpp"
 
+#include "ht_scroll_view.hpp"
 #include "ui/navigation/ui_navigator.hpp"
 
 #include <lvgl.h>
@@ -80,7 +81,7 @@ uint32_t FocusKeyMapper::translateForObject(lv_obj_t *obj, uint32_t lv_key)
     }
 #endif
 
-    if (lv_obj_has_flag(obj, LV_OBJ_FLAG_SCROLLABLE))
+    if (lv_obj_check_type(obj, &ht_scroll_view_class))
     {
         if (lv_key == LV_KEY_NEXT)
             return LV_KEY_DOWN;

@@ -49,7 +49,6 @@ struct UiTheme
 
 struct UiLayoutMetrics
 {
-    lv_coord_t row_height;
     lv_coord_t row_padding_horizontal;
     lv_coord_t row_padding_vertical;
 };
@@ -185,9 +184,9 @@ constexpr lv_coord_t ui_settings_row_height()
 constexpr UiLayoutMetrics ui_layout_metrics()
 {
 #if defined(HELTEC_V4_R8_TFT)
-    return {32, 2, 2};
+    return {2, 2};
 #else
-    return {18, 0, 0};
+    return {0, 0};
 #endif
 }
 inline lv_color_t ui_navigation_idle_color()

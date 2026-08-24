@@ -60,7 +60,6 @@ class AbstractScreen : public UiSurface
 
     bool isAvailableFocusItem(const _lv_obj_t *obj) const;
     _lv_obj_t *firstAvailableFocusItem() const;
-    bool scrollRootLoop(bool forward);
     void activateFocusMode(FocusMode mode, _lv_obj_t *focus);
     static void activateFocusModeDeferred(void *user_data);
     static void onFocusItemChanged(lv_event_t *e);

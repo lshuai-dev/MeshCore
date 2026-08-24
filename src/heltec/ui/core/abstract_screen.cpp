@@ -4,7 +4,7 @@
 #include "ui/core/ui_deferred_queue.hpp"
 #include "ui/core/ht_event.h"
 #include "ui/core/ht_container.hpp"
-#include "ui/app/ui_theme.hpp"
+#include "ui/core/ht_scroll_view.hpp"
 
 namespace heltec::meshcore::ui
 {
@@ -17,7 +17,7 @@ AbstractScreen::AbstractScreen(biz::IBizFacade &biz, const char *title, const lv
 
 _lv_obj_t *AbstractScreen::createRoot(_lv_obj_t *parent)
 {
-    return ht_obj_create(parent);
+    return _root_scroll_focus ? ht_scroll_view_create(parent) : ht_obj_create(parent);
 }
 
 _lv_obj_t *AbstractScreen::create(_lv_obj_t *parent)
@@ -27,21 +27,9 @@ _lv_obj_t *AbstractScreen::create(_lv_obj_t *parent)
     lv_obj_set_size(_root, lv_pct(100), lv_pct(100));
     lv_obj_set_flex_flow(_root, LV_FLEX_FLOW_COLUMN);
     lv_obj_set_flex_align(_root, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_START);
-    if (_root_scroll_focus)
-    {
-        lv_obj_add_flag(_root, LV_OBJ_FLAG_SCROLLABLE);
-        lv_obj_set_scroll_dir(_root, LV_DIR_VER);
-        lv_obj_set_scrollbar_mode(_root, LV_SCROLLBAR_MODE_AUTO);
-    }
-    else
-    {
-        lv_obj_clear_flag(_root, LV_OBJ_FLAG_SCROLLABLE);
-    }
     if (_focus_group)
     {
         lv_group_set_wrap(_focus_group, true);
-        if (_root_scroll_focus)
-            lv_obj_add_flag(_root, LV_OBJ_FLAG_SCROLL_WITH_ARROW);
         ht_set_user_data(_root, this);
     }
 
@@ -265,44 +253,6 @@ _lv_obj_t *AbstractScreen::firstAvailableFocusItem() const
     return nullptr;
 }
 
-bool AbstractScreen::scrollRootLoop(bool forward)
-{
-    if (!_root || !_root_scroll_focus ||
-        !lv_obj_has_flag(_root, LV_OBJ_FLAG_SCROLLABLE))
-    {
-        return false;
-    }
-
-    const lv_coord_t current = lv_obj_get_scroll_y(_root);
-    const lv_coord_t remaining = lv_obj_get_scroll_bottom(_root);
-    const lv_coord_t step = ui_layout_metrics().row_height;
-    if (step <= 0 || (current <= 0 && remaining <= 0))
-    {
-        return false;
-    }
-
-    if (forward)
-    {
-        if (remaining <= 0)
-        {
-            lv_obj_scroll_to_y(_root, 0, LV_ANIM_OFF);
-        }
-        else
-        {
-            lv_obj_scroll_by_bounded(_root, 0, -step, LV_ANIM_OFF);
-        }
-    }
-    else if (current <= 0)
-    {
-        lv_obj_scroll_to_y(_root, remaining, LV_ANIM_OFF);
-    }
-    else
-    {
-        lv_obj_scroll_by_bounded(_root, 0, step, LV_ANIM_OFF);
-    }
-    return true;
-}
-
 void AbstractScreen::onFocusItemChanged(lv_event_t *e)
 {
     const lv_event_code_t code = lv_event_get_code(e);
@@ -364,19 +314,6 @@ bool AbstractScreen::onKey(uint32_t key)
             _focus_activation_pending = defer(activateFocusModeDeferred, this);
         }
         return true;
-    }
-    if (_focus_mode == FocusMode::Idle)
-    {
-        if (key == LV_KEY_NEXT || key == LV_KEY_DOWN)
-        {
-            (void)scrollRootLoop(true);
-            return true;
-        }
-        if (key == LV_KEY_PREV || key == LV_KEY_UP)
-        {
-            (void)scrollRootLoop(false);
-            return true;
-        }
     }
     return false;
 }
