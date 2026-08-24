@@ -366,12 +366,12 @@ bool AbstractScreen::onKey(uint32_t key)
     }
     if (_focus_mode == FocusMode::Idle && !firstAvailableFocusItem())
     {
-        if (key == LV_KEY_NEXT)
+        if (key == LV_KEY_NEXT || key == LV_KEY_DOWN)
         {
             (void)scrollRootLoop(true);
             return true;
         }
-        if (key == LV_KEY_PREV)
+        if (key == LV_KEY_PREV || key == LV_KEY_UP)
         {
             (void)scrollRootLoop(false);
             return true;
