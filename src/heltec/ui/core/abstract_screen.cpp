@@ -299,7 +299,7 @@ bool AbstractScreen::scrollRootLoop(bool forward)
         }
         else
         {
-            lv_obj_scroll_by_bounded(_root, 0, page, LV_ANIM_OFF);
+            lv_obj_scroll_by_bounded(_root, 0, -page, LV_ANIM_OFF);
         }
     }
     else if (current <= 0)
@@ -308,7 +308,7 @@ bool AbstractScreen::scrollRootLoop(bool forward)
     }
     else
     {
-        lv_obj_scroll_by_bounded(_root, 0, -page, LV_ANIM_OFF);
+        lv_obj_scroll_by_bounded(_root, 0, page, LV_ANIM_OFF);
     }
 #if defined(HT_UI_ROOT_SCROLL_DEBUG) && HT_UI_ROOT_SCROLL_DEBUG
     Serial.printf("[ui-root-scroll] end current=%d remaining=%d\n",
