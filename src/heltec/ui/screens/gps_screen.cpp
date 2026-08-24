@@ -16,7 +16,8 @@ namespace
 {
 
 #if defined(HELTEC_V4_R8_TFT)
-constexpr lv_coord_t kGpsDropdownHeight = ui_settings_row_height() - 2 * ui_settings_row_pad_ver();
+constexpr lv_coord_t kGpsDropdownHeight =
+    ui_settings_row_height() - 2 * ui_layout_metrics().row_padding_vertical;
 #endif
 
 bool cycle_open_dropdown(_lv_obj_t *dropdown, uint32_t key)

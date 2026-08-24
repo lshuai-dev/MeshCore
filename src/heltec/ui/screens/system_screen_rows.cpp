@@ -14,7 +14,7 @@ namespace
 {
 #if defined(HELTEC_V4_R8_TFT)
 constexpr lv_coord_t kSystemDropdownHeight =
-    ui_settings_row_height() - 2 * ui_settings_row_pad_ver();
+    ui_settings_row_height() - 2 * ui_layout_metrics().row_padding_vertical;
 #endif
 void configure_system_row(_lv_obj_t *row, lv_flex_flow_t flow, lv_flex_align_t main,
                           lv_flex_align_t cross, bool single_line = true,

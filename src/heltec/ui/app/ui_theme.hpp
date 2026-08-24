@@ -47,6 +47,13 @@ struct UiTheme
     lv_theme_t theme;
 };
 
+struct UiLayoutMetrics
+{
+    lv_coord_t row_height;
+    lv_coord_t row_padding_horizontal;
+    lv_coord_t row_padding_vertical;
+};
+
 UiThemeColors make_ui_theme_colors();
 const UiThemeColors &ui_theme_colors();
 void ui_set_active_theme_colors(const UiThemeColors *colors);
@@ -175,28 +182,12 @@ constexpr lv_coord_t ui_settings_row_height()
     return LV_SIZE_CONTENT;
 #endif
 }
-constexpr lv_coord_t ui_settings_row_min_height()
+constexpr UiLayoutMetrics ui_layout_metrics()
 {
 #if defined(HELTEC_V4_R8_TFT)
-    return 32;
+    return {32, 2, 2};
 #else
-    return 18;
-#endif
-}
-constexpr lv_coord_t ui_settings_row_pad_hor()
-{
-#if defined(HELTEC_V4_R8_TFT)
-    return 2;
-#else
-    return 0;
-#endif
-}
-constexpr lv_coord_t ui_settings_row_pad_ver()
-{
-#if defined(HELTEC_V4_R8_TFT)
-    return 2;
-#else
-    return 0;
+    return {18, 0, 0};
 #endif
 }
 inline lv_color_t ui_navigation_idle_color()

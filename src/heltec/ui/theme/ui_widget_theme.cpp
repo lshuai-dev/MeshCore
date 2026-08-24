@@ -1343,13 +1343,16 @@ static void init_screen_system_styles()
 
     lv_style_init(&s_settings_row_layout_style);
     lv_style_set_pad_all(&s_settings_row_layout_style, 0);
-    lv_style_set_pad_hor(&s_settings_row_layout_style, ui_settings_row_pad_hor());
-    lv_style_set_pad_ver(&s_settings_row_layout_style, ui_settings_row_pad_ver());
-    lv_style_set_min_height(&s_settings_row_layout_style, ui_settings_row_min_height());
+    lv_style_set_pad_hor(&s_settings_row_layout_style,
+                         ui_layout_metrics().row_padding_horizontal);
+    lv_style_set_pad_ver(&s_settings_row_layout_style,
+                         ui_layout_metrics().row_padding_vertical);
+    lv_style_set_min_height(&s_settings_row_layout_style, ui_layout_metrics().row_height);
 
     lv_style_init(&s_find_friend_row_layout_style);
 #if defined(HELTEC_V4_R8_TFT)
-    lv_style_set_pad_hor(&s_find_friend_row_layout_style, ui_settings_row_pad_hor());
+    lv_style_set_pad_hor(&s_find_friend_row_layout_style,
+                         ui_layout_metrics().row_padding_horizontal);
     lv_style_set_pad_ver(&s_find_friend_row_layout_style, 1);
 #elif defined(HELTEC_T1)
     lv_style_set_pad_all(&s_find_friend_row_layout_style, 0);

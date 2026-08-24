@@ -275,7 +275,7 @@ bool AbstractScreen::scrollRootLoop(bool forward)
 
     const lv_coord_t current = lv_obj_get_scroll_y(_root);
     const lv_coord_t remaining = lv_obj_get_scroll_bottom(_root);
-    const lv_coord_t step = ui_settings_row_min_height();
+    const lv_coord_t step = ui_layout_metrics().row_height;
     if (step <= 0 || (current <= 0 && remaining <= 0))
     {
         return false;
