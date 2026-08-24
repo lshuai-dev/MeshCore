@@ -5,6 +5,10 @@
 #include "ui/core/ht_event.h"
 #include "ui/core/ht_container.hpp"
 
+#if defined(HT_UI_ROOT_SCROLL_DEBUG) && HT_UI_ROOT_SCROLL_DEBUG
+#include <Arduino.h>
+#endif
+
 namespace heltec::meshcore::ui
 {
 
@@ -275,6 +279,13 @@ bool AbstractScreen::scrollRootLoop(bool forward)
     const lv_coord_t current = lv_obj_get_scroll_y(_root);
     const lv_coord_t remaining = lv_obj_get_scroll_bottom(_root);
     const lv_coord_t page = lv_obj_get_height(_root);
+#if defined(HT_UI_ROOT_SCROLL_DEBUG) && HT_UI_ROOT_SCROLL_DEBUG
+    Serial.printf("[ui-root-scroll] begin forward=%u mode=%u root=%p scrollable=%u current=%d remaining=%d page=%d\n",
+                  forward ? 1U : 0U, static_cast<unsigned>(_focus_mode), _root,
+                  lv_obj_has_flag(_root, LV_OBJ_FLAG_SCROLLABLE) ? 1U : 0U,
+                  static_cast<int>(current), static_cast<int>(remaining),
+                  static_cast<int>(page));
+#endif
     if (page <= 0 || (current <= 0 && remaining <= 0))
     {
         return false;
@@ -299,6 +310,11 @@ bool AbstractScreen::scrollRootLoop(bool forward)
     {
         lv_obj_scroll_by_bounded(_root, 0, -page, LV_ANIM_OFF);
     }
+#if defined(HT_UI_ROOT_SCROLL_DEBUG) && HT_UI_ROOT_SCROLL_DEBUG
+    Serial.printf("[ui-root-scroll] end current=%d remaining=%d\n",
+                  static_cast<int>(lv_obj_get_scroll_y(_root)),
+                  static_cast<int>(lv_obj_get_scroll_bottom(_root)));
+#endif
     return true;
 }
 
@@ -364,8 +380,12 @@ bool AbstractScreen::onKey(uint32_t key)
         }
         return true;
     }
-    if (_focus_mode == FocusMode::Idle && !firstAvailableFocusItem())
+    if (_focus_mode == FocusMode::Idle)
     {
+#if defined(HT_UI_ROOT_SCROLL_DEBUG) && HT_UI_ROOT_SCROLL_DEBUG
+        Serial.printf("[ui-root-scroll] key=0x%02lX mode=idle root=%p\n",
+                      static_cast<unsigned long>(key), _root);
+#endif
         if (key == LV_KEY_NEXT || key == LV_KEY_DOWN)
         {
             (void)scrollRootLoop(true);
