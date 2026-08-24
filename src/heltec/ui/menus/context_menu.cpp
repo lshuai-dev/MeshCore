@@ -430,9 +430,6 @@ bool ContextMenu::registerMenu(const char *title, const lv_img_dsc_t *icon, Abst
         return false;
     lv_img_set_src(im, icon);
 
-    lv_obj_t *page = menu.page();
-    if (page)
-        lv_menu_set_load_page_event(_menu, btn, page);
     addFocusObject(btn);
     return true;
 }
