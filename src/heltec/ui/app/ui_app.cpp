@@ -531,7 +531,17 @@ void UiApp::handleFrameEvent(lv_event_t *e)
 #endif
     case EventType::SEND_MESSAGE_OPEN:
         _sendMessageOvl.prepareTarget(static_cast<const UiSendMessageTarget *>(event->payload));
-        (void)openSendMessageOverlay();
+        if (!defer(
+                +[](void *user_data)
+                {
+                    auto *app = static_cast<UiApp *>(user_data);
+                    if (app)
+                        (void)app->openSendMessageOverlay();
+                },
+                this))
+        {
+            (void)openSendMessageOverlay();
+        }
         break;
     case EventType::CALIBRATION_OPEN:
 #if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
