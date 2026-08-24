@@ -3264,11 +3264,6 @@ bool ui_widget_theme_apply(_lv_obj_t *obj)
     if (!obj)
         return false;
 
-    if (lv_obj_check_type(obj, &ht_container_class))
-    {
-        ui_theme_apply_focus_row(obj);
-    }
-
     const auto apply_custom = [](lv_obj_t *target)
     {
         const bool custom_applied = apply_app_frame_theme(target) ||

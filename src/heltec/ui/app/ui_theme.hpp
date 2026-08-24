@@ -198,8 +198,6 @@ inline lv_color_t ui_navigation_focus_color()
     return ui_color_accent();
 }
 bool ui_theme_init(lv_disp_t *disp);
-/** Applies a borderless row highlight on TFT while preserving legacy themes elsewhere. */
-void ui_theme_apply_focus_row(_lv_obj_t *row);
 void ui_theme_set_focus_text_scroll(_lv_obj_t *row, bool focused);
 /** Applies the active theme's popup dropdown list chrome/background/selection style. */
 void ui_theme_apply_dropdown_list(_lv_obj_t *list);

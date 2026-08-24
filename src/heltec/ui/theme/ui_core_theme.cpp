@@ -13,9 +13,6 @@ namespace heltec::meshcore::ui
 namespace
 {
 
-lv_style_t s_screen_row_focus_highlight;
-bool s_screen_row_focus_highlight_ready = false;
-
 void set_focus_text_scroll(lv_obj_t *object, bool focused)
 {
     if (!object)
@@ -65,40 +62,6 @@ void set_focus_text_scroll(lv_obj_t *object, bool focused)
 void ui_theme_set_focus_text_scroll(_lv_obj_t *row, bool focused)
 {
     set_focus_text_scroll(row, focused);
-}
-
-void ui_theme_apply_focus_row(_lv_obj_t *row)
-{
-    if (!row)
-        return;
-    if (!s_screen_row_focus_highlight_ready)
-    {
-        lv_style_init(&s_screen_row_focus_highlight);
-#if defined(HELTEC_V4_R8_TFT)
-        lv_style_set_bg_color(&s_screen_row_focus_highlight, ui_color_accent());
-        lv_style_set_bg_opa(&s_screen_row_focus_highlight, LV_OPA_30);
-#else
-        lv_style_set_bg_color(&s_screen_row_focus_highlight, ui_color_highlight_bg());
-        lv_style_set_bg_opa(&s_screen_row_focus_highlight, LV_OPA_COVER);
-        lv_style_set_text_color(&s_screen_row_focus_highlight, ui_color_highlight_fg());
-        lv_style_set_text_opa(&s_screen_row_focus_highlight, LV_OPA_COVER);
-#endif
-        lv_style_set_border_width(&s_screen_row_focus_highlight, 0);
-        lv_style_set_border_opa(&s_screen_row_focus_highlight, LV_OPA_TRANSP);
-#if defined(HELTEC_V4_R8_TFT)
-        lv_style_set_border_side(&s_screen_row_focus_highlight, LV_BORDER_SIDE_NONE);
-#endif
-        lv_style_set_outline_width(&s_screen_row_focus_highlight, 0);
-        lv_style_set_outline_opa(&s_screen_row_focus_highlight, LV_OPA_TRANSP);
-#if defined(HELTEC_V4_R8_TFT)
-        lv_style_set_shadow_width(&s_screen_row_focus_highlight, 0);
-        lv_style_set_shadow_opa(&s_screen_row_focus_highlight, LV_OPA_TRANSP);
-#endif
-        lv_style_set_radius(&s_screen_row_focus_highlight, ui_widget_radius_px());
-        s_screen_row_focus_highlight_ready = true;
-    }
-    lv_obj_add_style(row, &s_screen_row_focus_highlight, LV_PART_MAIN | LV_STATE_FOCUSED);
-    lv_obj_add_style(row, &s_screen_row_focus_highlight, LV_PART_MAIN | LV_STATE_FOCUS_KEY);
 }
 
 void ui_theme_apply_dropdown_list(_lv_obj_t *list)
