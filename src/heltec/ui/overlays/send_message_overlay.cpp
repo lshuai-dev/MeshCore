@@ -64,6 +64,10 @@ _lv_obj_t *SendMessageOverlay::focusTarget() const
 
 bool SendMessageOverlay::onKey(uint32_t key)
 {
+    SENDMSG_LOG("onKey key=0x%lX page=%u selected=%d rows=%d root=%p group=%p focused=%p",
+                 (unsigned long)key, (unsigned)static_cast<uint8_t>(_model.page()),
+                 _model.selectedIndex(), rowCount(), (void *)_root, (void *)group(),
+                 (void *)(group() ? lv_group_get_focused(group()) : nullptr));
     if (key == LV_KEY_NEXT || key == LV_KEY_RIGHT || key == LV_KEY_DOWN || key == LV_KEY_PREV ||
         key == LV_KEY_LEFT || key == LV_KEY_UP)
     {
@@ -550,6 +554,10 @@ void SendMessageOverlay::onEnter()
     if (!_root || !_list_mid)
         return;
     AbstractOverlay::onEnter();
+    SENDMSG_LOG("onEnter root=%p group=%p count=%u focused=%p",
+                (void *)_root, (void *)group(),
+                (unsigned)(group() ? lv_group_get_obj_count(group()) : 0U),
+                (void *)(group() ? lv_group_get_focused(group()) : nullptr));
     _confirm_pending = false;
     _model.reset(_biz);
     if (_pending_target_valid)

@@ -3,6 +3,18 @@
 #include "ht_meta_data.hpp"
 #include "ht_event.h"
 
+#if defined(MESH_DEBUG) && MESH_DEBUG
+#include <Arduino.h>
+#define UI_SURFACE_LOG(fmt, ...) \
+    do \
+    { \
+        Serial.printf("[ui-surface] " fmt "\n", ##__VA_ARGS__); \
+        Serial.flush(); \
+    } while (0)
+#else
+#define UI_SURFACE_LOG(fmt, ...) ((void)0)
+#endif
+
 #include <lvgl.h>
 
 namespace heltec::meshcore::ui
@@ -54,7 +66,13 @@ _lv_obj_t *UiSurface::create(_lv_obj_t *parent)
     lv_obj_add_event_cb(_root, [](lv_event_t *e) {
         if (LV_EVENT_KEY != lv_event_get_code(e)) return;
         auto *self = static_cast<UiSurface *>(lv_event_get_user_data(e));
-        if (!self || !self->onKey(lv_event_get_key(e))) return;
+        if (!self) return;
+        const uint32_t key = lv_event_get_key(e);
+        UI_SURFACE_LOG("key root=%p surface=%p key=0x%lX group=%p focused=%p",
+                       (void *)self->_root, (void *)self, (unsigned long)key,
+                       (void *)self->group(),
+                       (void *)(self->group() ? lv_group_get_focused(self->group()) : nullptr));
+        if (!self->onKey(key)) return;
         lv_event_stop_processing(e);
         lv_event_stop_bubbling(e);
     }, LV_EVENT_KEY, this);

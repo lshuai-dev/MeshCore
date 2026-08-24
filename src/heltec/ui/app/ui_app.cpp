@@ -530,13 +530,19 @@ void UiApp::handleFrameEvent(lv_event_t *e)
         break;
 #endif
     case EventType::SEND_MESSAGE_OPEN:
+        UI_ALERT_LOG("send message open event target=%p active=%p visible=%d",
+                     (void *)_frame_root, (void *)_surfaces.active(),
+                     _surfaces.isVisible(&_sendMessageOvl) ? 1 : 0);
         _sendMessageOvl.prepareTarget(static_cast<const UiSendMessageTarget *>(event->payload));
         if (!defer(
                 +[](void *user_data)
                 {
                     auto *app = static_cast<UiApp *>(user_data);
                     if (app)
+                    {
+                        UI_ALERT_LOG("send message deferred open active=%p", (void *)app->_surfaces.active());
                         (void)app->openSendMessageOverlay();
+                    }
                 },
                 this))
         {
