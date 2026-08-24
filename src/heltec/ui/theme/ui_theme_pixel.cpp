@@ -25,11 +25,7 @@ static lv_style_t s_switch_main;
 static lv_style_t s_switch_main_focus;
 static lv_style_t s_switch_indicator;
 static lv_style_t s_switch_indicator_checked;
-static lv_style_t s_switch_indicator_focus;
-static lv_style_t s_switch_indicator_focus_checked;
 static lv_style_t s_switch_knob;
-static lv_style_t s_switch_knob_focus;
-static lv_style_t s_switch_knob_focus_checked;
 static lv_style_t s_widget_radius;
 static bool s_styles_ready = false;
 
@@ -145,16 +141,6 @@ static void initWidgetStyles()
     lv_style_set_bg_opa(&s_switch_indicator_checked, LV_OPA_COVER);
     lv_style_set_radius(&s_switch_indicator_checked, ui_widget_radius_px());
 
-    lv_style_init(&s_switch_indicator_focus);
-    lv_style_set_bg_color(&s_switch_indicator_focus, ui_color_highlight_fg());
-    lv_style_set_bg_opa(&s_switch_indicator_focus, LV_OPA_COVER);
-    lv_style_set_radius(&s_switch_indicator_focus, ui_widget_radius_px());
-
-    lv_style_init(&s_switch_indicator_focus_checked);
-    lv_style_set_bg_color(&s_switch_indicator_focus_checked, ui_color_highlight_fg());
-    lv_style_set_bg_opa(&s_switch_indicator_focus_checked, LV_OPA_COVER);
-    lv_style_set_radius(&s_switch_indicator_focus_checked, ui_widget_radius_px());
-
     lv_style_init(&s_switch_knob);
     lv_style_set_bg_color(&s_switch_knob, s_color_border);
     lv_style_set_bg_opa(&s_switch_knob, LV_OPA_COVER);
@@ -168,18 +154,6 @@ static void initWidgetStyles()
 #endif
     lv_style_set_pad_all(&s_switch_knob, -2);
     lv_style_set_radius(&s_switch_knob, ui_widget_radius_px());
-
-    lv_style_init(&s_switch_knob_focus);
-    lv_style_set_bg_color(&s_switch_knob_focus, ui_color_highlight_bg());
-    lv_style_set_bg_opa(&s_switch_knob_focus, LV_OPA_COVER);
-    lv_style_set_border_width(&s_switch_knob_focus, 0);
-    lv_style_set_radius(&s_switch_knob_focus, ui_widget_radius_px());
-
-    lv_style_init(&s_switch_knob_focus_checked);
-    lv_style_set_bg_color(&s_switch_knob_focus_checked, ui_color_highlight_bg());
-    lv_style_set_bg_opa(&s_switch_knob_focus_checked, LV_OPA_COVER);
-    lv_style_set_border_width(&s_switch_knob_focus_checked, 0);
-    lv_style_set_radius(&s_switch_knob_focus_checked, ui_widget_radius_px());
 
     lv_style_init(&s_widget_radius);
     lv_style_set_radius(&s_widget_radius, ui_widget_radius_px());
@@ -199,21 +173,7 @@ static void applySwitch(lv_obj_t *obj)
     lv_obj_add_style(obj, &s_switch_main_focus, LV_PART_MAIN | LV_STATE_FOCUSED);
     lv_obj_add_style(obj, &s_switch_indicator, LV_PART_INDICATOR);
     lv_obj_add_style(obj, &s_switch_indicator_checked, LV_PART_INDICATOR | LV_STATE_CHECKED);
-    lv_obj_add_style(obj, &s_switch_indicator_focus,
-                     LV_PART_INDICATOR | LV_STATE_FOCUS_KEY);
-    lv_obj_add_style(obj, &s_switch_indicator_focus,
-                     LV_PART_INDICATOR | LV_STATE_FOCUSED);
-    lv_obj_add_style(obj, &s_switch_indicator_focus_checked,
-                     LV_PART_INDICATOR | LV_STATE_FOCUS_KEY | LV_STATE_CHECKED);
-    lv_obj_add_style(obj, &s_switch_indicator_focus_checked,
-                     LV_PART_INDICATOR | LV_STATE_FOCUSED | LV_STATE_CHECKED);
     lv_obj_add_style(obj, &s_switch_knob, LV_PART_KNOB);
-    lv_obj_add_style(obj, &s_switch_knob_focus, LV_PART_KNOB | LV_STATE_FOCUS_KEY);
-    lv_obj_add_style(obj, &s_switch_knob_focus, LV_PART_KNOB | LV_STATE_FOCUSED);
-    lv_obj_add_style(obj, &s_switch_knob_focus_checked,
-                     LV_PART_KNOB | LV_STATE_FOCUS_KEY | LV_STATE_CHECKED);
-    lv_obj_add_style(obj, &s_switch_knob_focus_checked,
-                     LV_PART_KNOB | LV_STATE_FOCUSED | LV_STATE_CHECKED);
 }
 
 extern "C" void ui_pixel_theme_apply(lv_theme_t *th, lv_obj_t *obj)
