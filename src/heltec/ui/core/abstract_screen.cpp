@@ -352,12 +352,12 @@ bool AbstractScreen::onKey(uint32_t key)
     }
     if (_focus_mode == FocusMode::Idle && !firstAvailableFocusItem())
     {
-        if (key == LV_KEY_NEXT || key == LV_KEY_RIGHT)
+        if (key == LV_KEY_NEXT)
         {
             (void)cycleRootPage(true);
             return true;
         }
-        if (key == LV_KEY_PREV || key == LV_KEY_LEFT)
+        if (key == LV_KEY_PREV)
         {
             (void)cycleRootPage(false);
             return true;
