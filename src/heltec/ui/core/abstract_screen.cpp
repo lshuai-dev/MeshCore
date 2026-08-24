@@ -293,6 +293,21 @@ void AbstractScreen::onFocusItemChanged(lv_event_t *e)
 
 bool AbstractScreen::onKey(uint32_t key)
 {
+    if (_focus_mode == FocusMode::Active && _active_group)
+    {
+        if (key == LV_KEY_DOWN || key == LV_KEY_RIGHT || key == LV_KEY_NEXT)
+        {
+            lv_group_set_wrap(_active_group, true);
+            lv_group_focus_next(_active_group);
+            return true;
+        }
+        if (key == LV_KEY_UP || key == LV_KEY_LEFT || key == LV_KEY_PREV)
+        {
+            lv_group_set_wrap(_active_group, true);
+            lv_group_focus_prev(_active_group);
+            return true;
+        }
+    }
     if (key == LV_KEY_ESC)
     {
         if (_focus_mode == FocusMode::Active)
