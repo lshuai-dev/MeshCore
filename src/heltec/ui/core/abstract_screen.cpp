@@ -136,9 +136,21 @@ void AbstractScreen::activateFocusMode(FocusMode mode, _lv_obj_t *focus)
 
     if (mode == FocusMode::Idle)
     {
+        lv_obj_t *const previous = _active_group ? lv_group_get_focused(_active_group) : nullptr;
+        if (previous && previous != focus && lv_obj_is_valid(previous))
+        {
+            lv_obj_clear_state(previous, LV_STATE_FOCUSED | LV_STATE_FOCUS_KEY);
+            lv_obj_invalidate(previous);
+        }
         for (uint8_t index = 0; index < _focus_item_count; ++index)
         {
+            _lv_obj_t *const object = _focus_items[index].object;
             _lv_obj_t *const frame = _focus_items[index].frame;
+            if (object && lv_obj_is_valid(object))
+            {
+                lv_obj_clear_state(object, LV_STATE_FOCUSED | LV_STATE_FOCUS_KEY);
+                lv_obj_invalidate(object);
+            }
             if (frame && lv_obj_check_type(frame, &ht_container_class))
             {
                 ht_container_set_focused(frame, false);
