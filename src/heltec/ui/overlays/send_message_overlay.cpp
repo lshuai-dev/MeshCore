@@ -57,6 +57,15 @@ const char *footerForPage(bool back_to_parent)
 
 } // namespace
 
+void SendMessageOverlay::onGroupEdge(lv_group_t *group, bool next)
+{
+    if (!group)
+        return;
+    auto *self = static_cast<SendMessageOverlay *>(group->user_data);
+    if (self)
+        (void)self->onKey(next ? LV_KEY_NEXT : LV_KEY_PREV);
+}
+
 _lv_obj_t *SendMessageOverlay::focusTarget() const
 {
     return _root;
@@ -91,6 +100,9 @@ _lv_obj_t *SendMessageOverlay::create(lv_obj_t *parent)
 {
     if (!AbstractOverlay::create(parent))
         return nullptr;
+    _focus_group->user_data = this;
+    lv_group_set_wrap(_focus_group, false);
+    lv_group_set_edge_cb(_focus_group, SendMessageOverlay::onGroupEdge);
     lv_obj_add_event_cb(
         _root,
         [](lv_event_t *e)

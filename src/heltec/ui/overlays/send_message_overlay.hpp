@@ -67,6 +67,7 @@ class SendMessageOverlay : public AbstractOverlay
     void openCustomKeyboard();
     void setTarget(const Target &t);
     void hideVisual();
+    static void onGroupEdge(lv_group_t *group, bool next);
 
     int rowCount() const;
     const char *rowLabel(int index) const;
