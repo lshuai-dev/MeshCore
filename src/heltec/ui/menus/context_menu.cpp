@@ -91,8 +91,6 @@ bool ContextMenu::canOpen() const
 
 lv_group_t *ContextMenu::group() const
 {
-    if (_pending_menu_bind)
-        return nullptr;
     if (_in_leaf && _leaf_menu && _leaf_menu->group())
         return _leaf_menu->group();
     return _focus_group;
