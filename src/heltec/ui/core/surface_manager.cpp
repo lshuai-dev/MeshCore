@@ -102,13 +102,13 @@ void SurfaceManager::bindInput(UiSurface *surface)
     {
         lv_group_focus_obj(focused);
     }
-    SURFACE_MANAGER_LOG("bound surface=%p focused=%p default=%p",
-                        (void *)surface, (void *)lv_group_get_focused(group),
-                        (void *)lv_group_get_default());
     else if (lv_group_get_obj_count(group) > 0)
     {
         lv_group_focus_next(group);
     }
+    SURFACE_MANAGER_LOG("bound surface=%p focused=%p default=%p",
+                        (void *)surface, (void *)lv_group_get_focused(group),
+                        (void *)lv_group_get_default());
     if (preserve_editing)
     {
         lv_group_set_editing(group, true);
