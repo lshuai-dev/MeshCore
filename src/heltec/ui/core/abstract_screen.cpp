@@ -276,6 +276,11 @@ bool AbstractScreen::cycleRootPage(bool forward)
     const lv_coord_t remaining = lv_obj_get_scroll_bottom(_root);
     if (remaining <= 0)
     {
+        if (forward && current > 0)
+        {
+            lv_obj_scroll_to_y(_root, 0, LV_ANIM_ON);
+            return true;
+        }
         return false;
     }
 
