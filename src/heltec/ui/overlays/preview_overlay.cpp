@@ -1,6 +1,7 @@
 #include "preview_overlay.hpp"
 
 #include "ui/core/ht_meta_data.hpp"
+#include "ui/core/ht_selector_view.hpp"
 #include "ui/core/operation_hints.hpp"
 #include "ui/core/ht_event.h"
 
@@ -12,12 +13,12 @@ namespace heltec::meshcore::ui
 
 _lv_obj_t *PreviewOverlay::createRoot(_lv_obj_t *parent)
 {
-    return ht_obj_create(parent, meta_id::PreviewOverlayRoot);
+    return ht_selector_view_create(parent, meta_id::PreviewOverlayRoot);
 }
 
 _lv_obj_t *PreviewOverlay::create(lv_obj_t *parent)
 {
-    if (!AbstractOverlay::create(parent))
+    if (!FramedOverlay::create(parent))
         return nullptr;
     lv_obj_add_flag(_root, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_add_event_cb(
@@ -35,7 +36,7 @@ _lv_obj_t *PreviewOverlay::create(lv_obj_t *parent)
         },
         LV_EVENT_CLICKED, this);
 
-    lv_obj_t *row = ht_obj_create(_root, meta_id::PreviewHeader);
+    lv_obj_t *row = ht_obj_create(contentHost(), meta_id::PreviewMetadataRow);
     if (!row)
         return nullptr;
     lv_obj_set_size(row, lv_pct(100), LV_SIZE_CONTENT);
@@ -51,8 +52,8 @@ _lv_obj_t *PreviewOverlay::create(lv_obj_t *parent)
     lv_label_set_text_static(_title, _title_text);
     lv_label_set_text_static(_age, _age_text);
 
-    _origin = ht_label_create(_root, meta_id::PreviewOrigin);
-    _text = ht_label_create(_root, meta_id::PreviewText);
+    _origin = ht_label_create(contentHost(), meta_id::PreviewOrigin);
+    _text = ht_label_create(contentHost(), meta_id::PreviewText);
     if (!_origin || !_text)
         return nullptr;
     lv_label_set_text_static(_origin, _origin_text);
@@ -63,12 +64,7 @@ _lv_obj_t *PreviewOverlay::create(lv_obj_t *parent)
     lv_obj_set_flex_grow(_text, 1);
     lv_label_set_long_mode(_text, LV_LABEL_LONG_WRAP);
 
-    _footer = ht_label_create(_root, meta_id::PreviewFooter);
-    if (!_footer)
-        return nullptr;
-    lv_obj_set_width(_footer, lv_pct(100));
-    lv_label_set_long_mode(_footer, LV_LABEL_LONG_CLIP);
-    lv_label_set_text_static(_footer, operation_hint::kPreviewClose);
+    setFooterText(operation_hint::kPreviewClose);
 
     _age_timer = lv_timer_create(ageTimerCallback, 1000U, this);
     if (!_age_timer)
@@ -81,7 +77,7 @@ _lv_obj_t *PreviewOverlay::create(lv_obj_t *parent)
 
 _lv_obj_t *PreviewOverlay::focusTarget() const
 {
-    return _text;
+    return _root;
 }
 
 bool PreviewOverlay::onKey(uint32_t key)

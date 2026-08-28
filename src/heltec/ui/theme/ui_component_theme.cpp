@@ -11,10 +11,10 @@ namespace heltec::meshcore::ui
 namespace
 {
 
-lv_style_t s_license_gate_root_style;
-lv_style_t s_license_gate_label_style;
-lv_style_t s_license_gate_chip_style;
-bool s_license_gate_styles_ready = false;
+static lv_style_t s_license_gate_root_style;
+static lv_style_t s_license_gate_label_style;
+static lv_style_t s_license_gate_chip_style;
+static bool s_license_gate_styles_ready = false;
 
 void init_license_gate_styles()
 {
@@ -25,7 +25,7 @@ void init_license_gate_styles()
     lv_style_set_width(&s_license_gate_root_style, lv_pct(100));
     lv_style_set_height(&s_license_gate_root_style, lv_pct(100));
     lv_style_set_radius(&s_license_gate_root_style, 0);
-#if defined(HELTEC_V4_R8_TFT)
+#if HELTEC_UI_INPUT_TOUCH
     lv_style_set_pad_all(&s_license_gate_root_style, 0);
     lv_style_set_border_width(&s_license_gate_root_style, 0);
     lv_style_set_outline_width(&s_license_gate_root_style, 0);
@@ -39,7 +39,7 @@ void init_license_gate_styles()
     lv_style_set_flex_main_place(&s_license_gate_root_style, LV_FLEX_ALIGN_CENTER);
     lv_style_set_flex_cross_place(&s_license_gate_root_style, LV_FLEX_ALIGN_CENTER);
     lv_style_set_flex_track_place(&s_license_gate_root_style, LV_FLEX_ALIGN_CENTER);
-#if defined(HELTEC_V4_R8_TFT)
+#if HELTEC_UI_INPUT_TOUCH
     lv_style_set_pad_row(&s_license_gate_root_style, 0);
     lv_style_set_pad_column(&s_license_gate_root_style, 0);
 #else
@@ -49,7 +49,7 @@ void init_license_gate_styles()
     lv_style_init(&s_license_gate_label_style);
     lv_style_set_text_color(&s_license_gate_label_style, lv_color_white());
     lv_style_set_text_align(&s_license_gate_label_style, LV_TEXT_ALIGN_CENTER);
-#if defined(HELTEC_V4_R8_TFT)
+#if HELTEC_UI_INPUT_TOUCH
     lv_style_set_pad_all(&s_license_gate_label_style, 0);
     lv_style_set_border_width(&s_license_gate_label_style, 0);
     lv_style_set_outline_width(&s_license_gate_label_style, 0);
@@ -57,7 +57,7 @@ void init_license_gate_styles()
 
     lv_style_init(&s_license_gate_chip_style);
     lv_style_set_width(&s_license_gate_chip_style, lv_pct(100));
-#if defined(HELTEC_V4_R8_TFT)
+#if HELTEC_UI_INPUT_TOUCH
     lv_style_set_pad_all(&s_license_gate_chip_style, 0);
     lv_style_set_border_width(&s_license_gate_chip_style, 0);
     lv_style_set_outline_width(&s_license_gate_chip_style, 0);
@@ -130,12 +130,12 @@ RadialNavigationIconStyleSet *radial_navigation_icon_styles(lv_opa_t recolor_opa
 }
 #endif
 
-lv_style_t s_roller_root_style;
-lv_style_t s_roller_button_style;
-lv_style_t s_roller_button_selected_style;
-lv_style_t s_roller_label_style;
-lv_style_t s_roller_label_selected_style;
-bool s_roller_styles_ready = false;
+static lv_style_t s_roller_root_style;
+static lv_style_t s_roller_button_style;
+static lv_style_t s_roller_button_selected_style;
+static lv_style_t s_roller_label_style;
+static lv_style_t s_roller_label_selected_style;
+static bool s_roller_styles_ready = false;
 UiButtonRollerStyleConfig s_roller_style_config = { 0, 2, 12 };
 
 static const lv_style_selector_t kRollerItemSelectedSelectors[] = {

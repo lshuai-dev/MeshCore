@@ -68,26 +68,29 @@ static const UiBehaviorProfile kPixelBehaviorProfile = {
     { 5000, 560, 380, 4, 2 },
 };
 
-static void initDeviceStyles()
+static void initDeviceStyles(lv_disp_t *disp)
 {
     ui_set_behavior_profile(&kPixelBehaviorProfile);
 
-#if defined(HELTEC_V4_R8_TFT)
-    ui_widget_theme_set_app_frame_style({ 8, 10, 10, 0, 22, 8 });
-    ui_widget_theme_set_top_pane_style({ 32, 12, 10, 10, 5, 24, 14, 10 });
+#if HELTEC_UI_INPUT_TOUCH
+    ui_widget_theme_set_app_frame_style({ 8, 10, 10, 0, 22, 8, 32, 12 });
+    ui_widget_theme_set_top_pane_style({ 10, 10, 5, 24, 14, 10 });
 #else
-    ui_widget_theme_set_app_frame_style({ 6, 8, 8, 0, 22, 0 });
-    ui_widget_theme_set_top_pane_style({ 25, 0, 8, 8, 5, 22, 12, 4 });
+    ui_widget_theme_set_app_frame_style({ 6, 8, 8, 0, 22, 0, 25, 0 });
+    ui_widget_theme_set_top_pane_style({ 8, 8, 5, 22, 12, 4 });
 #endif
 
-#if defined(HELTEC_DISPLAY_ST7789) && HELTEC_DISPLAY_ST7789
-    ui_widget_theme_set_context_menu_style({ 12, 1, 1, 1, 3, 8, 18 });
-#elif (defined(HELTEC_DISPLAY_ST7735) && HELTEC_DISPLAY_ST7735) ||                      \
-    (defined(HELTEC_DISPLAY_SSD1306) && HELTEC_DISPLAY_SSD1306) || LV_COLOR_DEPTH == 1
-    ui_widget_theme_set_context_menu_style({ 12, 1, 1, 1, 3, 8, 6 });
-#else
-    ui_widget_theme_set_context_menu_style({ 12, 1, 1, 1, 3, 1, 1 });
-#endif
+    const bool wide_display = disp && lv_disp_get_hor_res(disp) >= 200;
+    if (HELTEC_UI_INPUT_TOUCH)
+    {
+        ui_widget_theme_set_context_menu_style({ 8, 1, 1, 1, 3, 8, 18 });
+    }
+    else
+    {
+        ui_widget_theme_set_context_menu_style(
+            wide_display ? UiContextMenuStyleConfig{ 10, 1, 1, 1, 3, 8, 18 }
+                         : UiContextMenuStyleConfig{ 12, 1, 1, 1, 3, 8, 6 });
+    }
     ui_widget_theme_set_quick_ping_style({ 104 });
     ui_widget_theme_set_navigation_style({ 2, 3, 6, 0, 18, 8, 36, 2 });
     ui_widget_theme_set_button_roller_style({ 0, 2, 12 });
@@ -95,7 +98,7 @@ static void initDeviceStyles()
 
 static void styleSetBorderFrame(lv_style_t *st)
 {
-#if defined(HELTEC_V4_R8_TFT)
+#if HELTEC_UI_INPUT_TOUCH
     lv_style_set_border_width(st, 0);
     lv_style_set_border_opa(st, LV_OPA_TRANSP);
     lv_style_set_border_side(st, LV_BORDER_SIDE_NONE);
@@ -119,7 +122,7 @@ static void initWidgetStyles()
 
     lv_style_init(&s_switch_main);
     styleSetBorderFrame(&s_switch_main);
-#if !defined(HELTEC_V4_R8_TFT)
+#if !HELTEC_UI_INPUT_TOUCH
     lv_style_set_border_width(&s_switch_main, 2);
 #endif
     lv_style_set_width(&s_switch_main, 30);
@@ -130,7 +133,7 @@ static void initWidgetStyles()
 
     lv_style_init(&s_switch_main_focus);
     styleSetBorderFrame(&s_switch_main_focus);
-#if !defined(HELTEC_V4_R8_TFT)
+#if !HELTEC_UI_INPUT_TOUCH
     lv_style_set_border_width(&s_switch_main_focus, 2);
 #endif
     lv_style_set_border_color(&s_switch_main_focus, s_color_fg);
@@ -152,7 +155,7 @@ static void initWidgetStyles()
     lv_style_init(&s_switch_knob);
     lv_style_set_bg_color(&s_switch_knob, s_color_border);
     lv_style_set_bg_opa(&s_switch_knob, LV_OPA_COVER);
-#if defined(HELTEC_V4_R8_TFT)
+#if HELTEC_UI_INPUT_TOUCH
     lv_style_set_border_width(&s_switch_knob, 0);
     lv_style_set_border_opa(&s_switch_knob, LV_OPA_TRANSP);
     lv_style_set_border_side(&s_switch_knob, LV_BORDER_SIDE_NONE);
@@ -211,7 +214,7 @@ lv_theme_t *init_ui_pixel_theme(lv_disp_t *disp, const lv_font_t *font)
     if (!disp)
         return nullptr;
     ui_set_active_theme_colors(&kPixelColors);
-    initDeviceStyles();
+    initDeviceStyles(disp);
     initWidgetStyles();
 
     if (!font)

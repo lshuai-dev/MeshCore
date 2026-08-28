@@ -81,7 +81,7 @@ _lv_obj_t *GPSScreen::create(_lv_obj_t *parent)
     {
         lv_obj_set_flex_align(_row_power, LV_FLEX_ALIGN_SPACE_BETWEEN, LV_FLEX_ALIGN_CENTER,
                               LV_FLEX_ALIGN_CENTER);
-        _lbl_gps_prefix = ht_label_create(_row_power, HT_META_ID_UNSET, "gps");
+        _lbl_gps_prefix = ht_label_create(_row_power, HT_META_ID_UNSET, "GPS");
         _sw_gps = ht_switch_create(_row_power);
         if (_lbl_gps_prefix)
             lv_obj_set_width(_lbl_gps_prefix, LV_SIZE_CONTENT);
@@ -101,7 +101,7 @@ _lv_obj_t *GPSScreen::create(_lv_obj_t *parent)
         lv_obj_set_flex_align(_row_location_share, LV_FLEX_ALIGN_SPACE_BETWEEN, LV_FLEX_ALIGN_CENTER,
                               LV_FLEX_ALIGN_CENTER);
         _lbl_location_share = ht_label_create(_row_location_share, HT_META_ID_UNSET,
-                                               "location share");
+                                               "Location Share");
         _sw_location_share = ht_switch_create(_row_location_share);
         if (_lbl_location_share)
             lv_obj_set_width(_lbl_location_share, LV_SIZE_CONTENT);
@@ -119,7 +119,7 @@ _lv_obj_t *GPSScreen::create(_lv_obj_t *parent)
     _row_adv_interval = ht_container_create(_root);
     if (_row_adv_interval)
     {
-        _lbl_adv_interval = ht_label_create(_row_adv_interval, HT_META_ID_UNSET, "adv interval");
+        _lbl_adv_interval = ht_label_create(_row_adv_interval, HT_META_ID_UNSET, "Adv Interval");
         if (_lbl_adv_interval)
             lv_obj_set_width(_lbl_adv_interval, LV_SIZE_CONTENT);
         _dd_adv_interval = ht_dropdown_create(_row_adv_interval, meta_id::GpsAdvIntervalDropdown);
@@ -172,7 +172,7 @@ _lv_obj_t *GPSScreen::create(_lv_obj_t *parent)
     {
         lv_obj_set_flex_align(_row_track, LV_FLEX_ALIGN_SPACE_BETWEEN, LV_FLEX_ALIGN_CENTER,
                               LV_FLEX_ALIGN_CENTER);
-        _lbl_track = ht_label_create(_row_track, HT_META_ID_UNSET, "gps track");
+        _lbl_track = ht_label_create(_row_track, HT_META_ID_UNSET, "GPS Track");
         _sw_track = ht_switch_create(_row_track);
         if (_lbl_track)
             lv_obj_set_width(_lbl_track, LV_SIZE_CONTENT);
@@ -641,11 +641,11 @@ void GPSScreen::updateGps(const biz::IBizFacade::GpsStatus &s)
         }
         else if (!s.enabled)
         {
-            lv_label_set_text_static(_lbl_fix, "gps off");
+            lv_label_set_text_static(_lbl_fix, "GPS Off");
         }
         else if (!s.powered)
         {
-            lv_label_set_text_static(_lbl_fix, "gps sleep");
+            lv_label_set_text_static(_lbl_fix, "GPS Sleep");
         }
         else if (!s.fix_valid)
         {

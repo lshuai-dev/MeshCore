@@ -11,7 +11,7 @@
 
 #include <lvgl.h>
 
-#if !defined(HELTEC_V4_R8_TFT) || !defined(HELTEC_HAS_TOUCH) || !HELTEC_HAS_TOUCH
+#if !HELTEC_UI_INPUT_TOUCH
 
 namespace heltec::meshcore::ui
 {
@@ -132,6 +132,15 @@ void ContextMenu::updateIconSelection()
         else
         {
             lv_obj_clear_state(b, LV_STATE_CHECKED);
+        }
+
+        lv_obj_t *icon = lv_obj_get_child(b, 0);
+        if (icon)
+        {
+            if (i == _active_menu)
+                lv_obj_add_state(icon, LV_STATE_CHECKED);
+            else
+                lv_obj_clear_state(icon, LV_STATE_CHECKED);
         }
     }
 }
@@ -313,6 +322,8 @@ _lv_obj_t *ContextMenu::create(_lv_obj_t *parent)
         return nullptr;
 
     lv_obj_clear_flag(mh, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_set_style_pad_all(mh, 0, LV_PART_MAIN);
+    lv_obj_set_style_pad_row(mh, 0, LV_PART_MAIN);
 
     _header_icon_row = ht_obj_create(mh, meta_id::ContextMenuHeaderIconRow);
     if (!_header_icon_row)
@@ -320,6 +331,8 @@ _lv_obj_t *ContextMenu::create(_lv_obj_t *parent)
     lv_obj_set_flex_flow(_header_icon_row, LV_FLEX_FLOW_ROW);
     lv_obj_set_flex_align(_header_icon_row, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER,
                           LV_FLEX_ALIGN_CENTER);
+    lv_obj_set_style_pad_top(_header_icon_row, 0, LV_PART_MAIN);
+    lv_obj_set_style_pad_bottom(_header_icon_row, 0, LV_PART_MAIN);
     lv_obj_move_to_index(_header_icon_row, 0);
     lv_obj_clear_flag(_header_icon_row, LV_OBJ_FLAG_SCROLLABLE);
 
@@ -347,6 +360,8 @@ _lv_obj_t *ContextMenu::create(_lv_obj_t *parent)
     ui_widget_theme_apply(mh);
     ui_widget_theme_apply(back_btn);
     ui_widget_theme_apply(title_lbl);
+    lv_obj_set_style_pad_all(mh, 0, LV_PART_MAIN);
+    lv_obj_set_style_pad_row(mh, 0, LV_PART_MAIN);
 
     lv_group_set_wrap(_focus_group, true);
     lv_group_set_editing(_focus_group, false);
@@ -384,6 +399,11 @@ bool ContextMenu::registerMenu(const char *title, const lv_img_dsc_t *icon, Abst
     lv_obj_t *btn = ht_btn_create(_header_icon_row, meta_id::ContextMenuIconButton, &menu);
     if (!btn)
         return false;
+
+    lv_obj_set_flex_flow(btn, LV_FLEX_FLOW_ROW);
+    lv_obj_set_flex_align(btn, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER,
+                          LV_FLEX_ALIGN_CENTER);
+    lv_obj_clear_flag(btn, LV_OBJ_FLAG_SCROLLABLE);
 
     lv_obj_add_event_cb(
         btn,
@@ -429,6 +449,17 @@ bool ContextMenu::registerMenu(const char *title, const lv_img_dsc_t *icon, Abst
     if (!im)
         return false;
     lv_img_set_src(im, icon);
+    lv_img_set_antialias(im, false);
+
+    const lv_coord_t icon_width = static_cast<lv_coord_t>(icon->header.w);
+    const lv_coord_t icon_height = static_cast<lv_coord_t>(icon->header.h);
+    lv_obj_set_size(im, icon_width, icon_height);
+    lv_obj_set_size(btn, icon_width, icon_height);
+    if (icon_height > _icon_row_height)
+    {
+        _icon_row_height = icon_height;
+        lv_obj_set_height(_header_icon_row, _icon_row_height);
+    }
 
     addFocusObject(btn);
     return true;
@@ -436,4 +467,4 @@ bool ContextMenu::registerMenu(const char *title, const lv_img_dsc_t *icon, Abst
 
 } // namespace heltec::meshcore::ui
 
-#endif // !HELTEC_V4_R8_TFT || !HELTEC_HAS_TOUCH
+#endif // !HELTEC_UI_INPUT_TOUCH

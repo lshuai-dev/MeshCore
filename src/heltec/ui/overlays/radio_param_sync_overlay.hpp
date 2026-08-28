@@ -1,5 +1,5 @@
 #pragma once
-#include "../core/abstract_overlay.hpp"
+#include "../core/framed_overlay.hpp"
 
 #include <stdint.h>
 
@@ -21,10 +21,10 @@ constexpr uint16_t RadioParamSyncFooter = ht_meta_id(MetaIdScope::Overlay, 0xA3)
 constexpr uint16_t RadioParamSyncRoller = ht_meta_id(MetaIdScope::Overlay, 0xA4);
 } // namespace meta_id
 
-class RadioParamSyncOverlay : public AbstractOverlay
+class RadioParamSyncOverlay : public FramedOverlay
 {
   public:
-    explicit RadioParamSyncOverlay(biz::IBizFacade &biz) : AbstractOverlay(biz)
+    explicit RadioParamSyncOverlay(biz::IBizFacade &biz) : FramedOverlay(biz)
     {
     }
 
@@ -51,9 +51,7 @@ class RadioParamSyncOverlay : public AbstractOverlay
     void rebuildRollerOptions();
 #endif
 
-    _lv_obj_t *_title = nullptr;
     _lv_obj_t *_list = nullptr;
-    _lv_obj_t *_footer = nullptr;
 #if defined(HELTEC_V4_R8_TFT)
     _lv_obj_t *_roller = nullptr;
     uint8_t _roller_press_selected = 0;

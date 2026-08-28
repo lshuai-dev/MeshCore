@@ -34,6 +34,7 @@ _lv_obj_t *RadioScreen::create(_lv_obj_t *parent)
     _lv_obj_t *const row_line2 = ht_container_create(_root);
     _lv_obj_t *const row_line3 = ht_container_create(_root);
     _lv_obj_t *const row_line4 = ht_container_create(_root);
+    _lv_obj_t *const rows[] = { row_line1, row_line2, row_line3, row_line4 };
     _line1 = ht_label_create(row_line1, meta_id::RadioLineLabel);
     _line2 = ht_label_create(row_line2, meta_id::RadioLineLabel);
     _line3 = ht_label_create(row_line3, meta_id::RadioLineLabel);
@@ -52,11 +53,7 @@ _lv_obj_t *RadioScreen::create(_lv_obj_t *parent)
     }
 
 #if defined(HAS_LNA_CONTROL) && HAS_LNA_CONTROL
-#if defined(HELTEC_V4_R8_TFT)
-    const bool show_lna = true;
-#else
     const bool show_lna = _biz.isLnaCanControl();
-#endif
     if (show_lna)
     {
         _row_lna = ht_container_create(_root, meta_id::RadioLnaRow);
@@ -82,6 +79,13 @@ _lv_obj_t *RadioScreen::create(_lv_obj_t *parent)
         }
     }
 #endif
+
+    for (int i = 0; i < 4; ++i)
+    {
+        if (!labels[i] || !rows[i])
+            continue;
+        addFocusItem(labels[i], rows[i]);
+    }
 
 #if defined(HAS_LNA_CONTROL) && HAS_LNA_CONTROL
     addFocusItem(_sw_lna, _row_lna);
@@ -196,8 +200,8 @@ void RadioScreen::updateRadio(const biz::IBizFacade::RadioStatus &s)
 
 void RadioScreen::refreshSnapshot()
 {
-    _last_radio = _biz.radioStatus();
-    updateRadio(_last_radio);
+    const biz::IBizFacade::RadioStatus radio = _biz.radioStatus();
+    updateRadio(radio);
 #if defined(HAS_LNA_CONTROL) && HAS_LNA_CONTROL
     setLnaSwitchState(_biz.lnaEnabled());
 #endif

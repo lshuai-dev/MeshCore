@@ -5,6 +5,7 @@
 #include "ui/app/ui_behavior_profile.hpp"
 #include "ui/app/ui_theme.hpp"
 #include "ui/core/ht_meta_data.hpp"
+#include "ui/images.h"
 #include "ui/menus/context_menu.hpp"
 #include "ui/navigation/ui_navigator.hpp"
 #include "ui/screens/find_friend_screen_ids.hpp"
@@ -73,43 +74,41 @@ static const heltec::meshcore::ui::UiBehaviorProfile kMonoBehaviorProfile = {
     { 5000, 560, 380, 4, 2 },
 };
 
-static void init_device_styles(bool ssd1306)
+static void init_device_styles(lv_disp_t *disp, bool ssd1306)
 {
     using namespace heltec::meshcore::ui;
     ui_set_behavior_profile(&kMonoBehaviorProfile);
-    ui_widget_theme_set_app_frame_style({ 2, 0, 0, 0, 0, 0 });
+    ui_widget_theme_set_app_frame_style({ 2, 0, 0, 0, 0, 0, 12, 4 });
     ui_widget_theme_set_quick_ping_style({ 104 });
     ui_widget_theme_set_navigation_style({ 2, 3, 6, 0, 18, 8, 36, 2 });
 
     if (ssd1306)
     {
-        ui_widget_theme_set_context_menu_style({ 12, 0, 1, 1, 2, 8, 6 });
-        ui_widget_theme_set_top_pane_style({ 10, 2, 2, 2, 0, 15, 7, 4 });
+        const lv_coord_t icon_size = static_cast<lv_coord_t>(icon_home_img.header.w);
+        ui_widget_theme_set_context_menu_style({ icon_size, 0, 1, 1, 2, 8, 6 });
+        ui_widget_theme_set_app_frame_style({ 2, 0, 0, 0, 0, 0, 10, 2 });
+        ui_widget_theme_set_top_pane_style({ 2, 2, 0, 15, 7, 4 });
         ui_widget_theme_set_button_roller_style({ 0, 0, 10 });
     }
     else
     {
         ui_widget_theme_set_context_menu_style({ 12, 1, 1, 1, 3, 8, 6 });
-#if defined(HELTEC_T114_WITH_DISPLAY)
-        ui_widget_theme_set_top_pane_style({ 18, 4, 4, 4, 0, 24, 13, 6 });
-#else
-        ui_widget_theme_set_top_pane_style({ 12, 4, 4, 4, 0, 18, 8, 4 });
-#endif
+        const bool wide_display = disp && lv_disp_get_hor_res(disp) >= 200;
+        ui_widget_theme_set_app_frame_style(
+            wide_display ? UiAppFrameStyleConfig{ 2, 0, 0, 0, 0, 0, 18, 4 }
+                         : UiAppFrameStyleConfig{ 2, 0, 0, 0, 0, 0, 12, 4 });
+        ui_widget_theme_set_top_pane_style(
+            wide_display ? UiTopPaneStyleConfig{ 4, 4, 0, 24, 13, 6 }
+                         : UiTopPaneStyleConfig{ 4, 4, 0, 18, 8, 4 });
         ui_widget_theme_set_button_roller_style({ 0, 2, 12 });
     }
 }
 
 static void style_set_border_frame(lv_style_t *st)
 {
-#if defined(HELTEC_V4_R8_TFT)
-    lv_style_set_border_width(st, 0);
-    lv_style_set_border_opa(st, LV_OPA_TRANSP);
-    lv_style_set_border_side(st, LV_BORDER_SIDE_NONE);
-#else
     lv_style_set_border_width(st, 1);
     lv_style_set_border_color(st, s_color_border);
     lv_style_set_border_opa(st, LV_OPA_COVER);
-#endif
     lv_style_set_outline_width(st, 0);
 }
 
@@ -137,9 +136,7 @@ static void init_widget_styles()
 
     lv_style_init(&s_switch_main);
     style_set_border_frame(&s_switch_main);
-#if !defined(HELTEC_V4_R8_TFT)
     lv_style_set_border_width(&s_switch_main, 2);
-#endif
 #if LV_COLOR_DEPTH == 1
     // One physical pixel is the thinnest useful frame on a 1-bit panel. Give
     // it a little more area so it does not dominate the control visually.
@@ -162,9 +159,7 @@ static void init_widget_styles()
 
     lv_style_init(&s_switch_main_focus);
     style_set_border_frame(&s_switch_main_focus);
-#if !defined(HELTEC_V4_R8_TFT)
     lv_style_set_border_width(&s_switch_main_focus, 2);
-#endif
     lv_style_set_bg_color(&s_switch_main_focus,
                           heltec::meshcore::ui::ui_color_highlight_bg());
     lv_style_set_bg_opa(&s_switch_main_focus, LV_OPA_COVER);
@@ -212,10 +207,6 @@ static void init_widget_styles()
 #if LV_COLOR_DEPTH == 1
     lv_style_set_border_width(&s_switch_knob, 0);
     lv_style_set_border_opa(&s_switch_knob, LV_OPA_TRANSP);
-#elif defined(HELTEC_V4_R8_TFT)
-    lv_style_set_border_width(&s_switch_knob, 0);
-    lv_style_set_border_opa(&s_switch_knob, LV_OPA_TRANSP);
-    lv_style_set_border_side(&s_switch_knob, LV_BORDER_SIDE_NONE);
 #else
     lv_style_set_border_width(&s_switch_knob, 1);
     lv_style_set_border_color(&s_switch_knob, s_color_border);
@@ -282,12 +273,12 @@ namespace heltec::meshcore::ui
 static lv_theme_t *init_mono_flat_theme_variant(lv_disp_t *disp, const lv_font_t *font,
                                                 bool ssd1306, UiTheme &theme_storage)
 {
-    ui_set_active_theme_colors(&kMonoFlatColors);
-    init_device_styles(ssd1306);
-    init_widget_styles();
-
     if (!disp)
         return nullptr;
+    ui_set_active_theme_colors(&kMonoFlatColors);
+    init_device_styles(disp, ssd1306);
+    init_widget_styles();
+
     if (!font)
         font = LV_FONT_DEFAULT;
 

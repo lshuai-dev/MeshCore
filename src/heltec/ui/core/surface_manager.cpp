@@ -4,18 +4,6 @@
 
 #include "heltec/drivers/input/key_input.hpp"
 
-#if defined(MESH_DEBUG) && MESH_DEBUG
-#include <Arduino.h>
-#define SURFACE_MANAGER_LOG(fmt, ...) \
-    do \
-    { \
-        Serial.printf("[surface-manager] " fmt "\n", ##__VA_ARGS__); \
-        Serial.flush(); \
-    } while (0)
-#else
-#define SURFACE_MANAGER_LOG(fmt, ...) ((void)0)
-#endif
-
 #include <lvgl.h>
 
 namespace heltec::meshcore::ui
@@ -78,9 +66,6 @@ void SurfaceManager::bindInput(UiSurface *surface)
 
     const bool changed = _bound_surface != surface;
     lv_group_t *const group = surface->group();
-    SURFACE_MANAGER_LOG("bind surface=%p root=%p group=%p count=%u changed=%u",
-                        (void *)surface, (void *)surface->root(), (void *)group,
-                        (unsigned)lv_group_get_obj_count(group), changed ? 1U : 0U);
     const bool preserve_editing = lv_group_get_editing(group);
     lv_group_set_default(group);
     heltec::meshcore::dal::key_input::set_group(group);
@@ -106,9 +91,6 @@ void SurfaceManager::bindInput(UiSurface *surface)
     {
         lv_group_focus_next(group);
     }
-    SURFACE_MANAGER_LOG("bound surface=%p focused=%p default=%p",
-                        (void *)surface, (void *)lv_group_get_focused(group),
-                        (void *)lv_group_get_default());
     if (preserve_editing)
     {
         lv_group_set_editing(group, true);
@@ -270,6 +252,9 @@ void SurfaceManager::reconcile()
             remove(index);
             continue;
         }
+        /* Hidden roots remain presented: they may be temporarily hidden by
+           an animation or by an internal overlay state. Only show(false)
+           performs the lifecycle exit and removes a surface. */
         ++index;
     }
     bindInput(active());

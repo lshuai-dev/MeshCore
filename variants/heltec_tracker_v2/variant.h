@@ -181,6 +181,12 @@
 #ifndef UI_THEME_MONO
 #define UI_THEME_MONO 1
 #endif
+#ifndef HELTEC_UI_DISPLAY_MONO
+#define HELTEC_UI_DISPLAY_MONO 1
+#endif
+#ifndef HELTEC_UI_INPUT_TOUCH
+#define HELTEC_UI_INPUT_TOUCH 0
+#endif
 #ifndef MOMENTARY_BUTTON_MAX
 #define MOMENTARY_BUTTON_MAX 1
 #endif

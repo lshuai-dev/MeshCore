@@ -39,6 +39,7 @@ struct ButtonState
     volatile uint8_t edge_head = 0;
     volatile uint8_t edge_tail = 0;
     volatile uint8_t edge_level[kEdgeCap] = {};
+    volatile unsigned long edge_at[kEdgeCap] = {};
 };
 
 static Config s_cfg;
@@ -101,6 +102,7 @@ static void BTN_ISR enqueue_level(uint8_t slot)
         button.edge_head = (uint8_t)((button.edge_head + 1U) % kEdgeCap);
     }
     button.edge_level[button.edge_tail] = level;
+    button.edge_at[button.edge_tail] = millis();
     button.edge_tail = next;
 }
 
@@ -194,27 +196,29 @@ static void drain_edges(ButtonState &button, uint8_t slot, unsigned long now)
 {
     while (button.edge_head != button.edge_tail)
     {
-        const uint8_t level = button.edge_level[button.edge_head];
+        const uint8_t edge_index = button.edge_head;
+        const uint8_t level = button.edge_level[edge_index];
+        const unsigned long edge_at = button.edge_at[edge_index];
         button.edge_head = (uint8_t)((button.edge_head + 1U) % kEdgeCap);
         if (level == button.prev)
             continue;
         if (s_cfg.debounce_ms > 0 && button.last_edge_at > 0 &&
-            (now - button.last_edge_at) < s_cfg.debounce_ms)
+            (edge_at - button.last_edge_at) < s_cfg.debounce_ms)
         {
             BTN_UI_LOG("gpio pin=%d debounce lvl=%u", (int)button.pin, (unsigned)level);
             continue;
         }
-        button.last_edge_at = now;
+        button.last_edge_at = edge_at;
 
         if (is_pressed(level, button.active_level))
         {
-            button.down_at = now;
+            button.down_at = edge_at;
             BTN_UI_LOG("gpio pin=%d press lvl=%u idle=%u", (int)button.pin, (unsigned)level,
                        (unsigned)button.prev);
         }
         else if (button.down_at > 0)
         {
-            const unsigned long held = now - button.down_at;
+            const unsigned long held = edge_at - button.down_at;
             if (s_cfg.long_press_ms == 0 || held < s_cfg.long_press_ms)
             {
                 ++button.clicks;
@@ -228,7 +232,7 @@ static void drain_edges(ButtonState &button, uint8_t slot, unsigned long now)
                 {
                     emit_gesture(slot, gesture_for_clicks(HELTEC_BUTTON_MAX_CLICKS));
                     button.clicks = 1;
-                    button.last_release = now;
+                    button.last_release = edge_at;
                 }
                 else
                 {

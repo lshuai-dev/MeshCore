@@ -3,6 +3,7 @@
 #include "../core/biz_facade.hpp"
 #include "MeshCore.h"
 #include "ui/core/ht_meta_data.hpp"
+#include "ui/core/ht_meta_data_internal.hpp"
 #include "ui/core/ht_event.h"
 
 #include <cstdio>
@@ -13,9 +14,52 @@
 namespace heltec::meshcore::ui
 {
 
+#if LV_USE_KEYBOARD
+const lv_obj_class_t ht_keyboard_overlay_class = {
+    &lv_obj_class, nullptr, nullptr,
+#if LV_USE_USER_DATA
+    nullptr,
+#endif
+    nullptr, LV_SIZE_CONTENT, LV_SIZE_CONTENT, LV_OBJ_CLASS_EDITABLE_INHERIT,
+    LV_OBJ_CLASS_GROUP_DEF_INHERIT, sizeof(lv_obj_t),
+};
+
+const lv_obj_class_t ht_keyboard_hint_class = {
+    &lv_label_class, nullptr, nullptr,
+#if LV_USE_USER_DATA
+    nullptr,
+#endif
+    nullptr, LV_SIZE_CONTENT, LV_SIZE_CONTENT, LV_OBJ_CLASS_EDITABLE_INHERIT,
+    LV_OBJ_CLASS_GROUP_DEF_INHERIT, sizeof(lv_label_t),
+};
+
+const lv_obj_class_t ht_keyboard_editor_class = {
+    &lv_textarea_class, nullptr, nullptr,
+#if LV_USE_USER_DATA
+    nullptr,
+#endif
+    nullptr, LV_SIZE_CONTENT, LV_SIZE_CONTENT, LV_OBJ_CLASS_EDITABLE_INHERIT,
+    LV_OBJ_CLASS_GROUP_DEF_INHERIT, sizeof(lv_textarea_t),
+};
+
+const lv_obj_class_t ht_keyboard_matrix_class = {
+    &lv_keyboard_class, nullptr, nullptr,
+#if LV_USE_USER_DATA
+    nullptr,
+#endif
+    nullptr, LV_SIZE_CONTENT, LV_SIZE_CONTENT, LV_OBJ_CLASS_EDITABLE_INHERIT,
+    LV_OBJ_CLASS_GROUP_DEF_INHERIT, sizeof(lv_keyboard_t),
+};
+#endif
+
 _lv_obj_t *KeyboardOverlay::createRoot(_lv_obj_t *parent)
 {
-    return ht_obj_create(parent, meta_id::KeyboardOverlayRoot);
+#if LV_USE_KEYBOARD
+    return detail::create_object(&ht_keyboard_overlay_class, parent, HT_META_ID_UNSET, nullptr);
+#else
+    (void)parent;
+    return nullptr;
+#endif
 }
 
 #if LV_USE_KEYBOARD
@@ -128,6 +172,10 @@ void set_keyboard_layout_state(lv_obj_t *root, lv_obj_t *kb, lv_obj_t *textarea,
 void apply_message_keyboard_layout(lv_obj_t *root, lv_obj_t *kb, lv_obj_t *textarea)
 {
     set_keyboard_layout_state(root, kb, textarea, false);
+    if (textarea)
+    {
+        lv_textarea_set_one_line(textarea, false);
+    }
     if (root)
     {
         lv_obj_clear_flag(root, LV_OBJ_FLAG_SCROLLABLE);
@@ -138,6 +186,10 @@ void apply_message_keyboard_layout(lv_obj_t *root, lv_obj_t *kb, lv_obj_t *texta
 void apply_waypoint_keyboard_layout(lv_obj_t *root, lv_obj_t *kb, lv_obj_t *textarea)
 {
     set_keyboard_layout_state(root, kb, textarea, true);
+    if (textarea)
+    {
+        lv_textarea_set_one_line(textarea, true);
+    }
     if (root)
     {
         lv_obj_clear_flag(root, LV_OBJ_FLAG_SCROLLABLE);
@@ -321,7 +373,6 @@ void KeyboardOverlay::on_keyboard_value_pre(lv_event_t *e)
     KeyboardOverlay *self = static_cast<KeyboardOverlay *>(lv_event_get_user_data(e));
     if (!self)
         return;
-
     lv_obj_t *kb = lv_event_get_target(e);
     const uint16_t btn_id = lv_btnmatrix_get_selected_btn(kb);
     if (btn_id == LV_BTNMATRIX_BTN_NONE)
@@ -335,13 +386,15 @@ void KeyboardOverlay::on_keyboard_value_pre(lv_event_t *e)
     {
         if (strcmp(txt, "ABC") == 0)
         {
-            lv_keyboard_set_mode(kb, LV_KEYBOARD_MODE_USER_3);
+            lv_keyboard_set_mode(kb, compact_keyboard_display() ? LV_KEYBOARD_MODE_USER_3
+                                                                  : LV_KEYBOARD_MODE_TEXT_UPPER);
             reset_keyboard_interaction(kb);
             lv_event_stop_processing(e);
         }
         else if (strcmp(txt, "abc") == 0)
         {
-            lv_keyboard_set_mode(kb, LV_KEYBOARD_MODE_USER_2);
+            lv_keyboard_set_mode(kb, compact_keyboard_display() ? LV_KEYBOARD_MODE_USER_2
+                                                                  : LV_KEYBOARD_MODE_TEXT_LOWER);
             reset_keyboard_interaction(kb);
             lv_event_stop_processing(e);
         }
@@ -435,7 +488,6 @@ void KeyboardOverlay::on_keyboard_key_post(lv_event_t *e)
     KeyboardOverlay *self = static_cast<KeyboardOverlay *>(lv_event_get_user_data(e));
     if (!self)
         return;
-
     const uint32_t key = lv_event_get_key(e);
     if (key == LV_KEY_LEFT || key == LV_KEY_RIGHT || key == LV_KEY_UP || key == LV_KEY_DOWN)
     {
@@ -485,34 +537,22 @@ bool KeyboardOverlay::ensureContent()
         return false;
     if (_keyboard)
         return true;
-    _title = ht_label_create(_root, meta_id::KeyboardTitle);
-    if (!_title)
+    _hint = detail::create_object(&ht_keyboard_hint_class, _root, HT_META_ID_UNSET, nullptr);
+    if (!_hint)
         return false;
-    lv_obj_set_width(_title, lv_pct(100));
-    lv_label_set_long_mode(_title, LV_LABEL_LONG_CLIP);
+    lv_label_set_long_mode(_hint, LV_LABEL_LONG_CLIP);
     lv_snprintf(_title_text, sizeof(_title_text), "#broadcast");
-    lv_label_set_text_static(_title, _title_text);
-    _textarea = ht_textarea_create(_root, meta_id::KeyboardTextarea);
+    lv_label_set_text_static(_hint, _title_text);
+    _textarea = detail::create_object(&ht_keyboard_editor_class, _root, HT_META_ID_UNSET, nullptr);
     if (!_textarea)
         return false;
-    lv_obj_set_size(_textarea, lv_pct(100), 18);
-    lv_textarea_set_one_line(_textarea, true);
+    lv_textarea_set_one_line(_textarea, false);
     lv_textarea_set_max_length(_textarea, kMaxText);
     lv_textarea_set_text_buffer(_textarea, _text_buffer, sizeof(_text_buffer));
     lv_obj_set_scrollbar_mode(_textarea, LV_SCROLLBAR_MODE_OFF);
-    _vertical_spacer = ht_obj_create(_root, meta_id::KeyboardSpacer);
-    if (!_vertical_spacer)
-        return false;
-    lv_obj_set_width(_vertical_spacer, lv_pct(100));
-    lv_obj_set_height(_vertical_spacer, 0);
-    lv_obj_set_flex_grow(_vertical_spacer, 1);
-    lv_obj_clear_flag(_vertical_spacer, LV_OBJ_FLAG_CLICKABLE | LV_OBJ_FLAG_SCROLLABLE);
-    lv_obj_add_flag(_vertical_spacer, LV_OBJ_FLAG_HIDDEN);
-    _keyboard = ht_keyboard_create(_root, meta_id::KeyboardKeyboard);
+    _keyboard = detail::create_object(&ht_keyboard_matrix_class, _root, HT_META_ID_UNSET, nullptr);
     if (!_keyboard)
         return false;
-    lv_obj_set_width(_keyboard, lv_pct(100));
-    lv_obj_set_flex_grow(_keyboard, 1);
     lv_keyboard_set_textarea(_keyboard, _textarea);
     lv_keyboard_set_popovers(_keyboard, false);
     install_message_compact_keyboard_map(_keyboard);
@@ -536,20 +576,17 @@ bool KeyboardOverlay::ensureContent()
 
 bool KeyboardOverlay::prepareMessageInput(const char *title_text)
 {
-    if (!_root || !_title || !_textarea || !_keyboard)
+    if (!_root || !_hint || !_textarea || !_keyboard)
         return false;
     _compose_mode = ComposeMode::Message;
     _skip_next_ok_value = false;
     _skip_next_ok_value_ms = 0;
     _submitted_text[0] = '\0';
-    if (_vertical_spacer)
-        lv_obj_add_flag(_vertical_spacer, LV_OBJ_FLAG_HIDDEN);
-
     lv_snprintf(_title_text, sizeof(_title_text), "#%s", title_text ? title_text : "message");
     lv_textarea_set_accepted_chars(_textarea, nullptr);
     lv_textarea_set_max_length(_textarea, kMaxText);
     lv_textarea_set_text(_textarea, "");
-    lv_label_set_text_static(_title, _title_text);
+    lv_label_set_text_static(_hint, _title_text);
     lv_keyboard_set_textarea(_keyboard, _textarea);
     lv_keyboard_set_mode(_keyboard, message_keyboard_mode());
     reset_keyboard_interaction(_keyboard);
@@ -560,17 +597,14 @@ bool KeyboardOverlay::prepareMessageInput(const char *title_text)
 
 bool KeyboardOverlay::prepareWaypointInput()
 {
-    if (!_root || !_title || !_textarea || !_keyboard)
+    if (!_root || !_hint || !_textarea || !_keyboard)
         return false;
     _compose_mode = ComposeMode::Waypoint;
     _skip_next_ok_value = false;
     _skip_next_ok_value_ms = 0;
     _submitted_text[0] = '\0';
-    if (_vertical_spacer)
-        lv_obj_clear_flag(_vertical_spacer, LV_OBJ_FLAG_HIDDEN);
-
     lv_snprintf(_title_text, sizeof(_title_text), "lat,lon");
-    lv_label_set_text_static(_title, _title_text);
+    lv_label_set_text_static(_hint, _title_text);
     lv_textarea_set_max_length(_textarea, 48);
     lv_textarea_set_text(_textarea, "");
     lv_textarea_set_accepted_chars(_textarea, "0123456789.,- ");
@@ -614,8 +648,6 @@ void KeyboardOverlay::onExit()
         lv_keyboard_set_mode(_keyboard, message_keyboard_mode());
         apply_message_keyboard_layout(_root, _keyboard, _textarea);
     }
-    if (_vertical_spacer)
-        lv_obj_add_flag(_vertical_spacer, LV_OBJ_FLAG_HIDDEN);
     if (_focus_group)
         lv_group_set_editing(_focus_group, false);
     if (_root)

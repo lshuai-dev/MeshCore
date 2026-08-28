@@ -2,18 +2,6 @@
 
 #include "btn_debug.hpp"
 
-#if defined(MESH_DEBUG) && MESH_DEBUG
-#include <Arduino.h>
-#define KEY_INPUT_ROUTE_LOG(fmt, ...) \
-    do \
-    { \
-        Serial.printf("[key-route] " fmt "\n", ##__VA_ARGS__); \
-        Serial.flush(); \
-    } while (0)
-#else
-#define KEY_INPUT_ROUTE_LOG(fmt, ...) ((void)0)
-#endif
-
 #include <lvgl.h>
 
 namespace heltec::meshcore::dal::key_input
@@ -149,11 +137,6 @@ static void read_cb(lv_indev_drv_t *drv, lv_indev_data_t *data)
                        (unsigned)queued.delivery);
             s_current_key = queued.key;
             data->key = s_current_key;
-            KEY_INPUT_ROUTE_LOG("deliver key=0x%lX default-group=%p focused=%p",
-                                (unsigned long)s_current_key, (void *)lv_group_get_default(),
-                                (void *)(lv_group_get_default()
-                                             ? lv_group_get_focused(lv_group_get_default())
-                                             : nullptr));
             data->state = LV_INDEV_STATE_PRESSED;
             if (queued.delivery == KeyDelivery::Pulse)
             {
@@ -202,8 +185,6 @@ void set_group(_lv_group_t *group)
 {
     if (!s_indev)
         return;
-    KEY_INPUT_ROUTE_LOG("set-group indev=%p group=%p focused=%p", (void *)s_indev, (void *)group,
-                        (void *)(group ? lv_group_get_focused(group) : nullptr));
     lv_indev_set_group(s_indev, group);
 }
 

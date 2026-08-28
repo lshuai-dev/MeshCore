@@ -12,14 +12,10 @@ struct _lv_obj_t;
 namespace heltec::meshcore::ui
 {
 
-namespace meta_id
-{
-constexpr uint16_t KeyboardOverlayRoot = ht_meta_id(MetaIdScope::Overlay, 0x04);
-constexpr uint16_t KeyboardTitle = ht_meta_id(MetaIdScope::Overlay, 0x80);
-constexpr uint16_t KeyboardTextarea = ht_meta_id(MetaIdScope::Overlay, 0x81);
-constexpr uint16_t KeyboardKeyboard = ht_meta_id(MetaIdScope::Overlay, 0x82);
-constexpr uint16_t KeyboardSpacer = ht_meta_id(MetaIdScope::Overlay, 0x83);
-} // namespace meta_id
+extern const lv_obj_class_t ht_keyboard_overlay_class;
+extern const lv_obj_class_t ht_keyboard_hint_class;
+extern const lv_obj_class_t ht_keyboard_editor_class;
+extern const lv_obj_class_t ht_keyboard_matrix_class;
 
 class KeyboardOverlay : public AbstractOverlay
 {
@@ -63,9 +59,8 @@ class KeyboardOverlay : public AbstractOverlay
     void submitMessageInput();
     void submitWaypointInput();
 
-    _lv_obj_t *_title = nullptr;
+    _lv_obj_t *_hint = nullptr;
     _lv_obj_t *_textarea = nullptr;
-    _lv_obj_t *_vertical_spacer = nullptr;
     _lv_obj_t *_keyboard = nullptr;
 
     ComposeMode _compose_mode = ComposeMode::Message;

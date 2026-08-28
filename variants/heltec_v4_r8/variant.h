@@ -231,9 +231,10 @@
 #define LV_USE_THEME_MONO 0
 #define LV_USE_MENU 0
 #define LV_USE_ROLLER 1
-#define LV_FONT_MONTSERRAT_12 1
+#define LV_FONT_MONTSERRAT_10 0
 #define LV_FONT_MONTSERRAT_14 1
-#define LV_FONT_DEFAULT &lv_font_montserrat_12
+#define LV_FONT_MONTSERRAT_16 1
+#define LV_FONT_DEFAULT &lv_font_montserrat_14
 
 #ifndef GPS_L76K
 #define GPS_L76K

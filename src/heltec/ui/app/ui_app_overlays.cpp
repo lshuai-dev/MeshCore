@@ -4,17 +4,6 @@
 
 #include <Arduino.h>
 
-#if defined(MESH_DEBUG) && MESH_DEBUG
-#define UI_ALERT_LOG(fmt, ...)                              \
-    do                                                      \
-    {                                                       \
-        Serial.printf("[alert] " fmt "\\n", ##__VA_ARGS__); \
-        Serial.flush();                                     \
-    } while (0)
-#else
-#define UI_ALERT_LOG(fmt, ...) ((void)0)
-#endif
-
 namespace heltec::meshcore::ui
 {
 
@@ -132,28 +121,18 @@ void UiApp::openAlertOverlay(const char *text)
     if (!_inited)
         return;
     _alertOvl.setText(text);
-    UI_ALERT_LOG("open text=%s now=%lu active=%d visible=%d active_surface=%p",
-                 text ? text : "", (unsigned long)millis(), _surfaces.isActive(&_alertOvl) ? 1 : 0,
-                 _surfaces.isVisible(&_alertOvl) ? 1 : 0, _surfaces.active());
     if (_surfaces.isVisible(&_alertOvl))
     {
-        const bool ok = _surfaces.show(&_alertOvl, true);
-        UI_ALERT_LOG("raise ok=%d active=%p", ok ? 1 : 0, _surfaces.active());
+        (void)_surfaces.show(&_alertOvl, true);
         return;
     }
-        const bool ok = _surfaces.show(&_alertOvl, true);
-    UI_ALERT_LOG("present ok=%d active=%p", ok ? 1 : 0, _surfaces.active());
+    (void)_surfaces.show(&_alertOvl, true);
 }
 
 void UiApp::closeAlertOverlay()
 {
     const bool was_present = _surfaces.isVisible(&_alertOvl);
-    UI_ALERT_LOG("close begin now=%lu was_present=%d active=%d active_surface=%p",
-                 (unsigned long)millis(), was_present ? 1 : 0,
-                 _surfaces.isActive(&_alertOvl) ? 1 : 0, _surfaces.active());
     const bool dismissed = _surfaces.show(&_alertOvl, false);
-    UI_ALERT_LOG("close dismissed=%d visible=%d active_surface=%p", dismissed ? 1 : 0,
-                 _surfaces.isVisible(&_alertOvl) ? 1 : 0, _surfaces.active());
     if (!was_present || dismissed)
         ui_task().dismissAlert();
 }

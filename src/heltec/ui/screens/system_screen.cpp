@@ -65,9 +65,9 @@ _lv_obj_t *SystemScreen::create(_lv_obj_t *parent)
         setDropdownOptions(_choice_region.dropdown, s_region_options);
     }
 
-    addSwitchRow(_root, "Enable Repeat Mode", &_swForwarding);
+    addSwitchRow(_root, "Repeat Mode", &_swForwarding);
 
-    addDropdownRow(_root, _choice_screen_off, "Screen off");
+    addDropdownRow(_root, _choice_screen_off, "Screen Off");
     if (_choice_screen_off.dropdown)
     {
         append_options(s_screen_off_options, sizeof(s_screen_off_options), _biz,
@@ -82,8 +82,8 @@ _lv_obj_t *SystemScreen::create(_lv_obj_t *parent)
 #if defined(HAS_BUZZER_VOLUME_CONTROL) && HAS_BUZZER_VOLUME_CONTROL
     addBuzzerVolumeRow(_root);
 #endif
-    addActionRow(_root, "> Factory reset", &_row_factory_reset);
-    addActionRow(_root, "> Clear data", &_row_clear_data);
+    addActionRow(_root, "> Factory Reset", &_row_factory_reset);
+    addActionRow(_root, "> Clear Data", &_row_clear_data);
 
     addFocusItem(_choice_region.dropdown, _choice_region.row);
     addFocusItem(_swForwarding, _swForwarding ? lv_obj_get_parent(_swForwarding) : nullptr);

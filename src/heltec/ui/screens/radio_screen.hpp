@@ -54,7 +54,6 @@ class RadioScreen : public AbstractScreen
     bool _syncing_lna = false;
 #endif
     char _line_text[4][48] = {};
-    biz::IBizFacade::RadioStatus _last_radio{};
 };
 
 } // namespace heltec::meshcore::ui

@@ -1,12 +1,13 @@
 #include "send_message_overlay.hpp"
 
-#if !defined(HELTEC_V4_R8_TFT) || !defined(HELTEC_HAS_TOUCH) || !HELTEC_HAS_TOUCH
+#if !HELTEC_UI_INPUT_TOUCH
 
 #include "heltec/ui/core/biz_facade.hpp"
 #include "keyboard_overlay.hpp"
 #include "ui/app/ui_theme.hpp"
 #include "ui/core/ht_meta_data.hpp"
 #include "ui/core/operation_hints.hpp"
+#include "ui/core/ht_selector_view.hpp"
 #include "ui/core/ui_deferred_queue.hpp"
 #include "ui/core/ht_event.h"
 
@@ -14,24 +15,12 @@
 #include <cstring>
 #include <lvgl.h>
 
-#if defined(MESH_DEBUG) && MESH_DEBUG
-#include <Arduino.h>
-#define SENDMSG_LOG(fmt, ...)                                \
-    do                                                       \
-    {                                                        \
-        Serial.printf("[sendmsg] " fmt "\n", ##__VA_ARGS__); \
-        Serial.flush();                                      \
-    } while (0)
-#else
-#define SENDMSG_LOG(fmt, ...) ((void)0)
-#endif
-
 namespace heltec::meshcore::ui
 {
 
 _lv_obj_t *SendMessageOverlay::createRoot(_lv_obj_t *parent)
 {
-    return ht_obj_create(parent, meta_id::SendMessageOverlayRoot);
+    return ht_selector_view_create(parent, meta_id::SendMessageOverlayRoot);
 }
 
 namespace
@@ -39,14 +28,14 @@ namespace
 
 lv_coord_t sendRowHeight()
 {
-#if defined(HELTEC_DISPLAY_ST7789) && HELTEC_DISPLAY_ST7789
-    return 16;
-#elif (defined(HELTEC_DISPLAY_ST7735) && HELTEC_DISPLAY_ST7735) ||                      \
-    (defined(HELTEC_DISPLAY_SSD1306) && HELTEC_DISPLAY_SSD1306) || LV_COLOR_DEPTH == 1
-    return 12;
-#else
-    return 28;
-#endif
+    lv_disp_t *const display = lv_disp_get_default();
+    const bool compact_display = display && lv_disp_get_ver_res(display) <= 80;
+    const bool wide_display = display && lv_disp_get_hor_res(display) >= 200;
+    if (LV_COLOR_DEPTH == 1 || compact_display)
+    {
+        return 12;
+    }
+    return wide_display ? 16 : 28;
 }
 
 const char *footerForPage(bool back_to_parent)
@@ -57,15 +46,6 @@ const char *footerForPage(bool back_to_parent)
 
 } // namespace
 
-void SendMessageOverlay::onGroupEdge(lv_group_t *group, bool next)
-{
-    if (!group)
-        return;
-    auto *self = static_cast<SendMessageOverlay *>(group->user_data);
-    if (self)
-        (void)self->onKey(next ? LV_KEY_NEXT : LV_KEY_PREV);
-}
-
 _lv_obj_t *SendMessageOverlay::focusTarget() const
 {
     return _root;
@@ -73,10 +53,6 @@ _lv_obj_t *SendMessageOverlay::focusTarget() const
 
 bool SendMessageOverlay::onKey(uint32_t key)
 {
-    SENDMSG_LOG("onKey key=0x%lX page=%u selected=%d rows=%d root=%p group=%p focused=%p",
-                 (unsigned long)key, (unsigned)static_cast<uint8_t>(_model.page()),
-                 _model.selectedIndex(), rowCount(), (void *)_root, (void *)group(),
-                 (void *)(group() ? lv_group_get_focused(group()) : nullptr));
     if (key == LV_KEY_NEXT || key == LV_KEY_RIGHT || key == LV_KEY_DOWN || key == LV_KEY_PREV ||
         key == LV_KEY_LEFT || key == LV_KEY_UP)
     {
@@ -98,11 +74,8 @@ bool SendMessageOverlay::onKey(uint32_t key)
 
 _lv_obj_t *SendMessageOverlay::create(lv_obj_t *parent)
 {
-    if (!AbstractOverlay::create(parent))
+    if (!FramedOverlay::create(parent))
         return nullptr;
-    _focus_group->user_data = this;
-    lv_group_set_wrap(_focus_group, false);
-    lv_group_set_edge_cb(_focus_group, SendMessageOverlay::onGroupEdge);
     lv_obj_add_event_cb(
         _root,
         [](lv_event_t *e)
@@ -122,14 +95,10 @@ _lv_obj_t *SendMessageOverlay::create(lv_obj_t *parent)
         },
         LV_EVENT_CLICKED, this);
 
-    _title = ht_label_create(_root, meta_id::SendMessageTitle);
-    if (!_title)
-        return nullptr;
-    lv_obj_set_width(_title, lv_pct(100));
-    lv_label_set_long_mode(_title, LV_LABEL_LONG_CLIP);
-    lv_label_set_text_static(_title, "send message");
+    setHeaderText("Send message");
+    setFooterText(operation_hint::kMessageSelect);
 
-    _list_mid = ht_obj_create(_root, meta_id::SendMessageList);
+    _list_mid = ht_obj_create(contentHost(), meta_id::SendMessageList);
     if (!_list_mid)
         return nullptr;
     lv_obj_set_width(_list_mid, lv_pct(100));
@@ -138,13 +107,6 @@ _lv_obj_t *SendMessageOverlay::create(lv_obj_t *parent)
     lv_obj_set_flex_align(_list_mid, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER,
                           LV_FLEX_ALIGN_CENTER);
     lv_obj_clear_flag(_list_mid, LV_OBJ_FLAG_SCROLLABLE);
-
-    _footer = ht_label_create(_root, meta_id::SendMessageFooter);
-    if (!_footer)
-        return nullptr;
-    lv_obj_set_width(_footer, lv_pct(100));
-    lv_label_set_long_mode(_footer, LV_LABEL_LONG_CLIP);
-    lv_label_set_text_static(_footer, operation_hint::kMessageSelect);
 
     if (!ensureRowPool())
         return nullptr;
@@ -217,7 +179,11 @@ bool SendMessageOverlay::ensureRowPool()
     {
         if (_row_objs[i])
             continue;
+#if defined(HELTEC_LORA_V4_TFT)
+        lv_obj_t *row = ht_obj_create(_list_mid, meta_id::SendMessageRow);
+#else
         lv_obj_t *row = ht_label_create(_list_mid, meta_id::SendMessageRow);
+#endif
         if (!row)
             return false;
         const lv_coord_t row_h = sendRowHeight();
@@ -225,7 +191,22 @@ bool SendMessageOverlay::ensureRowPool()
         lv_obj_clear_flag(row, LV_OBJ_FLAG_SCROLLABLE);
         lv_obj_set_scrollbar_mode(row, LV_SCROLLBAR_MODE_OFF);
         lv_obj_add_flag(row, LV_OBJ_FLAG_CLICKABLE);
+#if defined(HELTEC_LORA_V4_TFT)
+        lv_obj_set_flex_flow(row, LV_FLEX_FLOW_ROW);
+        lv_obj_set_flex_align(row, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER,
+                              LV_FLEX_ALIGN_CENTER);
+
+        lv_obj_t *label = ht_label_create(row, meta_id::SendMessageRowLabel);
+        if (!label)
+            return false;
+        lv_obj_set_width(label, lv_pct(100));
+        lv_obj_set_height(label, LV_SIZE_CONTENT);
+        lv_label_set_long_mode(label, LV_LABEL_LONG_DOT);
+        lv_obj_clear_flag(label, LV_OBJ_FLAG_CLICKABLE | LV_OBJ_FLAG_SCROLLABLE);
+        _row_labels[i] = label;
+#else
         lv_label_set_long_mode(row, LV_LABEL_LONG_DOT);
+#endif
         lv_obj_add_flag(row, LV_OBJ_FLAG_HIDDEN);
         _row_objs[i] = row;
     }
@@ -246,30 +227,22 @@ int SendMessageOverlay::visibleRowCount() const
     lv_coord_t row_h = lv_obj_get_height(_row_objs[0]);
     if (row_h <= 0)
         row_h = lv_obj_get_style_height(_row_objs[0], LV_PART_MAIN);
-#if (defined(HELTEC_DISPLAY_ST7789) && HELTEC_DISPLAY_ST7789)
     if (row_h <= 0 || row_h == LV_SIZE_CONTENT)
-        row_h = 16;
-#elif (defined(HELTEC_DISPLAY_ST7735) && HELTEC_DISPLAY_ST7735) ||                      \
-    (defined(HELTEC_DISPLAY_SSD1306) && HELTEC_DISPLAY_SSD1306) || LV_COLOR_DEPTH == 1
-    if (row_h <= 0 || row_h == LV_SIZE_CONTENT)
-        row_h = 12;
-#else
-    if (row_h <= 0 || row_h == LV_SIZE_CONTENT)
-        row_h = 28;
-#endif
+        row_h = sendRowHeight();
 
     int rows = static_cast<int>(list_h / row_h);
     if (rows < 1)
         rows = 1;
     if (rows > kMaxVisibleRows)
         rows = kMaxVisibleRows;
-#if (defined(HELTEC_DISPLAY_ST7789) && HELTEC_DISPLAY_ST7789) ||                       \
-    (defined(HELTEC_DISPLAY_ST7735) && HELTEC_DISPLAY_ST7735) ||                       \
-    (defined(HELTEC_DISPLAY_SSD1306) && HELTEC_DISPLAY_SSD1306) || LV_COLOR_DEPTH == 1
-    const int compact_min_rows = count >= 3 ? 3 : count;
-    if (rows < compact_min_rows)
-        rows = compact_min_rows;
-#endif
+    lv_disp_t *const display = lv_disp_get_default();
+    const bool compact_display = display && lv_disp_get_ver_res(display) <= 80;
+    if (LV_COLOR_DEPTH == 1 || compact_display)
+    {
+        const int compact_min_rows = count >= 3 ? 3 : count;
+        if (rows < compact_min_rows)
+            rows = compact_min_rows;
+    }
     if (rows > 1 && rows < count && (rows % 2) == 0)
         --rows;
     if (rows > count)
@@ -295,21 +268,21 @@ void SendMessageOverlay::renderRows()
     const int count = rowCount();
 
     const char *title = "send message";
-    const char *footer = footerForPage(false);
+    const char *footer_text = footerForPage(false);
     if (_model.page() == Page::TargetCategory)
     {
         title = "to";
-        footer = footerForPage(true);
+        footer_text = footerForPage(true);
     }
     else if (_model.page() == Page::TargetList)
     {
         title = (_model.listKind() == 1) ? "group" : "personal";
-        footer = footerForPage(true);
+        footer_text = footerForPage(true);
     }
-    lv_label_set_text_static(_title, title);
-    lv_label_set_text_static(_footer, footer);
-    lv_obj_clear_flag(_title, LV_OBJ_FLAG_HIDDEN);
-    lv_obj_clear_flag(_footer, LV_OBJ_FLAG_HIDDEN);
+    setHeaderText(title);
+    setFooterText(footer_text);
+    lv_obj_clear_flag(header(), LV_OBJ_FLAG_HIDDEN);
+    lv_obj_clear_flag(footer(), LV_OBJ_FLAG_HIDDEN);
 
     if (!ensureRowPool())
         return;
@@ -343,20 +316,38 @@ void SendMessageOverlay::renderRows()
         {
             lv_obj_add_flag(row, LV_OBJ_FLAG_HIDDEN);
             lv_obj_clear_state(row, LV_STATE_CHECKED | LV_STATE_FOCUSED | LV_STATE_FOCUS_KEY);
+#if defined(HELTEC_LORA_V4_TFT)
+            if (_row_labels[slot])
+                lv_obj_clear_state(_row_labels[slot],
+                                   LV_STATE_CHECKED | LV_STATE_FOCUSED | LV_STATE_FOCUS_KEY);
+#endif
             continue;
         }
 
         const int item = wrapIndex(sel + slot - focus);
         lv_obj_clear_flag(row, LV_OBJ_FLAG_HIDDEN);
         ht_set_user_data(row, reinterpret_cast<void *>(static_cast<uintptr_t>(item)));
+#if defined(HELTEC_LORA_V4_TFT)
+        lv_obj_t *label = _row_labels[slot];
+        if (!label)
+            continue;
+        lv_label_set_text_static(label, rowLabel(item));
+#else
         lv_label_set_text_static(row, rowLabel(item));
+#endif
         if (slot == focus)
         {
             lv_obj_add_state(row, LV_STATE_CHECKED);
+#if defined(HELTEC_LORA_V4_TFT)
+            lv_obj_add_state(label, LV_STATE_CHECKED);
+#endif
         }
         else
         {
             lv_obj_clear_state(row, LV_STATE_CHECKED | LV_STATE_FOCUSED | LV_STATE_FOCUS_KEY);
+#if defined(HELTEC_LORA_V4_TFT)
+            lv_obj_clear_state(label, LV_STATE_CHECKED | LV_STATE_FOCUSED | LV_STATE_FOCUS_KEY);
+#endif
         }
     }
 }
@@ -427,11 +418,7 @@ void SendMessageOverlay::openCustomKeyboard()
     const Target &target = _model.target();
     UiMessageKeyboardRequest req;
     req.title = target.label;
-    const bool ok = emit(EventType::MESSAGE_KEYBOARD_OPEN, &req);
-    SENDMSG_LOG("custom keyboard emit ok=%d page=%u sel=%d target=%s kind=%u channel=%d",
-                ok ? 1 : 0, (unsigned)static_cast<uint8_t>(_model.page()), _model.selectedIndex(),
-                req.title ? req.title : "", (unsigned)static_cast<uint8_t>(target.kind),
-                target.channel_idx);
+    (void)emit(EventType::MESSAGE_KEYBOARD_OPEN, &req);
 }
 
 void SendMessageOverlay::handleBack()
@@ -566,10 +553,6 @@ void SendMessageOverlay::onEnter()
     if (!_root || !_list_mid)
         return;
     AbstractOverlay::onEnter();
-    SENDMSG_LOG("onEnter root=%p group=%p count=%u focused=%p",
-                (void *)_root, (void *)group(),
-                (unsigned)(group() ? lv_group_get_obj_count(group()) : 0U),
-                (void *)(group() ? lv_group_get_focused(group()) : nullptr));
     _confirm_pending = false;
     _model.reset(_biz);
     if (_pending_target_valid)
@@ -607,4 +590,4 @@ void SendMessageOverlay::hideVisual()
 
 } // namespace heltec::meshcore::ui
 
-#endif // !HELTEC_V4_R8_TFT || !HELTEC_HAS_TOUCH
+#endif // !HELTEC_UI_INPUT_TOUCH

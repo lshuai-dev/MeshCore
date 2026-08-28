@@ -6,7 +6,7 @@
 #include "touch_send_message_overlay.hpp"
 #else
 
-#include "../core/abstract_overlay.hpp"
+#include "../core/framed_overlay.hpp"
 #include "send_message_model.hpp"
 
 #include <stdint.h>
@@ -24,10 +24,10 @@ namespace heltec::meshcore::ui
 struct UiSendMessageTarget;
 
 /** @brief 发消息 overlay；由 UiApp::activate 驱动显隐。 */
-class SendMessageOverlay : public AbstractOverlay
+class SendMessageOverlay : public FramedOverlay
 {
   public:
-    explicit SendMessageOverlay(biz::IBizFacade &biz) : AbstractOverlay(biz)
+    explicit SendMessageOverlay(biz::IBizFacade &biz) : FramedOverlay(biz)
     {
     }
     void submitCustomMessage(const char *text);
@@ -67,15 +67,14 @@ class SendMessageOverlay : public AbstractOverlay
     void openCustomKeyboard();
     void setTarget(const Target &t);
     void hideVisual();
-    static void onGroupEdge(lv_group_t *group, bool next);
-
     int rowCount() const;
     const char *rowLabel(int index) const;
 
-    _lv_obj_t *_title = nullptr;
     _lv_obj_t *_list_mid = nullptr;
-    _lv_obj_t *_footer = nullptr;
     _lv_obj_t *_row_objs[kMaxVisibleRows]{};
+#if defined(HELTEC_LORA_V4_TFT)
+    _lv_obj_t *_row_labels[kMaxVisibleRows]{};
+#endif
 
     int8_t _visible_row_count = 0;
 

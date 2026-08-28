@@ -6,6 +6,7 @@
 #include "heltec/drivers/display/display_port.hpp"
 #include "lvgl.h"
 #include "ui/app/ui_app.hpp"
+#include "ui/core/app_state_notifier.hpp"
 
 #include <Arduino.h> // needed for PlatformIO
 #include <Mesh.h>
@@ -231,13 +232,13 @@ static void requestRadioPresetOverlayIfUnconfigured(bool hasDisplay)
 
 void halt()
 {
-    while (1)
-        ;
+    while (1);
 }
 
 void setup()
 {
     Serial.begin(115200);
+    delay(3000);
 #if defined(MESH_DEBUG) && MESH_DEBUG
     {
         unsigned long start_time = millis();
@@ -252,6 +253,7 @@ void setup()
     heltec::meshcore::dal::display_port::setBacklightOn(true);
     ApplicationRuntime &runtime = applicationRuntime();
     runtime.ui.init();
+    MESH_DEBUG_PRINTLN("setup() completed");
     const bool hasDisplay = runtime.ui.isReady();
     if (hasDisplay)
     {
@@ -379,6 +381,13 @@ void setup()
     }
 #else
 #error "need to define filesystem"
+#endif
+#if defined(HELTEC_MESH_UI) && HELTEC_MESH_UI
+    {
+        heltec::meshcore::ui::AppStateEvent config_event{};
+        config_event.type = heltec::meshcore::ui::AppStateEventType::ConfigChanged;
+        heltec::meshcore::ui::app_state_notifier().notify(config_event);
+    }
 #endif
     store.notifyBootRegionMapStorageDone();
 #if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS

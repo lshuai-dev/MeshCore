@@ -2,6 +2,7 @@
 
 #include "ui/core/biz_facade.hpp"
 #include "ui/core/ht_meta_data.hpp"
+#include "ui/core/operation_hints.hpp"
 #include "ui/core/ht_event.h"
 #include "ui/theme/ui_widget_theme.hpp"
 
@@ -76,14 +77,13 @@ _lv_obj_t *RepeatModeOverlay::createRoot(_lv_obj_t *parent)
 
 _lv_obj_t *RepeatModeOverlay::create(_lv_obj_t *parent)
 {
-    if (!AbstractOverlay::create(parent))
+    if (!FramedOverlay::create(parent))
         return nullptr;
 
-    _lv_obj_t *const title = ht_label_create(_root, meta_id::RepeatModeTitle, "Repeat frequency");
-    if (!title)
-        return nullptr;
-    lv_obj_set_width(title, lv_pct(100));
-    _lv_obj_t *const list = ht_obj_create(_root, meta_id::RepeatModeList);
+    setHeaderText("Repeat frequency");
+    setFooterText(operation_hint::kRepeatMode);
+
+    _lv_obj_t *const list = ht_obj_create(contentHost(), meta_id::RepeatModeList);
     if (!list)
         return nullptr;
     lv_obj_set_width(list, lv_pct(100));

@@ -1,5 +1,5 @@
 #pragma once
-#include "../core/abstract_overlay.hpp"
+#include "../core/framed_overlay.hpp"
 
 #include <stdint.h>
 
@@ -15,18 +15,18 @@ namespace heltec::meshcore::ui
 namespace meta_id
 {
 constexpr uint16_t PreviewOverlayRoot = ht_meta_id(MetaIdScope::Overlay, 0x01);
-constexpr uint16_t PreviewHeader = ht_meta_id(MetaIdScope::Overlay, 0x20);
+constexpr uint16_t PreviewMetadataRow = ht_meta_id(MetaIdScope::Overlay, 0x20);
 constexpr uint16_t PreviewTitle = ht_meta_id(MetaIdScope::Overlay, 0x21);
 constexpr uint16_t PreviewAge = ht_meta_id(MetaIdScope::Overlay, 0x22);
 constexpr uint16_t PreviewOrigin = ht_meta_id(MetaIdScope::Overlay, 0x23);
 constexpr uint16_t PreviewText = ht_meta_id(MetaIdScope::Overlay, 0x24);
-constexpr uint16_t PreviewFooter = ht_meta_id(MetaIdScope::Overlay, 0x25);
 } // namespace meta_id
 
-class PreviewOverlay : public AbstractOverlay
+class PreviewOverlay : public FramedOverlay
 {
   public:
-    explicit PreviewOverlay(biz::IBizFacade &biz) : AbstractOverlay(biz)
+    explicit PreviewOverlay(biz::IBizFacade &biz)
+        : FramedOverlay(biz, Options{ false, true })
     {
     }
 
@@ -49,7 +49,6 @@ class PreviewOverlay : public AbstractOverlay
     _lv_obj_t *_age = nullptr;
     _lv_obj_t *_origin = nullptr;
     _lv_obj_t *_text = nullptr;
-    _lv_obj_t *_footer = nullptr;
     _lv_timer_t *_age_timer = nullptr;
     uint32_t _received_ms = 0;
     char _title_text[16] = {};

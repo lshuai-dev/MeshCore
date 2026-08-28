@@ -36,7 +36,7 @@
 #include "ui/overlays/confirm_overlay.hpp"
 #include "ui/overlays/keyboard_overlay.hpp"
 #include "ui/overlays/preview_overlay.hpp"
-#include "ui/overlays/radio_pram_sync_overlay.hpp"
+#include "ui/overlays/radio_param_sync_overlay.hpp"
 #include "ui/overlays/repeat_mode_overlay.hpp"
 #include "ui/overlays/send_message_overlay.hpp"
 #include "ui/screens/system_screen.hpp"

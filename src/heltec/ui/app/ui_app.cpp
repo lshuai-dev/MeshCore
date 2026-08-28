@@ -25,17 +25,6 @@
 #include <cstring>
 #include <lvgl.h>
 
-#if defined(MESH_DEBUG) && MESH_DEBUG
-#define UI_ALERT_LOG(fmt, ...)                             \
-    do                                                     \
-    {                                                      \
-        Serial.printf("[alert] " fmt "\n", ##__VA_ARGS__); \
-        Serial.flush();                                    \
-    } while (0)
-#else
-#define UI_ALERT_LOG(fmt, ...) ((void)0)
-#endif
-
 namespace heltec::meshcore::ui
 {
 
@@ -185,14 +174,9 @@ void UiApp::reconcileInput()
     }
     if (_surfaces.isVisible(&_alertOvl) && !ui_task().isAlertActive())
     {
-        UI_ALERT_LOG("reconcile alert inactive active=%p alert=%p", _surfaces.active(),
-                     &_alertOvl);
-        const bool dismissed = _surfaces.show(&_alertOvl, false);
-        UI_ALERT_LOG("reconcile alert dismiss=%d visible=%d", dismissed ? 1 : 0,
-                     _surfaces.isVisible(&_alertOvl) ? 1 : 0);
+        (void)_surfaces.show(&_alertOvl, false);
         return;
     }
-    _surfaces.reconcile();
 }
 
 void UiApp::setTopPaneTitle(const char *title)
@@ -269,15 +253,23 @@ void UiApp::init()
 
     lv_obj_t *scr = lv_scr_act();
     if (!scr)
+    {
         return;
+    }
 
     lv_disp_t *disp = lv_disp_get_default();
     if (!disp)
+    {
         return;
+    }
     if (!heltec::meshcore::ui::ui_theme_init(disp))
+    {
         return;
+    }
     if (!initTimers())
+    {
         return;
+    }
 
     lv_obj_clear_flag(scr, LV_OBJ_FLAG_SCROLLABLE);
     ui_app_active_screen_apply_theme(scr);
@@ -294,19 +286,27 @@ void UiApp::init()
 
     _layerOverlay = ht_obj_create(lv_layer_top(), meta_id::AppOverlayLayer);
     if (!_layerOverlay)
+    {
         return;
+    }
     lv_obj_set_size(_layerOverlay, lv_pct(100), lv_pct(100));
     lv_obj_clear_flag(_layerOverlay, LV_OBJ_FLAG_SCROLLABLE | LV_OBJ_FLAG_CLICKABLE);
 
     SplashOverlay splash;
     if (!splash.create(_layerOverlay))
+    {
         return;
+    }
     if (!initOverlay())
+    {
         return;
+    }
 
     lv_obj_t *layout = ht_obj_create(scr, meta_id::AppFrameLayout);
     if (!layout)
+    {
         return;
+    }
     lv_obj_set_size(layout, lv_pct(100), lv_pct(100));
     lv_obj_set_flex_flow(layout, LV_FLEX_FLOW_COLUMN);
     lv_obj_clear_flag(layout, LV_OBJ_FLAG_SCROLLABLE);
@@ -314,7 +314,9 @@ void UiApp::init()
     _frame_root = layout;
 
     if (!_top_pane.create(layout))
+    {
         return;
+    }
     _top_pane.setBatteryStatus(_power.snapshot().battery_mv, _power.snapshot().battery_percent);
     lv_obj_set_flex_grow(_top_pane.root(), 0);
 #if defined(HELTEC_TOPBAR_TOUCH_SHELL) && HELTEC_TOPBAR_TOUCH_SHELL
@@ -337,13 +339,17 @@ void UiApp::init()
 
     lv_obj_t *content = ht_obj_create(layout, meta_id::AppContent);
     if (!content)
+    {
         return;
+    }
     lv_obj_set_width(content, lv_pct(100));
     lv_obj_set_flex_grow(content, 1);
     lv_obj_clear_flag(content, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_add_flag(content, LV_OBJ_FLAG_OVERFLOW_VISIBLE);
     if (!initScreens(content))
+    {
         return;
+    }
     if (!initNavigationPane(_layerOverlay))
     {
         return;
@@ -530,19 +536,13 @@ void UiApp::handleFrameEvent(lv_event_t *e)
         break;
 #endif
     case EventType::SEND_MESSAGE_OPEN:
-        UI_ALERT_LOG("send message open event target=%p active=%p visible=%d",
-                     (void *)_frame_root, (void *)_surfaces.active(),
-                     _surfaces.isVisible(&_sendMessageOvl) ? 1 : 0);
         _sendMessageOvl.prepareTarget(static_cast<const UiSendMessageTarget *>(event->payload));
         if (!defer(
                 +[](void *user_data)
                 {
                     auto *app = static_cast<UiApp *>(user_data);
                     if (app)
-                    {
-                        UI_ALERT_LOG("send message deferred open active=%p", (void *)app->_surfaces.active());
                         (void)app->openSendMessageOverlay();
-                    }
                 },
                 this))
         {
@@ -586,8 +586,6 @@ void UiApp::handleFrameEvent(lv_event_t *e)
         closePreviewOverlay();
         break;
     case EventType::ALERT_CLOSE:
-        UI_ALERT_LOG("event close active=%p visible=%d", _surfaces.active(),
-                     _surfaces.isVisible(&_alertOvl) ? 1 : 0);
         closeAlertOverlay();
         break;
     case EventType::RADIO_SYNC_CLOSE:
@@ -743,10 +741,14 @@ bool UiApp::initScreens(_lv_obj_t *content)
         lv_obj_clear_flag(tile, LV_OBJ_FLAG_SCROLLABLE);
         scr->setEventTarget(_frame_root);
         if (!scr->init(tile))
+        {
             return false;
+        }
         lv_obj_t *scr_root = scr->root();
         if (!scr_root)
+        {
             return false;
+        }
     }
 
     relayout_tileview_tiles(_tileview);

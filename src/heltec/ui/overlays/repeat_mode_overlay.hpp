@@ -1,6 +1,6 @@
 #pragma once
 
-#include "ui/core/abstract_overlay.hpp"
+#include "ui/core/framed_overlay.hpp"
 #include "ui/widgets/button_roller.hpp"
 
 #include <stdint.h>
@@ -18,12 +18,13 @@ constexpr uint16_t RepeatModeList = ht_meta_id(MetaIdScope::Overlay, 0xD1);
 constexpr uint16_t RepeatModeRoller = ht_meta_id(MetaIdScope::Overlay, 0xD2);
 constexpr uint16_t RepeatModeItem = ht_meta_id(MetaIdScope::Overlay, 0xD3);
 constexpr uint16_t RepeatModeItemLabel = ht_meta_id(MetaIdScope::Overlay, 0xD4);
+constexpr uint16_t RepeatModeFooter = ht_meta_id(MetaIdScope::Overlay, 0xD5);
 } // namespace meta_id
 
-class RepeatModeOverlay : public AbstractOverlay
+class RepeatModeOverlay : public FramedOverlay
 {
   public:
-    explicit RepeatModeOverlay(biz::IBizFacade &biz) : AbstractOverlay(biz)
+    explicit RepeatModeOverlay(biz::IBizFacade &biz) : FramedOverlay(biz)
     {
     }
 

@@ -1,5 +1,6 @@
 #include "focus_key_mapper.hpp"
 
+#include "ht_selector_view.hpp"
 #include "ht_scroll_view.hpp"
 #include "ui/navigation/ui_navigator.hpp"
 
@@ -82,6 +83,14 @@ uint32_t FocusKeyMapper::translateForObject(lv_obj_t *obj, uint32_t lv_key)
 #endif
 
     if (lv_obj_check_type(obj, &ht_scroll_view_class))
+    {
+        if (lv_key == LV_KEY_NEXT)
+            return LV_KEY_DOWN;
+        if (lv_key == LV_KEY_PREV)
+            return LV_KEY_UP;
+    }
+
+    if (lv_obj_check_type(obj, &ht_selector_view_class))
     {
         if (lv_key == LV_KEY_NEXT)
             return LV_KEY_DOWN;

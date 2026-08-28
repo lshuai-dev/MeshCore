@@ -1,10 +1,10 @@
 #include "ui/app/ui_theme.hpp"
 
-#if LV_USE_THEME_MONO && defined(UI_THEME_MONO) && UI_THEME_MONO
+#if LV_USE_THEME_MONO && HELTEC_UI_DISPLAY_MONO
 #include "ui/theme/ui_theme_mono_flat.hpp"
 #endif
 
-#if defined(UI_THEME_COLOR) && UI_THEME_COLOR
+#if !HELTEC_UI_DISPLAY_MONO
 #include "ui/theme/ui_theme_pixel.hpp"
 #endif
 
@@ -100,7 +100,7 @@ void ui_theme_apply_dropdown_list(_lv_obj_t *list)
     lv_obj_set_style_bg_opa(list, LV_OPA_COVER, LV_PART_SELECTED);
     lv_obj_set_style_text_color(list, ui_color_highlight_fg(), LV_PART_SELECTED);
 
-#if defined(HELTEC_V4_R8_TFT)
+#if HELTEC_UI_INPUT_TOUCH
     constexpr lv_coord_t kDropdownOptionHeight = 32;
     lv_obj_t *const label = lv_obj_get_child(list, 0);
     const lv_font_t *const font = label ? lv_obj_get_style_text_font(label, LV_PART_MAIN)
@@ -120,7 +120,7 @@ void ui_theme_match_dropdown_list_padding(_lv_obj_t *dropdown, _lv_obj_t *list)
 {
     if (!dropdown || !list)
         return;
-#if defined(HELTEC_V4_R8_TFT)
+#if HELTEC_UI_INPUT_TOUCH
     const lv_coord_t pad_left = lv_obj_get_style_pad_left(dropdown, LV_PART_MAIN);
     const lv_coord_t pad_right = lv_obj_get_style_pad_right(dropdown, LV_PART_MAIN);
     lv_obj_set_style_pad_left(list, pad_left, LV_PART_MAIN);
@@ -241,7 +241,7 @@ void ui_theme_center_dropdown_value(_lv_obj_t *dropdown)
 {
     if (!dropdown)
         return;
-#if defined(HELTEC_V4_R8_TFT)
+#if HELTEC_UI_INPUT_TOUCH
     lv_obj_update_layout(dropdown);
     const lv_coord_t height = lv_obj_get_height(dropdown);
     const lv_coord_t border = lv_obj_get_style_border_width(dropdown, LV_PART_MAIN);

@@ -1,5 +1,7 @@
 #pragma once
 
+#include "ui_theme_profile.hpp"
+
 #include <lvgl.h>
 #include <stdint.h>
 
@@ -175,7 +177,7 @@ inline uint8_t ui_widget_radius_px()
 }
 constexpr lv_coord_t ui_settings_row_height()
 {
-#if defined(HELTEC_V4_R8_TFT)
+#if HELTEC_UI_INPUT_TOUCH
     return 32;
 #else
     return LV_SIZE_CONTENT;
@@ -183,7 +185,7 @@ constexpr lv_coord_t ui_settings_row_height()
 }
 constexpr UiLayoutMetrics ui_layout_metrics()
 {
-#if defined(HELTEC_V4_R8_TFT)
+#if HELTEC_UI_INPUT_TOUCH
     return {2, 2};
 #else
     return {0, 0};
@@ -210,13 +212,8 @@ void ui_dropdown_fit_list_to_viewport(_lv_obj_t *dropdown, _lv_obj_t *viewport,
 void ui_theme_center_dropdown_value(_lv_obj_t *dropdown);
 } // namespace heltec::meshcore::ui
 
-#if defined(UI_THEME_MONO) && UI_THEME_MONO && defined(UI_THEME_COLOR) && UI_THEME_COLOR
-#error "Define only one of UI_THEME_MONO or UI_THEME_COLOR"
-#endif
-
-#if defined(UI_THEME_MONO) && UI_THEME_MONO
+#if HELTEC_UI_DISPLAY_MONO
 #if !LV_USE_THEME_MONO
-#error "UI_THEME_MONO requires LV_USE_THEME_MONO=1"
+#error "HELTEC_UI_DISPLAY_MONO requires LV_USE_THEME_MONO=1"
 #endif
-#elif defined(UI_THEME_COLOR) && UI_THEME_COLOR
 #endif

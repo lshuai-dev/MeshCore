@@ -2,6 +2,8 @@
 
 #if defined(HELTEC_DISPLAY_SSD1306)
 #include "ssd1306_port.hpp"
+#elif defined(HELTEC_DISPLAY_NV3001B)
+#include "nv3001b_port.hpp"
 #elif defined(HELTEC_DISPLAY_ST7735)
 #include "st7735_port.hpp"
 #elif defined(HELTEC_DISPLAY_ST7789)
@@ -14,6 +16,8 @@ bool init()
 {
 #if defined(HELTEC_DISPLAY_SSD1306)
     return ssd1306::init();
+#elif defined(HELTEC_DISPLAY_NV3001B)
+    return nv3001b::init();
 #elif defined(HELTEC_DISPLAY_ST7735)
     return st7735::init();
 #elif defined(HELTEC_DISPLAY_ST7789)
@@ -27,6 +31,8 @@ void deinit()
 {
 #if defined(HELTEC_DISPLAY_SSD1306)
     ssd1306::deinit();
+#elif defined(HELTEC_DISPLAY_NV3001B)
+    nv3001b::deinit();
 #elif defined(HELTEC_DISPLAY_ST7735)
     st7735::deinit();
 #elif defined(HELTEC_DISPLAY_ST7789)
@@ -38,6 +44,8 @@ void setBacklightOn(bool on)
 {
 #if defined(HELTEC_DISPLAY_SSD1306)
     ssd1306::setBacklightOn(on);
+#elif defined(HELTEC_DISPLAY_NV3001B)
+    nv3001b::setBacklightOn(on);
 #elif defined(HELTEC_DISPLAY_ST7735)
     st7735::setBacklightOn(on);
 #elif defined(HELTEC_DISPLAY_ST7789)
@@ -51,6 +59,8 @@ bool isBacklightOn()
 {
 #if defined(HELTEC_DISPLAY_SSD1306)
     return ssd1306::isBacklightOn();
+#elif defined(HELTEC_DISPLAY_NV3001B)
+    return nv3001b::isBacklightOn();
 #elif defined(HELTEC_DISPLAY_ST7735)
     return st7735::isBacklightOn();
 #elif defined(HELTEC_DISPLAY_ST7789)

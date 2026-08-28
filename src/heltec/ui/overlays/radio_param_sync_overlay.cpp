@@ -1,8 +1,9 @@
-#include "radio_pram_sync_overlay.hpp"
+#include "radio_param_sync_overlay.hpp"
 
 #include "config/LoRaBandPresets.h"
 #include "heltec/ui/core/biz_facade.hpp"
 #include "ui/core/ht_meta_data.hpp"
+#include "ui/core/ht_selector_view.hpp"
 #include "ui/core/operation_hints.hpp"
 #include "ui/core/ht_event.h"
 #include "ui/theme/ui_widget_theme.hpp"
@@ -14,7 +15,7 @@ namespace heltec::meshcore::ui
 
 _lv_obj_t *RadioParamSyncOverlay::createRoot(_lv_obj_t *parent)
 {
-    return ht_obj_create(parent, meta_id::RadioParamSyncOverlayRoot);
+    return ht_selector_view_create(parent, meta_id::RadioParamSyncOverlayRoot);
 }
 
 namespace
@@ -34,16 +35,13 @@ static int wrapIndex(int idx, int count)
 
 _lv_obj_t *RadioParamSyncOverlay::create(lv_obj_t *parent)
 {
-    if (!AbstractOverlay::create(parent))
+    if (!FramedOverlay::create(parent))
         return nullptr;
 
-    _title = ht_label_create(_root, meta_id::RadioParamSyncTitle);
-    if (!_title)
-        return nullptr;
-    lv_obj_set_width(_title, lv_pct(100));
-    lv_label_set_text_static(_title, "Radio param preset");
+    setHeaderText("Radio param preset");
+    setFooterText(operation_hint::kRadioPreset);
 
-    _list = ht_obj_create(_root, meta_id::RadioParamSyncList);
+    _list = ht_obj_create(contentHost(), meta_id::RadioParamSyncList);
     if (!_list)
         return nullptr;
     lv_obj_set_width(_list, lv_pct(100));
@@ -103,13 +101,6 @@ _lv_obj_t *RadioParamSyncOverlay::create(lv_obj_t *parent)
     }
 #endif
 
-    _footer = ht_label_create(_root, meta_id::RadioParamSyncFooter);
-    if (!_footer)
-        return nullptr;
-    lv_obj_set_width(_footer, lv_pct(100));
-    lv_label_set_long_mode(_footer, LV_LABEL_LONG_CLIP);
-    lv_label_set_text_static(_footer, operation_hint::kRadioPreset);
-
 #if !defined(HELTEC_V4_R8_TFT)
     lv_obj_add_flag(_root, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_add_event_cb(
@@ -153,12 +144,12 @@ bool RadioParamSyncOverlay::onKey(uint32_t key)
 {
     if (!_root)
         return false;
-    if (key == LV_KEY_PREV || key == LV_KEY_LEFT)
+    if (key == LV_KEY_PREV || key == LV_KEY_LEFT || key == LV_KEY_UP)
     {
         stepSelection(-1);
         return true;
     }
-    if (key == LV_KEY_NEXT || key == LV_KEY_RIGHT)
+    if (key == LV_KEY_NEXT || key == LV_KEY_RIGHT || key == LV_KEY_DOWN)
     {
         stepSelection(1);
         return true;

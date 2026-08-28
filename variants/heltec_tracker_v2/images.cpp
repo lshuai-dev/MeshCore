@@ -9,7 +9,7 @@ static constexpr uint8_t HELTEC_IMG_PALETTE_BW_I1[8] = {
 };
 
 static constexpr uint8_t HELTEC_IMG_PALETTE_BW_I1_ON_WHITE[8] = {
-    0xFF, 0xFF, 0xFF, 0xFF,  // idx0: white (paper)
+    0xFF, 0xFF, 0xFF, 0x00,  // idx0: transparent white (paper)
     0x00, 0x00, 0x00, 0xFF,  // idx1: black (ink)
 };
 

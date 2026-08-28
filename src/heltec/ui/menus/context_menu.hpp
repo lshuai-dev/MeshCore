@@ -69,6 +69,7 @@ class ContextMenu : public UiSurface
     _lv_obj_t *_menu = nullptr;
 
     uint8_t _active_menu = 0;
+    lv_coord_t _icon_row_height = 0;
     bool _in_leaf = false;
     bool _registering_panes = false;
     AbstractMenu *_leaf_menu = nullptr;

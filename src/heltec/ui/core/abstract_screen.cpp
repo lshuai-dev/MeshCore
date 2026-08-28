@@ -176,20 +176,18 @@ void AbstractScreen::activateFocusModeDeferred(void *user_data)
     }
 }
 
-void AbstractScreen::addFocusItem(_lv_obj_t *object, _lv_obj_t *frame, bool propagate_focus)
+bool AbstractScreen::hasFocusItem(const _lv_obj_t *object) const
 {
-    if (!object || !_focus_group || _focus_item_count >= kMaxFocusItems)
-    {
-        return;
-    }
     for (uint8_t i = 0; i < _focus_item_count; ++i)
     {
         if (_focus_items[i].object == object)
-        {
-            return;
-        }
+            return true;
     }
+    return false;
+}
 
+void AbstractScreen::bindFocusVisual(_lv_obj_t *object, _lv_obj_t *frame, bool propagate_focus)
+{
     _lv_obj_t *const focus_frame = frame ? frame : object;
     if (propagate_focus)
     {
@@ -197,32 +195,42 @@ void AbstractScreen::addFocusItem(_lv_obj_t *object, _lv_obj_t *frame, bool prop
         lv_obj_add_event_cb(object, onFocusItemChanged, LV_EVENT_FOCUSED, focus_frame);
         lv_obj_add_event_cb(object, onFocusItemChanged, LV_EVENT_DEFOCUSED, focus_frame);
     }
-    if (focus_frame != object)
-    {
-        lv_obj_clear_flag(focus_frame, LV_OBJ_FLAG_CLICK_FOCUSABLE);
-        lv_obj_add_event_cb(
-            focus_frame,
-            [](lv_event_t *e)
-            {
-                if (lv_event_get_code(e) != LV_EVENT_PRESSED)
-                {
-                    return;
-                }
-                _lv_obj_t *const control =
-                    static_cast<_lv_obj_t *>(lv_event_get_user_data(e));
-                if (!control || !lv_obj_is_valid(control) ||
-                    lv_obj_has_state(control, LV_STATE_DISABLED) ||
-                    lv_obj_has_flag(control, LV_OBJ_FLAG_HIDDEN))
-                {
-                    return;
-                }
-                if (lv_group_t *const group = lv_obj_get_group(control))
-                {
-                    lv_group_focus_obj(control);
-                }
-            },
-            static_cast<lv_event_code_t>(LV_EVENT_PRESSED | LV_EVENT_PREPROCESS), object);
-    }
+}
+
+void AbstractScreen::bindFramePointerFocus(_lv_obj_t *object, _lv_obj_t *frame)
+{
+    if (frame == object)
+        return;
+
+    lv_obj_clear_flag(frame, LV_OBJ_FLAG_CLICK_FOCUSABLE);
+    lv_obj_add_event_cb(
+        frame,
+        onFramePressed,
+        static_cast<lv_event_code_t>(LV_EVENT_PRESSED | LV_EVENT_PREPROCESS), object);
+}
+
+void AbstractScreen::onFramePressed(lv_event_t *e)
+{
+    if (lv_event_get_code(e) != LV_EVENT_PRESSED)
+        return;
+
+    _lv_obj_t *const control = static_cast<_lv_obj_t *>(lv_event_get_user_data(e));
+    if (!control || !lv_obj_is_valid(control) || lv_obj_has_state(control, LV_STATE_DISABLED) ||
+        lv_obj_has_flag(control, LV_OBJ_FLAG_HIDDEN))
+        return;
+
+    if (lv_group_t *const group = lv_obj_get_group(control))
+        lv_group_focus_obj(control);
+}
+
+void AbstractScreen::addFocusItem(_lv_obj_t *object, _lv_obj_t *frame, bool propagate_focus)
+{
+    if (!object || !_focus_group || _focus_item_count >= kMaxFocusItems || hasFocusItem(object))
+        return;
+
+    _lv_obj_t *const focus_frame = frame ? frame : object;
+    bindFocusVisual(object, focus_frame, propagate_focus);
+    bindFramePointerFocus(object, focus_frame);
     addFocusObject(object);
     lv_obj_add_flag(object, LV_OBJ_FLAG_CLICK_FOCUSABLE);
     _focus_items[_focus_item_count++] = { object, focus_frame };

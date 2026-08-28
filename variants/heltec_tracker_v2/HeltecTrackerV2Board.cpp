@@ -1,4 +1,4 @@
-#include "HeltecTrackerV2Board.h"
+#include "HeltecRadioCoreC6Board.h"
 
 #if defined(HELTEC_MESH_UI) && HELTEC_MESH_UI && defined(HELTEC_DISPLAY_ST7735)
 #include <lvgl.h>

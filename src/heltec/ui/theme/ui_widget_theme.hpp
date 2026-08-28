@@ -14,12 +14,14 @@ struct UiAppFrameStyleConfig
     lv_coord_t frame_margin_top;
     lv_coord_t frame_margin_bottom;
     lv_coord_t content_radius;
+    lv_coord_t bar_height;
+    lv_coord_t bar_radius;
 };
 
 struct UiContextMenuStyleConfig
 {
     lv_coord_t icon_size;
-    lv_coord_t icon_pad;
+    lv_coord_t icon_gap;
     lv_coord_t border_width;
     lv_coord_t title_border_width;
     lv_coord_t border_radius;
@@ -44,13 +46,10 @@ struct UiNavigationStyleConfig
     lv_coord_t ring_edge_pad;
 };
 
-// Geometry is applied to LVGL styles during theme initialization. Widgets
-// should read their resolved LVGL geometry instead of carrying a parallel
-// per-object metrics profile.
+// TopPane-specific geometry is applied to LVGL styles during theme
+// initialization. Shared application-bar geometry lives in UiAppFrameStyleConfig.
 struct UiTopPaneStyleConfig
 {
-    lv_coord_t height;
-    lv_coord_t radius;
     lv_coord_t pad_left;
     lv_coord_t pad_right;
     lv_coord_t pad_top;

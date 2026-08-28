@@ -3,27 +3,25 @@
 
 // Per-board LVGL bitmaps �?heltec_t1 (12×12 indexed 1bpp).
 
+static constexpr uint32_t HELTEC_IMG_ICON_W = 10;
+static constexpr uint32_t HELTEC_IMG_ICON_H = 10;
+static constexpr uint32_t HELTEC_IMG_NAV_ICON_W = 12;
+static constexpr uint32_t HELTEC_IMG_NAV_ICON_H = 12;
+
 static constexpr uint8_t HELTEC_IMG_PALETTE_BW_I1[8] = {
-    0x00, 0x00, 0x00, 0xFF,  // idx0: black
-    0xFF, 0xFF, 0xFF, 0xFF,  // idx1: white
+    0x00, 0x00, 0x00, 0xFF,
+    0xFF, 0xFF, 0xFF, 0xFF,
 };
-
-static constexpr uint8_t HELTEC_IMG_PALETTE_BW_I1_ON_WHITE[8] = {
-    0xFF, 0xFF, 0xFF, 0xFF,  // idx0: white (paper)
-    0x00, 0x00, 0x00, 0xFF,  // idx1: black (ink)
-};
-
-static constexpr uint32_t HELTEC_IMG_ICON_W = 12;
-static constexpr uint32_t HELTEC_IMG_ICON_H = 12;
 
 #define HELTEC_IMG_ICON_DSC(name_, pix_arr_)                                              \
   const lv_img_dsc_t name_ = {                                                              \
-      {LV_IMG_CF_INDEXED_1BIT, 0, 0, HELTEC_IMG_ICON_W, HELTEC_IMG_ICON_H}, sizeof(pix_arr_), \
+      {LV_IMG_CF_ALPHA_1BIT, 0, 0, HELTEC_IMG_ICON_W, HELTEC_IMG_ICON_H}, sizeof(pix_arr_), \
       (pix_arr_)}
 
 #define HELTEC_IMG_NAV_ICON_ALPHA1_DSC(name_, pix_arr_)                                    \
   const lv_img_dsc_t name_ = {                                                              \
-      {LV_IMG_CF_ALPHA_1BIT, 0, 0, HELTEC_IMG_ICON_W, HELTEC_IMG_ICON_H}, sizeof(pix_arr_), \
+      {LV_IMG_CF_ALPHA_1BIT, 0, 0, HELTEC_IMG_NAV_ICON_W, HELTEC_IMG_NAV_ICON_H},             \
+      sizeof(pix_arr_),                                                                       \
       (pix_arr_)}
 
 #define HELTEC_IMG_NAV_ICON_I1(dsc_name_, arr_name_, ...) \
@@ -39,55 +37,34 @@ static constexpr uint32_t HELTEC_IMG_ICON_H = 12;
   HELTEC_IMG_CARDINAL_ALPHA1_DSC(dsc_name_, arr_name_)
 
 static const uint8_t icon_home_i1[] PROGMEM = {
-    HELTEC_IMG_PALETTE_BW_I1_ON_WHITE[0], HELTEC_IMG_PALETTE_BW_I1_ON_WHITE[1],
-    HELTEC_IMG_PALETTE_BW_I1_ON_WHITE[2], HELTEC_IMG_PALETTE_BW_I1_ON_WHITE[3],
-    HELTEC_IMG_PALETTE_BW_I1_ON_WHITE[4], HELTEC_IMG_PALETTE_BW_I1_ON_WHITE[5],
-    HELTEC_IMG_PALETTE_BW_I1_ON_WHITE[6], HELTEC_IMG_PALETTE_BW_I1_ON_WHITE[7],
-    0xf9, 0xf0, 0xf6, 0xf0, 0xef, 0x70, 0xdf, 0xb0, 0xbf, 0xd0, 0x3f, 0xc0, 0xdf, 0xb0,
-    0xdf, 0xb0, 0xd9, 0xb0, 0xdb, 0xb0, 0xd9, 0xb0, 0xc0, 0x30};
+    0x0c, 0x00, 0x12, 0x00, 0x21, 0x00, 0x40, 0x80,
+    0xc0, 0xc0, 0x21, 0x00, 0x21, 0x00, 0x2d, 0x00,
+    0x29, 0x00, 0x3f, 0x00};
 
 static const uint8_t icon_compass_i1[] PROGMEM = {
-    HELTEC_IMG_PALETTE_BW_I1_ON_WHITE[0], HELTEC_IMG_PALETTE_BW_I1_ON_WHITE[1],
-    HELTEC_IMG_PALETTE_BW_I1_ON_WHITE[2], HELTEC_IMG_PALETTE_BW_I1_ON_WHITE[3],
-    HELTEC_IMG_PALETTE_BW_I1_ON_WHITE[4], HELTEC_IMG_PALETTE_BW_I1_ON_WHITE[5],
-    HELTEC_IMG_PALETTE_BW_I1_ON_WHITE[6], HELTEC_IMG_PALETTE_BW_I1_ON_WHITE[7],
-    0xf0, 0xf0, 0xcf, 0x30, 0xbf, 0xd0, 0xbf, 0x50, 0x7c, 0xe0, 0x7a, 0xe0, 0x79, 0xe0,
-    0x77, 0xe0, 0xaf, 0xd0, 0xbf, 0xd0, 0xcf, 0x30, 0xf0, 0xf0};
+    0x1e, 0x00, 0x21, 0x00, 0x40, 0x80, 0x86, 0x40,
+    0x8a, 0x40, 0x8c, 0x40, 0x90, 0x40, 0x40, 0x80,
+    0x21, 0x00, 0x1e, 0x00};
 static const uint8_t icon_gps_i1[] PROGMEM = {
-    HELTEC_IMG_PALETTE_BW_I1_ON_WHITE[0], HELTEC_IMG_PALETTE_BW_I1_ON_WHITE[1],
-    HELTEC_IMG_PALETTE_BW_I1_ON_WHITE[2], HELTEC_IMG_PALETTE_BW_I1_ON_WHITE[3],
-    HELTEC_IMG_PALETTE_BW_I1_ON_WHITE[4], HELTEC_IMG_PALETTE_BW_I1_ON_WHITE[5],
-    HELTEC_IMG_PALETTE_BW_I1_ON_WHITE[6], HELTEC_IMG_PALETTE_BW_I1_ON_WHITE[7],
-    0xe0, 0x70, 0xcf, 0x30, 0x99, 0x90, 0xb6, 0xd0, 0xb6, 0xd0, 0xb9, 0xd0, 0xdf, 0xb0,
-    0xcf, 0x30, 0xef, 0x70, 0xe6, 0x70, 0xf6, 0xf0, 0xf9, 0xf0};
+    0x1e, 0x00, 0x21, 0x00, 0x4c, 0x80, 0x52, 0x80,
+    0x52, 0x80, 0x4c, 0x80, 0x21, 0x00, 0x21, 0x00,
+    0x12, 0x00, 0x0c, 0x00};
 static const uint8_t icon_radio_i1[] PROGMEM = {
-    HELTEC_IMG_PALETTE_BW_I1_ON_WHITE[0], HELTEC_IMG_PALETTE_BW_I1_ON_WHITE[1],
-    HELTEC_IMG_PALETTE_BW_I1_ON_WHITE[2], HELTEC_IMG_PALETTE_BW_I1_ON_WHITE[3],
-    HELTEC_IMG_PALETTE_BW_I1_ON_WHITE[4], HELTEC_IMG_PALETTE_BW_I1_ON_WHITE[5],
-    HELTEC_IMG_PALETTE_BW_I1_ON_WHITE[6], HELTEC_IMG_PALETTE_BW_I1_ON_WHITE[7],
-    0xff, 0xf0, 0xe6, 0x70, 0xdf, 0xb0, 0xb6, 0xd0, 0x6f, 0x60, 0x59, 0xa0, 0x59, 0xa0,
-    0x6f, 0x60, 0xb6, 0xd0, 0xdf, 0xb0, 0xe6, 0x70, 0xff, 0xf0};
+    0x00, 0x00, 0x21, 0x00, 0x40, 0x80, 0x92, 0x40,
+    0xad, 0x40, 0xad, 0x40, 0x92, 0x40, 0x40, 0x80,
+    0x21, 0x00, 0x00, 0x00};
 static const uint8_t icon_findfriend_i1[] PROGMEM = {
-    HELTEC_IMG_PALETTE_BW_I1_ON_WHITE[0], HELTEC_IMG_PALETTE_BW_I1_ON_WHITE[1],
-    HELTEC_IMG_PALETTE_BW_I1_ON_WHITE[2], HELTEC_IMG_PALETTE_BW_I1_ON_WHITE[3],
-    HELTEC_IMG_PALETTE_BW_I1_ON_WHITE[4], HELTEC_IMG_PALETTE_BW_I1_ON_WHITE[5],
-    HELTEC_IMG_PALETTE_BW_I1_ON_WHITE[6], HELTEC_IMG_PALETTE_BW_I1_ON_WHITE[7],
-    0xf0, 0xf0, 0xef, 0x70, 0xef, 0x70, 0xef, 0x70, 0xef, 0x70, 0xf0, 0xf0, 0xef, 0x70,
-    0xcf, 0xf0, 0xbf, 0xb0, 0x7f, 0x10, 0x7f, 0xb0, 0x7f, 0xf0};
+    0x1e, 0x00, 0x21, 0x00, 0x21, 0x00, 0x21, 0x00,
+    0x21, 0x00, 0x1e, 0x00, 0x21, 0x00, 0x40, 0x80,
+    0x81, 0xc0, 0x80, 0x80};
 static const uint8_t icon_recent_i1[] PROGMEM = {
-    HELTEC_IMG_PALETTE_BW_I1_ON_WHITE[0], HELTEC_IMG_PALETTE_BW_I1_ON_WHITE[1],
-    HELTEC_IMG_PALETTE_BW_I1_ON_WHITE[2], HELTEC_IMG_PALETTE_BW_I1_ON_WHITE[3],
-    HELTEC_IMG_PALETTE_BW_I1_ON_WHITE[4], HELTEC_IMG_PALETTE_BW_I1_ON_WHITE[5],
-    HELTEC_IMG_PALETTE_BW_I1_ON_WHITE[6], HELTEC_IMG_PALETTE_BW_I1_ON_WHITE[7],
-    0xf0, 0xf0, 0xcf, 0x30, 0xbf, 0xd0, 0xbd, 0xd0, 0x7d, 0xe0, 0x7d, 0xe0, 0x61, 0xe0,
-    0x7f, 0xe0, 0xbf, 0xd0, 0xbf, 0xd0, 0xcf, 0x30, 0xf0, 0xf0};
+    0x1e, 0x00, 0x21, 0x00, 0x44, 0x80, 0x84, 0x40,
+    0x84, 0x40, 0x9c, 0x40, 0x80, 0x40, 0x40, 0x80,
+    0x21, 0x00, 0x1e, 0x00};
 static const uint8_t icon_system_i1[] PROGMEM = {
-    HELTEC_IMG_PALETTE_BW_I1_ON_WHITE[0], HELTEC_IMG_PALETTE_BW_I1_ON_WHITE[1],
-    HELTEC_IMG_PALETTE_BW_I1_ON_WHITE[2], HELTEC_IMG_PALETTE_BW_I1_ON_WHITE[3],
-    HELTEC_IMG_PALETTE_BW_I1_ON_WHITE[4], HELTEC_IMG_PALETTE_BW_I1_ON_WHITE[5],
-    HELTEC_IMG_PALETTE_BW_I1_ON_WHITE[6], HELTEC_IMG_PALETTE_BW_I1_ON_WHITE[7],
-    0xff, 0xf0, 0xff, 0xf0, 0x80, 0x90, 0xff, 0xf0, 0xff, 0xf0, 0x80, 0x90, 0xff, 0xf0,
-    0xff, 0xf0, 0x80, 0x90, 0xff, 0xf0, 0xff, 0xf0, 0xff, 0xf0};
+    0x00, 0x00, 0x00, 0x00, 0x7d, 0x80, 0x00, 0x00,
+    0x7d, 0x80, 0x00, 0x00, 0x7d, 0x80, 0x7d, 0x80,
+    0x00, 0x00, 0x00, 0x00};
 
 static const uint8_t meshcore_logo_i1[] PROGMEM = {
     HELTEC_IMG_PALETTE_BW_I1[0], HELTEC_IMG_PALETTE_BW_I1[1], HELTEC_IMG_PALETTE_BW_I1[2],
