@@ -188,7 +188,7 @@ constexpr UiLayoutMetrics ui_layout_metrics()
 #if HELTEC_UI_INPUT_TOUCH
     return {2, 2};
 #else
-    return {0, 0};
+    return {0, 1};
 #endif
 }
 inline lv_color_t ui_navigation_idle_color()

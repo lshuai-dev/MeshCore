@@ -35,10 +35,10 @@ _lv_obj_t *RadioScreen::create(_lv_obj_t *parent)
     _lv_obj_t *const row_line3 = ht_container_create(_root);
     _lv_obj_t *const row_line4 = ht_container_create(_root);
     _lv_obj_t *const rows[] = { row_line1, row_line2, row_line3, row_line4 };
-    _line1 = ht_label_create(row_line1, meta_id::RadioLineLabel);
-    _line2 = ht_label_create(row_line2, meta_id::RadioLineLabel);
-    _line3 = ht_label_create(row_line3, meta_id::RadioLineLabel);
-    _line4 = ht_label_create(row_line4, meta_id::RadioLineLabel);
+    _line1 = ht_label_create(row_line1);
+    _line2 = ht_label_create(row_line2);
+    _line3 = ht_label_create(row_line3);
+    _line4 = ht_label_create(row_line4);
 
     _lv_obj_t *const labels[] = { _line1, _line2, _line3, _line4 };
     for (int i = 0; i < 4; ++i)
@@ -56,12 +56,12 @@ _lv_obj_t *RadioScreen::create(_lv_obj_t *parent)
     const bool show_lna = _biz.isLnaCanControl();
     if (show_lna)
     {
-        _row_lna = ht_container_create(_root, meta_id::RadioLnaRow);
+        _row_lna = ht_container_create(_root);
         if (_row_lna)
         {
             lv_obj_set_flex_align(_row_lna, LV_FLEX_ALIGN_SPACE_BETWEEN, LV_FLEX_ALIGN_CENTER,
                                   LV_FLEX_ALIGN_START);
-            _lbl_lna = ht_label_create(_row_lna, meta_id::RadioLnaLabel, "LNA");
+            _lbl_lna = ht_label_create(_row_lna, "LNA");
             _sw_lna = ht_switch_create(_row_lna);
             if (_lbl_lna)
             {

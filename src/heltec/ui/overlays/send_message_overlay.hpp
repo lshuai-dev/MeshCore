@@ -1,6 +1,5 @@
 #pragma once
 
-#include "send_message_overlay_ids.hpp"
 
 #if defined(HELTEC_V4_R8_TFT) && defined(HELTEC_HAS_TOUCH) && HELTEC_HAS_TOUCH
 #include "touch_send_message_overlay.hpp"

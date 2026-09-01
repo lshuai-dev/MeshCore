@@ -91,6 +91,9 @@ Rcc6SoftwareSpiHal s_radio_spi(P_LORA_SCLK, P_LORA_MISO, P_LORA_MOSI);
 #elif defined(RADIOCORE_BOARD_RCC6)
   RADIO_CLASS radio = new Module(&s_radio_spi, P_LORA_NSS, P_LORA_DIO_1,
                                  P_LORA_RESET, P_LORA_BUSY);
+#elif defined(RADIOCORE_BOARD_RC32)
+  static SPIClass spi(HSPI);
+  RADIO_CLASS radio = new Module(P_LORA_NSS, P_LORA_DIO_1, P_LORA_RESET, P_LORA_BUSY, spi);
 #elif defined(P_LORA_SCLK)
   static SPIClass spi;
   RADIO_CLASS radio = new Module(P_LORA_NSS, P_LORA_DIO_1, P_LORA_RESET, P_LORA_BUSY, spi);
@@ -170,11 +173,7 @@ bool radio_init() {
   fallback_clock.begin();
 #endif
 #if !defined(RADIOCORE_BOARD_RCC6)
-  MESH_DEBUG_PRINTLN("[radio] RTC discovery begin");
   rtc_clock.begin(Wire);
-  MESH_DEBUG_PRINTLN("[radio] RTC discovery complete");
-#else
-  MESH_DEBUG_PRINTLN("[radio] external RTC discovery skipped");
 #endif
   
 #if defined(RADIOCORE_BOARD_RC52)

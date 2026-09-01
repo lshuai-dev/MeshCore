@@ -1,5 +1,7 @@
 #include "recent_screen.hpp"
 
+#include "screen_widget_classes.hpp"
+
 #include "ui/core/ht_container.hpp"
 #include "ui/core/ht_meta_data.hpp"
 
@@ -79,11 +81,11 @@ bool RecentScreen::createRowControl(int index)
     if (index < 0 || index >= kAdvertCapacity)
         return false;
 
-    _rows[index] = ht_container_create(_root, meta_id::RecentRow);
+    _rows[index] = ht_container_create(_root);
     if (!_rows[index])
         return false;
-    _names[index] = ht_label_create(_rows[index], meta_id::RecentName, "");
-    _ages[index] = ht_label_create(_rows[index], meta_id::RecentAge, "");
+    _names[index] = ht_label_create(_rows[index], "");
+    _ages[index] = ht_screen_trailing_label_create(_rows[index], "");
     if (!_names[index] || !_ages[index])
     {
         lv_obj_del(_rows[index]);

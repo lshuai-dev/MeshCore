@@ -1,20 +1,13 @@
 #include <lvgl.h>
 
 #if LV_USE_THEME_MONO
-#include "ui/app/ui_app_ids.hpp"
 #include "ui/app/ui_behavior_profile.hpp"
 #include "ui/app/ui_theme.hpp"
 #include "ui/core/ht_meta_data.hpp"
 #include "ui/images.h"
 #include "ui/menus/context_menu.hpp"
 #include "ui/navigation/ui_navigator.hpp"
-#include "ui/screens/find_friend_screen_ids.hpp"
-#include "ui/screens/gps_screen.hpp"
-#include "ui/screens/radio_screen.hpp"
-#include "ui/screens/system_screen.hpp"
 #include "ui/theme/ui_widget_theme.hpp"
-#include "ui/widgets/button_roller.hpp"
-#include "ui/widgets/top_pane.hpp"
 #include "ui_theme_mono_flat.hpp"
 
 static heltec::meshcore::ui::UiTheme s_ui_mono_flat;
@@ -36,6 +29,11 @@ static lv_style_t s_switch_indicator;
 static lv_style_t s_switch_indicator_checked;
 static lv_style_t s_switch_knob;
 static lv_style_t s_switch_knob_checked;
+static lv_style_t s_cascading_page_style;
+static lv_style_t s_cascading_item_style;
+static lv_style_t s_cascading_item_selected_style;
+static lv_style_t s_cascading_label_style;
+static lv_style_t s_cascading_label_selected_style;
 
 
 static const heltec::meshcore::ui::UiThemeColors kMonoFlatColors = {
@@ -69,38 +67,46 @@ static const heltec::meshcore::ui::UiThemeColors kMonoFlatColors = {
 };
 
 static constexpr uint16_t kContextMenuPageAnimMs = 0;
+#if defined(HELTEC_RADIO_CORE) && HELTEC_RADIO_CORE
+static constexpr lv_coord_t kContextMenuItemHeight = 16;
+#else
+static constexpr lv_coord_t kContextMenuItemHeight = 12;
+#endif
 static const heltec::meshcore::ui::UiBehaviorProfile kMonoBehaviorProfile = {
     { kContextMenuPageAnimMs },
     { 5000, 560, 380, 4, 2 },
+};
+
+static const heltec::meshcore::ui::UiThemeProfile kMonoNarrowThemeProfile = {
+    { 2, 0, 0, 0, 12, 4 },
+    { 12, 1, 3, 6 },
+    { 4, 0, 18, 8, 4 },
+};
+static const heltec::meshcore::ui::UiThemeProfile kMonoWideThemeProfile = {
+    { 2, 0, 0, 0, 18, 4 },
+    { 12, 1, 3, 6 },
+    { 4, 0, 24, 13, 6 },
+};
+static const heltec::meshcore::ui::UiThemeProfile kSsd1306ThemeProfile = {
+    { 2, 0, 0, 0, 10, 2 },
+    { static_cast<lv_coord_t>(icon_home_img.header.w), 0, 2, 6 },
+    { 2, 0, 15, 7, 4 },
 };
 
 static void init_device_styles(lv_disp_t *disp, bool ssd1306)
 {
     using namespace heltec::meshcore::ui;
     ui_set_behavior_profile(&kMonoBehaviorProfile);
-    ui_widget_theme_set_app_frame_style({ 2, 0, 0, 0, 0, 0, 12, 4 });
-    ui_widget_theme_set_quick_ping_style({ 104 });
-    ui_widget_theme_set_navigation_style({ 2, 3, 6, 0, 18, 8, 36, 2 });
 
     if (ssd1306)
     {
-        const lv_coord_t icon_size = static_cast<lv_coord_t>(icon_home_img.header.w);
-        ui_widget_theme_set_context_menu_style({ icon_size, 0, 1, 1, 2, 8, 6 });
-        ui_widget_theme_set_app_frame_style({ 2, 0, 0, 0, 0, 0, 10, 2 });
-        ui_widget_theme_set_top_pane_style({ 2, 2, 0, 15, 7, 4 });
-        ui_widget_theme_set_button_roller_style({ 0, 0, 10 });
+        ui_widget_theme_configure(kSsd1306ThemeProfile);
     }
     else
     {
-        ui_widget_theme_set_context_menu_style({ 12, 1, 1, 1, 3, 8, 6 });
         const bool wide_display = disp && lv_disp_get_hor_res(disp) >= 200;
-        ui_widget_theme_set_app_frame_style(
-            wide_display ? UiAppFrameStyleConfig{ 2, 0, 0, 0, 0, 0, 18, 4 }
-                         : UiAppFrameStyleConfig{ 2, 0, 0, 0, 0, 0, 12, 4 });
-        ui_widget_theme_set_top_pane_style(
-            wide_display ? UiTopPaneStyleConfig{ 4, 4, 0, 24, 13, 6 }
-                         : UiTopPaneStyleConfig{ 4, 4, 0, 18, 8, 4 });
-        ui_widget_theme_set_button_roller_style({ 0, 2, 12 });
+        ui_widget_theme_configure(wide_display ? kMonoWideThemeProfile
+                                               : kMonoNarrowThemeProfile);
     }
 }
 
@@ -112,7 +118,7 @@ static void style_set_border_frame(lv_style_t *st)
     lv_style_set_outline_width(st, 0);
 }
 
-static void init_widget_styles()
+static void init_widget_styles(bool ssd1306)
 {
     if (s_widget_styles_inited)
         return;
@@ -127,6 +133,37 @@ static void init_widget_styles()
     s_color_on = heltec::meshcore::ui::ui_color_success();
     s_color_switch_bg = heltec::meshcore::ui::ui_color_switch_bg();
     s_color_switch_indicator = heltec::meshcore::ui::ui_color_switch_indicator();
+
+    lv_style_init(&s_cascading_page_style);
+    lv_style_set_width(&s_cascading_page_style, lv_pct(100));
+    lv_style_set_height(&s_cascading_page_style, lv_pct(100));
+    lv_style_set_pad_all(&s_cascading_page_style, 0);
+    lv_style_set_pad_row(&s_cascading_page_style, 0);
+    lv_style_set_border_width(&s_cascading_page_style, 0);
+    lv_style_set_outline_width(&s_cascading_page_style, 0);
+
+    lv_style_init(&s_cascading_item_style);
+    lv_style_set_height(&s_cascading_item_style,
+                        ssd1306 ? 10 : kContextMenuItemHeight);
+    lv_style_set_pad_hor(&s_cascading_item_style, 4);
+    lv_style_set_pad_ver(&s_cascading_item_style, ssd1306 ? 0 : 2);
+    lv_style_set_bg_opa(&s_cascading_item_style, LV_OPA_TRANSP);
+
+    lv_style_init(&s_cascading_item_selected_style);
+    lv_style_set_bg_color(&s_cascading_item_selected_style, s_color_fg);
+    lv_style_set_bg_opa(&s_cascading_item_selected_style, LV_OPA_COVER);
+    lv_style_set_text_color(&s_cascading_item_selected_style, s_color_bg);
+
+    lv_style_init(&s_cascading_label_style);
+    lv_style_set_text_color(&s_cascading_label_style, s_color_fg);
+
+    lv_style_init(&s_cascading_label_selected_style);
+    lv_style_set_text_color(&s_cascading_label_selected_style, s_color_bg);
+
+    heltec::meshcore::ui::ui_widget_theme_set_cascading_menu_styles(
+        {&s_cascading_page_style, &s_cascading_item_style,
+         &s_cascading_item_selected_style, &s_cascading_label_style,
+         &s_cascading_label_selected_style});
     lv_style_set_bg_opa(&s_mono_reset_style, LV_OPA_TRANSP);
     lv_style_set_border_opa(&s_mono_reset_style, LV_OPA_TRANSP);
     lv_style_set_shadow_width(&s_mono_reset_style, 0);
@@ -159,12 +196,19 @@ static void init_widget_styles()
 
     lv_style_init(&s_switch_main_focus);
     style_set_border_frame(&s_switch_main_focus);
+#if LV_COLOR_DEPTH == 1
     lv_style_set_border_width(&s_switch_main_focus, 2);
     lv_style_set_bg_color(&s_switch_main_focus,
                           heltec::meshcore::ui::ui_color_highlight_bg());
-    lv_style_set_bg_opa(&s_switch_main_focus, LV_OPA_COVER);
     lv_style_set_border_color(&s_switch_main_focus,
                               heltec::meshcore::ui::ui_color_highlight_fg());
+#else
+    lv_style_set_border_width(&s_switch_main_focus, 1);
+    lv_style_set_bg_color(&s_switch_main_focus, s_color_switch_bg);
+    lv_style_set_border_color(&s_switch_main_focus,
+                              heltec::meshcore::ui::ui_color_highlight_fg());
+#endif
+    lv_style_set_bg_opa(&s_switch_main_focus, LV_OPA_COVER);
 
     lv_style_init(&s_switch_indicator);
 #if LV_COLOR_DEPTH == 1
@@ -277,7 +321,7 @@ static lv_theme_t *init_mono_flat_theme_variant(lv_disp_t *disp, const lv_font_t
         return nullptr;
     ui_set_active_theme_colors(&kMonoFlatColors);
     init_device_styles(disp, ssd1306);
-    init_widget_styles();
+    init_widget_styles(ssd1306);
 
     if (!font)
         font = LV_FONT_DEFAULT;

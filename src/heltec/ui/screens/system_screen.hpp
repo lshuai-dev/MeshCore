@@ -12,17 +12,6 @@ class IBizFacade;
 namespace heltec::meshcore::ui
 {
 
-namespace meta_id
-{
-constexpr uint16_t SystemDropdown = ht_meta_id(MetaIdScope::Screen, 0xA7);
-#if defined(HAS_BUZZER_VOLUME_CONTROL) && HAS_BUZZER_VOLUME_CONTROL
-constexpr uint16_t SystemVolumeControls = ht_meta_id(MetaIdScope::Screen, 0xAA);
-constexpr uint16_t SystemVolumeButton = ht_meta_id(MetaIdScope::Screen, 0xAB);
-constexpr uint16_t SystemVolumeSlider = ht_meta_id(MetaIdScope::Screen, 0xAD);
-#endif
-constexpr uint16_t SystemDropdownList = ht_meta_id(MetaIdScope::Screen, 0xAE);
-} // namespace meta_id
-
 class SystemScreen : public AbstractScreen
 {
   public:

@@ -3,11 +3,11 @@
 #include "heltec/drivers/input/touch_input.hpp"
 #include "heltec/drivers/input/touch_port.hpp"
 #include "heltec/ui/images.h"
-#include "ui/app/ui_app_ids.hpp"
 #include "ui/app/ui_theme.hpp"
 #include "ui/core/app_state_notifier.hpp"
 #include "ui/core/backlight_policy.hpp"
 #include "ui/core/ht_meta_data.hpp"
+#include "ui/core/ui_semantic_classes.hpp"
 #include "ui/core/input_pipeline.hpp"
 #include "ui/core/screen_id.hpp"
 #include "ui/core/ui_deferred_queue.hpp"
@@ -274,7 +274,7 @@ void UiApp::init()
     lv_obj_clear_flag(scr, LV_OBJ_FLAG_SCROLLABLE);
     ui_app_active_screen_apply_theme(scr);
 #if defined(HELTEC_V4_R8_TFT)
-    lv_obj_t *bg = ht_img_create(scr, meta_id::AppBackgroundImage);
+    lv_obj_t *bg = ht_semantic_create(&ht_app_background_class, scr);
     if (bg)
     {
         lv_obj_set_pos(bg, 0, 0);
@@ -284,7 +284,7 @@ void UiApp::init()
     }
 #endif
 
-    _layerOverlay = ht_obj_create(lv_layer_top(), meta_id::AppOverlayLayer);
+    _layerOverlay = ht_semantic_create(&ht_app_overlay_layer_class, lv_layer_top());
     if (!_layerOverlay)
     {
         return;
@@ -302,7 +302,7 @@ void UiApp::init()
         return;
     }
 
-    lv_obj_t *layout = ht_obj_create(scr, meta_id::AppFrameLayout);
+    lv_obj_t *layout = ht_semantic_create(&ht_app_frame_class, scr);
     if (!layout)
     {
         return;
@@ -337,7 +337,7 @@ void UiApp::init()
         this);
 #endif
 
-    lv_obj_t *content = ht_obj_create(layout, meta_id::AppContent);
+    lv_obj_t *content = ht_semantic_create(&ht_app_content_class, layout);
     if (!content)
     {
         return;
@@ -705,16 +705,15 @@ bool UiApp::initScreens(_lv_obj_t *content)
 #endif
     screens[screen_count++] = &_scrSystem;
 
-    _root = ht_obj_create(content, meta_id::AppScreenRoot);
+    _root = ht_semantic_create(&ht_app_screen_host_class, content);
     if (!_root)
         return false;
     lv_obj_set_size(_root, lv_pct(100), lv_pct(100));
     lv_obj_clear_flag(_root, LV_OBJ_FLAG_SCROLLABLE);
 
-    _tileview = ht_tileview_create(_root, meta_id::AppTileView);
+    _tileview = ht_tileview_create(_root);
     if (!_tileview)
         return false;
-    ui_widget_theme_apply(_tileview);
     lv_obj_set_size(_tileview, lv_pct(100), lv_pct(100));
     lv_obj_set_scrollbar_mode(_tileview, LV_SCROLLBAR_MODE_OFF);
     lv_obj_add_event_cb(_tileview, tileview_size_changed_cb, LV_EVENT_SIZE_CHANGED, nullptr);
@@ -729,14 +728,15 @@ bool UiApp::initScreens(_lv_obj_t *content)
             continue;
 
 #if defined(UI_NAVIGATION_GRID) && UI_NAVIGATION_GRID
-        lv_obj_t *tile = ht_tileview_add_tile(_tileview, i, 0, LV_DIR_NONE, meta_id::AppTile, scr);
+        lv_obj_t *tile =
+            ht_tileview_add_tile(_tileview, i, 0, LV_DIR_NONE, scr);
 #else
-        lv_obj_t *tile = ht_tileview_add_tile(_tileview, i, 0, LV_DIR_HOR, meta_id::AppTile, scr);
+        lv_obj_t *tile =
+            ht_tileview_add_tile(_tileview, i, 0, LV_DIR_HOR, scr);
 #endif
         if (!tile)
             return false;
 
-        ui_widget_theme_apply(tile);
         lv_obj_set_scrollbar_mode(tile, LV_SCROLLBAR_MODE_OFF);
         lv_obj_clear_flag(tile, LV_OBJ_FLAG_SCROLLABLE);
         scr->setEventTarget(_frame_root);

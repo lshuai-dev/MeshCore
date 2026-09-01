@@ -1,8 +1,8 @@
 #include "system_screen.hpp"
+#include "screen_widget_classes.hpp"
 #include "ui/app/ui_theme.hpp"
 #include "ui/core/ht_container.hpp"
 #include "ui/core/ht_meta_data.hpp"
-#include "ui/core/ht_meta_data_internal.hpp"
 #include "ui/core/ui_deferred_queue.hpp"
 #include "ui/theme/ui_widget_theme.hpp"
 
@@ -150,7 +150,7 @@ _lv_obj_t *SystemScreen::addDropdownRow(_lv_obj_t *scroll, ChoiceRow &choice, co
         lv_label_set_text_static(label, title ? title : "");
     }
 
-    _lv_obj_t *dd = ht_dropdown_create(row, meta_id::SystemDropdown);
+    _lv_obj_t *dd = ht_dropdown_create(row);
     choice.dropdown = dd;
     if (!dd)
         return row;
@@ -271,8 +271,6 @@ void SystemScreen::realignDropdownList(_lv_obj_t *dropdown)
     if (width > 0)
         lv_obj_set_width(list, width);
     lv_obj_set_scrollbar_mode(list, LV_SCROLLBAR_MODE_OFF);
-    detail::set_meta_id(list, meta_id::SystemDropdownList);
-    ui_widget_theme_apply(list);
     ui_theme_match_dropdown_list_padding(dropdown, list);
     _lv_obj_t *const viewport = tile();
     ui_dropdown_fit_list_to_viewport(dropdown, viewport ? viewport : _root, _root);
@@ -404,10 +402,10 @@ _lv_obj_t *SystemScreen::addBuzzerVolumeRow(_lv_obj_t *scroll)
     lv_obj_clear_flag(row, LV_OBJ_FLAG_CLICKABLE | LV_OBJ_FLAG_CLICK_FOCUSABLE |
                             LV_OBJ_FLAG_SCROLL_ON_FOCUS);
 
-    _lv_obj_t *title = ht_label_create(row, HT_META_ID_UNSET, "Volume");
+    _lv_obj_t *title = ht_label_create(row, "Volume");
     configure_system_label(title, lv_pct(100));
 
-    _lv_obj_t *controls = ht_obj_create(row, meta_id::SystemVolumeControls);
+    _lv_obj_t *controls = ht_volume_controls_create(row);
     if (!controls)
         return row;
     lv_obj_set_size(controls, lv_pct(100), 26);
@@ -419,14 +417,14 @@ _lv_obj_t *SystemScreen::addBuzzerVolumeRow(_lv_obj_t *scroll)
 
     const auto add_button = [this, controls](const char *text, _lv_obj_t **out)
     {
-        _lv_obj_t *btn = ht_btn_create(controls, meta_id::SystemVolumeButton);
+        _lv_obj_t *btn = ht_volume_button_create(controls);
         if (!btn)
             return;
         lv_obj_set_size(btn, 26, 24);
 #if defined(HELTEC_V4_R8_TFT)
         lv_obj_set_ext_click_area(btn, 5);
 #endif
-        _lv_obj_t *label = ht_label_create(btn, HT_META_ID_UNSET, text);
+        _lv_obj_t *label = ht_label_create(btn, text);
         if (label)
             lv_obj_center(label);
         bindWidget(btn);
@@ -437,7 +435,7 @@ _lv_obj_t *SystemScreen::addBuzzerVolumeRow(_lv_obj_t *scroll)
     add_button("-", &_btnBuzzerVolumeDown);
 
 #if LV_USE_SLIDER != 0
-    _sliderBuzzerVolume = ht_slider_create(controls, meta_id::SystemVolumeSlider);
+    _sliderBuzzerVolume = ht_slider_create(controls);
     if (_sliderBuzzerVolume)
     {
         lv_obj_set_size(_sliderBuzzerVolume, 60, 10);

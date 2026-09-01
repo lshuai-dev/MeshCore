@@ -10,17 +10,6 @@ struct _lv_obj_t;
 namespace heltec::meshcore::ui
 {
 
-namespace meta_id
-{
-constexpr uint16_t RepeatModeOverlayRoot = ht_meta_id(MetaIdScope::Overlay, 0x09);
-constexpr uint16_t RepeatModeTitle = ht_meta_id(MetaIdScope::Overlay, 0xD0);
-constexpr uint16_t RepeatModeList = ht_meta_id(MetaIdScope::Overlay, 0xD1);
-constexpr uint16_t RepeatModeRoller = ht_meta_id(MetaIdScope::Overlay, 0xD2);
-constexpr uint16_t RepeatModeItem = ht_meta_id(MetaIdScope::Overlay, 0xD3);
-constexpr uint16_t RepeatModeItemLabel = ht_meta_id(MetaIdScope::Overlay, 0xD4);
-constexpr uint16_t RepeatModeFooter = ht_meta_id(MetaIdScope::Overlay, 0xD5);
-} // namespace meta_id
-
 class RepeatModeOverlay : public FramedOverlay
 {
   public:

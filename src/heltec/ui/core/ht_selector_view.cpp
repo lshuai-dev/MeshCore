@@ -24,9 +24,9 @@ const lv_obj_class_t ht_selector_view_class = {
     sizeof(ht_selector_view_t),
 };
 
-lv_obj_t *ht_selector_view_create(lv_obj_t *parent, uint16_t id, void *user_data)
+lv_obj_t *ht_selector_view_create(lv_obj_t *parent, void *user_data)
 {
-    return detail::create_object(&ht_selector_view_class, parent, id, user_data);
+    return detail::create_object(&ht_selector_view_class, parent, user_data);
 }
 
 } // namespace heltec::meshcore::ui

@@ -5,6 +5,7 @@
 #include "ui/core/ht_meta_data.hpp"
 #include "ui/core/operation_hints.hpp"
 #include "ui/core/ht_event.h"
+#include "ui/core/ui_semantic_classes.hpp"
 
 #include <Arduino.h>
 #include <lvgl.h>
@@ -12,11 +13,6 @@
 
 namespace heltec::meshcore::ui
 {
-
-_lv_obj_t *CalibrationOverlay::createRoot(_lv_obj_t *parent)
-{
-    return ht_obj_create(parent, meta_id::CalibrationOverlayRoot);
-}
 
 namespace
 {
@@ -43,17 +39,13 @@ constexpr uint8_t kStreakNeed = COMPASS_CALIB_QUALITY_STREAK;
 
 _lv_obj_t *CalibrationOverlay::create(lv_obj_t *parent)
 {
-    if (!AbstractOverlay::create(parent))
+    if (!DialogOverlay::create(parent))
         return nullptr;
-    _panel = ht_obj_create(_root, meta_id::CalibrationPanel);
-    if (!_panel)
-        return nullptr;
-    lv_obj_set_size(_panel, lv_pct(100), lv_pct(100));
-    lv_obj_set_flex_flow(_panel, LV_FLEX_FLOW_COLUMN);
-    lv_obj_set_flex_align(_panel, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
-    lv_obj_clear_flag(_panel, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_set_size(panel(), lv_pct(100), lv_pct(100));
+    lv_obj_set_flex_align(panel(), LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER,
+                          LV_FLEX_ALIGN_CENTER);
     lv_obj_add_event_cb(
-        _panel,
+        panel(),
         [](lv_event_t *e)
         {
             auto *self = static_cast<CalibrationOverlay *>(lv_event_get_user_data(e));
@@ -65,14 +57,14 @@ _lv_obj_t *CalibrationOverlay::create(lv_obj_t *parent)
         },
         LV_EVENT_CLICKED, this);
 
-    _body = ht_label_create(_panel, meta_id::CalibrationBody);
+    _body = ht_semantic_label_create(&ht_overlay_feedback_label_class, contentHost());
     if (!_body)
         return nullptr;
     lv_label_set_text_static(_body, _body_text);
     lv_obj_set_width(_body, lv_pct(100));
     lv_label_set_long_mode(_body, LV_LABEL_LONG_WRAP);
 
-    _footer = ht_label_create(_panel, meta_id::CalibrationFooter);
+    _footer = ht_semantic_label_create(&ht_overlay_feedback_label_class, actionsHost());
     if (!_footer)
         return nullptr;
     lv_label_set_text_static(_footer, _footer_text);
@@ -90,7 +82,7 @@ _lv_obj_t *CalibrationOverlay::create(lv_obj_t *parent)
 
 _lv_obj_t *CalibrationOverlay::focusTarget() const
 {
-    return _panel ? _panel : _root;
+    return panel() ? panel() : _root;
 }
 
 bool CalibrationOverlay::onKey(uint32_t key)
@@ -120,10 +112,10 @@ void CalibrationOverlay::confirm()
 
 void CalibrationOverlay::onEnter()
 {
-    if (!_root || !_panel)
+    if (!_root || !panel())
         return;
-    AbstractOverlay::onEnter();
-    lv_obj_update_layout(_panel);
+    DialogOverlay::onEnter();
+    lv_obj_update_layout(panel());
     openSession();
     render();
     startTimeoutTimer();
@@ -142,7 +134,7 @@ void CalibrationOverlay::onExit()
     {
         (void)_biz.restoreCompassCalibration();
     }
-    AbstractOverlay::onExit();
+    DialogOverlay::onExit();
     _phase = Phase::Idle;
 }
 
@@ -350,10 +342,6 @@ void CalibrationOverlay::onSurfaceRefresh()
 namespace heltec::meshcore::ui
 {
 
-_lv_obj_t *CalibrationOverlay::createRoot(_lv_obj_t *)
-{
-    return nullptr;
-}
 _lv_obj_t *CalibrationOverlay::create(_lv_obj_t *)
 {
     return nullptr;

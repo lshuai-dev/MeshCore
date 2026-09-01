@@ -2,6 +2,7 @@
 
 #include "ui/core/ht_meta_data.hpp"
 #include "ui/core/ht_meta_data_internal.hpp"
+#include "ui/core/ui_semantic_classes.hpp"
 
 #include <lvgl.h>
 
@@ -51,8 +52,7 @@ static _lv_obj_t *ui_navigator_create_with_layout(_lv_obj_t *parent, uint8_t lay
     w->content = nullptr;
     w->layout = layout;
 
-    lv_obj_t *obj = heltec::meshcore::ui::ht_navigator_create(
-        parent, heltec::meshcore::ui::HT_META_ID_UNSET, w);
+    lv_obj_t *obj = heltec::meshcore::ui::ht_navigator_create(parent, w);
     if (!obj)
     {
         lv_mem_free(w);
@@ -63,8 +63,8 @@ static _lv_obj_t *ui_navigator_create_with_layout(_lv_obj_t *parent, uint8_t lay
     lv_obj_add_flag(obj, LV_OBJ_FLAG_FLOATING | LV_OBJ_FLAG_OVERFLOW_VISIBLE | LV_OBJ_FLAG_HIDDEN);
     if (layout == kNavigatorLayoutGrid)
     {
-        w->content = heltec::meshcore::ui::ht_obj_create(
-            obj, heltec::meshcore::ui::meta_id::NavigationContent);
+        w->content = heltec::meshcore::ui::ht_semantic_create(
+            &heltec::meshcore::ui::ht_navigation_content_class, obj);
         if (!w->content)
         {
             lv_obj_del(obj);
@@ -109,9 +109,9 @@ const lv_obj_class_t ht_navigator_class = {
     sizeof(ht_navigator_t),
 };
 
-lv_obj_t *ht_navigator_create(lv_obj_t *parent, uint16_t id, void *user_data)
+lv_obj_t *ht_navigator_create(lv_obj_t *parent, void *user_data)
 {
-    return detail::create_object(&ht_navigator_class, parent, id, user_data);
+    return detail::create_object(&ht_navigator_class, parent, user_data);
 }
 
 _lv_obj_t *ui_navigator_create_grid(_lv_obj_t *parent)

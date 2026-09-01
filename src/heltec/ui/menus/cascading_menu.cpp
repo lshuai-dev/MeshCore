@@ -70,7 +70,7 @@ bool CascadingMenu::create(lv_obj_t *menu, const char *title)
 
     _menu_host = menu;
 
-    _page = ht_menu_page_create(menu, title, HT_META_ID_UNSET, this);
+    _page = ht_menu_page_create(menu, title, this);
     if (!_page)
         return false;
     ui_theme_apply_cascading_menu_page(_page);

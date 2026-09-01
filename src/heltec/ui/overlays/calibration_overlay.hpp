@@ -1,5 +1,5 @@
 #pragma once
-#include "../core/abstract_overlay.hpp"
+#include "../core/dialog_overlay.hpp"
 #include "../core/app_state_event.hpp"
 
 #include <stdint.h>
@@ -12,18 +12,11 @@ struct _lv_obj_t;
 namespace heltec::meshcore::ui
 {
 
-namespace meta_id
-{
-constexpr uint16_t CalibrationOverlayRoot = ht_meta_id(MetaIdScope::Overlay, 0x03);
-constexpr uint16_t CalibrationPanel = ht_meta_id(MetaIdScope::Overlay, 0x60);
-constexpr uint16_t CalibrationBody = ht_meta_id(MetaIdScope::Overlay, 0x61);
-constexpr uint16_t CalibrationFooter = ht_meta_id(MetaIdScope::Overlay, 0x62);
-} // namespace meta_id
-
-class CalibrationOverlay : public AbstractOverlay
+class CalibrationOverlay : public DialogOverlay
 {
   public:
-    explicit CalibrationOverlay(biz::IBizFacade &biz) : AbstractOverlay(biz)
+    explicit CalibrationOverlay(biz::IBizFacade &biz)
+        : DialogOverlay(biz, Options{Variant::Fullscreen, false, true, false})
     {
     }
 
@@ -34,7 +27,6 @@ class CalibrationOverlay : public AbstractOverlay
     _lv_obj_t *create(_lv_obj_t *parent) override;
 
   private:
-    _lv_obj_t *createRoot(_lv_obj_t *parent) override;
     void onAppStateChanged(const AppStateEvent &event) override;
     void onSurfaceRefresh() override;
     enum class Phase : uint8_t
@@ -58,7 +50,6 @@ class CalibrationOverlay : public AbstractOverlay
     bool onKey(uint32_t key) override;
     static void timeoutTimerCb(lv_timer_t *timer);
 
-    _lv_obj_t *_panel = nullptr;
     _lv_obj_t *_body = nullptr;
     _lv_obj_t *_footer = nullptr;
     char _body_text[48] = {};

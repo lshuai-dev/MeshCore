@@ -1,6 +1,5 @@
 #include "momentary_button.hpp"
 
-#include "btn_debug.hpp"
 #include "key_input.hpp"
 #include "momentary_button_detail.hpp"
 
@@ -205,7 +204,6 @@ static void drain_edges(ButtonState &button, uint8_t slot, unsigned long now)
         if (s_cfg.debounce_ms > 0 && button.last_edge_at > 0 &&
             (edge_at - button.last_edge_at) < s_cfg.debounce_ms)
         {
-            BTN_UI_LOG("gpio pin=%d debounce lvl=%u", (int)button.pin, (unsigned)level);
             continue;
         }
         button.last_edge_at = edge_at;
@@ -213,8 +211,6 @@ static void drain_edges(ButtonState &button, uint8_t slot, unsigned long now)
         if (is_pressed(level, button.active_level))
         {
             button.down_at = edge_at;
-            BTN_UI_LOG("gpio pin=%d press lvl=%u idle=%u", (int)button.pin, (unsigned)level,
-                       (unsigned)button.prev);
         }
         else if (button.down_at > 0)
         {
@@ -239,8 +235,6 @@ static void drain_edges(ButtonState &button, uint8_t slot, unsigned long now)
                     button.last_release = now;
                 }
             }
-            BTN_UI_LOG("gpio pin=%d release held=%lums clicks=%u", (int)button.pin,
-                       (unsigned long)held, (unsigned)button.clicks);
             button.down_at = 0;
         }
 
@@ -265,7 +259,6 @@ static void tick_button(ButtonState &button, uint8_t slot, unsigned long now)
         }
         else
         {
-            BTN_UI_LOG("slot=%u pin=%d long -> gesture", (unsigned)slot, (int)button.pin);
             emit_gesture(slot, ButtonGesture::Long);
         }
         button.down_at = 0;
@@ -277,8 +270,6 @@ static void tick_button(ButtonState &button, uint8_t slot, unsigned long now)
     {
         const uint8_t count =
             button.clicks > HELTEC_BUTTON_MAX_CLICKS ? HELTEC_BUTTON_MAX_CLICKS : button.clicks;
-        BTN_UI_LOG("slot=%u pin=%d clicks=%u -> gesture", (unsigned)slot, (int)button.pin,
-                   (unsigned)count);
         emit_gesture(slot, gesture_for_clicks(count));
         button.clicks = 0;
         button.last_release = 0;
@@ -313,9 +304,6 @@ static void setup_gpio()
 
         pinMode((uint8_t)button.pin, config.pin_mode);
         button.prev = (uint8_t)digitalRead((uint8_t)button.pin);
-        BTN_UI_LOG("init slot=%u pin=%d mode=%u active=%u lvl=%u irq=%d", (unsigned)i,
-                   (int)button.pin, (unsigned)config.pin_mode, (unsigned)config.active_level,
-                   (unsigned)button.prev, (int)digitalPinToInterrupt((uint8_t)button.pin));
     }
 
     attach_irqs();

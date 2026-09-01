@@ -6,6 +6,8 @@
 #include "heltec/ui/map/map_sd.hpp"
 #include "ui/app/ui_theme.hpp"
 #include "ui/core/ht_meta_data.hpp"
+#include "ui/core/ui_semantic_classes.hpp"
+#include "ui/core/ht_meta_data_internal.hpp"
 #include "ui/core/ht_event.h"
 
 #include <Arduino.h>
@@ -87,9 +89,24 @@ bool usable_gps(const heltec::meshcore::biz::IBizFacade::GpsStatus &gps)
 namespace heltec::meshcore::ui
 {
 
+const lv_obj_class_t ht_tracker_screen_root_class = {
+    &lv_obj_class,
+    nullptr,
+    nullptr,
+#if LV_USE_USER_DATA
+    nullptr,
+#endif
+    nullptr,
+    LV_SIZE_CONTENT,
+    LV_SIZE_CONTENT,
+    LV_OBJ_CLASS_EDITABLE_INHERIT,
+    LV_OBJ_CLASS_GROUP_DEF_INHERIT,
+    sizeof(lv_obj_t),
+};
+
 _lv_obj_t *TrackerScreen::createRoot(_lv_obj_t *parent)
 {
-    return ht_obj_create(parent, meta_id::TrackerScreenRoot);
+    return detail::create_object(&ht_tracker_screen_root_class, parent);
 }
 
 namespace
@@ -99,7 +116,7 @@ _lv_obj_t *add_tool_btn_label(_lv_obj_t *btn, const char *text)
 {
     if (!btn)
         return nullptr;
-    _lv_obj_t *lb = ht_label_create(btn, meta_id::MapToolbarButtonLabel, text);
+    _lv_obj_t *lb = ht_label_create(btn, text);
     if (!lb)
         return nullptr;
     lv_obj_align(lb, LV_ALIGN_CENTER, 0, 0);
@@ -903,7 +920,7 @@ _lv_obj_t *TrackerScreen::create(_lv_obj_t *parent)
     lv_obj_set_flex_flow(_root, LV_FLEX_FLOW_COLUMN);
     lv_obj_clear_flag(_root, LV_OBJ_FLAG_SCROLLABLE);
 
-    _lbl_status = ht_label_create(_root, meta_id::MapStatusLabel, "Map");
+    _lbl_status = ht_semantic_label_create(&ht_map_status_label_class, _root, "Map");
     if (_lbl_status)
     {
         lv_label_set_text_static(_lbl_status, _status_text);
@@ -911,13 +928,13 @@ _lv_obj_t *TrackerScreen::create(_lv_obj_t *parent)
         lv_label_set_long_mode(_lbl_status, LV_LABEL_LONG_CLIP);
     }
 
-    _map_viewport = ht_obj_create(_root, meta_id::MapViewport);
+    _map_viewport = ht_semantic_create(&ht_map_viewport_class, _root);
     if (_map_viewport)
     {
         lv_obj_set_width(_map_viewport, lv_pct(100));
         lv_obj_set_flex_grow(_map_viewport, 1);
         lv_obj_clear_flag(_map_viewport, LV_OBJ_FLAG_SCROLLABLE);
-        _toolbar = ht_obj_create(_map_viewport, meta_id::MapToolbar);
+        _toolbar = ht_semantic_create(&ht_map_toolbar_class, _map_viewport);
         if (_toolbar)
         {
             lv_obj_set_size(_toolbar, map_toolbar_width(3), kMapToolbarPad * 2 + kMapToolBtnH);
@@ -940,9 +957,9 @@ _lv_obj_t *TrackerScreen::create(_lv_obj_t *parent)
                 },
                 LV_EVENT_SIZE_CHANGED, this);
 
-            _btn_zoom_out = ht_btn_create(_toolbar, meta_id::MapToolbarButton);
-            _btn_zoom_in = ht_btn_create(_toolbar, meta_id::MapToolbarButton);
-            _btn_gps = ht_btn_create(_toolbar, meta_id::MapToolbarButton);
+            _btn_zoom_out = ht_btn_create(_toolbar);
+            _btn_zoom_in = ht_btn_create(_toolbar);
+            _btn_gps = ht_btn_create(_toolbar);
             _lv_obj_t *const buttons[] = {
                 _btn_zoom_out,
                 _btn_zoom_in,

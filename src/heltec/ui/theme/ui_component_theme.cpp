@@ -1,9 +1,9 @@
 #include "ui/app/ui_theme.hpp"
 #include "ui/core/ht_meta_data.hpp"
-#include "ui/core/license_gate_ids.hpp"
-#include "ui/map/map_panel_ids.hpp"
+#include "ui/core/ui_semantic_classes.hpp"
 #include "ui/screens/compass_dial_widget.hpp"
 #include "ui/theme/ui_widget_theme.hpp"
+#include "ui/theme/ui_theme_internal.hpp"
 #include "ui/widgets/button_roller.hpp"
 
 namespace heltec::meshcore::ui
@@ -136,7 +136,6 @@ static lv_style_t s_roller_button_selected_style;
 static lv_style_t s_roller_label_style;
 static lv_style_t s_roller_label_selected_style;
 static bool s_roller_styles_ready = false;
-UiButtonRollerStyleConfig s_roller_style_config = { 0, 2, 12 };
 
 static const lv_style_selector_t kRollerItemSelectedSelectors[] = {
     LV_PART_MAIN | LV_STATE_CHECKED,
@@ -147,60 +146,31 @@ static const lv_style_selector_t kRollerItemSelectedSelectors[] = {
     LV_PART_MAIN | LV_STATE_PRESSED,
 };
 
-static lv_style_t s_cascading_menu_page_style;
-static lv_style_t s_cascading_menu_item_style;
-static bool s_cascading_menu_styles_ready = false;
+static UiCascadingMenuStyles s_cascading_menu_styles;
 
-static const lv_style_selector_t kCascadingMenuPageSelectors[] = {
-    LV_PART_MAIN,
-    LV_PART_MAIN | LV_STATE_FOCUSED,
-    LV_PART_MAIN | LV_STATE_FOCUS_KEY,
-    LV_PART_MAIN | LV_STATE_PRESSED,
-};
-
-static const lv_style_selector_t kCascadingMenuItemSelectors[] = {
-    LV_PART_MAIN,
+static const lv_style_selector_t kCascadingMenuSelectedSelectors[] = {
     LV_PART_MAIN | LV_STATE_CHECKED,
     LV_PART_MAIN | LV_STATE_FOCUSED,
     LV_PART_MAIN | LV_STATE_FOCUS_KEY,
     LV_PART_MAIN | LV_STATE_PRESSED,
+    LV_PART_MAIN | (LV_STATE_CHECKED | LV_STATE_FOCUSED),
+    LV_PART_MAIN | (LV_STATE_CHECKED | LV_STATE_FOCUS_KEY),
 };
 
-void init_cascading_menu_styles()
-{
-    if (s_cascading_menu_styles_ready)
-        return;
-
-    lv_style_init(&s_cascading_menu_page_style);
-    lv_style_set_width(&s_cascading_menu_page_style, lv_pct(100));
-    lv_style_set_height(&s_cascading_menu_page_style, lv_pct(100));
-    lv_style_set_pad_all(&s_cascading_menu_page_style, 0);
-    lv_style_set_pad_row(&s_cascading_menu_page_style, 0);
-    lv_style_set_border_width(&s_cascading_menu_page_style, 0);
-    lv_style_set_outline_width(&s_cascading_menu_page_style, 0);
-
-    lv_style_init(&s_cascading_menu_item_style);
-    lv_style_set_pad_left(&s_cascading_menu_item_style, 4);
-    lv_style_set_pad_right(&s_cascading_menu_item_style, 4);
-
-    s_cascading_menu_styles_ready = true;
-}
-
-void init_roller_styles()
+void init_roller_styles(lv_coord_t pad = 2, lv_coord_t button_height = 12)
 {
     if (s_roller_styles_ready)
         return;
-    const UiButtonRollerStyleConfig &geometry = s_roller_style_config;
 
     lv_style_init(&s_roller_root_style);
-    lv_style_set_border_width(&s_roller_root_style, geometry.border_width);
-    lv_style_set_pad_all(&s_roller_root_style, geometry.pad);
+    lv_style_set_border_width(&s_roller_root_style, 0);
+    lv_style_set_pad_all(&s_roller_root_style, pad);
     lv_style_set_bg_opa(&s_roller_root_style, LV_OPA_TRANSP);
 
     lv_style_init(&s_roller_button_style);
-    lv_style_set_height(&s_roller_button_style, geometry.button_height);
-    lv_style_set_pad_all(&s_roller_button_style, geometry.pad);
-    lv_style_set_border_width(&s_roller_button_style, geometry.border_width);
+    lv_style_set_height(&s_roller_button_style, button_height);
+    lv_style_set_pad_all(&s_roller_button_style, pad);
+    lv_style_set_border_width(&s_roller_button_style, 0);
     lv_style_set_bg_opa(&s_roller_button_style, LV_OPA_TRANSP);
     lv_style_set_text_color(&s_roller_button_style, ui_color_fg());
     lv_style_set_shadow_width(&s_roller_button_style, 0);
@@ -487,24 +457,28 @@ bool ui_license_gate_apply_theme(_lv_obj_t *obj)
     if (!obj)
         return false;
 
-    switch (ht_id(obj))
+    if (lv_obj_check_type(obj, &ht_license_gate_class))
     {
-    case meta_id::LicenseGateRoot:
         init_license_gate_styles();
         lv_obj_add_style(obj, &s_license_gate_root_style, LV_PART_MAIN);
         return true;
-    case meta_id::LicenseGateTitle:
-        init_license_gate_styles();
-        lv_obj_add_style(obj, &s_license_gate_label_style, LV_PART_MAIN);
-        return true;
-    case meta_id::LicenseGateChip:
-        init_license_gate_styles();
-        lv_obj_add_style(obj, &s_license_gate_label_style, LV_PART_MAIN);
-        lv_obj_add_style(obj, &s_license_gate_chip_style, LV_PART_MAIN);
-        return true;
-    default:
+    }
+
+    _lv_obj_t *const parent = lv_obj_get_parent(obj);
+    if (!parent || !lv_obj_check_type(parent, &ht_license_gate_class) ||
+        !lv_obj_has_class(obj, &lv_label_class))
+    {
         return false;
     }
+
+    init_license_gate_styles();
+    lv_obj_add_style(obj, &s_license_gate_label_style, LV_PART_MAIN);
+    if (lv_obj_check_type(obj, &ht_license_gate_chip_class))
+    {
+        init_license_gate_styles();
+        lv_obj_add_style(obj, &s_license_gate_chip_style, LV_PART_MAIN);
+    }
+    return true;
 }
 
 void ui_theme_apply_radial_navigation_icon(_lv_obj_t *button, const lv_img_dsc_t *image)
@@ -542,11 +516,18 @@ void ui_theme_apply_radial_navigation_icon(_lv_obj_t *button, const lv_img_dsc_t
 #endif
 }
 
-void ui_widget_theme_set_button_roller_style(const UiButtonRollerStyleConfig &config)
+void ui_component_theme_configure(lv_coord_t bar_height)
 {
     if (s_roller_styles_ready)
         return;
-    s_roller_style_config = config;
+    const lv_coord_t button_height = LV_MIN(bar_height, 12);
+    const lv_coord_t pad = button_height < 12 ? 0 : 2;
+    init_roller_styles(pad, button_height);
+}
+
+void ui_widget_theme_set_cascading_menu_styles(const UiCascadingMenuStyles &styles)
+{
+    s_cascading_menu_styles = styles;
 }
 
 bool ui_button_roller_apply_theme(_lv_obj_t *obj)
@@ -554,41 +535,68 @@ bool ui_button_roller_apply_theme(_lv_obj_t *obj)
     if (!obj)
         return false;
 
-    switch (ht_id(obj))
+    if (lv_obj_has_class(obj, &ht_button_roller_class))
     {
-    case meta_id::ButtonRollerRoot:
         style_roller_root(obj);
         return true;
-    case meta_id::ButtonRollerItem:
+    }
+
+    _lv_obj_t *const parent = lv_obj_get_parent(obj);
+    if (parent && lv_obj_has_class(parent, &ht_button_roller_class) &&
+        lv_obj_check_type(obj, &lv_btn_class))
+    {
         style_roller_button(obj);
         return true;
-    case meta_id::ButtonRollerLabel:
+    }
+
+    _lv_obj_t *const grandparent = parent ? lv_obj_get_parent(parent) : nullptr;
+    if (grandparent && lv_obj_has_class(grandparent, &ht_button_roller_class) &&
+        lv_obj_check_type(obj, &lv_label_class))
+    {
         style_roller_label(obj);
         return true;
-    default:
-        return false;
     }
+    return false;
 }
 
 void ui_theme_apply_cascading_menu_page(_lv_obj_t *obj)
 {
-    if (!obj)
+    if (!obj || !s_cascading_menu_styles.page)
         return;
-    init_cascading_menu_styles();
-    for (lv_style_selector_t selector : kCascadingMenuPageSelectors)
-    {
-        lv_obj_add_style(obj, &s_cascading_menu_page_style, selector);
-    }
+    lv_obj_add_style(obj, s_cascading_menu_styles.page, LV_PART_MAIN);
 }
 
 void ui_theme_apply_cascading_menu_item(_lv_obj_t *obj)
 {
     if (!obj)
         return;
-    init_cascading_menu_styles();
-    for (lv_style_selector_t selector : kCascadingMenuItemSelectors)
+    if (s_cascading_menu_styles.item)
     {
-        lv_obj_add_style(obj, &s_cascading_menu_item_style, selector);
+        lv_obj_add_style(obj, s_cascading_menu_styles.item, LV_PART_MAIN);
+    }
+    if (s_cascading_menu_styles.item_selected)
+    {
+        for (lv_style_selector_t selector : kCascadingMenuSelectedSelectors)
+        {
+            lv_obj_add_style(obj, s_cascading_menu_styles.item_selected, selector);
+        }
+    }
+
+    _lv_obj_t *const label = lv_obj_get_child_cnt(obj) > 0 ? lv_obj_get_child(obj, 0) : nullptr;
+    if (!label)
+    {
+        return;
+    }
+    if (s_cascading_menu_styles.label)
+    {
+        lv_obj_add_style(label, s_cascading_menu_styles.label, LV_PART_MAIN);
+    }
+    if (s_cascading_menu_styles.label_selected)
+    {
+        for (lv_style_selector_t selector : kCascadingMenuSelectedSelectors)
+        {
+            lv_obj_add_style(label, s_cascading_menu_styles.label_selected, selector);
+        }
     }
 }
 
@@ -599,60 +607,83 @@ bool ui_map_widget_apply_theme(_lv_obj_t *obj)
         return false;
     init_map_styles();
 
-    switch (ht_id(obj))
+    if (lv_obj_check_type(obj, &ht_map_status_label_class))
     {
-    case meta_id::MapStatusLabel:
         lv_obj_add_style(obj, &s_map_status_label_style, LV_PART_MAIN);
         return true;
-    case meta_id::MapViewport:
+    }
+    if (lv_obj_check_type(obj, &ht_map_viewport_class))
+    {
         lv_obj_add_style(obj, &s_map_opaque_surface_style, LV_PART_MAIN);
         lv_obj_add_style(obj, &s_map_viewport_layout_style, LV_PART_MAIN);
         return true;
-    case meta_id::MapToolbar:
+    }
+    if (lv_obj_check_type(obj, &ht_map_toolbar_class))
+    {
         lv_obj_add_style(obj, &s_map_toolbar_style, LV_PART_MAIN);
         return true;
-    case meta_id::MapToolbarButton:
+    }
+
+    _lv_obj_t *const parent = lv_obj_get_parent(obj);
+    if (parent && lv_obj_check_type(parent, &ht_map_toolbar_class) &&
+        lv_obj_check_type(obj, &lv_btn_class))
+    {
         lv_obj_add_style(obj, &s_map_toolbar_button_style, LV_PART_MAIN);
         lv_obj_add_style(obj, &s_map_toolbar_button_checked_style, LV_PART_MAIN | LV_STATE_CHECKED);
         lv_obj_add_style(obj, &s_map_toolbar_button_pressed_style, LV_PART_MAIN | LV_STATE_PRESSED);
         lv_obj_add_style(obj, &s_map_toolbar_button_disabled_style,
                          LV_PART_MAIN | LV_STATE_DISABLED);
         return true;
-    case meta_id::MapToolbarButtonLabel:
+    }
+    if (parent && lv_obj_check_type(parent, &lv_btn_class) &&
+        lv_obj_check_type(lv_obj_get_parent(parent), &ht_map_toolbar_class) &&
+        lv_obj_check_type(obj, &lv_label_class))
+    {
         lv_obj_add_style(obj, &s_map_toolbar_label_style, LV_PART_MAIN);
         lv_obj_add_style(obj, &s_map_toolbar_label_checked_style, LV_PART_MAIN | LV_STATE_CHECKED);
         lv_obj_add_style(obj, &s_map_toolbar_label_pressed_style, LV_PART_MAIN | LV_STATE_PRESSED);
         lv_obj_add_style(obj, &s_map_toolbar_label_disabled_style,
                          LV_PART_MAIN | LV_STATE_DISABLED);
         return true;
-    case meta_id::MapTileLayer:
-    case meta_id::MapRangeLayer:
-    case meta_id::MapMarkerLayer:
+    }
+    if (lv_obj_check_type(obj, &ht_map_layer_class))
+    {
         lv_obj_add_style(obj, &s_map_transparent_layer_style, LV_PART_MAIN);
         return true;
-    case meta_id::MapTile:
+    }
+    if (lv_obj_check_type(obj, &ht_map_tile_class))
+    {
         lv_obj_add_style(obj, &s_map_opaque_surface_style, LV_PART_MAIN);
         return true;
-    case meta_id::MapTileImage:
-        return true;
-    case meta_id::MapMarker:
+    }
+    if (lv_obj_check_type(obj, &ht_map_marker_class))
+    {
         lv_obj_add_style(obj, &s_map_marker_style, LV_PART_MAIN);
         return true;
-    case meta_id::MapRangeRing:
-        lv_obj_add_style(obj, &s_map_range_ring_style, LV_PART_MAIN);
+    }
+
+    if (parent && lv_obj_check_type(parent, &ht_map_tile_class))
+    {
+        if (lv_obj_check_type(obj, &lv_label_class))
+            lv_obj_add_style(obj, &s_map_tile_placeholder_style, LV_PART_MAIN);
         return true;
-    case meta_id::MapTilePlaceholder:
-        lv_obj_add_style(obj, &s_map_tile_placeholder_style, LV_PART_MAIN);
-        return true;
-    case meta_id::MapMarkerLabel:
+    }
+    if (parent && lv_obj_check_type(parent, &ht_map_marker_class) &&
+        lv_obj_check_type(obj, &lv_label_class))
+    {
         lv_obj_add_style(obj, &s_map_marker_label_style, LV_PART_MAIN);
         return true;
-    case meta_id::MapRangeLabel:
-        lv_obj_add_style(obj, &s_map_range_label_style, LV_PART_MAIN);
-        return true;
-    default:
-        return false;
     }
+    if (parent && lv_obj_check_type(parent, &ht_map_layer_class))
+    {
+        if (lv_obj_check_type(obj, &lv_label_class))
+            lv_obj_add_style(obj, &s_map_range_label_style, LV_PART_MAIN);
+        else if (!lv_obj_check_type(obj, &ht_map_tile_class) &&
+                 !lv_obj_check_type(obj, &ht_map_marker_class))
+            lv_obj_add_style(obj, &s_map_range_ring_style, LV_PART_MAIN);
+        return true;
+    }
+    return false;
 }
 
 void ui_map_marker_apply_color(_lv_obj_t *obj, lv_color_t color)
@@ -719,32 +750,50 @@ bool ui_compass_widget_apply_theme(_lv_obj_t *obj)
         return false;
     init_compass_styles();
 
-    switch (ht_id(obj))
+    if (lv_obj_check_type(obj, &ht_compass_info_column_class) ||
+        lv_obj_check_type(obj, &ht_compass_dial_center_class))
     {
-    case meta_id::CompassInfoColumn:
-    case meta_id::CompassQRow:
-    case meta_id::CompassDialCenter:
-    case meta_id::CompassDialRing:
         style_compass_plain_overlay(obj);
         return true;
-    case meta_id::CompassDialHub:
+    }
+    if (lv_obj_check_type(obj, &ht_compass_dial_hub_class))
+    {
         lv_obj_add_style(obj, &s_compass_hub_style, LV_PART_MAIN);
         return true;
-    case meta_id::CompassDialNeedle:
+    }
+    if (lv_obj_check_type(obj, &ht_compass_dial_needle_class))
+    {
         style_compass_plain_overlay(obj);
         lv_obj_add_style(obj, &s_compass_needle_style, LV_PART_MAIN);
         return true;
-    case meta_id::CompassInfoLabel:
-        lv_obj_add_style(obj, &s_compass_label_style, LV_PART_MAIN);
-        return true;
-    case meta_id::CompassQLabel:
+    }
+    if (lv_obj_check_type(obj, &ht_compass_q_label_class))
+    {
         lv_obj_add_style(obj, &s_compass_label_style, LV_PART_MAIN);
         lv_obj_add_style(obj, &s_compass_q_success_style, LV_PART_MAIN | LV_STATE_USER_1);
         lv_obj_add_style(obj, &s_compass_q_error_style, LV_PART_MAIN | LV_STATE_USER_2);
         return true;
-    default:
-        return false;
     }
+
+    _lv_obj_t *const parent = lv_obj_get_parent(obj);
+    if (parent && lv_obj_check_type(parent, &ht_compass_info_column_class))
+    {
+        if (lv_obj_check_type(obj, &lv_label_class))
+        {
+            lv_obj_add_style(obj, &s_compass_label_style, LV_PART_MAIN);
+        }
+        else
+        {
+            style_compass_plain_overlay(obj);
+        }
+        return true;
+    }
+    if (parent && lv_obj_check_type(parent, &ht_compass_dial_hub_class))
+    {
+        style_compass_plain_overlay(obj);
+        return true;
+    }
+    return false;
 }
 #else
 void ui_theme_set_compass_info_layout(_lv_obj_t *obj, lv_coord_t pad_left, lv_coord_t pad_row)

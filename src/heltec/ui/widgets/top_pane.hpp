@@ -1,5 +1,5 @@
 #pragma once
-#include "ui/core/ht_meta_data.hpp"
+#include "ui/core/ui_semantic_classes.hpp"
 
 #include <lvgl.h>
 #include <stdint.h>
@@ -7,19 +7,6 @@
 struct _lv_obj_t;
 namespace heltec::meshcore::ui
 {
-
-namespace meta_id
-{
-constexpr uint16_t TopPaneRoot = ht_meta_id(MetaIdScope::TopPane, 0x00);
-constexpr uint16_t TopPaneLeftSlot = ht_meta_id(MetaIdScope::TopPane, 0x01);
-constexpr uint16_t TopPaneCenterSlot = ht_meta_id(MetaIdScope::TopPane, 0x02);
-constexpr uint16_t TopPaneRightSlot = ht_meta_id(MetaIdScope::TopPane, 0x03);
-constexpr uint16_t TopPaneTitle = ht_meta_id(MetaIdScope::TopPane, 0x04);
-constexpr uint16_t TopPaneBattery = ht_meta_id(MetaIdScope::TopPane, 0x05);
-constexpr uint16_t TopPaneBatteryOutline = ht_meta_id(MetaIdScope::TopPane, 0x06);
-constexpr uint16_t TopPaneBatteryFill = ht_meta_id(MetaIdScope::TopPane, 0x07);
-constexpr uint16_t TopPaneBatteryCap = ht_meta_id(MetaIdScope::TopPane, 0x08);
-} // namespace meta_id
 
 class TopPane
 {

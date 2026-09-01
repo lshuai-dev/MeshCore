@@ -1,29 +1,16 @@
 #pragma once
 
 #include "heltec/ui/core/abstract_overlay.hpp"
-#include "heltec/ui/core/ht_meta_data.hpp"
-
-namespace heltec::meshcore::ui::meta_id
+namespace heltec::meshcore::ui
 {
-constexpr uint16_t QuickPingOverlayRoot = ht_meta_id(MetaIdScope::Overlay, 0x08);
-constexpr uint16_t QuickPingTitleBar = ht_meta_id(MetaIdScope::Overlay, 0xB8);
-constexpr uint16_t QuickPingContent = ht_meta_id(MetaIdScope::Overlay, 0xB9);
-constexpr uint16_t QuickPingTitle = ht_meta_id(MetaIdScope::Overlay, 0xB0);
-constexpr uint16_t QuickPingRow = ht_meta_id(MetaIdScope::Overlay, 0xB1);
-constexpr uint16_t QuickPingLabel = ht_meta_id(MetaIdScope::Overlay, 0xB2);
-constexpr uint16_t QuickPingDropdown = ht_meta_id(MetaIdScope::Overlay, 0xB3);
-constexpr uint16_t QuickPingMessageInput = ht_meta_id(MetaIdScope::Overlay, 0xB4);
-constexpr uint16_t QuickPingMessageInputLabel = ht_meta_id(MetaIdScope::Overlay, 0xB5);
-constexpr uint16_t QuickPingKeyboard = ht_meta_id(MetaIdScope::Overlay, 0xB6);
-constexpr uint16_t QuickPingMessageDropdown = ht_meta_id(MetaIdScope::Overlay, 0xB7);
-constexpr uint16_t QuickPingBackdrop = ht_meta_id(MetaIdScope::Overlay, 0xBA);
-constexpr uint16_t QuickPingIconBadge = ht_meta_id(MetaIdScope::Overlay, 0xBB);
-constexpr uint16_t QuickPingMessageDropdownList = ht_meta_id(MetaIdScope::Overlay, 0xBD);
-constexpr uint16_t QuickPingMessageRow = ht_meta_id(MetaIdScope::Overlay, 0xBE);
-constexpr uint16_t QuickPingMessageControls = ht_meta_id(MetaIdScope::Overlay, 0xF0);
-constexpr uint16_t QuickPingKeyboardEditor = ht_meta_id(MetaIdScope::Overlay, 0xF1);
-constexpr uint16_t QuickPingKeyboardCounter = ht_meta_id(MetaIdScope::Overlay, 0xF2);
-} // namespace heltec::meshcore::ui::meta_id
+extern const lv_obj_class_t ht_quick_ping_overlay_class;
+extern const lv_obj_class_t ht_quick_ping_backdrop_class;
+extern const lv_obj_class_t ht_quick_ping_title_bar_class;
+extern const lv_obj_class_t ht_quick_ping_content_class;
+extern const lv_obj_class_t ht_quick_ping_message_controls_class;
+extern const lv_obj_class_t ht_quick_ping_keyboard_editor_class;
+extern const lv_obj_class_t ht_quick_ping_keyboard_counter_class;
+} // namespace heltec::meshcore::ui
 
 #if defined(HELTEC_V4_R8_TFT) && defined(HELTEC_HAS_TOUCH) && HELTEC_HAS_TOUCH
 

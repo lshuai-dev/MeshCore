@@ -253,7 +253,6 @@ void setup()
     heltec::meshcore::dal::display_port::setBacklightOn(true);
     ApplicationRuntime &runtime = applicationRuntime();
     runtime.ui.init();
-    MESH_DEBUG_PRINTLN("setup() completed");
     const bool hasDisplay = runtime.ui.isReady();
     if (hasDisplay)
     {

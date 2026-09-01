@@ -9,13 +9,6 @@ struct _lv_timer_t;
 namespace heltec::meshcore::ui
 {
 
-namespace meta_id
-{
-constexpr uint16_t RecentRow = ht_meta_id(MetaIdScope::Screen, 0x60);
-constexpr uint16_t RecentName = ht_meta_id(MetaIdScope::Screen, 0x61);
-constexpr uint16_t RecentAge = ht_meta_id(MetaIdScope::Screen, 0x62);
-} // namespace meta_id
-
 class RecentScreen : public AbstractScreen
 {
   public:

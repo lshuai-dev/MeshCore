@@ -1,21 +1,10 @@
 #pragma once
-#include "ui/core/ht_meta_data.hpp"
-
 #include <stdint.h>
 
 struct _lv_obj_t;
 
 namespace heltec::meshcore::ui
 {
-
-namespace meta_id
-{
-constexpr uint16_t SplashOverlayRoot = ht_meta_id(MetaIdScope::Overlay, 0x07);
-constexpr uint16_t SplashLogo = ht_meta_id(MetaIdScope::Overlay, 0xE0);
-constexpr uint16_t SplashVersion = ht_meta_id(MetaIdScope::Overlay, 0xE1);
-constexpr uint16_t SplashDate = ht_meta_id(MetaIdScope::Overlay, 0xE2);
-constexpr uint16_t SplashAttribution = ht_meta_id(MetaIdScope::Overlay, 0xE3);
-} // namespace meta_id
 
 class SplashOverlay
 {

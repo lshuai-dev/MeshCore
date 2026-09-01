@@ -2,7 +2,6 @@
 
 #if defined(HELTEC_V4_R8_TFT) && defined(HELTEC_HAS_TOUCH) && HELTEC_HAS_TOUCH
 
-#include "heltec/drivers/input/btn_debug.hpp"
 #include "heltec/ui/core/biz_facade.hpp"
 #include "keyboard_overlay.hpp"
 #include "ui/core/ht_container.hpp"
@@ -10,6 +9,7 @@
 #include "ui/core/operation_hints.hpp"
 #include "ui/core/ui_deferred_queue.hpp"
 #include "ui/core/ht_event.h"
+#include "ui/core/ui_semantic_classes.hpp"
 
 #include <cstdio>
 #include <cstring>
@@ -20,7 +20,7 @@ namespace heltec::meshcore::ui
 
 _lv_obj_t *SendMessageOverlay::createRoot(_lv_obj_t *parent)
 {
-    return ht_obj_create(parent, meta_id::SendMessageOverlayRoot);
+    return ht_semantic_create(&ht_send_message_touch_overlay_class, parent);
 }
 
 namespace
@@ -67,8 +67,6 @@ bool SendMessageOverlay::onKey(uint32_t key)
 {
     if (!_root)
         return false;
-    BTN_UI_LOG("sendmsg key=0x%lX page=%u sel=%d count=%d", (unsigned long)key,
-               (unsigned)static_cast<uint8_t>(_model.page()), selectedIndex(), rowCount());
     if (key == LV_KEY_PREV || key == LV_KEY_LEFT)
     {
         const int count = rowCount();
@@ -97,19 +95,15 @@ bool SendMessageOverlay::onKey(uint32_t key)
 
 _lv_obj_t *SendMessageOverlay::create(lv_obj_t *parent)
 {
-    if (!AbstractOverlay::create(parent))
+    if (!FramedOverlay::create(parent))
         return nullptr;
 
     fitToDisplay(_root);
     lv_obj_add_flag(_root, LV_OBJ_FLAG_CLICKABLE);
-    _title = ht_label_create(_root, meta_id::SendMessageTitle);
-    if (!_title)
-        return nullptr;
-    lv_obj_set_width(_title, lv_pct(100));
-    lv_label_set_long_mode(_title, LV_LABEL_LONG_CLIP);
-    lv_label_set_text_static(_title, "send message");
+    setHeaderText("send message");
+    setFooterText(operation_hint::kMessageSelect);
 
-    _list_mid = ht_obj_create(_root, meta_id::SendMessageList);
+    _list_mid = ht_semantic_create(&ht_send_message_list_class, contentHost());
     if (!_list_mid)
         return nullptr;
     lv_obj_set_width(_list_mid, lv_pct(100));
@@ -120,7 +114,7 @@ _lv_obj_t *SendMessageOverlay::create(lv_obj_t *parent)
     lv_obj_clear_flag(_list_mid, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_add_flag(_list_mid, LV_OBJ_FLAG_CLICKABLE);
 
-    _list = ht_obj_create(_list_mid, meta_id::SendMessageTouchList);
+    _list = ht_semantic_create(&ht_send_message_touch_list_class, _list_mid);
     if (!_list)
         return nullptr;
     lv_obj_set_width(_list, lv_pct(100));
@@ -128,13 +122,6 @@ _lv_obj_t *SendMessageOverlay::create(lv_obj_t *parent)
     lv_obj_set_flex_flow(_list, LV_FLEX_FLOW_COLUMN);
     lv_obj_set_flex_align(_list, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
     lv_obj_clear_flag(_list, LV_OBJ_FLAG_SCROLLABLE);
-
-    _footer = ht_label_create(_root, meta_id::SendMessageFooter);
-    if (!_footer)
-        return nullptr;
-    lv_obj_set_width(_footer, lv_pct(100));
-    lv_label_set_long_mode(_footer, LV_LABEL_LONG_CLIP);
-    lv_label_set_text_static(_footer, operation_hint::kMessageSelect);
 
     for (uint8_t i = 0; i < kMaxListItems; ++i)
     {
@@ -226,8 +213,8 @@ _lv_obj_t *SendMessageOverlay::createTouchRow(uint8_t index, const char *text)
 {
     if (!_list)
         return nullptr;
-    lv_obj_t *row = ht_container_create(_list, meta_id::SendMessageRow,
-                                        reinterpret_cast<void *>(static_cast<uintptr_t>(index)));
+    lv_obj_t *row =
+        ht_container_create(_list, reinterpret_cast<void *>(static_cast<uintptr_t>(index)));
     if (!row)
         return nullptr;
     lv_obj_set_size(row, lv_pct(100), sendRowHeight());
@@ -237,7 +224,7 @@ _lv_obj_t *SendMessageOverlay::createTouchRow(uint8_t index, const char *text)
     lv_obj_set_scrollbar_mode(row, LV_SCROLLBAR_MODE_OFF);
     lv_obj_add_flag(row, LV_OBJ_FLAG_CLICKABLE);
 
-    lv_obj_t *label = ht_label_create(row, meta_id::SendMessageRowLabel, text ? text : "");
+    lv_obj_t *label = ht_label_create(row, text ? text : "");
     if (!label)
         return nullptr;
     lv_obj_set_width(label, lv_pct(100));
@@ -353,7 +340,7 @@ void SendMessageOverlay::renderRows()
         return;
 
     const char *title = "send message";
-    const char *footer = operation_hint::kMessageSelect;
+    const char *footer_text = operation_hint::kMessageSelect;
     if (_model.page() == Page::TargetCategory)
     {
         title = "to";
@@ -362,8 +349,8 @@ void SendMessageOverlay::renderRows()
     {
         title = (_model.listKind() == 1) ? "group" : "personal";
     }
-    lv_label_set_text_static(_title, title);
-    lv_label_set_text_static(_footer, footer);
+    setHeaderText(title);
+    setFooterText(footer_text);
 
     renderTouchList();
 }
@@ -434,11 +421,7 @@ void SendMessageOverlay::openCustomKeyboard()
     const Target &target = _model.target();
     UiMessageKeyboardRequest req;
     req.title = target.label;
-    const bool ok = emit(EventType::MESSAGE_KEYBOARD_OPEN, &req);
-    BTN_UI_LOG("sendmsg custom keyboard emit ok=%d page=%u sel=%d target=%s kind=%u channel=%d",
-               ok ? 1 : 0, (unsigned)static_cast<uint8_t>(_model.page()), _model.selectedIndex(),
-               req.title ? req.title : "", (unsigned)static_cast<uint8_t>(target.kind),
-               target.channel_idx);
+    (void)emit(EventType::MESSAGE_KEYBOARD_OPEN, &req);
 }
 
 void SendMessageOverlay::handleBack()

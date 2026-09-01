@@ -1,5 +1,6 @@
 #pragma once
 #include "ui/core/ht_meta_data.hpp"
+#include "ui/core/ui_semantic_classes.hpp"
 
 #include <lvgl.h>
 #include <stdint.h>
@@ -7,19 +8,12 @@
 namespace heltec::meshcore::ui
 {
 
-namespace meta_id
-{
-constexpr uint16_t ButtonRollerRoot = ht_meta_id(MetaIdScope::ButtonRoller, 0x00);
-constexpr uint16_t ButtonRollerItem = ht_meta_id(MetaIdScope::ButtonRoller, 0x01);
-constexpr uint16_t ButtonRollerLabel = ht_meta_id(MetaIdScope::ButtonRoller, 0x02);
-} // namespace meta_id
-
 class ButtonRoller
 {
   public:
-    bool create(lv_obj_t *parent, lv_group_t *group);
-    lv_obj_t *addItem(const char *label, uint16_t item_id = meta_id::ButtonRollerItem,
-                      uint16_t label_id = meta_id::ButtonRollerLabel);
+    bool create(lv_obj_t *parent, lv_group_t *group,
+                const lv_obj_class_t *root_class = &ht_button_roller_class);
+    lv_obj_t *addItem(const char *label);
     lv_obj_t *root() const
     {
         return _root;

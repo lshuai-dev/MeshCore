@@ -159,12 +159,12 @@ _lv_obj_t *CompassScreen::create(_lv_obj_t *parent)
                                                 (lv_coord_t)COMPASS_INFO_COL_PAD_LEFT, 0);
     if (info)
     {
-        _lbl_hdg = ht_label_create(info, meta_id::CompassInfoLabel);
+        _lbl_hdg = ht_label_create(info);
         compass_style_info_label(_lbl_hdg, "HDG:--", LV_LABEL_LONG_CLIP);
         if (_lbl_hdg)
             lv_label_set_text_static(_lbl_hdg, _hdg_text);
 
-        _lbl_q_row = ht_obj_create(info, meta_id::CompassQRow);
+        _lbl_q_row = ht_obj_create(info);
         if (_lbl_q_row)
         {
             lv_obj_set_size(_lbl_q_row, lv_pct(100), LV_SIZE_CONTENT);
@@ -175,13 +175,13 @@ _lv_obj_t *CompassScreen::create(_lv_obj_t *parent)
             lv_obj_add_flag(_lbl_q_row, LV_OBJ_FLAG_OVERFLOW_VISIBLE);
         }
 
-        _lbl_q_prefix = ht_label_create(_lbl_q_row, meta_id::CompassQLabel);
+        _lbl_q_prefix = ht_semantic_label_create(&ht_compass_q_label_class, _lbl_q_row);
         if (_lbl_q_prefix)
             lv_obj_set_width(_lbl_q_prefix, LV_SIZE_CONTENT);
         style_q_row_label(_lbl_q_prefix, "Q:");
         if (_lbl_q_prefix)
             lv_label_set_text_static(_lbl_q_prefix, "Q:");
-        _lbl_q_val = ht_label_create(_lbl_q_row, meta_id::CompassQLabel);
+        _lbl_q_val = ht_semantic_label_create(&ht_compass_q_label_class, _lbl_q_row);
         if (_lbl_q_val)
             lv_obj_set_width(_lbl_q_val, LV_SIZE_CONTENT);
         style_q_row_label(_lbl_q_val, "--");
@@ -190,7 +190,7 @@ _lv_obj_t *CompassScreen::create(_lv_obj_t *parent)
 
         for (int i = 0; i < 3; ++i)
         {
-            _lbl_mag[i] = ht_label_create(info, meta_id::CompassInfoLabel);
+            _lbl_mag[i] = ht_label_create(info);
             if (_lbl_mag[i])
             {
                 lv_obj_set_width(_lbl_mag[i], lv_pct(100));

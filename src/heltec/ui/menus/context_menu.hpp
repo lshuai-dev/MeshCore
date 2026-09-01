@@ -1,20 +1,5 @@
 #pragma once
 
-#include "heltec/ui/core/ht_meta_data.hpp"
-
-namespace heltec::meshcore::ui::meta_id
-{
-constexpr uint16_t ContextMenuRoot = ht_meta_id(MetaIdScope::ContextMenu, 0x00);
-constexpr uint16_t ContextMenuMenu = ht_meta_id(MetaIdScope::ContextMenu, 0x01);
-constexpr uint16_t ContextMenuHeader = ht_meta_id(MetaIdScope::ContextMenu, 0x02);
-constexpr uint16_t ContextMenuHeaderIconRow = ht_meta_id(MetaIdScope::ContextMenu, 0x03);
-constexpr uint16_t ContextMenuHeaderNavRow = ht_meta_id(MetaIdScope::ContextMenu, 0x04);
-constexpr uint16_t ContextMenuBackButton = ht_meta_id(MetaIdScope::ContextMenu, 0x05);
-constexpr uint16_t ContextMenuTitle = ht_meta_id(MetaIdScope::ContextMenu, 0x06);
-constexpr uint16_t ContextMenuIconButton = ht_meta_id(MetaIdScope::ContextMenu, 0x07);
-constexpr uint16_t ContextMenuIcon = ht_meta_id(MetaIdScope::ContextMenu, 0x08);
-} // namespace heltec::meshcore::ui::meta_id
-
 #if !defined(HELTEC_V4_R8_TFT) || !defined(HELTEC_HAS_TOUCH) || !HELTEC_HAS_TOUCH
 
 #include "heltec/ui/core/ui_surface.hpp"

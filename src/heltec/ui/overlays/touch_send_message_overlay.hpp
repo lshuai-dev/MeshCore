@@ -2,9 +2,8 @@
 
 #if defined(HELTEC_V4_R8_TFT) && defined(HELTEC_HAS_TOUCH) && HELTEC_HAS_TOUCH
 
-#include "../core/abstract_overlay.hpp"
+#include "../core/framed_overlay.hpp"
 #include "send_message_model.hpp"
-#include "send_message_overlay_ids.hpp"
 
 #include <stdint.h>
 
@@ -21,10 +20,10 @@ namespace heltec::meshcore::ui
 struct UiSendMessageTarget;
 
 /** V4 R8 touch-first send message overlay. */
-class SendMessageOverlay : public AbstractOverlay
+class SendMessageOverlay : public FramedOverlay
 {
   public:
-    explicit SendMessageOverlay(biz::IBizFacade &biz) : AbstractOverlay(biz)
+    explicit SendMessageOverlay(biz::IBizFacade &biz) : FramedOverlay(biz)
     {
     }
     void submitCustomMessage(const char *text);
@@ -72,10 +71,8 @@ class SendMessageOverlay : public AbstractOverlay
     int selectedIndex() const;
     const char *rowLabel(int index) const;
 
-    _lv_obj_t *_title = nullptr;
     _lv_obj_t *_list_mid = nullptr;
     _lv_obj_t *_list = nullptr;
-    _lv_obj_t *_footer = nullptr;
     _lv_obj_t *_row_objs[kMaxListItems] = {};
     _lv_obj_t *_row_labels[kMaxListItems] = {};
     char _row_text[kMaxListItems][32] = {};

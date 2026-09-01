@@ -15,20 +15,7 @@ typedef struct
 
 extern const lv_obj_class_t ht_navigator_class;
 
-lv_obj_t *ht_navigator_create(lv_obj_t *parent, uint16_t id = HT_META_ID_UNSET,
-                              void *user_data = nullptr);
-
-namespace meta_id
-{
-constexpr uint16_t NavigationRoot = ht_meta_id(MetaIdScope::Navigation, 0x00);
-constexpr uint16_t NavigationContent = ht_meta_id(MetaIdScope::Navigation, 0x02);
-constexpr uint16_t NavigationCell = ht_meta_id(MetaIdScope::Navigation, 0x03);
-constexpr uint16_t NavigationIconArea = ht_meta_id(MetaIdScope::Navigation, 0x04);
-constexpr uint16_t NavigationIcon = ht_meta_id(MetaIdScope::Navigation, 0x05);
-constexpr uint16_t NavigationTitleBar = ht_meta_id(MetaIdScope::Navigation, 0x06);
-constexpr uint16_t NavigationTitleLabel = ht_meta_id(MetaIdScope::Navigation, 0x07);
-constexpr uint16_t NavigationRing = ht_meta_id(MetaIdScope::Navigation, 0x08);
-} // namespace meta_id
+lv_obj_t *ht_navigator_create(lv_obj_t *parent, void *user_data = nullptr);
 
 /**
  * Static navigation item description used during UI construction.

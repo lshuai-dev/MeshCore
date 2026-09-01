@@ -1,6 +1,7 @@
 #include "HeltecRadioCoreBoard.h"
 
 #include <Arduino.h>
+#include <Wire.h>
 
 #if defined(HELTEC_MESH_UI) && HELTEC_MESH_UI
 #include <lvgl.h>
@@ -46,9 +47,12 @@ HeltecRadioCoreRC52Board::HeltecRadioCoreRC52Board()
 void HeltecRadioCoreRC52Board::begin()
 {
     NRF52BoardDCDC::begin();
+    Wire.begin();
     periph_power.begin();
+#if defined(PIN_LORA_POWER) && (PIN_LORA_POWER >= 0)
     pinMode(PIN_LORA_POWER, OUTPUT);
     digitalWrite(PIN_LORA_POWER, PIN_LORA_POWER_ACTIVE);
+#endif
     initializeUserInterface(periph_power);
 }
 
@@ -63,7 +67,9 @@ void HeltecRadioCoreRC52Board::onAfterTransmit()
 void HeltecRadioCoreRC52Board::powerOff()
 {
     periph_power.release();
+#if defined(PIN_LORA_POWER) && (PIN_LORA_POWER >= 0)
     digitalWrite(PIN_LORA_POWER, !PIN_LORA_POWER_ACTIVE);
+#endif
     sd_power_system_off();
 }
 

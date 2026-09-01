@@ -1,17 +1,11 @@
 #pragma once
 
-#include "ht_meta_data.hpp"
 #include "ui_surface.hpp"
 
 struct _lv_obj_t;
 
 namespace heltec::meshcore::ui
 {
-
-namespace meta_id
-{
-constexpr uint16_t OverlayRoot = ht_meta_id(MetaIdScope::Overlay, 0x00);
-}
 
 class AbstractOverlay : public UiSurface
 {

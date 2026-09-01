@@ -7,6 +7,7 @@
 #include "ui/app/ui_behavior_profile.hpp"
 #include "ui/app/ui_theme.hpp"
 #include "ui/core/ht_meta_data.hpp"
+#include "ui/core/ui_semantic_classes.hpp"
 #include "ui/core/ht_event.h"
 #include "ui/core/ui_motion_scheduler.hpp"
 #include "ui/navigation/ui_navigator.hpp"
@@ -543,7 +544,7 @@ void NavigationPane::setTileView(_lv_obj_t *tileview)
 
 _lv_obj_t *NavigationPane::createRoot(_lv_obj_t *parent)
 {
-    return ht_obj_create(parent, meta_id::NavigationRoot);
+    return ht_semantic_create(&ht_navigation_root_class, parent);
 }
 
 _lv_obj_t *NavigationPane::create(_lv_obj_t *parent)
@@ -552,7 +553,6 @@ _lv_obj_t *NavigationPane::create(_lv_obj_t *parent)
         return _root;
     if (!UiSurface::create(parent))
         return nullptr;
-    ui_widget_theme_apply(_root);
     layoutRootToTileView(_root, _tileview);
     lv_obj_clear_flag(_root, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_add_flag(_root, LV_OBJ_FLAG_OVERFLOW_VISIBLE);
@@ -627,8 +627,9 @@ void NavigationPane::setIcon(uint8_t id, const lv_img_dsc_t *img)
         return;
     }
 
-    _lv_obj_t *cell = ht_obj_create(host, meta_id::NavigationCell,
-                                    reinterpret_cast<void *>(static_cast<uintptr_t>(id)));
+    _lv_obj_t *cell = ht_semantic_create(
+        &ht_navigation_cell_class, host,
+        reinterpret_cast<void *>(static_cast<uintptr_t>(id)));
     if (!cell)
         return;
     lv_obj_set_flex_flow(cell, LV_FLEX_FLOW_COLUMN);
@@ -636,7 +637,7 @@ void NavigationPane::setIcon(uint8_t id, const lv_img_dsc_t *img)
     lv_obj_clear_flag(cell, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_add_flag(cell, LV_OBJ_FLAG_EVENT_BUBBLE);
 
-    _lv_obj_t *icon_area = ht_obj_create(cell, meta_id::NavigationIconArea);
+    _lv_obj_t *icon_area = ht_semantic_create(&ht_navigation_icon_area_class, cell);
     if (!icon_area)
     {
         lv_obj_del(cell);
@@ -650,7 +651,7 @@ void NavigationPane::setIcon(uint8_t id, const lv_img_dsc_t *img)
     lv_obj_clear_flag(icon_area, LV_OBJ_FLAG_SCROLLABLE | LV_OBJ_FLAG_CLICKABLE);
     lv_obj_add_flag(icon_area, LV_OBJ_FLAG_EVENT_BUBBLE);
 
-    _lv_obj_t *icon = ht_img_create(icon_area, meta_id::NavigationIcon);
+    _lv_obj_t *icon = ht_img_create(icon_area);
     if (!icon)
     {
         lv_obj_del(cell);
@@ -661,7 +662,7 @@ void NavigationPane::setIcon(uint8_t id, const lv_img_dsc_t *img)
     lv_obj_clear_flag(icon, LV_OBJ_FLAG_CLICKABLE | LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_add_flag(icon, LV_OBJ_FLAG_EVENT_BUBBLE);
 
-    _lv_obj_t *bar = ht_obj_create(cell, meta_id::NavigationTitleBar);
+    _lv_obj_t *bar = ht_semantic_create(&ht_navigation_title_bar_class, cell);
     if (!bar)
     {
         lv_obj_del(cell);
@@ -673,7 +674,7 @@ void NavigationPane::setIcon(uint8_t id, const lv_img_dsc_t *img)
     lv_obj_add_flag(bar, LV_OBJ_FLAG_EVENT_BUBBLE);
 
     _lv_obj_t *lbl =
-        ht_label_create(bar, meta_id::NavigationTitleLabel, _labels[id] ? _labels[id] : "");
+        ht_label_create(bar, _labels[id] ? _labels[id] : "");
     if (!lbl)
     {
         lv_obj_del(cell);

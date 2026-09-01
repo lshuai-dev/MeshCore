@@ -1,16 +1,8 @@
 #pragma once
-#include "ht_meta_data.hpp"
-
 #include <stdint.h>
 
 namespace heltec::meshcore::ui
 {
-
-namespace meta_id
-{
-constexpr uint16_t HomeScreenRoot = ht_meta_id(MetaIdScope::Screen, 0x01);
-constexpr uint16_t TrackerScreenRoot = ht_meta_id(MetaIdScope::Screen, 0x07);
-} // namespace meta_id
 
 enum class eScreenId : uint8_t
 {

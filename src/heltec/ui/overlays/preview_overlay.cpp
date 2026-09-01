@@ -2,6 +2,7 @@
 
 #include "ui/core/ht_meta_data.hpp"
 #include "ui/core/ht_selector_view.hpp"
+#include "ui/core/ui_semantic_classes.hpp"
 #include "ui/core/operation_hints.hpp"
 #include "ui/core/ht_event.h"
 
@@ -13,7 +14,7 @@ namespace heltec::meshcore::ui
 
 _lv_obj_t *PreviewOverlay::createRoot(_lv_obj_t *parent)
 {
-    return ht_selector_view_create(parent, meta_id::PreviewOverlayRoot);
+    return ht_semantic_create(&ht_preview_overlay_class, parent);
 }
 
 _lv_obj_t *PreviewOverlay::create(lv_obj_t *parent)
@@ -36,7 +37,7 @@ _lv_obj_t *PreviewOverlay::create(lv_obj_t *parent)
         },
         LV_EVENT_CLICKED, this);
 
-    lv_obj_t *row = ht_obj_create(contentHost(), meta_id::PreviewMetadataRow);
+    lv_obj_t *row = ht_semantic_create(&ht_preview_metadata_row_class, contentHost());
     if (!row)
         return nullptr;
     lv_obj_set_size(row, lv_pct(100), LV_SIZE_CONTENT);
@@ -45,15 +46,15 @@ _lv_obj_t *PreviewOverlay::create(lv_obj_t *parent)
                           LV_FLEX_ALIGN_CENTER);
     lv_obj_clear_flag(row, LV_OBJ_FLAG_SCROLLABLE);
 
-    _title = ht_label_create(row, meta_id::PreviewTitle);
-    _age = ht_label_create(row, meta_id::PreviewAge);
+    _title = ht_label_create(row);
+    _age = ht_label_create(row);
     if (!_title || !_age)
         return nullptr;
     lv_label_set_text_static(_title, _title_text);
     lv_label_set_text_static(_age, _age_text);
 
-    _origin = ht_label_create(contentHost(), meta_id::PreviewOrigin);
-    _text = ht_label_create(contentHost(), meta_id::PreviewText);
+    _origin = ht_semantic_label_create(&ht_preview_origin_class, contentHost());
+    _text = ht_semantic_label_create(&ht_preview_text_class, contentHost());
     if (!_origin || !_text)
         return nullptr;
     lv_label_set_text_static(_origin, _origin_text);

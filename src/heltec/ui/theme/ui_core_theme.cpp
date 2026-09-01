@@ -18,7 +18,7 @@ void set_focus_text_scroll(lv_obj_t *object, bool focused)
     if (!object)
         return;
 
-    if (lv_obj_check_type(object, &lv_label_class))
+    if (lv_obj_has_class(object, &lv_label_class))
     {
         lv_label_set_long_mode(object,
                                focused ? LV_LABEL_LONG_SCROLL_CIRCULAR : LV_LABEL_LONG_CLIP);

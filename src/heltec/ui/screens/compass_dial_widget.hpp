@@ -1,24 +1,12 @@
 #pragma once
 
 #include "compass_needle.hpp"
-#include "ui/core/ht_meta_data.hpp"
+#include "ui/core/ui_semantic_classes.hpp"
 
 #include <lvgl.h>
 
 namespace heltec::meshcore::ui
 {
-
-namespace meta_id
-{
-constexpr uint16_t CompassInfoColumn = ht_meta_id(MetaIdScope::Compass, 0x00);
-constexpr uint16_t CompassQRow = ht_meta_id(MetaIdScope::Compass, 0x01);
-constexpr uint16_t CompassDialCenter = ht_meta_id(MetaIdScope::Compass, 0x02);
-constexpr uint16_t CompassDialHub = ht_meta_id(MetaIdScope::Compass, 0x03);
-constexpr uint16_t CompassDialRing = ht_meta_id(MetaIdScope::Compass, 0x04);
-constexpr uint16_t CompassDialNeedle = ht_meta_id(MetaIdScope::Compass, 0x05);
-constexpr uint16_t CompassInfoLabel = ht_meta_id(MetaIdScope::Compass, 0x06);
-constexpr uint16_t CompassQLabel = ht_meta_id(MetaIdScope::Compass, 0x07);
-} // namespace meta_id
 
 enum class CompassDialNeedleKind
 {

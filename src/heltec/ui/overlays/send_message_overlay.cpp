@@ -8,6 +8,7 @@
 #include "ui/core/ht_meta_data.hpp"
 #include "ui/core/operation_hints.hpp"
 #include "ui/core/ht_selector_view.hpp"
+#include "ui/core/ui_semantic_classes.hpp"
 #include "ui/core/ui_deferred_queue.hpp"
 #include "ui/core/ht_event.h"
 
@@ -20,7 +21,7 @@ namespace heltec::meshcore::ui
 
 _lv_obj_t *SendMessageOverlay::createRoot(_lv_obj_t *parent)
 {
-    return ht_selector_view_create(parent, meta_id::SendMessageOverlayRoot);
+    return ht_semantic_create(&ht_send_message_selector_overlay_class, parent);
 }
 
 namespace
@@ -98,7 +99,7 @@ _lv_obj_t *SendMessageOverlay::create(lv_obj_t *parent)
     setHeaderText("Send message");
     setFooterText(operation_hint::kMessageSelect);
 
-    _list_mid = ht_obj_create(contentHost(), meta_id::SendMessageList);
+    _list_mid = ht_semantic_create(&ht_send_message_list_class, contentHost());
     if (!_list_mid)
         return nullptr;
     lv_obj_set_width(_list_mid, lv_pct(100));
@@ -180,9 +181,9 @@ bool SendMessageOverlay::ensureRowPool()
         if (_row_objs[i])
             continue;
 #if defined(HELTEC_LORA_V4_TFT)
-        lv_obj_t *row = ht_obj_create(_list_mid, meta_id::SendMessageRow);
+        lv_obj_t *row = ht_obj_create(_list_mid);
 #else
-        lv_obj_t *row = ht_label_create(_list_mid, meta_id::SendMessageRow);
+        lv_obj_t *row = ht_label_create(_list_mid);
 #endif
         if (!row)
             return false;
@@ -196,7 +197,7 @@ bool SendMessageOverlay::ensureRowPool()
         lv_obj_set_flex_align(row, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER,
                               LV_FLEX_ALIGN_CENTER);
 
-        lv_obj_t *label = ht_label_create(row, meta_id::SendMessageRowLabel);
+        lv_obj_t *label = ht_label_create(row);
         if (!label)
             return false;
         lv_obj_set_width(label, lv_pct(100));

@@ -1,7 +1,6 @@
 #pragma once
 
 #include <lvgl.h>
-#include <stdint.h>
 
 namespace heltec::meshcore::ui
 {
@@ -9,9 +8,7 @@ namespace heltec::meshcore::ui
 struct UiAppFrameStyleConfig
 {
     lv_coord_t screen_pad;
-    lv_coord_t frame_margin_left;
-    lv_coord_t frame_margin_right;
-    lv_coord_t frame_margin_top;
+    lv_coord_t frame_margin_horizontal;
     lv_coord_t frame_margin_bottom;
     lv_coord_t content_radius;
     lv_coord_t bar_height;
@@ -22,58 +19,55 @@ struct UiContextMenuStyleConfig
 {
     lv_coord_t icon_size;
     lv_coord_t icon_gap;
-    lv_coord_t border_width;
-    lv_coord_t title_border_width;
     lv_coord_t border_radius;
-    lv_coord_t frame_inset_x;
     lv_coord_t frame_inset_y;
-};
-
-struct UiQuickPingStyleConfig
-{
-    lv_coord_t message_list_min_width;
-};
-
-struct UiNavigationStyleConfig
-{
-    uint8_t grid_cols;
-    uint8_t grid_rows;
-    lv_coord_t grid_gap;
-    lv_coord_t grid_pad;
-    lv_coord_t grid_label_height;
-    lv_coord_t grid_cell_radius;
-    lv_coord_t grid_footer_height;
-    lv_coord_t ring_edge_pad;
 };
 
 // TopPane-specific geometry is applied to LVGL styles during theme
 // initialization. Shared application-bar geometry lives in UiAppFrameStyleConfig.
 struct UiTopPaneStyleConfig
 {
-    lv_coord_t pad_left;
-    lv_coord_t pad_right;
+    lv_coord_t pad_horizontal;
     lv_coord_t pad_top;
     lv_coord_t battery_width;
     lv_coord_t battery_height;
     lv_coord_t battery_pad_right;
 };
 
-struct UiButtonRollerStyleConfig
+struct UiThemeProfile
 {
-    lv_coord_t border_width;
-    lv_coord_t pad;
-    lv_coord_t button_height;
+    UiAppFrameStyleConfig app_frame;
+    UiContextMenuStyleConfig context_menu;
+    UiTopPaneStyleConfig top_pane;
 };
 
-void ui_widget_theme_set_app_frame_style(const UiAppFrameStyleConfig &config);
-void ui_widget_theme_set_context_menu_style(const UiContextMenuStyleConfig &config);
-void ui_widget_theme_set_quick_ping_style(const UiQuickPingStyleConfig &config);
-void ui_widget_theme_set_navigation_style(const UiNavigationStyleConfig &config);
-void ui_widget_theme_set_top_pane_style(const UiTopPaneStyleConfig &config);
-void ui_widget_theme_set_button_roller_style(const UiButtonRollerStyleConfig &config);
+struct UiCascadingMenuStyles
+{
+    UiCascadingMenuStyles(const lv_style_t *page_style = nullptr,
+                          const lv_style_t *item_style = nullptr,
+                          const lv_style_t *selected_item_style = nullptr,
+                          const lv_style_t *label_style = nullptr,
+                          const lv_style_t *selected_label_style = nullptr)
+        : page(page_style), item(item_style), item_selected(selected_item_style),
+          label(label_style), label_selected(selected_label_style)
+    {
+    }
+
+    const lv_style_t *page = nullptr;
+    const lv_style_t *item = nullptr;
+    const lv_style_t *item_selected = nullptr;
+    const lv_style_t *label = nullptr;
+    const lv_style_t *label_selected = nullptr;
+};
+
+/** Configures geometry from a profile with static storage duration. */
+void ui_widget_theme_configure(const UiThemeProfile &profile);
+void ui_widget_theme_set_cascading_menu_styles(const UiCascadingMenuStyles &styles);
+void ui_theme_apply_context_menu_title(_lv_obj_t *obj);
 
 bool ui_widget_theme_apply(_lv_obj_t *obj);
 void ui_app_active_screen_apply_theme(_lv_obj_t *obj);
+void ui_theme_apply_quick_ping_message_dropdown_list(_lv_obj_t *list);
 
 void ui_map_marker_apply_color(_lv_obj_t *obj, lv_color_t color);
 void ui_map_range_ring_apply_opa(_lv_obj_t *obj, lv_opa_t opa);

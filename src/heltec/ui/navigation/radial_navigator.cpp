@@ -5,6 +5,7 @@
 #include "ui/app/ui_behavior_profile.hpp"
 #include "ui/app/ui_theme.hpp"
 #include "ui/core/ht_meta_data.hpp"
+#include "ui/core/ui_semantic_classes.hpp"
 #include "ui/core/ht_event.h"
 #include "ui/core/ui_motion_scheduler.hpp"
 #include "ui/navigation/ui_navigator.hpp"
@@ -435,7 +436,7 @@ void RadialNavigator::updateGeometry()
 
 _lv_obj_t *RadialNavigator::createRoot(_lv_obj_t *parent)
 {
-    return ht_obj_create(parent, meta_id::NavigationRoot);
+    return ht_semantic_create(&ht_navigation_root_class, parent);
 }
 
 _lv_obj_t *RadialNavigator::create(_lv_obj_t *parent)
@@ -444,13 +445,12 @@ _lv_obj_t *RadialNavigator::create(_lv_obj_t *parent)
         return _root;
     if (!UiSurface::create(parent))
         return nullptr;
-    ui_widget_theme_apply(_root);
     layoutRootToTileView(_root, _tileview);
     lv_obj_clear_flag(_root, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_clear_flag(_root, LV_OBJ_FLAG_OVERFLOW_VISIBLE);
     lv_group_set_wrap(group(), false);
 
-    _nav = ht_navigator_create(_root, meta_id::NavigationRing);
+    _nav = ht_semantic_create(&ht_navigation_ring_class, _root);
     if (!_nav)
     {
         if (_focus_group)
@@ -541,8 +541,8 @@ void RadialNavigator::setIcon(uint8_t id, const lv_img_dsc_t *img)
         return;
     }
 
-    _lv_obj_t *btn = ht_imgbtn_create(
-        host, HT_META_ID_UNSET, reinterpret_cast<void *>(static_cast<uintptr_t>(id)));
+    _lv_obj_t *btn =
+        ht_imgbtn_create(host, reinterpret_cast<void *>(static_cast<uintptr_t>(id)));
     if (!btn)
         return;
     invalidateSlotCache();

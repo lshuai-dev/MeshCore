@@ -154,7 +154,6 @@ void SystemScreen::onDropdownStateEvent(lv_event_t *e)
         self->_open_dropdown_original_index = lv_dropdown_get_selected(dropdown);
         if (_lv_obj_t *const list = lv_dropdown_get_list(dropdown))
         {
-            ui_theme_apply_dropdown_list(list);
             ui_theme_match_dropdown_list_padding(dropdown, list);
         }
         lv_obj_add_state(dropdown, LV_STATE_EDITED);

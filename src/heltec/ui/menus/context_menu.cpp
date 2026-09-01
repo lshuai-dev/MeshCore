@@ -6,6 +6,7 @@
 #include "ui/core/ht_meta_data.hpp"
 #include "ui/core/ht_meta_data_internal.hpp"
 #include "ui/core/ht_event.h"
+#include "ui/core/ui_semantic_classes.hpp"
 #include "ui/core/ui_motion_scheduler.hpp"
 #include "ui/theme/ui_widget_theme.hpp"
 
@@ -18,7 +19,7 @@ namespace heltec::meshcore::ui
 
 _lv_obj_t *ContextMenu::createRoot(_lv_obj_t *parent)
 {
-    return ht_obj_create(parent, meta_id::ContextMenuRoot);
+    return ht_semantic_create(&ht_context_menu_class, parent);
 }
 
 namespace
@@ -276,7 +277,7 @@ _lv_obj_t *ContextMenu::create(_lv_obj_t *parent)
     lv_obj_clear_flag(_root, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_set_flex_flow(_root, LV_FLEX_FLOW_COLUMN);
 
-    _menu = ht_menu_create(_root, meta_id::ContextMenuMenu);
+    _menu = ht_menu_create(_root);
     if (!_menu)
         return nullptr;
     lv_obj_set_size(_menu, lv_pct(100), lv_pct(100));
@@ -301,7 +302,6 @@ _lv_obj_t *ContextMenu::create(_lv_obj_t *parent)
     lv_obj_t *mh = lv_menu_get_main_header(_menu);
     if (!mh)
         return nullptr;
-    detail::set_meta_id(mh, meta_id::ContextMenuHeader);
     lv_obj_set_size(mh, lv_pct(100), LV_SIZE_CONTENT);
     lv_obj_set_flex_flow(mh, LV_FLEX_FLOW_COLUMN);
     lv_obj_set_flex_align(mh, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
@@ -322,24 +322,16 @@ _lv_obj_t *ContextMenu::create(_lv_obj_t *parent)
         return nullptr;
 
     lv_obj_clear_flag(mh, LV_OBJ_FLAG_HIDDEN);
-    lv_obj_set_style_pad_all(mh, 0, LV_PART_MAIN);
-    lv_obj_set_style_pad_row(mh, 0, LV_PART_MAIN);
-
-    _header_icon_row = ht_obj_create(mh, meta_id::ContextMenuHeaderIconRow);
+    _header_icon_row = ht_semantic_create(&ht_context_menu_icon_row_class, mh);
     if (!_header_icon_row)
         return nullptr;
     lv_obj_set_flex_flow(_header_icon_row, LV_FLEX_FLOW_ROW);
     lv_obj_set_flex_align(_header_icon_row, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER,
                           LV_FLEX_ALIGN_CENTER);
-    lv_obj_set_style_pad_top(_header_icon_row, 0, LV_PART_MAIN);
-    lv_obj_set_style_pad_bottom(_header_icon_row, 0, LV_PART_MAIN);
     lv_obj_move_to_index(_header_icon_row, 0);
     lv_obj_clear_flag(_header_icon_row, LV_OBJ_FLAG_SCROLLABLE);
 
-    detail::set_meta_id(back_btn, meta_id::ContextMenuBackButton);
-    detail::set_meta_id(title_lbl, meta_id::ContextMenuTitle);
-
-    lv_obj_t *nav_row = ht_obj_create(mh, meta_id::ContextMenuHeaderNavRow);
+    lv_obj_t *nav_row = ht_obj_create(mh);
     if (!nav_row)
         return nullptr;
     lv_obj_set_size(nav_row, lv_pct(100), LV_SIZE_CONTENT);
@@ -356,12 +348,7 @@ _lv_obj_t *ContextMenu::create(_lv_obj_t *parent)
     lv_label_set_long_mode(title_lbl, LV_LABEL_LONG_DOT);
     lv_obj_clear_flag(title_lbl, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_move_to_index(nav_row, 1);
-
-    ui_widget_theme_apply(mh);
-    ui_widget_theme_apply(back_btn);
-    ui_widget_theme_apply(title_lbl);
-    lv_obj_set_style_pad_all(mh, 0, LV_PART_MAIN);
-    lv_obj_set_style_pad_row(mh, 0, LV_PART_MAIN);
+    ui_theme_apply_context_menu_title(title_lbl);
 
     lv_group_set_wrap(_focus_group, true);
     lv_group_set_editing(_focus_group, false);
@@ -396,7 +383,8 @@ bool ContextMenu::registerMenu(const char *title, const lv_img_dsc_t *icon, Abst
     if (lv_obj_t *page = menu.page())
         lv_obj_add_event_cb(page, &ContextMenu::on_menu_leaf_esc, LV_EVENT_KEY, this);
 
-    lv_obj_t *btn = ht_btn_create(_header_icon_row, meta_id::ContextMenuIconButton, &menu);
+    lv_obj_t *btn =
+        ht_semantic_button_create(&ht_context_menu_icon_button_class, _header_icon_row, &menu);
     if (!btn)
         return false;
 
@@ -445,7 +433,7 @@ bool ContextMenu::registerMenu(const char *title, const lv_img_dsc_t *icon, Abst
         },
         LV_EVENT_KEY, this);
 
-    lv_obj_t *im = ht_img_create(btn, meta_id::ContextMenuIcon);
+    lv_obj_t *im = ht_img_create(btn);
     if (!im)
         return false;
     lv_img_set_src(im, icon);

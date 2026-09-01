@@ -3,6 +3,7 @@
 #include "heltec/app/HeltecMesh.h"
 #include "heltec/ui/images.h"
 #include "ui/core/ht_meta_data.hpp"
+#include "ui/core/ui_semantic_classes.hpp"
 
 #include <lvgl.h>
 #include <string.h>
@@ -29,7 +30,7 @@ bool SplashOverlay::create(_lv_obj_t *parent)
     if (!parent)
         return false;
 
-    _root = ht_obj_create(parent, meta_id::SplashOverlayRoot);
+    _root = ht_semantic_create(&ht_splash_overlay_class, parent);
     if (!_root)
         return false;
     lv_obj_set_size(_root, lv_pct(100), lv_pct(100));
@@ -37,7 +38,7 @@ bool SplashOverlay::create(_lv_obj_t *parent)
     lv_obj_set_flex_align(_root, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
     lv_obj_clear_flag(_root, LV_OBJ_FLAG_SCROLLABLE);
 
-    _logo = ht_img_create(_root, meta_id::SplashLogo);
+    _logo = ht_img_create(_root);
     if (!_logo)
         return false;
 #if defined(HELTEC_V4_R8_TFT)
@@ -48,19 +49,19 @@ bool SplashOverlay::create(_lv_obj_t *parent)
     lv_img_set_src(_logo, &icon_meshcore_log_img);
 #endif
 
-    _ver = ht_label_create(_root, meta_id::SplashVersion);
+    _ver = ht_label_create(_root);
     if (!_ver)
         return false;
     lv_obj_set_width(_ver, lv_pct(100));
     lv_label_set_long_mode(_ver, LV_LABEL_LONG_CLIP);
 
-    _date = ht_label_create(_root, meta_id::SplashDate);
+    _date = ht_label_create(_root);
     if (!_date)
         return false;
     lv_obj_set_width(_date, lv_pct(100));
     lv_label_set_long_mode(_date, LV_LABEL_LONG_CLIP);
 
-    _attribution = ht_label_create(_root, meta_id::SplashAttribution);
+    _attribution = ht_label_create(_root);
     if (!_attribution)
         return false;
     lv_obj_set_width(_attribution, lv_pct(100));

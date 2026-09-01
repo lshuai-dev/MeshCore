@@ -4,6 +4,7 @@
 #include "ui/app/ui_behavior_profile.hpp"
 #include "ui/app/ui_theme.hpp"
 #include "ui/core/ht_meta_data.hpp"
+#include "ui/core/ui_semantic_classes.hpp"
 #include "ui/core/ui_motion_scheduler.hpp"
 #include "ui/theme/ui_widget_theme.hpp"
 
@@ -154,18 +155,18 @@ void ButtonRoller::layoutItems(uint8_t focus_index, lv_anim_enable_t anim, bool 
     }
 }
 
-lv_obj_t *ButtonRoller::addItem(const char *label, uint16_t item_id, uint16_t label_id)
+lv_obj_t *ButtonRoller::addItem(const char *label)
 {
     if (!_root || _count >= kMaxItems || !_group)
         return nullptr;
 
-    lv_obj_t *const btn = ht_btn_create(_root, item_id);
+    lv_obj_t *const btn = ht_btn_create(_root);
     if (!btn)
         return nullptr;
     lv_obj_set_width(btn, lv_pct(100));
     lv_obj_add_flag(btn, LV_OBJ_FLAG_EVENT_BUBBLE);
 
-    lv_obj_t *const lbl = ht_label_create(btn, label_id, label ? label : "");
+    lv_obj_t *const lbl = ht_label_create(btn, label ? label : "");
     if (lbl)
     {
         lv_obj_set_size(lbl, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
@@ -204,7 +205,8 @@ lv_obj_t *ButtonRoller::addItem(const char *label, uint16_t item_id, uint16_t la
     return btn;
 }
 
-bool ButtonRoller::create(lv_obj_t *parent, lv_group_t *group)
+bool ButtonRoller::create(lv_obj_t *parent, lv_group_t *group,
+                          const lv_obj_class_t *root_class)
 {
     if (!parent || !group)
         return false;
@@ -212,7 +214,7 @@ bool ButtonRoller::create(lv_obj_t *parent, lv_group_t *group)
         return true;
 
     _group = group;
-    _root = ht_obj_create(parent, meta_id::ButtonRollerRoot);
+    _root = ht_semantic_create(root_class ? root_class : &ht_button_roller_class, parent);
     if (!_root)
         return false;
     lv_obj_set_size(_root, lv_pct(100), lv_pct(100));

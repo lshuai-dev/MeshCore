@@ -15,6 +15,8 @@ class IBizFacade;
 namespace heltec::meshcore::ui
 {
 
+extern const lv_obj_class_t ht_tracker_screen_root_class;
+
 class TrackerScreen : public AbstractScreen
 {
   public:

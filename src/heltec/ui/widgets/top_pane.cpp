@@ -118,7 +118,7 @@ bool TopPane::create(_lv_obj_t *parent)
     if (!parent)
         return false;
 
-    _root = ht_obj_create(parent, meta_id::TopPaneRoot);
+    _root = ht_semantic_create(&ht_top_pane_class, parent);
     if (!_root)
         return false;
     lv_obj_set_width(_root, lv_pct(100));
@@ -126,7 +126,7 @@ bool TopPane::create(_lv_obj_t *parent)
     lv_obj_set_flex_align(_root, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
     lv_obj_clear_flag(_root, LV_OBJ_FLAG_SCROLLABLE);
 
-    _lv_obj_t *left_slot = ht_obj_create(_root, meta_id::TopPaneLeftSlot);
+    _lv_obj_t *left_slot = ht_obj_create(_root);
     if (!left_slot)
     {
         lv_obj_del(_root);
@@ -137,7 +137,7 @@ bool TopPane::create(_lv_obj_t *parent)
     lv_obj_set_flex_grow(left_slot, 1);
     lv_obj_clear_flag(left_slot, LV_OBJ_FLAG_SCROLLABLE);
 
-    _lv_obj_t *center_slot = ht_obj_create(_root, meta_id::TopPaneCenterSlot);
+    _lv_obj_t *center_slot = ht_obj_create(_root);
     if (!center_slot)
     {
         lv_obj_del(_root);
@@ -151,7 +151,7 @@ bool TopPane::create(_lv_obj_t *parent)
                           LV_FLEX_ALIGN_CENTER);
     lv_obj_clear_flag(center_slot, LV_OBJ_FLAG_SCROLLABLE);
 
-    _title = ht_label_create(center_slot, meta_id::TopPaneTitle, "");
+    _title = ht_label_create(center_slot, "");
     if (!_title)
     {
         lv_obj_del(_root);
@@ -168,7 +168,7 @@ bool TopPane::create(_lv_obj_t *parent)
     _touch_slot = center_slot;
 #endif
 
-    _lv_obj_t *right_slot = ht_obj_create(_root, meta_id::TopPaneRightSlot);
+    _lv_obj_t *right_slot = ht_semantic_create(&ht_top_pane_right_slot_class, _root);
     if (!right_slot)
     {
         lv_obj_del(_root);
@@ -182,7 +182,7 @@ bool TopPane::create(_lv_obj_t *parent)
                           LV_FLEX_ALIGN_CENTER);
     lv_obj_clear_flag(right_slot, LV_OBJ_FLAG_SCROLLABLE);
 
-    _bat_cont = ht_obj_create(right_slot, meta_id::TopPaneBattery);
+    _bat_cont = ht_obj_create(right_slot);
     if (!_bat_cont)
     {
         lv_obj_del(_root);
@@ -198,7 +198,8 @@ bool TopPane::create(_lv_obj_t *parent)
 #if defined(HELTEC_V4_R8_TFT)
     lv_obj_add_event_cb(_bat_cont, onBatteryDraw, LV_EVENT_DRAW_MAIN, this);
 #else
-    lv_obj_t *bat_outline = ht_obj_create(_bat_cont, meta_id::TopPaneBatteryOutline);
+    lv_obj_t *bat_outline =
+        ht_semantic_create(&ht_top_pane_battery_outline_class, _bat_cont);
     if (!bat_outline)
     {
         lv_obj_del(_root);
@@ -210,7 +211,7 @@ bool TopPane::create(_lv_obj_t *parent)
     lv_obj_clear_flag(bat_outline, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_add_event_cb(bat_outline, onBatteryOutlineSizeChanged, LV_EVENT_SIZE_CHANGED, this);
 
-    _bat_fill = ht_obj_create(bat_outline, meta_id::TopPaneBatteryFill);
+    _bat_fill = ht_obj_create(bat_outline);
     if (!_bat_fill)
     {
         lv_obj_del(_root);
@@ -220,7 +221,7 @@ bool TopPane::create(_lv_obj_t *parent)
     lv_obj_align(_bat_fill, LV_ALIGN_LEFT_MID, 0, 0);
     lv_obj_add_flag(_bat_fill, LV_OBJ_FLAG_FLOATING);
     lv_obj_clear_flag(_bat_fill, LV_OBJ_FLAG_SCROLLABLE);
-    lv_obj_t *bat_cap = ht_obj_create(_bat_cont, meta_id::TopPaneBatteryCap);
+    lv_obj_t *bat_cap = ht_semantic_create(&ht_top_pane_battery_cap_class, _bat_cont);
     if (!bat_cap)
     {
         lv_obj_del(_root);

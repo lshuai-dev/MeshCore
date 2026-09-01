@@ -2,6 +2,8 @@
 
 #include "find_friend_screen.hpp"
 
+#include "screen_widget_classes.hpp"
+
 #include "MeshCore.h"
 #include "compass_ui_common.hpp"
 #include "ui/core/ht_meta_data.hpp"
@@ -186,7 +188,7 @@ _lv_obj_t *FindFriendScreen::create(_lv_obj_t *parent)
 
 bool FindFriendScreen::createDial()
 {
-    _dial_row = ht_obj_create(_root, meta_id::FindFriendDialRow);
+    _dial_row = ht_find_friend_dial_host_create(_root);
     if (!_dial_row)
         return false;
     // Keep the dial fixed in the left column. Only the settings/info column on
@@ -242,14 +244,14 @@ void FindFriendScreen::createInfoRows()
     if (!_right_column)
         return;
 
-    _lbl_info = ht_label_create(_right_column, meta_id::CompassInfoLabel);
+    _lbl_info = ht_label_create(_right_column);
     compass_style_info_label(_lbl_info, "starting...", LV_LABEL_LONG_CLIP);
     if (_lbl_info)
     {
         lv_label_set_text_static(_lbl_info, _info_text);
     }
 
-    _lbl_status = ht_label_create(_right_column, meta_id::CompassInfoLabel);
+    _lbl_status = ht_label_create(_right_column);
     compass_style_info_label(_lbl_status, "", LV_LABEL_LONG_WRAP);
     if (_lbl_status)
         lv_label_set_text_static(_lbl_status, _status_text);

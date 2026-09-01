@@ -28,7 +28,7 @@ uint32_t FocusKeyMapper::translateForObject(lv_obj_t *obj, uint32_t lv_key)
     /* Navigator surfaces consume NEXT/PREV in their LV_EVENT_KEY handler.
        Convert them to directional keys so LVGL does not consume them as
        group-focus traversal before the surface receives the event. */
-    if (lv_obj_check_type(obj, &ht_navigator_class))
+    if (lv_obj_has_class(obj, &ht_navigator_class))
     {
         if (lv_key == LV_KEY_PREV)
             return LV_KEY_LEFT;
@@ -90,7 +90,7 @@ uint32_t FocusKeyMapper::translateForObject(lv_obj_t *obj, uint32_t lv_key)
             return LV_KEY_UP;
     }
 
-    if (lv_obj_check_type(obj, &ht_selector_view_class))
+    if (lv_obj_has_class(obj, &ht_selector_view_class))
     {
         if (lv_key == LV_KEY_NEXT)
             return LV_KEY_DOWN;

@@ -11,16 +11,6 @@ struct _lv_obj_t;
 namespace heltec::meshcore::ui
 {
 
-namespace meta_id
-{
-constexpr uint16_t RadioParamSyncOverlayRoot = ht_meta_id(MetaIdScope::Overlay, 0x05);
-constexpr uint16_t RadioParamSyncTitle = ht_meta_id(MetaIdScope::Overlay, 0xA0);
-constexpr uint16_t RadioParamSyncList = ht_meta_id(MetaIdScope::Overlay, 0xA1);
-constexpr uint16_t RadioParamSyncRow = ht_meta_id(MetaIdScope::Overlay, 0xA2);
-constexpr uint16_t RadioParamSyncFooter = ht_meta_id(MetaIdScope::Overlay, 0xA3);
-constexpr uint16_t RadioParamSyncRoller = ht_meta_id(MetaIdScope::Overlay, 0xA4);
-} // namespace meta_id
-
 class RadioParamSyncOverlay : public FramedOverlay
 {
   public:

@@ -95,7 +95,7 @@ bool CompassDialWidget::create(lv_obj_t *parent_row)
     if (!parent_row)
         return false;
 
-    center_col = ht_obj_create(parent_row, meta_id::CompassDialCenter);
+    center_col = ht_semantic_create(&ht_compass_dial_center_class, parent_row);
     if (!center_col)
         return false;
     lv_obj_set_height(center_col, lv_pct(100));
@@ -106,20 +106,20 @@ bool CompassDialWidget::create(lv_obj_t *parent_row)
     lv_obj_clear_flag(center_col, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_add_flag(center_col, LV_OBJ_FLAG_OVERFLOW_VISIBLE);
 
-    hub = ht_obj_create(center_col, meta_id::CompassDialHub);
+    hub = ht_semantic_create(&ht_compass_dial_hub_class, center_col);
     if (!hub)
         return false;
     lv_obj_clear_flag(hub, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_add_flag(hub, LV_OBJ_FLAG_OVERFLOW_VISIBLE);
 
-    ring = ht_obj_create(hub, meta_id::CompassDialRing);
+    ring = ht_obj_create(hub);
     if (!ring)
         return false;
     lv_obj_clear_flag(ring, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_add_flag(ring, LV_OBJ_FLAG_OVERFLOW_VISIBLE);
     lv_obj_add_event_cb(ring, on_ring_draw, LV_EVENT_DRAW_MAIN, this);
 
-    needle = ht_obj_create(hub, meta_id::CompassDialNeedle);
+    needle = ht_semantic_create(&ht_compass_dial_needle_class, hub);
     if (!needle)
         return false;
     lv_obj_clear_flag(needle, LV_OBJ_FLAG_SCROLLABLE);

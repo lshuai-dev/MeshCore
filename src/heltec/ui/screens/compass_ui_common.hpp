@@ -27,7 +27,7 @@ inline lv_obj_t *compass_create_info_column(lv_obj_t *parent, lv_coord_t width_p
 {
     if (!parent)
         return nullptr;
-    lv_obj_t *info = ht_obj_create(parent, meta_id::CompassInfoColumn);
+    lv_obj_t *info = ht_semantic_create(&ht_compass_info_column_class, parent);
     if (!info)
         return nullptr;
     lv_obj_set_size(info, lv_pct(width_pct), lv_pct(100));

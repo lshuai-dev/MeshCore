@@ -3,7 +3,6 @@
 #include "ui/app/ui_theme.hpp"
 #include "ui/core/ht_container.hpp"
 #include "ui/core/ht_meta_data.hpp"
-#include "ui/core/ht_meta_data_internal.hpp"
 #include "ui/core/ui_deferred_queue.hpp"
 #include "ui/core/ht_event.h"
 #include "ui/theme/ui_widget_theme.hpp"
@@ -81,7 +80,7 @@ _lv_obj_t *GPSScreen::create(_lv_obj_t *parent)
     {
         lv_obj_set_flex_align(_row_power, LV_FLEX_ALIGN_SPACE_BETWEEN, LV_FLEX_ALIGN_CENTER,
                               LV_FLEX_ALIGN_CENTER);
-        _lbl_gps_prefix = ht_label_create(_row_power, HT_META_ID_UNSET, "GPS");
+        _lbl_gps_prefix = ht_label_create(_row_power, "GPS");
         _sw_gps = ht_switch_create(_row_power);
         if (_lbl_gps_prefix)
             lv_obj_set_width(_lbl_gps_prefix, LV_SIZE_CONTENT);
@@ -100,8 +99,7 @@ _lv_obj_t *GPSScreen::create(_lv_obj_t *parent)
     {
         lv_obj_set_flex_align(_row_location_share, LV_FLEX_ALIGN_SPACE_BETWEEN, LV_FLEX_ALIGN_CENTER,
                               LV_FLEX_ALIGN_CENTER);
-        _lbl_location_share = ht_label_create(_row_location_share, HT_META_ID_UNSET,
-                                               "Location Share");
+        _lbl_location_share = ht_label_create(_row_location_share, "Location Share");
         _sw_location_share = ht_switch_create(_row_location_share);
         if (_lbl_location_share)
             lv_obj_set_width(_lbl_location_share, LV_SIZE_CONTENT);
@@ -119,10 +117,10 @@ _lv_obj_t *GPSScreen::create(_lv_obj_t *parent)
     _row_adv_interval = ht_container_create(_root);
     if (_row_adv_interval)
     {
-        _lbl_adv_interval = ht_label_create(_row_adv_interval, HT_META_ID_UNSET, "Adv Interval");
+        _lbl_adv_interval = ht_label_create(_row_adv_interval, "Adv Interval");
         if (_lbl_adv_interval)
             lv_obj_set_width(_lbl_adv_interval, LV_SIZE_CONTENT);
-        _dd_adv_interval = ht_dropdown_create(_row_adv_interval, meta_id::GpsAdvIntervalDropdown);
+        _dd_adv_interval = ht_dropdown_create(_row_adv_interval);
         if (_dd_adv_interval)
         {
             char *out = _adv_interval_options;
@@ -172,7 +170,7 @@ _lv_obj_t *GPSScreen::create(_lv_obj_t *parent)
     {
         lv_obj_set_flex_align(_row_track, LV_FLEX_ALIGN_SPACE_BETWEEN, LV_FLEX_ALIGN_CENTER,
                               LV_FLEX_ALIGN_CENTER);
-        _lbl_track = ht_label_create(_row_track, HT_META_ID_UNSET, "GPS Track");
+        _lbl_track = ht_label_create(_row_track, "GPS Track");
         _sw_track = ht_switch_create(_row_track);
         if (_lbl_track)
             lv_obj_set_width(_lbl_track, LV_SIZE_CONTENT);
@@ -349,8 +347,6 @@ void GPSScreen::realignAdvDropdownList()
     if (width > 0)
         lv_obj_set_width(list, width);
     lv_obj_set_scrollbar_mode(list, LV_SCROLLBAR_MODE_OFF);
-    detail::set_meta_id(list, meta_id::GpsDropdownList);
-    ui_widget_theme_apply(list);
     ui_theme_match_dropdown_list_padding(_dd_adv_interval, list);
     _lv_obj_t *const viewport = tile();
     ui_dropdown_fit_list_to_viewport(_dd_adv_interval, viewport ? viewport : _root, _root);
@@ -556,7 +552,6 @@ void GPSScreen::onAdvDropdownStateEvent(lv_event_t *e)
         self->_adv_dropdown_original_index = lv_dropdown_get_selected(dropdown);
         if (_lv_obj_t *const list = lv_dropdown_get_list(dropdown))
         {
-            ui_theme_apply_dropdown_list(list);
             ui_theme_match_dropdown_list_padding(dropdown, list);
         }
         lv_obj_add_state(dropdown, LV_STATE_EDITED);

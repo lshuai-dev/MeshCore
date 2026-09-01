@@ -37,16 +37,29 @@ protected:
   void onPassKeyNotify(uint32_t pass_key) override;
   bool onConfirmPIN(uint32_t pass_key) override;
   bool onSecurityRequest() override;
+#if defined(CONFIG_NIMBLE_ENABLED)
+  void onAuthenticationComplete(ble_gap_conn_desc *desc) override;
+#else
   void onAuthenticationComplete(esp_ble_auth_cmpl_t cmpl) override;
+#endif
 
   // BLEServerCallbacks methods
   void onConnect(BLEServer* pServer) override;
+#if defined(CONFIG_NIMBLE_ENABLED)
+  void onConnect(BLEServer *pServer, ble_gap_conn_desc *desc) override;
+  void onMtuChanged(BLEServer *pServer, ble_gap_conn_desc *desc, uint16_t mtu) override;
+#else
   void onConnect(BLEServer* pServer, esp_ble_gatts_cb_param_t *param) override;
   void onMtuChanged(BLEServer* pServer, esp_ble_gatts_cb_param_t* param) override;
+#endif
   void onDisconnect(BLEServer* pServer) override;
 
   // BLECharacteristicCallbacks methods
+#if defined(CONFIG_NIMBLE_ENABLED)
+  void onWrite(BLECharacteristic *pCharacteristic, ble_gap_conn_desc *desc) override;
+#else
   void onWrite(BLECharacteristic* pCharacteristic, esp_ble_gatts_cb_param_t* param) override;
+#endif
 
 public:
   SerialBLEInterface() {

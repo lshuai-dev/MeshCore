@@ -72,7 +72,7 @@ bool format_frequency_item(const biz::IBizFacade &biz, int index, char *buffer, 
 
 _lv_obj_t *RepeatModeOverlay::createRoot(_lv_obj_t *parent)
 {
-    return ht_obj_create(parent, meta_id::RepeatModeOverlayRoot);
+    return ht_semantic_create(&ht_repeat_mode_overlay_class, parent);
 }
 
 _lv_obj_t *RepeatModeOverlay::create(_lv_obj_t *parent)
@@ -83,7 +83,7 @@ _lv_obj_t *RepeatModeOverlay::create(_lv_obj_t *parent)
     setHeaderText("Repeat frequency");
     setFooterText(operation_hint::kRepeatMode);
 
-    _lv_obj_t *const list = ht_obj_create(contentHost(), meta_id::RepeatModeList);
+    _lv_obj_t *const list = ht_semantic_create(&ht_repeat_mode_list_class, contentHost());
     if (!list)
         return nullptr;
     lv_obj_set_width(list, lv_pct(100));
@@ -97,13 +97,13 @@ _lv_obj_t *RepeatModeOverlay::create(_lv_obj_t *parent)
 #if LV_USE_ROLLER == 0
 #error "HELTEC_V4_R8_TFT repeat mode overlay requires LV_USE_ROLLER=1"
 #endif
-    _touch_roller = ht_roller_create(list, meta_id::RepeatModeRoller);
+    _touch_roller = ht_roller_create(list);
     if (!_touch_roller)
         return nullptr;
     lv_obj_set_width(_touch_roller, lv_pct(100));
     lv_obj_add_event_cb(_touch_roller, onRollerEvent, LV_EVENT_CLICKED, this);
 #else
-    if (!_roller.create(list, group()))
+    if (!_roller.create(list, group(), &ht_repeat_mode_roller_class))
         return nullptr;
     lv_obj_add_flag(_roller.root(), LV_OBJ_FLAG_EVENT_BUBBLE);
 #endif
@@ -118,8 +118,7 @@ _lv_obj_t *RepeatModeOverlay::create(_lv_obj_t *parent)
         }
 
 #if !defined(HELTEC_V4_R8_TFT)
-        _lv_obj_t *const button =
-            _roller.addItem(label, meta_id::RepeatModeItem, meta_id::RepeatModeItemLabel);
+        _lv_obj_t *const button = _roller.addItem(label);
         if (!button)
             return nullptr;
         _frequency_buttons[_frequency_count] = button;

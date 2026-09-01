@@ -1,7 +1,6 @@
 #pragma once
 
 #include "geo_point.hpp"
-#include "map_panel_ids.hpp"
 #include "map_prefs.hpp"
 #include "ui/core/biz_facade.hpp"
 

@@ -3,12 +3,6 @@
 #include <Arduino.h>
 #include <SPI.h>
 #include <lvgl.h>
-
-#if defined(CONFIG_IDF_TARGET_ESP32C6) && RADIOCORE_NV3001B_USE_SOFTWARE_SPI
-#include <soc/gpio_reg.h>
-#include <soc/soc.h>
-#endif
-
 #if !RADIOCORE_HAS_NV3001B_DISPLAY
 #error "NV3001B display support is not enabled for this Radio Core target."
 #endif
@@ -92,14 +86,26 @@ constexpr InitCommand kInitCommands[] = {
 #undef NV_CMD1
 #undef NV_CMD2
 
-#if !RADIOCORE_NV3001B_USE_SOFTWARE_SPI
-#if RADIOCORE_NV3001B_USE_ESP32_SPI
+// ---------- 硬件 SPI 总线对象 ----------
+#if defined(RADIOCORE_BOARD_RC32)
+SPIClass s_display_spi(FSPI);
+#elif defined(RADIOCORE_BOARD_RC52)
+/*
+ * Adafruit nRF52 SPIClass maps every constructor pin through
+ * g_ADigitalPinMap and cannot accept -1. The NV3001B is write-only, so this
+ * valid, otherwise unused Arduino pin is only a framework compatibility
+ * placeholder; the configured display MISO remains disabled.
+ */
+constexpr uint8_t kNrf52SpiUnusedMisoPlaceholder = 12U;
+static_assert(RADIOCORE_NV3001B_MISO < 0,
+              "The RC52 NV3001B display must not configure a MISO pin");
+SPIClass s_display_spi(NRF_SPIM3, kNrf52SpiUnusedMisoPlaceholder,
+                       RADIOCORE_NV3001B_SCK, RADIOCORE_NV3001B_MOSI);
+#elif defined(ARDUINO_ARCH_ESP32) && defined(RADIOCORE_NV3001B_SPI_HOST)
 SPIClass s_display_spi(RADIOCORE_NV3001B_SPI_HOST);
 #else
-SPIClass &s_display_spi = RADIOCORE_NV3001B_SPI_INSTANCE;
+SPIClass s_display_spi;
 #endif
-#endif
-
 LV_ATTRIBUTE_FAST_MEM LV_ATTRIBUTE_MEM_ALIGN static lv_color_t
     s_draw_buffer[kDrawBufferPixels];
 static lv_disp_draw_buf_t s_draw_buf;
@@ -108,54 +114,10 @@ static bool s_hw_inited = false;
 static bool s_disp_registered = false;
 static bool s_backlight_on = false;
 
-#if defined(CONFIG_IDF_TARGET_ESP32C6) && RADIOCORE_NV3001B_USE_SOFTWARE_SPI
-static_assert(RADIOCORE_NV3001B_SCK >= 0 && RADIOCORE_NV3001B_SCK < 32,
-              "The register SPI path requires an SCK pin below GPIO32.");
-static_assert(RADIOCORE_NV3001B_MOSI >= 0 && RADIOCORE_NV3001B_MOSI < 32,
-              "The register SPI path requires a MOSI pin below GPIO32.");
-
-constexpr uint32_t kSckPinMask = 1UL << RADIOCORE_NV3001B_SCK;
-constexpr uint32_t kMosiPinMask = 1UL << RADIOCORE_NV3001B_MOSI;
-
-template <uint8_t kBit>
-inline __attribute__((always_inline)) void write_software_spi_bit(uint8_t value)
-{
-    const uint32_t level_mask = 0U - ((value >> kBit) & 1U);
-    REG_WRITE(GPIO_OUT_W1TS_REG, level_mask & kMosiPinMask);
-    REG_WRITE(GPIO_OUT_W1TC_REG, ~level_mask & kMosiPinMask);
-    REG_WRITE(GPIO_OUT_W1TS_REG, kSckPinMask);
-    REG_WRITE(GPIO_OUT_W1TC_REG, kSckPinMask);
-}
-
-inline __attribute__((always_inline)) void write_software_spi_byte(uint8_t value)
-{
-    write_software_spi_bit<7>(value);
-    write_software_spi_bit<6>(value);
-    write_software_spi_bit<5>(value);
-    write_software_spi_bit<4>(value);
-    write_software_spi_bit<3>(value);
-    write_software_spi_bit<2>(value);
-    write_software_spi_bit<1>(value);
-    write_software_spi_bit<0>(value);
-}
-#endif
-
+// ---------- 硬件 SPI 传输函数 ----------
 inline __attribute__((always_inline)) void write_transport_byte(uint8_t value)
 {
-#if RADIOCORE_NV3001B_USE_SOFTWARE_SPI
-#if defined(CONFIG_IDF_TARGET_ESP32C6)
-    write_software_spi_byte(value);
-#else
-    for (uint8_t mask = 0x80; mask != 0U; mask >>= 1U)
-    {
-        digitalWrite(RADIOCORE_NV3001B_MOSI, (value & mask) != 0U ? HIGH : LOW);
-        digitalWrite(RADIOCORE_NV3001B_SCK, HIGH);
-        digitalWrite(RADIOCORE_NV3001B_SCK, LOW);
-    }
-#endif
-#else
     s_display_spi.transfer(value);
-#endif
 }
 
 bool write_transport_bytes(const uint8_t *data, size_t data_length)
@@ -186,18 +148,14 @@ void write_rgb565_row(const lv_color_t *pixels, int32_t width)
 
 void begin_write()
 {
-#if !RADIOCORE_NV3001B_USE_SOFTWARE_SPI
     s_display_spi.beginTransaction(SPISettings(kSpiFrequency, MSBFIRST, SPI_MODE0));
-#endif
     digitalWrite(RADIOCORE_NV3001B_CS, LOW);
 }
 
 void end_write()
 {
     digitalWrite(RADIOCORE_NV3001B_CS, HIGH);
-#if !RADIOCORE_NV3001B_USE_SOFTWARE_SPI
     s_display_spi.endTransaction();
-#endif
 }
 
 void write_command(uint8_t command)
@@ -238,14 +196,11 @@ void begin_transport()
     pinMode(RADIOCORE_NV3001B_CS, OUTPUT);
     digitalWrite(RADIOCORE_NV3001B_DC, HIGH);
     digitalWrite(RADIOCORE_NV3001B_CS, HIGH);
-#if RADIOCORE_NV3001B_USE_SOFTWARE_SPI
-    pinMode(RADIOCORE_NV3001B_SCK, OUTPUT);
-    pinMode(RADIOCORE_NV3001B_MOSI, OUTPUT);
-    digitalWrite(RADIOCORE_NV3001B_SCK, LOW);
-    digitalWrite(RADIOCORE_NV3001B_MOSI, LOW);
-#elif defined(ARDUINO_ARCH_ESP32)
+#if defined(ARDUINO_ARCH_ESP32)
     s_display_spi.begin(RADIOCORE_NV3001B_SCK, RADIOCORE_NV3001B_MISO,
                         RADIOCORE_NV3001B_MOSI, RADIOCORE_NV3001B_CS);
+#elif defined(RADIOCORE_BOARD_RC52)
+    s_display_spi.begin();
 #else
     s_display_spi.setPins(RADIOCORE_NV3001B_MISO, RADIOCORE_NV3001B_SCK,
                           RADIOCORE_NV3001B_MOSI);
@@ -269,16 +224,27 @@ void reset_panel()
 void initialize_panel()
 {
     reset_panel();
+
+    begin_write();
     for (const InitCommand &entry : kInitCommands)
     {
-        write_command_data(entry.command, entry.data, entry.data_length);
+        write_command(entry.command);
+        (void)write_transport_bytes(entry.data, entry.data_length);
     }
+    end_write();
+
     delay(120);
     const uint8_t color_mode = 0x05;
-    write_command_data(0x3A, &color_mode, 1);
-    write_command_data(0x29, nullptr, 0);
-    write_command_data(0x20, nullptr, 0);
+
+    begin_write();
+    write_command(0x3A);
+    write_transport_byte(color_mode);
+    write_command(0x29);
+    end_write();
+
     delay(10);
+
+    write_command_data(0x20, nullptr, 0);
 }
 
 void set_panel_rotation_and_color_order()

@@ -1,10 +1,10 @@
 #if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
 
 #include "find_friend_screen.hpp"
+#include "screen_widget_classes.hpp"
 #include "ui/app/ui_theme.hpp"
 #include "ui/core/ht_container.hpp"
 #include "ui/core/ht_meta_data.hpp"
-#include "ui/core/ht_meta_data_internal.hpp"
 #include "ui/core/ui_deferred_queue.hpp"
 #include "ui/core/ht_event.h"
 #include "ui/theme/ui_widget_theme.hpp"
@@ -113,11 +113,11 @@ bool cycle_dropdown(_lv_obj_t *dropdown, uint32_t key)
 
 _lv_obj_t *FindFriendScreen::addSwitchRow(const char *title, _lv_obj_t **out_switch)
 {
-    _lv_obj_t *row = ht_container_create(_right_column, meta_id::FindFriendSettingRow);
+    _lv_obj_t *row = ht_container_create(_right_column);
     if (!row)
         return nullptr;
     configure_row(row, LV_FLEX_ALIGN_SPACE_BETWEEN);
-    _lv_obj_t *label = ht_label_create(row, meta_id::FindFriendSettingLabel, title);
+    _lv_obj_t *label = ht_label_create(row, title);
     configure_label(label, LV_SIZE_CONTENT);
     _lv_obj_t *sw = ht_switch_create(row);
     if (out_switch)
@@ -135,13 +135,13 @@ _lv_obj_t *FindFriendScreen::addDropdownRow(ChoiceRow &choice, const char *title
                                             const char *options)
 {
     choice = ChoiceRow{};
-    choice.row = ht_container_create(_right_column, meta_id::FindFriendSettingRow);
+    choice.row = ht_container_create(_right_column);
     if (!choice.row)
         return nullptr;
     configure_row(choice.row, LV_FLEX_ALIGN_START);
-    choice.label = ht_label_create(choice.row, meta_id::FindFriendSettingLabel, title);
+    choice.label = ht_label_create(choice.row, title);
     configure_label(choice.label, LV_SIZE_CONTENT);
-    choice.dropdown = ht_dropdown_create(choice.row, meta_id::FindFriendDropdown);
+    choice.dropdown = ht_dropdown_create(choice.row);
     if (!choice.dropdown)
         return choice.row;
 
@@ -172,11 +172,11 @@ _lv_obj_t *FindFriendScreen::addDropdownRow(ChoiceRow &choice, const char *title
 
 _lv_obj_t *FindFriendScreen::addActionRow(const char *title, Action action)
 {
-    _lv_obj_t *row = ht_container_create(_right_column, meta_id::FindFriendActionRow);
+    _lv_obj_t *row = ht_container_create(_right_column);
     if (!row)
         return nullptr;
     configure_row(row, LV_FLEX_ALIGN_START);
-    _lv_obj_t *label = ht_label_create(row, meta_id::FindFriendActionLabel, title);
+    _lv_obj_t *label = ht_label_create(row, title);
     configure_label(label, lv_pct(100));
     lv_obj_add_flag(row, LV_OBJ_FLAG_CLICKABLE);
     bindControl(row);
@@ -710,8 +710,6 @@ void FindFriendScreen::realignDropdownList(_lv_obj_t *dropdown)
     if (width > 0)
         lv_obj_set_width(list, width);
     lv_obj_set_scrollbar_mode(list, LV_SCROLLBAR_MODE_OFF);
-    detail::set_meta_id(list, meta_id::FindFriendDropdownList);
-    ui_widget_theme_apply(list);
     ui_theme_match_dropdown_list_padding(dropdown, list);
     _lv_obj_t *const viewport = tile();
     ui_dropdown_fit_list_to_viewport(dropdown, viewport ? viewport : _root, _root);

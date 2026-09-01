@@ -54,7 +54,7 @@ inline const RadioParamPreset &radioParamPreset(int index)
         { "Portugal 433", 433.375f, 9, 6, 62.5f },
         { "Portugal 868", 869.618f, 7, 6, 62.5f },
         { "Switzerland", 869.618f, 8, 8, 62.5f },
-        { "USA/Canada (Recommended)", 910.525f, 7, 5, 62.5f },
+        { "USA/Canada (Rec)", 910.525f, 7, 5, 62.5f },
         { "Vietnam (Narrow)", 920.250f, 8, 5, 62.5f },
     };
     if (index < 0 || index >= kRadioParamPresetCount)
@@ -84,8 +84,6 @@ inline const char *radioParamPresetDropdownName(int index)
     const char *name = radioParamPresetName(index);
     if (!name)
         return "";
-    if (strcmp(name, "USA/Canada (Recommended)") == 0)
-        return "USA/Canada (Rec)";
     return name;
 }
 

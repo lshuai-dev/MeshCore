@@ -19,8 +19,7 @@ typedef struct
 
 extern const lv_obj_class_t ht_selector_view_class;
 
-lv_obj_t *ht_selector_view_create(lv_obj_t *parent, uint16_t id = HT_META_ID_UNSET,
-                                   void *user_data = nullptr);
+lv_obj_t *ht_selector_view_create(lv_obj_t *parent, void *user_data = nullptr);
 
 } // namespace heltec::meshcore::ui
 

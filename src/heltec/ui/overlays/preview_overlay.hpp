@@ -12,16 +12,6 @@ struct _lv_timer_t;
 namespace heltec::meshcore::ui
 {
 
-namespace meta_id
-{
-constexpr uint16_t PreviewOverlayRoot = ht_meta_id(MetaIdScope::Overlay, 0x01);
-constexpr uint16_t PreviewMetadataRow = ht_meta_id(MetaIdScope::Overlay, 0x20);
-constexpr uint16_t PreviewTitle = ht_meta_id(MetaIdScope::Overlay, 0x21);
-constexpr uint16_t PreviewAge = ht_meta_id(MetaIdScope::Overlay, 0x22);
-constexpr uint16_t PreviewOrigin = ht_meta_id(MetaIdScope::Overlay, 0x23);
-constexpr uint16_t PreviewText = ht_meta_id(MetaIdScope::Overlay, 0x24);
-} // namespace meta_id
-
 class PreviewOverlay : public FramedOverlay
 {
   public:

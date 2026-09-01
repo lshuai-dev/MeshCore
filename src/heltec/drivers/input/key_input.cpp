@@ -1,7 +1,5 @@
 #include "key_input.hpp"
 
-#include "btn_debug.hpp"
-
 #include <lvgl.h>
 
 namespace heltec::meshcore::dal::key_input
@@ -60,7 +58,6 @@ static bool enqueue_key(uint32_t key, KeyDelivery delivery)
         return false;
     if (s_queue_count >= kQueueCapacity)
     {
-        BTN_UI_LOG("key_input queue full; drop key=0x%lX", (unsigned long)key);
         return false;
     }
     s_queue[s_queue_tail].key = key;
@@ -97,7 +94,6 @@ static void read_cb(lv_indev_drv_t *drv, lv_indev_data_t *data)
 
     if (s_state == DeliveryState::PulseRelease)
     {
-        BTN_UI_LOG("key_input release key=0x%lX", (unsigned long)s_current_key);
         data->state = LV_INDEV_STATE_RELEASED;
         s_release_wait_requested = true;
         s_state = DeliveryState::WaitPhysicalRelease;
@@ -118,7 +114,6 @@ static void read_cb(lv_indev_drv_t *drv, lv_indev_data_t *data)
         data->state = LV_INDEV_STATE_RELEASED;
         if (!pressed)
         {
-            BTN_UI_LOG("key_input release barrier done key=0x%lX", (unsigned long)s_current_key);
             s_state = DeliveryState::Idle;
             data->continue_reading = s_queue_count > 0;
         }
@@ -133,8 +128,6 @@ static void read_cb(lv_indev_drv_t *drv, lv_indev_data_t *data)
         QueuedKey queued;
         if (dequeue_key(queued))
         {
-            BTN_UI_LOG("key_input press key=0x%lX delivery=%u", (unsigned long)queued.key,
-                       (unsigned)queued.delivery);
             s_current_key = queued.key;
             data->key = s_current_key;
             data->state = LV_INDEV_STATE_PRESSED;
@@ -159,7 +152,6 @@ static void read_cb(lv_indev_drv_t *drv, lv_indev_data_t *data)
         return;
     }
 
-    BTN_UI_LOG("key_input tracked release key=0x%lX", (unsigned long)s_current_key);
     data->state = LV_INDEV_STATE_RELEASED;
     s_state = DeliveryState::Idle;
     data->continue_reading = s_queue_count > 0;

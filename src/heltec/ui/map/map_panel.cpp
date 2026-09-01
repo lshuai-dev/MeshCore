@@ -6,6 +6,7 @@
 #include "ui/app/ui_theme.hpp"
 #include "ui/core/biz_facade.hpp"
 #include "ui/core/ht_meta_data.hpp"
+#include "ui/core/ui_semantic_classes.hpp"
 #include "ui/theme/ui_widget_theme.hpp"
 
 #include <Arduino.h>
@@ -73,7 +74,7 @@ int32_t wrapped_tile_delta(uint32_t tile, uint32_t start, uint32_t world_tiles)
 
 lv_obj_t *make_pin(lv_obj_t *parent, const char *text, lv_color_t color)
 {
-    lv_obj_t *o = ht_obj_create(parent, meta_id::MapMarker);
+    lv_obj_t *o = ht_semantic_create(&ht_map_marker_class, parent);
     if (!o)
         return nullptr;
     lv_obj_set_size(o, 14, 14);
@@ -82,7 +83,7 @@ lv_obj_t *make_pin(lv_obj_t *parent, const char *text, lv_color_t color)
     lv_obj_clear_flag(o, LV_OBJ_FLAG_SCROLLABLE | LV_OBJ_FLAG_CLICKABLE);
     lv_obj_add_flag(o, LV_OBJ_FLAG_HIDDEN);
     ui_map_marker_apply_color(o, color);
-    if (lv_obj_t *label = ht_label_create(o, meta_id::MapMarkerLabel, text))
+    if (lv_obj_t *label = ht_label_create(o, text))
     {
         lv_obj_align(label, LV_ALIGN_CENTER, 0, 0);
     }
@@ -191,14 +192,14 @@ bool MapPanel::createTileSlot(int idx)
     if (t.root)
         return true;
 
-    t.root = ht_obj_create(_tile_layer, meta_id::MapTile);
+    t.root = ht_semantic_create(&ht_map_tile_class, _tile_layer);
     if (!t.root)
         return false;
     lv_obj_set_size(t.root, map::kTileSizePx, map::kTileSizePx);
     lv_obj_clear_flag(t.root, LV_OBJ_FLAG_SCROLLABLE | LV_OBJ_FLAG_CLICKABLE);
     lv_obj_add_flag(t.root, LV_OBJ_FLAG_HIDDEN);
 
-    t.img = ht_img_create(t.root, meta_id::MapTileImage);
+    t.img = ht_img_create(t.root);
     if (!t.img)
     {
         lv_obj_del(t.root);
@@ -209,7 +210,7 @@ bool MapPanel::createTileSlot(int idx)
     lv_obj_set_pos(t.img, 0, 0);
     lv_obj_clear_flag(t.img, LV_OBJ_FLAG_SCROLLABLE | LV_OBJ_FLAG_CLICKABLE);
     lv_obj_add_flag(t.img, LV_OBJ_FLAG_HIDDEN);
-    t.placeholder = ht_label_create(t.root, meta_id::MapTilePlaceholder);
+    t.placeholder = ht_label_create(t.root);
     if (t.placeholder)
     {
         lv_obj_set_width(t.placeholder, map::kTileSizePx - 8);
@@ -255,13 +256,13 @@ bool MapPanel::ensureMarkerSlot(int idx)
     if (m.root)
         return true;
 
-    m.root = ht_obj_create(_marker_layer, meta_id::MapMarker);
+    m.root = ht_semantic_create(&ht_map_marker_class, _marker_layer);
     if (!m.root)
         return false;
     lv_obj_set_size(m.root, 14, 14);
     lv_obj_clear_flag(m.root, LV_OBJ_FLAG_SCROLLABLE | LV_OBJ_FLAG_CLICKABLE);
     lv_obj_add_flag(m.root, LV_OBJ_FLAG_HIDDEN);
-    m.label = ht_label_create(m.root, meta_id::MapMarkerLabel, "?");
+    m.label = ht_label_create(m.root, "?");
     if (!m.label)
     {
         lv_obj_del(m.root);
@@ -313,9 +314,9 @@ void MapPanel::attach(_lv_obj_t *viewport)
     _markers_built = 0;
     _tile_build_failed = false;
     _marker_build_failed = false;
-    _tile_layer = ht_obj_create(_viewport, meta_id::MapTileLayer);
-    _range_layer = ht_obj_create(_viewport, meta_id::MapRangeLayer);
-    _marker_layer = ht_obj_create(_viewport, meta_id::MapMarkerLayer);
+    _tile_layer = ht_semantic_create(&ht_map_layer_class, _viewport);
+    _range_layer = ht_semantic_create(&ht_map_layer_class, _viewport);
+    _marker_layer = ht_semantic_create(&ht_map_layer_class, _viewport);
     if (!_tile_layer || !_range_layer || !_marker_layer)
     {
         if (_tile_layer)
@@ -349,14 +350,14 @@ void MapPanel::attach(_lv_obj_t *viewport)
 
     for (int i = 0; i < kRangeRingCount; ++i)
     {
-        _range_rings[i] = ht_obj_create(_range_layer, meta_id::MapRangeRing);
+        _range_rings[i] = ht_obj_create(_range_layer);
         if (_range_rings[i])
         {
             lv_obj_clear_flag(_range_rings[i], LV_OBJ_FLAG_SCROLLABLE | LV_OBJ_FLAG_CLICKABLE);
             lv_obj_add_flag(_range_rings[i], LV_OBJ_FLAG_HIDDEN);
             ui_map_range_ring_apply_opa(_range_rings[i], (lv_opa_t)(LV_OPA_COVER - (i * 18)));
         }
-        _range_labels[i] = ht_label_create(_range_layer, meta_id::MapRangeLabel);
+        _range_labels[i] = ht_label_create(_range_layer);
         if (_range_labels[i])
         {
             lv_label_set_text_static(_range_labels[i], kRangeLabels[i]);

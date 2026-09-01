@@ -5,6 +5,7 @@
 #include "ui/core/ht_meta_data.hpp"
 #include "ui/core/ht_meta_data_internal.hpp"
 #include "ui/core/ht_event.h"
+#include "ui/core/ui_semantic_classes.hpp"
 
 #include <cstdio>
 #include <cstdlib>
@@ -25,7 +26,7 @@ const lv_obj_class_t ht_keyboard_overlay_class = {
 };
 
 const lv_obj_class_t ht_keyboard_hint_class = {
-    &lv_label_class, nullptr, nullptr,
+    &ht_overlay_bar_class, nullptr, nullptr,
 #if LV_USE_USER_DATA
     nullptr,
 #endif
@@ -55,7 +56,7 @@ const lv_obj_class_t ht_keyboard_matrix_class = {
 _lv_obj_t *KeyboardOverlay::createRoot(_lv_obj_t *parent)
 {
 #if LV_USE_KEYBOARD
-    return detail::create_object(&ht_keyboard_overlay_class, parent, HT_META_ID_UNSET, nullptr);
+    return detail::create_object(&ht_keyboard_overlay_class, parent);
 #else
     (void)parent;
     return nullptr;
@@ -97,7 +98,7 @@ static const lv_btnmatrix_ctrl_t kMessageCompactUpperKbCtrl[] = {
     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 3, 3, 2, 2,
 };
 
-/** Two-row lat/lon pad; row 2 uses hidden spacers so keys stay centered under row 1. */
+/** Two-row lat/lon pad; row 2 uses space keys to center its controls. */
 static const char *kWaypointKbMap[] = {
     "1", "2", "3", "4", "5",  "6",  "7", "8", "9", "0", "\n",
     " ", " ", ".", ",", "<-", "OK", " ", " ", " ", " ", "",
@@ -114,16 +115,16 @@ static const lv_btnmatrix_ctrl_t kWaypointKbCtrl[] = {
     1,
     1,
     1,
-    LV_BTNMATRIX_CTRL_HIDDEN | 1,
-    LV_BTNMATRIX_CTRL_HIDDEN | 1,
+    1,
+    1,
     2,
     2,
     2,
     2,
-    LV_BTNMATRIX_CTRL_HIDDEN | 1,
-    LV_BTNMATRIX_CTRL_HIDDEN | 1,
-    LV_BTNMATRIX_CTRL_HIDDEN | 1,
-    LV_BTNMATRIX_CTRL_HIDDEN | 1,
+    1,
+    1,
+    1,
+    1,
 };
 
 void install_message_compact_keyboard_map(lv_obj_t *kb)
@@ -435,6 +436,8 @@ void KeyboardOverlay::on_keyboard_value_pre(lv_event_t *e)
     }
     if (txt[0] == ' ' && txt[1] == '\0')
     {
+        if (self->_textarea)
+            lv_textarea_add_char(self->_textarea, ' ');
         reset_keyboard_interaction(kb);
         lv_event_stop_processing(e);
         return;
@@ -537,20 +540,20 @@ bool KeyboardOverlay::ensureContent()
         return false;
     if (_keyboard)
         return true;
-    _hint = detail::create_object(&ht_keyboard_hint_class, _root, HT_META_ID_UNSET, nullptr);
+    _hint = detail::create_object(&ht_keyboard_hint_class, _root);
     if (!_hint)
         return false;
     lv_label_set_long_mode(_hint, LV_LABEL_LONG_CLIP);
     lv_snprintf(_title_text, sizeof(_title_text), "#broadcast");
     lv_label_set_text_static(_hint, _title_text);
-    _textarea = detail::create_object(&ht_keyboard_editor_class, _root, HT_META_ID_UNSET, nullptr);
+    _textarea = detail::create_object(&ht_keyboard_editor_class, _root);
     if (!_textarea)
         return false;
     lv_textarea_set_one_line(_textarea, false);
     lv_textarea_set_max_length(_textarea, kMaxText);
     lv_textarea_set_text_buffer(_textarea, _text_buffer, sizeof(_text_buffer));
     lv_obj_set_scrollbar_mode(_textarea, LV_SCROLLBAR_MODE_OFF);
-    _keyboard = detail::create_object(&ht_keyboard_matrix_class, _root, HT_META_ID_UNSET, nullptr);
+    _keyboard = detail::create_object(&ht_keyboard_matrix_class, _root);
     if (!_keyboard)
         return false;
     lv_keyboard_set_textarea(_keyboard, _textarea);

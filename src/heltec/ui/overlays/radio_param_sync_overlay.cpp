@@ -4,6 +4,7 @@
 #include "heltec/ui/core/biz_facade.hpp"
 #include "ui/core/ht_meta_data.hpp"
 #include "ui/core/ht_selector_view.hpp"
+#include "ui/core/ui_semantic_classes.hpp"
 #include "ui/core/operation_hints.hpp"
 #include "ui/core/ht_event.h"
 #include "ui/theme/ui_widget_theme.hpp"
@@ -15,7 +16,7 @@ namespace heltec::meshcore::ui
 
 _lv_obj_t *RadioParamSyncOverlay::createRoot(_lv_obj_t *parent)
 {
-    return ht_selector_view_create(parent, meta_id::RadioParamSyncOverlayRoot);
+    return ht_semantic_create(&ht_radio_sync_overlay_class, parent);
 }
 
 namespace
@@ -41,7 +42,7 @@ _lv_obj_t *RadioParamSyncOverlay::create(lv_obj_t *parent)
     setHeaderText("Radio param preset");
     setFooterText(operation_hint::kRadioPreset);
 
-    _list = ht_obj_create(contentHost(), meta_id::RadioParamSyncList);
+    _list = ht_semantic_create(&ht_radio_sync_list_class, contentHost());
     if (!_list)
         return nullptr;
     lv_obj_set_width(_list, lv_pct(100));
@@ -57,7 +58,7 @@ _lv_obj_t *RadioParamSyncOverlay::create(lv_obj_t *parent)
 #if LV_USE_ROLLER == 0
 #error "HELTEC_V4_R8_TFT radio preset overlay requires LV_USE_ROLLER=1"
 #endif
-    _roller = ht_roller_create(_list, meta_id::RadioParamSyncRoller);
+    _roller = ht_roller_create(_list);
     if (!_roller)
         return nullptr;
     lv_obj_set_width(_roller, lv_pct(100));
@@ -93,7 +94,7 @@ _lv_obj_t *RadioParamSyncOverlay::create(lv_obj_t *parent)
 #else
     for (uint8_t i = 0; i < _count; i++)
     {
-        lv_obj_t *row = ht_label_create(_list, meta_id::RadioParamSyncRow);
+        lv_obj_t *row = ht_label_create(_list);
         if (!row)
             return nullptr;
         lv_obj_set_width(row, lv_pct(100));

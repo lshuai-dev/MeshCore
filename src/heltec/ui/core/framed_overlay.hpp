@@ -14,6 +14,11 @@ class FramedOverlay : public AbstractOverlay
   public:
     struct Options
     {
+        Options(bool header = true, bool footer = true)
+            : has_header(header), has_footer(footer)
+        {
+        }
+
         bool has_header = true;
         bool has_footer = true;
     };

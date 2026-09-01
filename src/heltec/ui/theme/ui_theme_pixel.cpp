@@ -1,18 +1,11 @@
 #include "ui_theme_pixel.hpp"
 
-#include "ui/app/ui_app_ids.hpp"
 #include "ui/app/ui_behavior_profile.hpp"
 #include "ui/app/ui_theme.hpp"
 #include "ui/core/ht_meta_data.hpp"
 #include "ui/menus/context_menu.hpp"
 #include "ui/navigation/ui_navigator.hpp"
-#include "ui/screens/find_friend_screen_ids.hpp"
-#include "ui/screens/gps_screen.hpp"
-#include "ui/screens/radio_screen.hpp"
-#include "ui/screens/system_screen.hpp"
 #include "ui/theme/ui_widget_theme.hpp"
-#include "ui/widgets/button_roller.hpp"
-#include "ui/widgets/top_pane.hpp"
 
 #include <lvgl.h>
 
@@ -27,6 +20,11 @@ static lv_style_t s_switch_indicator;
 static lv_style_t s_switch_indicator_checked;
 static lv_style_t s_switch_knob;
 static lv_style_t s_widget_radius;
+static lv_style_t s_cascading_page_style;
+static lv_style_t s_cascading_item_style;
+static lv_style_t s_cascading_item_selected_style;
+static lv_style_t s_cascading_label_style;
+static lv_style_t s_cascading_label_selected_style;
 static bool s_styles_ready = false;
 
 static lv_color_t s_color_fg;
@@ -68,32 +66,37 @@ static const UiBehaviorProfile kPixelBehaviorProfile = {
     { 5000, 560, 380, 4, 2 },
 };
 
+#if HELTEC_UI_INPUT_TOUCH
+static const UiThemeProfile kPixelThemeProfile = {
+    { 8, 10, 22, 8, 32, 12 },
+    { 8, 1, 3, 18 },
+    { 10, 5, 24, 14, 10 },
+};
+#else
+static const UiThemeProfile kPixelNarrowThemeProfile = {
+    { 6, 8, 22, 0, 25, 0 },
+    { 12, 1, 3, 6 },
+    { 8, 5, 22, 12, 4 },
+};
+static const UiThemeProfile kPixelWideThemeProfile = {
+    { 6, 8, 22, 0, 25, 0 },
+    { 10, 1, 3, 18 },
+    { 8, 5, 22, 12, 4 },
+};
+#endif
+
 static void initDeviceStyles(lv_disp_t *disp)
 {
     ui_set_behavior_profile(&kPixelBehaviorProfile);
 
 #if HELTEC_UI_INPUT_TOUCH
-    ui_widget_theme_set_app_frame_style({ 8, 10, 10, 0, 22, 8, 32, 12 });
-    ui_widget_theme_set_top_pane_style({ 10, 10, 5, 24, 14, 10 });
+    (void)disp;
+    ui_widget_theme_configure(kPixelThemeProfile);
 #else
-    ui_widget_theme_set_app_frame_style({ 6, 8, 8, 0, 22, 0, 25, 0 });
-    ui_widget_theme_set_top_pane_style({ 8, 8, 5, 22, 12, 4 });
-#endif
-
     const bool wide_display = disp && lv_disp_get_hor_res(disp) >= 200;
-    if (HELTEC_UI_INPUT_TOUCH)
-    {
-        ui_widget_theme_set_context_menu_style({ 8, 1, 1, 1, 3, 8, 18 });
-    }
-    else
-    {
-        ui_widget_theme_set_context_menu_style(
-            wide_display ? UiContextMenuStyleConfig{ 10, 1, 1, 1, 3, 8, 18 }
-                         : UiContextMenuStyleConfig{ 12, 1, 1, 1, 3, 8, 6 });
-    }
-    ui_widget_theme_set_quick_ping_style({ 104 });
-    ui_widget_theme_set_navigation_style({ 2, 3, 6, 0, 18, 8, 36, 2 });
-    ui_widget_theme_set_button_roller_style({ 0, 2, 12 });
+    ui_widget_theme_configure(wide_display ? kPixelWideThemeProfile
+                                           : kPixelNarrowThemeProfile);
+#endif
 }
 
 static void styleSetBorderFrame(lv_style_t *st)
@@ -120,6 +123,36 @@ static void initWidgetStyles()
     s_color_border = ui_color_panel_border();
     s_color_on = ui_color_success();
 
+    lv_style_init(&s_cascading_page_style);
+    lv_style_set_width(&s_cascading_page_style, lv_pct(100));
+    lv_style_set_height(&s_cascading_page_style, lv_pct(100));
+    lv_style_set_pad_all(&s_cascading_page_style, 0);
+    lv_style_set_pad_row(&s_cascading_page_style, 0);
+    lv_style_set_border_width(&s_cascading_page_style, 0);
+    lv_style_set_outline_width(&s_cascading_page_style, 0);
+
+    lv_style_init(&s_cascading_item_style);
+    lv_style_set_height(&s_cascading_item_style, 12);
+    lv_style_set_pad_hor(&s_cascading_item_style, 4);
+    lv_style_set_pad_ver(&s_cascading_item_style, 2);
+    lv_style_set_bg_opa(&s_cascading_item_style, LV_OPA_TRANSP);
+
+    lv_style_init(&s_cascading_item_selected_style);
+    lv_style_set_bg_color(&s_cascading_item_selected_style, ui_color_highlight_bg());
+    lv_style_set_bg_opa(&s_cascading_item_selected_style, LV_OPA_COVER);
+    lv_style_set_text_color(&s_cascading_item_selected_style, ui_color_highlight_fg());
+
+    lv_style_init(&s_cascading_label_style);
+    lv_style_set_text_color(&s_cascading_label_style, ui_color_fg());
+
+    lv_style_init(&s_cascading_label_selected_style);
+    lv_style_set_text_color(&s_cascading_label_selected_style, ui_color_highlight_fg());
+
+    ui_widget_theme_set_cascading_menu_styles(
+        {&s_cascading_page_style, &s_cascading_item_style,
+         &s_cascading_item_selected_style, &s_cascading_label_style,
+         &s_cascading_label_selected_style});
+
     lv_style_init(&s_switch_main);
     styleSetBorderFrame(&s_switch_main);
 #if !HELTEC_UI_INPUT_TOUCH
@@ -134,10 +167,10 @@ static void initWidgetStyles()
     lv_style_init(&s_switch_main_focus);
     styleSetBorderFrame(&s_switch_main_focus);
 #if !HELTEC_UI_INPUT_TOUCH
-    lv_style_set_border_width(&s_switch_main_focus, 2);
+    lv_style_set_border_width(&s_switch_main_focus, 1);
 #endif
-    lv_style_set_border_color(&s_switch_main_focus, s_color_fg);
-    lv_style_set_bg_color(&s_switch_main_focus, ui_color_highlight_bg());
+    lv_style_set_border_color(&s_switch_main_focus, ui_color_highlight_fg());
+    lv_style_set_bg_color(&s_switch_main_focus, ui_color_switch_bg());
     lv_style_set_bg_opa(&s_switch_main_focus, LV_OPA_COVER);
 
     lv_style_init(&s_switch_indicator);

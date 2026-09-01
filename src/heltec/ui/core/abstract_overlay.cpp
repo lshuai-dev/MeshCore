@@ -1,13 +1,14 @@
 #include "abstract_overlay.hpp"
 
 #include "ht_meta_data.hpp"
+#include "ui_semantic_classes.hpp"
 
 namespace heltec::meshcore::ui
 {
 
 _lv_obj_t *AbstractOverlay::createRoot(_lv_obj_t *parent)
 {
-    return ht_obj_create(parent, meta_id::OverlayRoot);
+    return ht_semantic_create(&ht_overlay_root_class, parent);
 }
 
 _lv_obj_t *AbstractOverlay::create(_lv_obj_t *parent)

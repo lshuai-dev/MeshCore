@@ -10,13 +10,6 @@ class IBizFacade;
 namespace heltec::meshcore::ui
 {
 
-namespace meta_id
-{
-constexpr uint16_t HomeIdLabel = ht_meta_id(MetaIdScope::Screen, 0x20);
-constexpr uint16_t HomeMessageLabel = ht_meta_id(MetaIdScope::Screen, 0x21);
-constexpr uint16_t HomeStatusLabel = ht_meta_id(MetaIdScope::Screen, 0x22);
-} // namespace meta_id
-
 class HomeScreen : public AbstractScreen
 {
   public:
@@ -33,7 +26,6 @@ class HomeScreen : public AbstractScreen
     _lv_obj_t *create(_lv_obj_t *parent) override;
 
   private:
-    _lv_obj_t *createRoot(_lv_obj_t *parent) override;
     void onAppStateChanged(const AppStateEvent &event) override;
     void onSurfaceRefresh() override;
     void refreshSnapshot();
