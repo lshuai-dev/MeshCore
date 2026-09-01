@@ -41,6 +41,7 @@ struct Config
     uint32_t debounce_ms = 30;
     uint32_t multi_click_window_ms = 350;
     uint32_t long_press_ms = 1000;
+    bool stable_level_debounce = false;
     ButtonConfig buttons[MOMENTARY_BUTTON_MAX];
 };
 

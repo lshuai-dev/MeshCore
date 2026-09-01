@@ -119,7 +119,7 @@ bool UiApp::initNavigationPane(_lv_obj_t *parent)
 #if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
         { static_cast<uint8_t>(eScreenId::Compass), _scrCompass.title(), _scrCompass.icon(),
           false },
-#else
+#elif UI_INCLUDE_GPS_SCREEN
         { static_cast<uint8_t>(eScreenId::GPS), _scrGPS.title(), _scrGPS.icon(), false },
 #endif
 #if defined(ENV_INCLUDE_MAP) && ENV_INCLUDE_MAP
@@ -139,7 +139,9 @@ bool UiApp::initNavigationPane(_lv_obj_t *parent)
         { static_cast<uint8_t>(eScreenId::FindFriend), _scrFindFriend.title(),
           _scrFindFriend.icon(), false },
 #endif
+#if UI_INCLUDE_GPS_SCREEN
         { static_cast<uint8_t>(eScreenId::GPS), _scrGPS.title(), _scrGPS.icon(), false },
+#endif
 #if defined(ENV_INCLUDE_MAP) && ENV_INCLUDE_MAP
         { static_cast<uint8_t>(eScreenId::Tracker), _scrTracker.title(), _scrTracker.icon(),
           false },

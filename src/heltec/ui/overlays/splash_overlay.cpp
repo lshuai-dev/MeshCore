@@ -4,6 +4,9 @@
 #include "heltec/ui/images.h"
 #include "ui/core/ht_meta_data.hpp"
 #include "ui/core/ui_semantic_classes.hpp"
+#if defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213
+#include "heltec/drivers/display/e213_lvgl_port.hpp"
+#endif
 
 #include <lvgl.h>
 #include <string.h>
@@ -37,6 +40,10 @@ bool SplashOverlay::create(_lv_obj_t *parent)
     lv_obj_set_flex_flow(_root, LV_FLEX_FLOW_COLUMN);
     lv_obj_set_flex_align(_root, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
     lv_obj_clear_flag(_root, LV_OBJ_FLAG_SCROLLABLE);
+#if defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213
+    lv_obj_set_style_bg_color(_root, lv_color_white(), LV_PART_MAIN);
+    lv_obj_set_style_bg_opa(_root, LV_OPA_COVER, LV_PART_MAIN);
+#endif
 
     _logo = ht_img_create(_root);
     if (!_logo)
@@ -47,6 +54,9 @@ bool SplashOverlay::create(_lv_obj_t *parent)
     lv_img_set_zoom(_logo, LV_IMG_ZOOM_NONE);
 #else
     lv_img_set_src(_logo, &icon_meshcore_log_img);
+#endif
+#if defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213
+    lv_obj_set_style_img_recolor_opa(_logo, LV_OPA_TRANSP, LV_PART_MAIN);
 #endif
 
     _ver = ht_label_create(_root);
@@ -75,8 +85,14 @@ bool SplashOverlay::create(_lv_obj_t *parent)
     lv_disp_t *disp = lv_disp_get_default();
     if (disp)
     {
+#if defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213
+        lv_obj_update_layout(_root);
+        lv_obj_invalidate(_root);
+        heltec::meshcore::dal::e213::commitBootFrame("splash", true);
+#else
         lv_timer_handler();
         lv_refr_now(disp);
+#endif
     }
 
     return true;

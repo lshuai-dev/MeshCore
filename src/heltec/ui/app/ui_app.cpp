@@ -20,6 +20,9 @@
 #include "ui/navigation/ui_navigator.hpp"
 #include "ui/overlays/splash_overlay.hpp"
 #include "ui/theme/ui_widget_theme.hpp"
+#if defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213
+#include "heltec/drivers/display/e213_lvgl_port.hpp"
+#endif
 
 #include <Arduino.h>
 #include <cstring>
@@ -88,7 +91,9 @@ UiApp::UiApp(biz::IBizFacade &biz, heltec::meshcore::power::PowerMgr &power)
       _scrCompass(_biz, "Compass", &icon_compass_img),
       _scrFindFriend(_biz, "Find Friend", &icon_findfriend_img),
 #endif
+#if UI_INCLUDE_GPS_SCREEN
       _scrGPS(_biz, "GPS", &icon_gps_img),
+#endif
 #if defined(ENV_INCLUDE_MAP) && ENV_INCLUDE_MAP
       _scrTracker(_biz, "Tracker", &icon_map_img),
 #endif
@@ -107,7 +112,10 @@ UiApp::UiApp(biz::IBizFacade &biz, heltec::meshcore::power::PowerMgr &power)
 #endif
       ,
       _previewOvl(_biz), _alertOvl(_biz), _confirmOvl(_biz), _radioParamSyncOvl(_biz),
-      _repeatModeOvl(_biz), _sendMessageOvl(_biz), _keyboardOvl(_biz)
+      _repeatModeOvl(_biz), _sendMessageOvl(_biz)
+#if UI_INCLUDE_KEYBOARD_OVERLAY
+      , _keyboardOvl(_biz)
+#endif
 #if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
       ,
       _calibrationOvl(_biz)
@@ -405,7 +413,9 @@ void UiApp::init()
     _confirmOvl.setEventTarget(_frame_root);
     _radioParamSyncOvl.setEventTarget(_frame_root);
     _repeatModeOvl.setEventTarget(_frame_root);
+#if UI_INCLUDE_KEYBOARD_OVERLAY
     _keyboardOvl.setEventTarget(_frame_root);
+#endif
     _sendMessageOvl.setEventTarget(_frame_root);
 #if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
     _calibrationOvl.setEventTarget(_frame_root);
@@ -429,6 +439,10 @@ void UiApp::init()
     }
 #endif
     _inited = true;
+#if defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213
+    splash.hide();
+    heltec::meshcore::dal::e213::requestRefresh("initial-frame");
+#endif
     if (_tileview)
     {
         lv_obj_t *tile = lv_tileview_get_tile_act(_tileview);
@@ -607,6 +621,7 @@ void UiApp::handleFrameEvent(lv_event_t *e)
         break;
     case EventType::MESSAGE_KEYBOARD_OPEN:
     {
+#if UI_INCLUDE_KEYBOARD_OVERLAY
         auto *req = static_cast<const UiMessageKeyboardRequest *>(event->payload);
         if (!req || !_surfaces.isActive(&_sendMessageOvl))
             break;
@@ -621,6 +636,7 @@ void UiApp::handleFrameEvent(lv_event_t *e)
                 app->presentMessageKeyboard();
             },
             this);
+#endif
         break;
     }
     case EventType::WAYPOINT_KEYBOARD_OPEN:
@@ -651,6 +667,9 @@ void UiApp::handleFrameEvent(lv_event_t *e)
     default:
         break;
     }
+#if defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213
+    heltec::meshcore::dal::e213::requestRefresh("surface-event");
+#endif
 }
 
 void UiApp::handleAppStateEvent(const AppStateEvent &event)
@@ -659,6 +678,9 @@ void UiApp::handleAppStateEvent(const AppStateEvent &event)
     {
         _top_pane.setBatteryStatus(event.battery.millivolts, event.battery.percent);
     }
+#if defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213
+    heltec::meshcore::dal::e213::requestDeferredRefresh("app-state");
+#endif
 }
 
 void UiApp::handlePowerChanged(heltec::meshcore::power::PowerChangeMask changes,
@@ -699,7 +721,9 @@ bool UiApp::initScreens(_lv_obj_t *content)
     screens[screen_count++] = &_scrCompass;
     screens[screen_count++] = &_scrFindFriend;
 #endif
+#if UI_INCLUDE_GPS_SCREEN
     screens[screen_count++] = &_scrGPS;
+#endif
 #if defined(ENV_INCLUDE_MAP) && ENV_INCLUDE_MAP
     screens[screen_count++] = &_scrTracker;
 #endif
@@ -823,6 +847,9 @@ void UiApp::onBacklightTurnedOn()
 
 void UiApp::setDisplayAutoOffMs(uint32_t ms)
 {
+#if !UI_DISPLAY_BACKLIGHT
+    ms = 0;
+#endif
     if (BacklightPolicy::mode() == BacklightMode::ManualToggle)
     {
         ms = 0;

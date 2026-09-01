@@ -5,6 +5,7 @@
 #include "ui/core/app_state_ui_dispatcher.hpp"
 #include "ui/core/biz_facade.hpp"
 #include "ui/core/input_host.hpp"
+#include "ui/core/ui_capabilities.hpp"
 #include "ui/core/surface_manager.hpp"
 #include "ui/core/ht_event.h"
 #include "ui/core/ui_host.hpp"
@@ -28,13 +29,17 @@
 #include "ui/screens/compass_screen.hpp"
 #include "ui/screens/find_friend_screen.hpp"
 #endif
+#if UI_INCLUDE_GPS_SCREEN
 #include "ui/screens/gps_screen.hpp"
+#endif
 #if defined(ENV_INCLUDE_MAP) && ENV_INCLUDE_MAP
 #include "ui/screens/tracker_screen.hpp"
 #endif
 #include "ui/overlays/alert_overlay.hpp"
 #include "ui/overlays/confirm_overlay.hpp"
+#if UI_INCLUDE_KEYBOARD_OVERLAY
 #include "ui/overlays/keyboard_overlay.hpp"
+#endif
 #include "ui/overlays/preview_overlay.hpp"
 #include "ui/overlays/radio_param_sync_overlay.hpp"
 #include "ui/overlays/repeat_mode_overlay.hpp"
@@ -209,7 +214,9 @@ class UiApp final : public IUiHost, public InputHost
     CompassScreen _scrCompass;
     FindFriendScreen _scrFindFriend;
 #endif
+#if UI_INCLUDE_GPS_SCREEN
     GPSScreen _scrGPS;
+#endif
 #if defined(ENV_INCLUDE_MAP) && ENV_INCLUDE_MAP
     TrackerScreen _scrTracker;
 #endif
@@ -233,7 +240,9 @@ class UiApp final : public IUiHost, public InputHost
     RadioParamSyncOverlay _radioParamSyncOvl;
     RepeatModeOverlay _repeatModeOvl;
     SendMessageOverlay _sendMessageOvl;
+#if UI_INCLUDE_KEYBOARD_OVERLAY
     KeyboardOverlay _keyboardOvl;
+#endif
 #if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
     CalibrationOverlay _calibrationOvl;
 #endif

@@ -8,6 +8,8 @@
 #include "st7735_port.hpp"
 #elif defined(HELTEC_DISPLAY_ST7789)
 #include "st7789_port.hpp"
+#elif defined(HELTEC_DISPLAY_E213)
+#include "e213_lvgl_port.hpp"
 #endif
 
 namespace heltec::meshcore::dal::display_port
@@ -22,6 +24,8 @@ bool init()
     return st7735::init();
 #elif defined(HELTEC_DISPLAY_ST7789)
     return st7789::init();
+#elif defined(HELTEC_DISPLAY_E213)
+    return e213::init();
 #else
     return false;
 #endif
@@ -37,6 +41,8 @@ void deinit()
     st7735::deinit();
 #elif defined(HELTEC_DISPLAY_ST7789)
     st7789::deinit();
+#elif defined(HELTEC_DISPLAY_E213)
+    e213::deinit();
 #endif
 }
 
@@ -50,6 +56,8 @@ void setBacklightOn(bool on)
     st7735::setBacklightOn(on);
 #elif defined(HELTEC_DISPLAY_ST7789)
     st7789::setBacklightOn(on);
+#elif defined(HELTEC_DISPLAY_E213)
+    e213::setBacklightOn(on);
 #else
     (void)on;
 #endif
@@ -65,6 +73,8 @@ bool isBacklightOn()
     return st7735::isBacklightOn();
 #elif defined(HELTEC_DISPLAY_ST7789)
     return st7789::isBacklightOn();
+#elif defined(HELTEC_DISPLAY_E213)
+    return e213::isBacklightOn();
 #else
     return true;
 #endif
@@ -74,6 +84,8 @@ void reinitPanelAfterSharedReset()
 {
 #if defined(HELTEC_DISPLAY_ST7789)
     st7789::reinitPanelAfterSharedReset();
+#elif defined(HELTEC_DISPLAY_E213)
+    e213::reinitPanelAfterSharedReset();
 #endif
 }
 

@@ -5,6 +5,9 @@
 #include "ui/core/ht_event.h"
 #include "ui/core/ht_container.hpp"
 #include "ui/core/ht_scroll_view.hpp"
+#if defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213
+#include "heltec/drivers/display/e213_lvgl_port.hpp"
+#endif
 
 namespace heltec::meshcore::ui
 {
@@ -233,6 +236,18 @@ void AbstractScreen::addFocusItem(_lv_obj_t *object, _lv_obj_t *frame, bool prop
     bindFramePointerFocus(object, focus_frame);
     addFocusObject(object);
     lv_obj_add_flag(object, LV_OBJ_FLAG_CLICK_FOCUSABLE);
+#if defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213
+    lv_obj_add_event_cb(
+        object,
+        [](lv_event_t *event)
+        {
+            if (lv_event_get_code(event) == LV_EVENT_FOCUSED)
+            {
+                heltec::meshcore::dal::e213::requestSelectionRefresh("screen-selection");
+            }
+        },
+        LV_EVENT_FOCUSED, nullptr);
+#endif
     _focus_items[_focus_item_count++] = { object, focus_frame };
 }
 

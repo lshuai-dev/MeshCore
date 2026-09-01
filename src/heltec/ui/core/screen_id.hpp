@@ -1,4 +1,5 @@
 #pragma once
+#include "ui_capabilities.hpp"
 #include <stdint.h>
 
 namespace heltec::meshcore::ui
@@ -13,7 +14,9 @@ enum class eScreenId : uint8_t
     Compass,
     FindFriend,
 #endif
+#if UI_INCLUDE_GPS_SCREEN
     GPS,
+#endif
 #if defined(ENV_INCLUDE_MAP) && ENV_INCLUDE_MAP
     Tracker,
 #endif

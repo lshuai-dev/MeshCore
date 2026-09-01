@@ -70,7 +70,9 @@ bool ui_theme_init(lv_disp_t *disp)
 #else
         LV_FONT_DEFAULT;
 #endif
-#if (defined(UI_THEME_SSD1306) && UI_THEME_SSD1306) || LV_COLOR_DEPTH == 1
+#if defined(UI_EINK_DISPLAY) && UI_EINK_DISPLAY
+    return init_ui_mono_flat_theme(disp, ui_font) != nullptr;
+#elif (defined(UI_THEME_SSD1306) && UI_THEME_SSD1306) || LV_COLOR_DEPTH == 1
     return init_ui_ssd1306_theme(disp, ui_font) != nullptr;
 #else
     return init_ui_mono_flat_theme(disp, ui_font) != nullptr;

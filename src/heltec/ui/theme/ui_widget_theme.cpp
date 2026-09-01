@@ -10,12 +10,15 @@
 #include "ui/core/ht_scroll_view.hpp"
 #include "ui/core/screen_id.hpp"
 #include "ui/core/ui_semantic_classes.hpp"
+#include "ui/core/ui_capabilities.hpp"
 #include "ui/menus/context_menu.hpp"
 #include "ui/navigation/ui_navigator.hpp"
 #include "ui/overlays/alert_overlay.hpp"
 #include "ui/overlays/calibration_overlay.hpp"
 #include "ui/overlays/confirm_overlay.hpp"
+#if UI_INCLUDE_KEYBOARD_OVERLAY
 #include "ui/overlays/keyboard_overlay.hpp"
+#endif
 #include "ui/overlays/preview_overlay.hpp"
 #include "ui/overlays/quick_ping_overlay.hpp"
 #include "ui/overlays/radio_param_sync_overlay.hpp"
@@ -2031,6 +2034,7 @@ static bool apply_surface_root_theme(_lv_obj_t *obj)
         return true;
     }
 
+#if UI_INCLUDE_KEYBOARD_OVERLAY
     if (lv_obj_check_type(obj, &ht_keyboard_overlay_class))
     {
         apply_surface_root_common(obj);
@@ -2041,6 +2045,7 @@ static bool apply_surface_root_theme(_lv_obj_t *obj)
                          LV_PART_MAIN | LV_STATE_USER_1);
         return true;
     }
+#endif
 
     if (is_screen_root(obj))
     {
@@ -2614,6 +2619,7 @@ static bool apply_calibration_overlay_child_theme(_lv_obj_t *obj)
     return apply_alert_overlay_child_theme(obj);
 }
 
+#if UI_INCLUDE_KEYBOARD_OVERLAY
 static bool apply_keyboard_overlay_child_theme(_lv_obj_t *obj)
 {
     if (lv_obj_check_type(obj, &ht_keyboard_editor_class))
@@ -2666,6 +2672,7 @@ static bool apply_keyboard_overlay_child_theme(_lv_obj_t *obj)
     }
     return false;
 }
+#endif
 
 static bool apply_radio_param_sync_overlay_child_theme(_lv_obj_t *obj)
 {
@@ -2854,7 +2861,10 @@ static bool apply_overlay_child_theme(_lv_obj_t *obj)
     }
 
     return apply_alert_overlay_child_theme(obj) || apply_calibration_overlay_child_theme(obj) ||
-           apply_confirm_overlay_child_theme(obj) || apply_keyboard_overlay_child_theme(obj) ||
+           apply_confirm_overlay_child_theme(obj) ||
+#if UI_INCLUDE_KEYBOARD_OVERLAY
+           apply_keyboard_overlay_child_theme(obj) ||
+#endif
            apply_preview_overlay_child_theme(obj) ||
            apply_radio_param_sync_overlay_child_theme(obj) ||
            apply_repeat_mode_overlay_child_theme(obj) ||
