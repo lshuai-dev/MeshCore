@@ -8,6 +8,9 @@
 #include "ui/core/operation_hints.hpp"
 #include "ui/core/ht_event.h"
 #include "ui/theme/ui_widget_theme.hpp"
+#if defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213
+#include "heltec/drivers/display/e213_port.hpp"
+#endif
 
 #include <lvgl.h>
 
@@ -297,6 +300,10 @@ void RadioParamSyncOverlay::renderRows()
             lv_obj_clear_state(row, LV_STATE_CHECKED);
         }
     }
+#if defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213
+    lv_obj_invalidate(_list);
+    heltec::meshcore::dal::e213::requestSelectionRefresh("radio-preset-selection");
+#endif
 #endif
 }
 

@@ -31,11 +31,11 @@ void HeltecE213Board::begin() {
     using heltec::meshcore::dal::momentary_button::KeyMap;
 
     Config cnf{};
-    // The side key is easy to bump and its line can produce short transients.
-    // Require a level to remain stable before accepting a press or release.
-    cnf.debounce_ms = 80;
+    // Keep stable-level filtering for line transients, but use a short enough
+    // interval to preserve the press and release edges of a quick triple-click.
+    cnf.debounce_ms = 35;
     cnf.stable_level_debounce = true;
-    cnf.multi_click_window_ms = 350;
+    cnf.multi_click_window_ms = 450;
     cnf.long_press_ms = 1000;
     cnf.buttons[0].pin = E213_LVGL_USER_BUTTON_PIN;
     cnf.buttons[0].pin_mode = INPUT_PULLUP;

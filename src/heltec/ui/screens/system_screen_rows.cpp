@@ -5,6 +5,9 @@
 #include "ui/core/ht_meta_data.hpp"
 #include "ui/core/ui_deferred_queue.hpp"
 #include "ui/theme/ui_widget_theme.hpp"
+#if defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213
+#include "heltec/drivers/display/e213_port.hpp"
+#endif
 
 #include <Arduino.h>
 
@@ -12,6 +15,17 @@ namespace heltec::meshcore::ui
 {
 namespace
 {
+#if defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213
+void request_dropdown_refresh(const char *reason)
+{
+    heltec::meshcore::dal::e213::requestSelectionRefresh(reason);
+}
+#else
+void request_dropdown_refresh(const char *)
+{
+}
+#endif
+
 #if defined(HELTEC_V4_R8_TFT)
 constexpr lv_coord_t kSystemDropdownHeight =
     ui_settings_row_height() - 2 * ui_layout_metrics().row_padding_vertical;
@@ -93,6 +107,7 @@ bool cycle_open_dropdown(_lv_obj_t *dropdown, uint32_t key)
     {
         lv_obj_invalidate(list);
     }
+    request_dropdown_refresh("system-dropdown-selection");
     return true;
 }
 #endif
@@ -217,6 +232,7 @@ void SystemScreen::closeOpenDropdown()
         lv_obj_clear_state(closing, LV_STATE_EDITED);
     if (group())
         lv_group_set_editing(group(), false);
+    request_dropdown_refresh("system-dropdown-close");
 }
 
 void SystemScreen::syncDropdownLayout(_lv_obj_t *dropdown) const
@@ -315,6 +331,7 @@ void SystemScreen::onWidgetKeyPreprocess(lv_event_t *e)
             lv_group_set_editing(self->group(), false);
         if (changed)
             lv_event_send(target, LV_EVENT_VALUE_CHANGED, nullptr);
+        request_dropdown_refresh("system-dropdown-close");
         lv_event_stop_processing(e);
         lv_event_stop_bubbling(e);
         return;

@@ -3,6 +3,9 @@
 #include "ui/core/screen_id.hpp"
 #include "ui/core/ui_deferred_queue.hpp"
 #include "ui/core/ht_event.h"
+#if defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213
+#include "heltec/drivers/display/e213_port.hpp"
+#endif
 
 #include <Arduino.h>
 
@@ -20,6 +23,9 @@ void UiApp::openNavigationPane()
 
     _navigation.setSelectedIndex(activeTileIndex(), true);
     notifyNavActivity(millis());
+#if defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213
+    heltec::meshcore::dal::e213::beginNavigationSession();
+#endif
     (void)_surfaces.show(&_navigation, true);
 }
 
@@ -99,6 +105,9 @@ void UiApp::closeNavigationPane()
         return;
     _nav_last_activity_ms = 0;
     stopNavigationAutoCommitTimer();
+#if defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213
+    heltec::meshcore::dal::e213::endNavigationSession();
+#endif
     (void)_surfaces.show(&_navigation, false);
     if (AbstractScreen *scr = activeScreen())
     {
@@ -171,6 +180,9 @@ void UiApp::notifyNavActivity(uint32_t now_ms)
     _nav_last_activity_ms = now_ms;
     restartNavigationAutoCommitTimer();
     notifyDisplayActivity(now_ms);
+#if defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213
+    heltec::meshcore::dal::e213::navigationActivity();
+#endif
 }
 
 void UiApp::ensureTileKeypadFocus()
@@ -238,6 +250,9 @@ void UiApp::closeNavigationImmediate()
 {
     _nav_last_activity_ms = 0;
     stopNavigationAutoCommitTimer();
+#if defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213
+    heltec::meshcore::dal::e213::endNavigationSession();
+#endif
     (void)_surfaces.show(&_navigation, false);
 }
 

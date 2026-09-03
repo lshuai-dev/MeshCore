@@ -87,11 +87,20 @@ bool radial_navigation_icon_uses_recolor(const lv_img_dsc_t *image)
     case LV_IMG_CF_ALPHA_2BIT:
     case LV_IMG_CF_ALPHA_4BIT:
     case LV_IMG_CF_ALPHA_8BIT:
+        return true;
     case LV_IMG_CF_INDEXED_1BIT:
     case LV_IMG_CF_INDEXED_2BIT:
     case LV_IMG_CF_INDEXED_4BIT:
     case LV_IMG_CF_INDEXED_8BIT:
+#if defined(UI_EINK_DISPLAY) && UI_EINK_DISPLAY && \
+    defined(UI_NAV_USE_SCREEN_ICONS) && UI_NAV_USE_SCREEN_ICONS
+        // E213 indexed assets already contain their black/white palette.
+        // Recoloring both palette entries at full opacity turns the image
+        // into a solid block whenever navigation falls back to a screen icon.
+        return false;
+#else
         return true;
+#endif
     default:
         return false;
     }

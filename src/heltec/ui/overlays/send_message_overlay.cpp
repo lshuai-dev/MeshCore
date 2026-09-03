@@ -12,6 +12,9 @@
 #include "ui/core/ui_deferred_queue.hpp"
 #include "ui/core/ht_event.h"
 
+#if defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213
+#include "heltec/drivers/display/e213_port.hpp"
+#endif
 #include <cstdio>
 #include <cstring>
 #include <lvgl.h>
@@ -296,6 +299,9 @@ void SendMessageOverlay::renderRows()
             if (_row_objs[i])
                 lv_obj_add_flag(_row_objs[i], LV_OBJ_FLAG_HIDDEN);
         }
+#if defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213
+        heltec::meshcore::dal::e213::requestSelectionRefresh("send-message-selection");
+#endif
         return;
     }
 
@@ -351,6 +357,10 @@ void SendMessageOverlay::renderRows()
 #endif
         }
     }
+#if defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213
+    lv_obj_invalidate(_list_mid);
+    heltec::meshcore::dal::e213::requestSelectionRefresh("send-message-selection");
+#endif
 }
 
 void SendMessageOverlay::sendMessageText(const char *text, bool alert_on_direct_failure)

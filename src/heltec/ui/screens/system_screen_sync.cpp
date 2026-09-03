@@ -1,6 +1,9 @@
 #include "system_screen.hpp"
 #include "ui/app/ui_theme.hpp"
 #include "ui/core/ui_deferred_queue.hpp"
+#if defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213
+#include "heltec/drivers/display/e213_port.hpp"
+#endif
 
 #include <Arduino.h>
 
@@ -8,6 +11,17 @@ namespace heltec::meshcore::ui
 {
 namespace
 {
+#if defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213
+void request_dropdown_refresh(const char *reason)
+{
+    heltec::meshcore::dal::e213::requestSelectionRefresh(reason);
+}
+#else
+void request_dropdown_refresh(const char *)
+{
+}
+#endif
+
 void sync_switch(_lv_obj_t *sw, bool on, bool *syncing)
 {
     if (!sw)
@@ -164,6 +178,7 @@ void SystemScreen::onDropdownStateEvent(lv_event_t *e)
         {
             self->realignDropdownList(dropdown);
         }
+        request_dropdown_refresh("system-dropdown-open");
     }
     else if (code == LV_EVENT_CANCEL)
     {
@@ -172,6 +187,7 @@ void SystemScreen::onDropdownStateEvent(lv_event_t *e)
         lv_obj_clear_state(dropdown, LV_STATE_EDITED);
         if (self->group())
             lv_group_set_editing(self->group(), false);
+        request_dropdown_refresh("system-dropdown-close");
     }
 }
 

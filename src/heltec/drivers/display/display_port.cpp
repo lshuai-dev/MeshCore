@@ -9,7 +9,7 @@
 #elif defined(HELTEC_DISPLAY_ST7789)
 #include "st7789_port.hpp"
 #elif defined(HELTEC_DISPLAY_E213)
-#include "e213_lvgl_port.hpp"
+#include "e213_port.hpp"
 #endif
 
 namespace heltec::meshcore::dal::display_port

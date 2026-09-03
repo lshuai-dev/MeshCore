@@ -39,11 +39,10 @@ _lv_obj_t *ConfirmOverlay::create(_lv_obj_t *parent)
     lv_label_set_long_mode(_body, LV_LABEL_LONG_WRAP);
 
 #if defined(HELTEC_HAS_TOUCH) && HELTEC_HAS_TOUCH
-    const lv_coord_t button_height = compact ? 20 : LV_DPX(42);
     _lv_obj_t *const button_row = actionsHost();
     if (!button_row)
         return nullptr;
-    lv_obj_set_size(button_row, lv_pct(100), button_height);
+    lv_obj_set_height(button_row, LV_SIZE_CONTENT);
     lv_obj_set_flex_flow(button_row, LV_FLEX_FLOW_ROW);
     lv_obj_set_flex_align(button_row, LV_FLEX_ALIGN_SPACE_BETWEEN, LV_FLEX_ALIGN_CENTER,
                           LV_FLEX_ALIGN_CENTER);
@@ -55,7 +54,7 @@ _lv_obj_t *ConfirmOverlay::create(_lv_obj_t *parent)
             ht_semantic_button_create(&ht_confirm_button_class, button_row);
         if (!button)
             return;
-        lv_obj_set_height(button, lv_pct(100));
+        lv_obj_set_height(button, LV_SIZE_CONTENT);
         lv_obj_set_width(button, lv_pct(46));
         lv_obj_add_event_cb(button, onButtonClicked, LV_EVENT_CLICKED, this);
         _lv_obj_t *const label =

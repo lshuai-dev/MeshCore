@@ -6,6 +6,9 @@
 #include "ui/core/ht_meta_data_internal.hpp"
 #include "ui/core/ht_event.h"
 #include "ui/core/ui_semantic_classes.hpp"
+#if defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213
+#include "heltec/drivers/display/e213_port.hpp"
+#endif
 
 #include <cstdio>
 #include <cstdlib>
@@ -146,7 +149,7 @@ void install_waypoint_keyboard_map(lv_obj_t *kb)
 bool compact_keyboard_display()
 {
     lv_disp_t *disp = lv_disp_get_default();
-    return disp && lv_disp_get_ver_res(disp) <= 80;
+    return disp && lv_disp_get_ver_res(disp) <= 122;
 }
 
 lv_keyboard_mode_t message_keyboard_mode()
@@ -206,6 +209,52 @@ void reset_keyboard_interaction(lv_obj_t *kb)
     lv_obj_clear_state(kb, LV_STATE_PRESSED | LV_STATE_CHECKED);
     lv_obj_invalidate(kb);
 }
+
+/* LVGL's built-in text maps label the space key with a literal space.  That
+ * is functional but invisible on the e-paper display, so expose it as SP. */
+void label_message_space_key(lv_obj_t *kb)
+{
+    constexpr size_t kMaxKeyboardMapEntries = 64;
+    static const char *s_visible_space_map[kMaxKeyboardMapEntries] = {};
+
+    if (!kb)
+        return;
+
+    const char **map = lv_keyboard_get_map_array(kb);
+    if (!map)
+        return;
+
+    size_t index = 0;
+    bool has_space_key = false;
+    while (index < (kMaxKeyboardMapEntries - 1))
+    {
+        const char *label = map[index];
+        s_visible_space_map[index] = label;
+        if (!label || label[0] == '\0')
+            break;
+        if (strcmp(label, " ") == 0)
+        {
+            s_visible_space_map[index] = "SP";
+            has_space_key = true;
+        }
+        ++index;
+    }
+
+    if (index >= (kMaxKeyboardMapEntries - 1))
+        s_visible_space_map[kMaxKeyboardMapEntries - 1] = "";
+    if (has_space_key)
+        lv_btnmatrix_set_map(kb, s_visible_space_map);
+}
+
+#if defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213
+void request_keyboard_refresh(lv_obj_t *root, const char *reason)
+{
+    if (!root || lv_obj_has_flag(root, LV_OBJ_FLAG_HIDDEN))
+        return;
+    lv_obj_invalidate(root);
+    heltec::meshcore::dal::e213::requestSelectionRefresh(reason);
+}
+#endif
 
 bool parse_waypoint_text(const char *txt, double &lat, double &lon, const char **error)
 {
@@ -389,14 +438,22 @@ void KeyboardOverlay::on_keyboard_value_pre(lv_event_t *e)
         {
             lv_keyboard_set_mode(kb, compact_keyboard_display() ? LV_KEYBOARD_MODE_USER_3
                                                                   : LV_KEYBOARD_MODE_TEXT_UPPER);
+            label_message_space_key(kb);
             reset_keyboard_interaction(kb);
+#if defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213
+            request_keyboard_refresh(self->_root, "keyboard-layout");
+#endif
             lv_event_stop_processing(e);
         }
         else if (strcmp(txt, "abc") == 0)
         {
             lv_keyboard_set_mode(kb, compact_keyboard_display() ? LV_KEYBOARD_MODE_USER_2
                                                                   : LV_KEYBOARD_MODE_TEXT_LOWER);
+            label_message_space_key(kb);
             reset_keyboard_interaction(kb);
+#if defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213
+            request_keyboard_refresh(self->_root, "keyboard-layout");
+#endif
             lv_event_stop_processing(e);
         }
         else if (strcmp(txt, "SP") == 0)
@@ -404,6 +461,9 @@ void KeyboardOverlay::on_keyboard_value_pre(lv_event_t *e)
             if (self->_textarea)
                 lv_textarea_add_char(self->_textarea, ' ');
             reset_keyboard_interaction(kb);
+#if defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213
+            request_keyboard_refresh(self->_root, "keyboard-value");
+#endif
             lv_event_stop_processing(e);
         }
         return;
@@ -431,6 +491,9 @@ void KeyboardOverlay::on_keyboard_value_pre(lv_event_t *e)
         if (self->_textarea)
             lv_textarea_del_char(self->_textarea);
         reset_keyboard_interaction(kb);
+#if defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213
+        request_keyboard_refresh(self->_root, "keyboard-value");
+#endif
         lv_event_stop_processing(e);
         return;
     }
@@ -439,6 +502,9 @@ void KeyboardOverlay::on_keyboard_value_pre(lv_event_t *e)
         if (self->_textarea)
             lv_textarea_add_char(self->_textarea, ' ');
         reset_keyboard_interaction(kb);
+#if defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213
+        request_keyboard_refresh(self->_root, "keyboard-value");
+#endif
         lv_event_stop_processing(e);
         return;
     }
@@ -446,6 +512,9 @@ void KeyboardOverlay::on_keyboard_value_pre(lv_event_t *e)
     {
         lv_textarea_add_text(self->_textarea, txt);
         reset_keyboard_interaction(kb);
+#if defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213
+        request_keyboard_refresh(self->_root, "keyboard-value");
+#endif
         lv_event_stop_processing(e);
     }
 }
@@ -494,8 +563,24 @@ void KeyboardOverlay::on_keyboard_key_post(lv_event_t *e)
     const uint32_t key = lv_event_get_key(e);
     if (key == LV_KEY_LEFT || key == LV_KEY_RIGHT || key == LV_KEY_UP || key == LV_KEY_DOWN)
     {
+#if defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213
+        if (self->_root && !lv_obj_has_flag(self->_root, LV_OBJ_FLAG_HIDDEN))
+        {
+            lv_obj_invalidate(self->_keyboard);
+            heltec::meshcore::dal::e213::requestSelectionRefresh("keyboard-selection");
+        }
+#else
         reset_keyboard_interaction(self->_keyboard);
+#endif
     }
+#if defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213
+    else if (key == LV_KEY_ENTER && self->_root &&
+             !lv_obj_has_flag(self->_root, LV_OBJ_FLAG_HIDDEN))
+    {
+        lv_obj_invalidate(self->_root);
+        heltec::meshcore::dal::e213::requestSelectionRefresh("keyboard-value");
+    }
+#endif
 }
 
 void KeyboardOverlay::on_keyboard_events(lv_event_t *e)
@@ -518,6 +603,9 @@ void KeyboardOverlay::on_keyboard_events(lv_event_t *e)
     else if (code == LV_EVENT_VALUE_CHANGED)
     {
         reset_keyboard_interaction(self->_keyboard);
+#if defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213
+        request_keyboard_refresh(self->_root, "keyboard-value");
+#endif
     }
 }
 
@@ -561,6 +649,7 @@ bool KeyboardOverlay::ensureContent()
     install_message_compact_keyboard_map(_keyboard);
     install_waypoint_keyboard_map(_keyboard);
     lv_keyboard_set_mode(_keyboard, message_keyboard_mode());
+    label_message_space_key(_keyboard);
     reset_keyboard_interaction(_keyboard);
     lv_obj_add_event_cb(_keyboard, &KeyboardOverlay::on_keyboard_events, LV_EVENT_READY, this);
     lv_obj_add_event_cb(_keyboard, &KeyboardOverlay::on_keyboard_events, LV_EVENT_CANCEL, this);
@@ -592,6 +681,7 @@ bool KeyboardOverlay::prepareMessageInput(const char *title_text)
     lv_label_set_text_static(_hint, _title_text);
     lv_keyboard_set_textarea(_keyboard, _textarea);
     lv_keyboard_set_mode(_keyboard, message_keyboard_mode());
+    label_message_space_key(_keyboard);
     reset_keyboard_interaction(_keyboard);
     apply_message_keyboard_layout(_root, _keyboard, _textarea);
     lv_obj_update_layout(_root);

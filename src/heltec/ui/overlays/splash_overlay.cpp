@@ -5,7 +5,7 @@
 #include "ui/core/ht_meta_data.hpp"
 #include "ui/core/ui_semantic_classes.hpp"
 #if defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213
-#include "heltec/drivers/display/e213_lvgl_port.hpp"
+#include "heltec/drivers/display/e213_port.hpp"
 #endif
 
 #include <lvgl.h>

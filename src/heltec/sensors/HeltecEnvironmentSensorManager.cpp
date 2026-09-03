@@ -10,7 +10,7 @@
 #include "heltec/ui/core/app_state_notifier.hpp"
 #endif
 
-#if defined(ENV_PIN_SDA) && ENV_PIN_SDA >= 0 && defined(ENV_PIN_SCL) && ENV_PIN_SCL >= 0
+#if WIRE_INTERFACES_COUNT > 1
 #define TELEM_WIRE (&Wire1)
 #else
 #define TELEM_WIRE (&Wire)

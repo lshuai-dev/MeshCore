@@ -2,6 +2,7 @@
 
 #include "heltec/ui/app/ui_theme.hpp"
 #include "heltec/ui/core/abstract_menu.hpp"
+#include "heltec/ui/images.h"
 #include "ui/app/ui_behavior_profile.hpp"
 #include "ui/core/ht_meta_data.hpp"
 #include "ui/core/ht_meta_data_internal.hpp"
@@ -436,7 +437,14 @@ bool ContextMenu::registerMenu(const char *title, const lv_img_dsc_t *icon, Abst
     lv_obj_t *im = ht_img_create(btn);
     if (!im)
         return false;
+#if defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213
+    // E213 screen icons contain an opaque black/white palette. Context-menu
+    // recoloring would recolor both entries and turn the image into a solid
+    // square, so use the equivalent alpha-only navigation asset here.
+    lv_img_set_src(im, nav_ring_icon_for(icon));
+#else
     lv_img_set_src(im, icon);
+#endif
     lv_img_set_antialias(im, false);
 
     const lv_coord_t icon_width = static_cast<lv_coord_t>(icon->header.w);

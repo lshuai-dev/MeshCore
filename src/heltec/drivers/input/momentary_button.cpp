@@ -17,7 +17,11 @@ namespace
 static_assert(MOMENTARY_BUTTON_MAX >= 1 && MOMENTARY_BUTTON_MAX <= 4,
               "MOMENTARY_BUTTON_MAX must be 1..4");
 
+#if defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213
+static constexpr uint8_t kEdgeCap = 16;
+#else
 static constexpr uint8_t kEdgeCap = 4;
+#endif
 
 #if defined(ESP_PLATFORM)
 #define BTN_ISR IRAM_ATTR
@@ -30,6 +34,10 @@ struct ButtonState
     int8_t pin = -1;
     uint8_t active_level = 1;
     uint8_t prev = 0;
+#if defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213
+    uint8_t candidate_level = 0;
+    unsigned long candidate_since = 0;
+#endif
     unsigned long down_at = 0;
     unsigned long last_edge_at = 0;
     uint8_t clicks = 0;
@@ -191,6 +199,56 @@ static void attach_irqs()
     s_irq_attached = true;
 }
 
+static void accept_level(ButtonState &button, uint8_t slot, uint8_t level,
+                         unsigned long now)
+{
+    if (level == button.prev)
+        return;
+
+    if (is_pressed(level, button.active_level))
+    {
+        button.down_at = now;
+    }
+    else if (button.down_at > 0)
+    {
+        const unsigned long held = now - button.down_at;
+        if (s_cfg.long_press_ms == 0 || held < s_cfg.long_press_ms)
+        {
+            ++button.clicks;
+            if (HELTEC_BUTTON_MAX_CLICKS >= 3 && button.clicks >= 3)
+            {
+                emit_gesture(slot, ButtonGesture::Triple);
+                button.clicks = 0;
+                button.last_release = 0;
+            }
+            else if (button.clicks > HELTEC_BUTTON_MAX_CLICKS)
+            {
+                emit_gesture(slot, gesture_for_clicks(HELTEC_BUTTON_MAX_CLICKS));
+                button.clicks = 1;
+                button.last_release = now;
+            }
+            else
+            {
+                button.last_release = now;
+            }
+        }
+        else if (button.clicks == 0)
+        {
+            // A complete long press can occur while an E-paper refresh blocks
+            // the UI task. Reconstruct it from the timestamped ISR edges.
+            emit_gesture(slot, ButtonGesture::Long);
+        }
+        else
+        {
+            button.clicks = 0;
+            button.last_release = 0;
+        }
+        button.down_at = 0;
+    }
+
+    button.prev = level;
+}
+
 static void drain_edges(ButtonState &button, uint8_t slot, unsigned long now)
 {
     while (button.edge_head != button.edge_tail)
@@ -208,46 +266,63 @@ static void drain_edges(ButtonState &button, uint8_t slot, unsigned long now)
         }
         button.last_edge_at = edge_at;
 
-        if (is_pressed(level, button.active_level))
-        {
-            button.down_at = edge_at;
-        }
-        else if (button.down_at > 0)
-        {
-            const unsigned long held = edge_at - button.down_at;
-            if (s_cfg.long_press_ms == 0 || held < s_cfg.long_press_ms)
-            {
-                ++button.clicks;
-                if (HELTEC_BUTTON_MAX_CLICKS >= 3 && button.clicks >= 3)
-                {
-                    emit_gesture(slot, ButtonGesture::Triple);
-                    button.clicks = 0;
-                    button.last_release = 0;
-                }
-                else if (button.clicks > HELTEC_BUTTON_MAX_CLICKS)
-                {
-                    emit_gesture(slot, gesture_for_clicks(HELTEC_BUTTON_MAX_CLICKS));
-                    button.clicks = 1;
-                    button.last_release = edge_at;
-                }
-                else
-                {
-                    button.last_release = now;
-                }
-            }
-            button.down_at = 0;
-        }
-
-        button.prev = level;
+        accept_level(button, slot, level, edge_at);
     }
 }
+
+#if defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213
+static void confirm_stable_level(ButtonState &button, uint8_t slot, unsigned long now)
+{
+    // Replay all timestamped candidates. This preserves a complete click even
+    // when panel->update() blocks polling until the GPIO is idle again.
+    while (button.edge_head != button.edge_tail)
+    {
+        const uint8_t index = button.edge_head;
+        const uint8_t level = button.edge_level[index];
+        const unsigned long edge_at = button.edge_at[index];
+        button.edge_head = (uint8_t)((button.edge_head + 1U) % kEdgeCap);
+        if (level == button.candidate_level)
+            continue;
+
+        if (button.candidate_level != button.prev &&
+            (edge_at - button.candidate_since) >= s_cfg.debounce_ms)
+        {
+            accept_level(button, slot, button.candidate_level,
+                         button.candidate_since + s_cfg.debounce_ms);
+        }
+        button.candidate_level = level;
+        button.candidate_since = edge_at;
+    }
+
+    const uint8_t level = (uint8_t)digitalRead((uint8_t)button.pin);
+    if (level != button.candidate_level)
+    {
+        button.candidate_level = level;
+        button.candidate_since = now;
+    }
+    if (button.candidate_level == button.prev)
+        return;
+    if (s_cfg.debounce_ms > 0 && (now - button.candidate_since) < s_cfg.debounce_ms)
+        return;
+
+    accept_level(button, slot, button.candidate_level,
+                 button.candidate_since + s_cfg.debounce_ms);
+}
+#endif
 
 static void tick_button(ButtonState &button, uint8_t slot, unsigned long now)
 {
     if (button.pin < 0)
         return;
 
+#if defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213
+    if (s_cfg.stable_level_debounce)
+        confirm_stable_level(button, slot, now);
+    else
+        drain_edges(button, slot, now);
+#else
     drain_edges(button, slot, now);
+#endif
 
     if (s_cfg.long_press_ms > 0 && button.down_at > 0 &&
         (now - button.down_at) >= s_cfg.long_press_ms)
@@ -304,6 +379,10 @@ static void setup_gpio()
 
         pinMode((uint8_t)button.pin, config.pin_mode);
         button.prev = (uint8_t)digitalRead((uint8_t)button.pin);
+#if defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213
+        button.candidate_level = button.prev;
+        button.candidate_since = millis();
+#endif
     }
 
     attach_irqs();
@@ -312,12 +391,25 @@ static void setup_gpio()
 
 static bool any_button_active()
 {
+#if defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213
+    const unsigned long now = millis();
+#endif
     for (uint8_t i = 0; i < MOMENTARY_BUTTON_MAX; ++i)
     {
-        const int8_t pin = s_buttons[i].pin;
+        ButtonState &button = s_buttons[i];
+        const int8_t pin = button.pin;
         if (pin < 0)
             continue;
-        if (is_pressed((uint8_t)digitalRead((uint8_t)pin), s_buttons[i].active_level))
+#if defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213
+        if (s_cfg.stable_level_debounce)
+            confirm_stable_level(button, i, now);
+        const uint8_t level = s_cfg.stable_level_debounce
+                                  ? button.prev
+                                  : (uint8_t)digitalRead((uint8_t)pin);
+#else
+        const uint8_t level = (uint8_t)digitalRead((uint8_t)pin);
+#endif
+        if (is_pressed(level, button.active_level))
             return true;
     }
     return false;

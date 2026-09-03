@@ -6,7 +6,7 @@
 #include "ui/core/ht_container.hpp"
 #include "ui/core/ht_scroll_view.hpp"
 #if defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213
-#include "heltec/drivers/display/e213_lvgl_port.hpp"
+#include "heltec/drivers/display/e213_port.hpp"
 #endif
 
 namespace heltec::meshcore::ui

@@ -3,7 +3,18 @@
 #define RADIOLIB_STATIC_ONLY 1
 #include <RadioLib.h>
 #include <helpers/radiolib/RadioLibWrappers.h>
-#include <HeltecRadioCoreBoard.h>
+#if defined(RADIOCORE_BOARD_RC52)
+#include <HeltecRadioCoreRC52Board.h>
+using HeltecRadioCoreTargetBoard = HeltecRadioCoreRC52Board;
+#elif defined(RADIOCORE_BOARD_RC32)
+#include <HeltecRadioCoreRC32Board.h>
+using HeltecRadioCoreTargetBoard = HeltecRadioCoreRC32Board;
+#elif defined(RADIOCORE_BOARD_RCC6)
+#include <HeltecRadioCoreRCC6Board.h>
+using HeltecRadioCoreTargetBoard = HeltecRadioCoreRCC6Board;
+#else
+#error "A RadioCore board type must be selected"
+#endif
 #include <helpers/radiolib/CustomSX1262Wrapper.h>
 #include <helpers/AutoDiscoverRTCClock.h>
 #include <helpers/SensorManager.h>
@@ -17,7 +28,7 @@
   #include <helpers/ui/MomentaryButton.h>
 #endif
 
-extern HeltecRadioCoreBoard board;
+extern HeltecRadioCoreTargetBoard board;
 extern WRAPPER_CLASS radio_driver;
 extern AutoDiscoverRTCClock rtc_clock;
 #if defined(HELTEC_SENSOR_MANAGER) && HELTEC_SENSOR_MANAGER

@@ -1,6 +1,9 @@
 #include "ui/app/ui_app.hpp"
 #include "ui/core/ht_event.h"
 #include "ui/core/ui_task.hpp"
+#if defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213
+#include "heltec/drivers/display/e213_port.hpp"
+#endif
 
 #include <Arduino.h>
 
@@ -105,9 +108,10 @@ void UiApp::openPreviewOverlay(uint8_t unread, uint32_t received_ms, const char 
     if (!_inited)
         return;
     _previewOvl.applyContent(unread, received_ms, origin, text);
-    if (_surfaces.isVisible(&_previewOvl))
-        return;
     (void)_surfaces.show(&_previewOvl, true);
+#if defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213
+    heltec::meshcore::dal::e213::requestRefresh("preview-message");
+#endif
 }
 
 void UiApp::closePreviewOverlay()
@@ -126,9 +130,20 @@ void UiApp::openAlertOverlay(const char *text)
     if (_surfaces.isVisible(&_alertOvl))
     {
         (void)_surfaces.show(&_alertOvl, true);
+#if defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213
+        heltec::meshcore::dal::e213::requestRefresh("alert-content");
+#endif
         return;
     }
-    (void)_surfaces.show(&_alertOvl, true);
+    const bool shown = _surfaces.show(&_alertOvl, true);
+#if defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213
+    if (shown)
+    {
+        heltec::meshcore::dal::e213::requestRefresh("alert-visible");
+    }
+#else
+    (void)shown;
+#endif
 }
 
 void UiApp::closeAlertOverlay()
@@ -145,7 +160,17 @@ bool UiApp::openSendMessageOverlay()
         return false;
     if (_surfaces.isVisible(&_sendMessageOvl))
         return true;
-    return _surfaces.show(&_sendMessageOvl, true);
+    const bool shown = _surfaces.show(&_sendMessageOvl, true);
+#if defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213
+    if (shown)
+    {
+        // Arm the panel only after the deferred surface mutation has happened,
+        // so the request waits for the Send Message frame rather than an older
+        // ContextMenu flush cycle.
+        heltec::meshcore::dal::e213::requestRefresh("send-message-visible");
+    }
+#endif
+    return shown;
 }
 
 void UiApp::closeSendMessageOverlay()
@@ -200,7 +225,15 @@ void UiApp::presentMessageKeyboard()
         return;
     if (_surfaces.isVisible(&_keyboardOvl))
         return;
-    (void)_surfaces.show(&_keyboardOvl, true);
+    const bool shown = _surfaces.show(&_keyboardOvl, true);
+#if defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213
+    if (shown)
+    {
+        heltec::meshcore::dal::e213::requestRefresh("keyboard-visible");
+    }
+#else
+    (void)shown;
+#endif
 #endif
 }
 
@@ -213,7 +246,15 @@ void UiApp::openWaypointKeyboard()
         return;
     if (_surfaces.isVisible(&_keyboardOvl))
         return;
-    (void)_surfaces.show(&_keyboardOvl, true);
+    const bool shown = _surfaces.show(&_keyboardOvl, true);
+#if defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213
+    if (shown)
+    {
+        heltec::meshcore::dal::e213::requestRefresh("keyboard-visible");
+    }
+#else
+    (void)shown;
+#endif
 #endif
 }
 

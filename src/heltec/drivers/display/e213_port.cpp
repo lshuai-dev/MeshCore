@@ -1,4 +1,4 @@
-#include "e213_lvgl_port.hpp"
+#include "e213_port.hpp"
 
 #include <Arduino.h>
 #include <heltec-eink-modules.h>
@@ -9,10 +9,10 @@
 #include "target.h"
 
 #ifndef E213_LVGL_FULL_REFRESH_INTERVAL
-#define E213_LVGL_FULL_REFRESH_INTERVAL 20
+#define E213_LVGL_FULL_REFRESH_INTERVAL 0
 #endif
 #ifndef E213_LVGL_STARTUP_FULL_REFRESH
-#define E213_LVGL_STARTUP_FULL_REFRESH 1
+#define E213_LVGL_STARTUP_FULL_REFRESH 0
 #endif
 #ifndef E213_LVGL_REFRESH_QUIET_MS
 #define E213_LVGL_REFRESH_QUIET_MS 150
@@ -32,6 +32,10 @@
 
 namespace heltec::meshcore::dal::e213 {
 namespace {
+
+/* E213 refresh tracing is intentionally disabled in production firmware. */
+#define E213_LOG(...) do { } while (0)
+#define E213_LOG_LINE(...) do { } while (0)
 
 static constexpr int kWidth = 250;
 static constexpr int kHeight = 122;
@@ -122,7 +126,8 @@ static bool isNavigationRefreshReason(const char* reason) {
   if (!reason) return false;
   return strcmp(reason, "nav-open") == 0 ||
          strcmp(reason, "nav-activity") == 0 ||
-         strcmp(reason, "nav-close") == 0;
+         strcmp(reason, "nav-close") == 0 ||
+         strcmp(reason, "keyboard-selection") == 0;
 }
 
 static void clearRefreshRequest() {
@@ -144,7 +149,7 @@ static void settleNavigationFrame(bool physical_update) {
   s_navigation_first_pending = false;
   s_navigation_hold = true;
   s_navigation_commit_completed = true;
-  Serial.printf("[e213][nav] settled frame %s; holding intermediate frames\n",
+  E213_LOG("[e213][nav] settled frame %s; holding intermediate frames\n",
                 physical_update ? "committed" : "unchanged");
 }
 
@@ -171,7 +176,7 @@ static void refreshPanel(const char* reason = "unspecified") {
 
   const FrameDiff frame_diff = calculateFrameDiff();
   if (!s_force_full_refresh && frame_diff.pixels == 0) {
-    Serial.printf("[e213][refresh] skip unchanged reason=%s flushes=%lu\n",
+    E213_LOG("[e213][refresh] skip unchanged reason=%s flushes=%lu\n",
                   reason && *reason ? reason : "unspecified",
                   static_cast<unsigned long>(s_flush_count));
     clearDirtyState();
@@ -205,7 +210,7 @@ static void refreshPanel(const char* reason = "unspecified") {
                                       ? "area"
                                       : (full_refresh ? "interval" : "none"));
   if (interval_full_deferred) {
-    Serial.printf("[e213][maintenance] FULL deferred reason=%s partials=%u\n",
+    E213_LOG("[e213][maintenance] FULL deferred reason=%s partials=%u\n",
                   reason && *reason ? reason : "unspecified",
                   static_cast<unsigned>(s_partial_refreshes));
   }
@@ -221,7 +226,7 @@ static void refreshPanel(const char* reason = "unspecified") {
   const uint32_t interval_ms = s_refresh_count == 0 ? 0 : now_ms - s_last_refresh_ms;
   ++s_refresh_count;
   s_last_refresh_ms = now_ms;
-  Serial.printf("[e213][refresh] #%lu %s reason=%s cause=%s interval=%lums flushes=%lu partials=%u lvgl_area=(%d,%d)-(%d,%d) lvgl_coverage=%lu%% changed=%lu changed_area=(%d,%d)-(%d,%d) changed_coverage=%lu%% maintenance_due=%u nav=%u\n",
+  E213_LOG("[e213][refresh] #%lu %s reason=%s cause=%s interval=%lums flushes=%lu partials=%u lvgl_area=(%d,%d)-(%d,%d) lvgl_coverage=%lu%% changed=%lu changed_area=(%d,%d)-(%d,%d) changed_coverage=%lu%% maintenance_due=%u nav=%u\n",
                 static_cast<unsigned long>(s_refresh_count),
                 full_refresh ? "FULL" : "PARTIAL",
                 reason && *reason ? reason : "unspecified",
@@ -239,7 +244,7 @@ static void refreshPanel(const char* reason = "unspecified") {
                 interval_full_due ? 1U : 0U, navigation_refresh ? 1U : 0U);
   const uint32_t update_started_ms = millis();
   s_panel->update();
-  Serial.printf("[e213][refresh] #%lu done duration=%lums\n",
+  E213_LOG("[e213][refresh] #%lu done duration=%lums\n",
                 static_cast<unsigned long>(s_refresh_count),
                 static_cast<unsigned long>(millis() - update_started_ms));
   if (s_pending_frame && s_committed_frame) {
@@ -268,6 +273,17 @@ static void commitTimerCallback(lv_timer_t* timer) {
     if (timer) lv_timer_pause(timer);
     if (!s_panel_dirty) {
       s_refresh_pending = false;
+      if (s_refresh_request != RefreshRequest::None &&
+          s_lvgl_flush_cycles <= s_refresh_request_after_cycle) {
+        // The semantic request can arrive after an unchanged flush but before
+        // LVGL renders the newly shown surface. Keep it armed so the first
+        // following flush commits that frame instead of losing the request.
+        E213_LOG("[e213][commit] armed waiting-for-flush mode=%s after_cycle=%lu current=%lu\n",
+                      refreshRequestName(s_refresh_request),
+                      static_cast<unsigned long>(s_refresh_request_after_cycle),
+                      static_cast<unsigned long>(s_lvgl_flush_cycles));
+        return;
+      }
       settleNavigationFrame(false);
       clearRefreshRequest();
     }
@@ -308,7 +324,7 @@ static void commitTimerCallback(lv_timer_t* timer) {
   const char* reason = s_refresh_reason[0] ? s_refresh_reason : "unspecified";
   s_refresh_pending = false;
   if (timer) lv_timer_pause(timer);
-  Serial.printf("[e213][commit] mode=%s quiet=%lums age=%lums requests=%lu\n",
+  E213_LOG("[e213][commit] mode=%s quiet=%lums age=%lums requests=%lu\n",
                 refreshRequestName(request), static_cast<unsigned long>(quiet_ms),
                 static_cast<unsigned long>(request_age_ms),
                 static_cast<unsigned long>(s_refresh_request_count));
@@ -339,7 +355,7 @@ static void schedulePanelCommit() {
   }
 #if !E213_LVGL_AUTO_REFRESH
   if (s_refresh_request == RefreshRequest::None) {
-    Serial.printf("[e213][commit] held pending=1 cycles=%lu\n",
+    E213_LOG("[e213][commit] held pending=1 cycles=%lu\n",
                   static_cast<unsigned long>(s_lvgl_flush_cycles));
     lv_timer_pause(s_commit_timer);
     return;
@@ -394,7 +410,7 @@ static void flush(lv_disp_drv_t* driver, const lv_area_t* area, lv_color_t* colo
   // policy decide whether the final flush arms a panel commit.
   if (lv_disp_flush_is_last(driver)) {
     ++s_lvgl_flush_cycles;
-    Serial.printf("[e213][flush] cycle=%lu total=%lu area=(%d,%d)-(%d,%d) changed=%u dirty=%u request=%s hold=%u\n",
+    E213_LOG("[e213][flush] cycle=%lu total=%lu area=(%d,%d)-(%d,%d) changed=%u dirty=%u request=%s hold=%u\n",
                   static_cast<unsigned long>(s_lvgl_flush_cycles),
                   static_cast<unsigned long>(s_lvgl_flush_total),
                   static_cast<int>(area->x1), static_cast<int>(area->y1),
@@ -512,7 +528,7 @@ bool init() {
   }
   s_commit_timer = lv_timer_create(commitTimerCallback, 20U, nullptr);
   if (s_commit_timer) lv_timer_pause(s_commit_timer);
-  Serial.printf("[e213][refresh] policy auto=%u startup_full=%u quiet=%u critical_max=%u deferred=%u full_interval=%u\n",
+  E213_LOG("[e213][refresh] policy auto=%u startup_full=%u quiet=%u critical_max=%u deferred=%u full_interval=%u\n",
                 static_cast<unsigned>(E213_LVGL_AUTO_REFRESH),
                 static_cast<unsigned>(E213_LVGL_STARTUP_FULL_REFRESH),
                 static_cast<unsigned>(E213_LVGL_REFRESH_QUIET_MS),
@@ -593,8 +609,6 @@ bool commitBootFrame(const char* reason, bool prepare_white_partial_baseline) {
   const uint32_t before = s_refresh_count;
 
   if (prepare_white_partial_baseline) {
-    Serial.println("[e213][boot] prepare white PARTIAL baseline");
-
     // Seed both controller image memories with black without activating the
     // panel. The following partial update then has a known black reference and
     // visibly drives every pixel to white without showing an intermediate
@@ -615,9 +629,6 @@ bool commitBootFrame(const char* reason, bool prepare_white_partial_baseline) {
     refreshPanel("splash-baseline");
   }
 
-  Serial.printf("[e213][boot] render and commit PARTIAL reason=%s\n",
-                commit_reason);
-
   // The Splash object is complete and stable here, so bypass the normal quiet
   // window. Waiting for the asynchronous timer would let its stack-owned
   // object be destroyed before the panel ever receives this frame.
@@ -628,8 +639,6 @@ bool commitBootFrame(const char* reason, bool prepare_white_partial_baseline) {
   clearRefreshRequest();
 
   const bool committed = s_refresh_count != before;
-  Serial.printf("[e213][boot] commit reason=%s result=%s\n",
-                commit_reason, committed ? "updated" : "unchanged");
   return committed;
 }
 
@@ -640,7 +649,7 @@ void beginNavigationSession() {
   s_navigation_hold = false;
   s_navigation_final_wait = false;
   s_navigation_commit_completed = false;
-  Serial.println("[e213][nav] begin; next settled frame uses normal refresh policy");
+  E213_LOG_LINE("[e213][nav] begin; next settled frame uses normal refresh policy");
   requestRefresh("nav-open");
 }
 
@@ -651,7 +660,6 @@ void navigationActivity() {
   s_navigation_first_pending = true;
   s_navigation_hold = false;
   s_navigation_commit_completed = false;
-  Serial.println("[e213][nav] activity; coalescing until quiet");
   requestRefresh("nav-activity");
 }
 
@@ -664,7 +672,6 @@ void endNavigationSession() {
   s_navigation_commit_completed = false;
   if (!s_panel_on) return;
   if (s_commit_timer) lv_timer_pause(s_commit_timer);
-  Serial.println("[e213][nav] end; waiting for final LVGL frame");
   requestRefresh("nav-close");
 }
 
@@ -692,12 +699,6 @@ static void queueRefresh(RefreshRequest request, const char* reason) {
              reason && *reason ? reason : "unspecified");
   }
   ++s_refresh_request_count;
-  Serial.printf("[e213][refresh] request mode=%s reason=%s pending=%u dirty=%u after_cycle=%lu coalesced=%lu\n",
-                refreshRequestName(s_refresh_request),
-                s_refresh_reason[0] ? s_refresh_reason : "unspecified",
-                s_refresh_pending ? 1U : 0U, s_panel_dirty ? 1U : 0U,
-                static_cast<unsigned long>(s_refresh_request_after_cycle),
-                static_cast<unsigned long>(s_refresh_request_count));
   // A request made after LVGL's final flush resumes a paused commit. Requests
   // made before the flush are armed by schedulePanelCommit.
   if (s_refresh_pending && s_commit_timer) {
@@ -712,7 +713,7 @@ void requestRefresh(const char* reason) {
 
 void requestSelectionRefresh(const char* reason) {
   if (s_navigation_active) {
-    Serial.printf("[e213][selection] coalesced by navigation reason=%s\n",
+    E213_LOG("[e213][selection] coalesced by navigation reason=%s\n",
                   reason && *reason ? reason : "selection-change");
     return;
   }

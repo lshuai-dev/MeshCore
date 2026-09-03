@@ -4,6 +4,9 @@
 #include "ui/core/ht_meta_data.hpp"
 #include "ui/core/ht_event.h"
 #include "ui/theme/ui_widget_theme.hpp"
+#if defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213
+#include "heltec/drivers/display/e213_port.hpp"
+#endif
 
 #include <cstdio>
 #include <cstring>
@@ -115,7 +118,13 @@ bool CascadingMenu::create(lv_obj_t *menu, const char *title)
                         return;
                     const uint32_t index = lv_obj_get_index(lv_event_get_target(e));
                     if (index < menu->_item_count)
+                    {
                         menu->_focused_index = static_cast<uint8_t>(index);
+#if defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213
+                        heltec::meshcore::dal::e213::requestSelectionRefresh(
+                            "context-menu-selection");
+#endif
+                    }
                 },
                 LV_EVENT_FOCUSED, this);
 

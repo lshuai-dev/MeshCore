@@ -97,10 +97,10 @@ SPIClass s_display_spi(FSPI);
  * placeholder; the configured display MISO remains disabled.
  */
 constexpr uint8_t kNrf52SpiUnusedMisoPlaceholder = 12U;
-static_assert(RADIOCORE_NV3001B_MISO < 0,
+static_assert(PIN_TFT_MISO < 0,
               "The RC52 NV3001B display must not configure a MISO pin");
 SPIClass s_display_spi(NRF_SPIM3, kNrf52SpiUnusedMisoPlaceholder,
-                       RADIOCORE_NV3001B_SCK, RADIOCORE_NV3001B_MOSI);
+                       PIN_TFT_SCL, PIN_TFT_SDA);
 #elif defined(ARDUINO_ARCH_ESP32) && defined(RADIOCORE_NV3001B_SPI_HOST)
 SPIClass s_display_spi(RADIOCORE_NV3001B_SPI_HOST);
 #else
@@ -108,6 +108,8 @@ SPIClass s_display_spi;
 #endif
 LV_ATTRIBUTE_FAST_MEM LV_ATTRIBUTE_MEM_ALIGN static lv_color_t
     s_draw_buffer[kDrawBufferPixels];
+LV_ATTRIBUTE_FAST_MEM LV_ATTRIBUTE_MEM_ALIGN static uint8_t
+    s_transfer_buffer[kDrawBufferPixels * sizeof(lv_color_t)];
 static lv_disp_draw_buf_t s_draw_buf;
 static lv_disp_drv_t s_disp_drv;
 static bool s_hw_inited = false;
@@ -133,36 +135,48 @@ bool write_transport_bytes(const uint8_t *data, size_t data_length)
     return true;
 }
 
-void write_rgb565_row(const lv_color_t *pixels, int32_t width)
+void write_rgb565_pixels(const lv_color_t *pixels, size_t pixel_count)
 {
-    for (int32_t column = 0; column < width; ++column)
+    size_t source_offset = 0U;
+    while (source_offset < pixel_count)
     {
-        uint16_t color = pixels[column].full;
+        const size_t remaining = pixel_count - source_offset;
+        const size_t transfer_pixels = remaining < kDrawBufferPixels
+                                           ? remaining
+                                           : kDrawBufferPixels;
+        for (size_t index = 0U; index < transfer_pixels; ++index)
+        {
+            uint16_t color = pixels[source_offset + index].full;
 #if defined(LV_COLOR_16_SWAP) && (LV_COLOR_16_SWAP != 0)
-        color = static_cast<uint16_t>((color << 8) | (color >> 8));
+            color = static_cast<uint16_t>((color << 8) | (color >> 8));
 #endif
-        write_transport_byte(static_cast<uint8_t>(color >> 8));
-        write_transport_byte(static_cast<uint8_t>(color));
+            const size_t transfer_offset = index * sizeof(color);
+            s_transfer_buffer[transfer_offset] = static_cast<uint8_t>(color >> 8);
+            s_transfer_buffer[transfer_offset + 1U] = static_cast<uint8_t>(color);
+        }
+        s_display_spi.transfer(s_transfer_buffer,
+                               transfer_pixels * sizeof(uint16_t));
+        source_offset += transfer_pixels;
     }
 }
 
 void begin_write()
 {
     s_display_spi.beginTransaction(SPISettings(kSpiFrequency, MSBFIRST, SPI_MODE0));
-    digitalWrite(RADIOCORE_NV3001B_CS, LOW);
+    digitalWrite(PIN_TFT_CS, LOW);
 }
 
 void end_write()
 {
-    digitalWrite(RADIOCORE_NV3001B_CS, HIGH);
+    digitalWrite(PIN_TFT_CS, HIGH);
     s_display_spi.endTransaction();
 }
 
 void write_command(uint8_t command)
 {
-    digitalWrite(RADIOCORE_NV3001B_DC, LOW);
+    digitalWrite(PIN_TFT_DC, LOW);
     write_transport_byte(command);
-    digitalWrite(RADIOCORE_NV3001B_DC, HIGH);
+    digitalWrite(PIN_TFT_DC, HIGH);
 }
 
 void write_command_data(uint8_t command, const uint8_t *data, size_t data_length)
@@ -175,48 +189,44 @@ void write_command_data(uint8_t command, const uint8_t *data, size_t data_length
 
 void set_panel_power(bool enabled)
 {
-    pinMode(RADIOCORE_NV3001B_ENABLE, OUTPUT);
-    digitalWrite(RADIOCORE_NV3001B_ENABLE,
-                 enabled ? RADIOCORE_NV3001B_ENABLE_ACTIVE
-                         : !RADIOCORE_NV3001B_ENABLE_ACTIVE);
+    pinMode(PIN_TFT_VDD_CTL, OUTPUT);
+    digitalWrite(PIN_TFT_VDD_CTL,
+                 enabled ? PIN_TFT_VDD_CTL_ACTIVE : !PIN_TFT_VDD_CTL_ACTIVE);
 }
 
 void set_panel_backlight(bool enabled)
 {
-    pinMode(RADIOCORE_NV3001B_BACKLIGHT, OUTPUT);
-    digitalWrite(RADIOCORE_NV3001B_BACKLIGHT,
-                 enabled ? RADIOCORE_NV3001B_BACKLIGHT_ACTIVE
-                         : !RADIOCORE_NV3001B_BACKLIGHT_ACTIVE);
+    pinMode(PIN_TFT_LEDA_CTL, OUTPUT);
+    digitalWrite(PIN_TFT_LEDA_CTL,
+                 enabled ? PIN_TFT_LEDA_CTL_ACTIVE : !PIN_TFT_LEDA_CTL_ACTIVE);
     s_backlight_on = enabled;
 }
 
 void begin_transport()
 {
-    pinMode(RADIOCORE_NV3001B_DC, OUTPUT);
-    pinMode(RADIOCORE_NV3001B_CS, OUTPUT);
-    digitalWrite(RADIOCORE_NV3001B_DC, HIGH);
-    digitalWrite(RADIOCORE_NV3001B_CS, HIGH);
+    pinMode(PIN_TFT_DC, OUTPUT);
+    pinMode(PIN_TFT_CS, OUTPUT);
+    digitalWrite(PIN_TFT_DC, HIGH);
+    digitalWrite(PIN_TFT_CS, HIGH);
 #if defined(ARDUINO_ARCH_ESP32)
-    s_display_spi.begin(RADIOCORE_NV3001B_SCK, RADIOCORE_NV3001B_MISO,
-                        RADIOCORE_NV3001B_MOSI, RADIOCORE_NV3001B_CS);
+    s_display_spi.begin(PIN_TFT_SCL, PIN_TFT_MISO, PIN_TFT_SDA, PIN_TFT_CS);
 #elif defined(RADIOCORE_BOARD_RC52)
     s_display_spi.begin();
 #else
-    s_display_spi.setPins(RADIOCORE_NV3001B_MISO, RADIOCORE_NV3001B_SCK,
-                          RADIOCORE_NV3001B_MOSI);
+    s_display_spi.setPins(PIN_TFT_MISO, PIN_TFT_SCL, PIN_TFT_SDA);
     s_display_spi.begin();
 #endif
 }
 
 void reset_panel()
 {
-#if RADIOCORE_NV3001B_RST >= 0
-    pinMode(RADIOCORE_NV3001B_RST, OUTPUT);
-    digitalWrite(RADIOCORE_NV3001B_RST, HIGH);
+#if PIN_TFT_RST >= 0
+    pinMode(PIN_TFT_RST, OUTPUT);
+    digitalWrite(PIN_TFT_RST, HIGH);
     delay(100);
-    digitalWrite(RADIOCORE_NV3001B_RST, LOW);
+    digitalWrite(PIN_TFT_RST, LOW);
     delay(120);
-    digitalWrite(RADIOCORE_NV3001B_RST, HIGH);
+    digitalWrite(PIN_TFT_RST, HIGH);
     delay(120);
 #endif
 }
@@ -295,10 +305,8 @@ void flush_area(lv_disp_drv_t *drv, const lv_area_t *area, lv_color_t *color_p)
 
     begin_write();
     write_address_window(area);
-    for (int32_t row = 0; row < height; ++row)
-    {
-        write_rgb565_row(&color_p[row * width], width);
-    }
+    const size_t pixel_count = static_cast<size_t>(width) * static_cast<size_t>(height);
+    write_rgb565_pixels(color_p, pixel_count);
     end_write();
     lv_disp_flush_ready(drv);
 }

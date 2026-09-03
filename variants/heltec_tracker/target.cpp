@@ -3,9 +3,6 @@
 
 #include <helpers/sensors/MicroNMEALocationProvider.h>
 #include <heltec/sensors/GpsRmcSpeedStream.h>
-#if (!defined(HELTEC_SENSOR_MANAGER) || !(HELTEC_SENSOR_MANAGER)) && defined(GPS_UC6580) && GPS_UC6580
-#include <heltec/sensors/Uc6580Config.h>
-#endif
 
 HeltecV3Board board;
 

@@ -9,6 +9,9 @@
 #if LV_USE_THEME_MONO && HELTEC_UI_DISPLAY_MONO
 #include "ui/theme/ui_theme_mono_flat.hpp"
 #endif
+#if defined(UI_EINK_DISPLAY) && UI_EINK_DISPLAY
+#include "e213_ui_theme.hpp"
+#endif
 
 #if !HELTEC_UI_DISPLAY_MONO
 #include "ui/theme/ui_theme_pixel.hpp"
@@ -71,7 +74,7 @@ bool ui_theme_init(lv_disp_t *disp)
         LV_FONT_DEFAULT;
 #endif
 #if defined(UI_EINK_DISPLAY) && UI_EINK_DISPLAY
-    return init_ui_mono_flat_theme(disp, ui_font) != nullptr;
+    return init_ui_e213_theme(disp, ui_font) != nullptr;
 #elif (defined(UI_THEME_SSD1306) && UI_THEME_SSD1306) || LV_COLOR_DEPTH == 1
     return init_ui_ssd1306_theme(disp, ui_font) != nullptr;
 #else

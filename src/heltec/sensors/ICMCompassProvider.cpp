@@ -408,7 +408,7 @@ bool ICMCompassProvider::initAccelerometer()
     uint8_t addr = ICM42607_I2C_ADDR_LOW;
     if (!detectIcm42607Address(Wire, addr))
     {
-#if defined(ENV_PIN_SDA) && ENV_PIN_SDA >= 0 && defined(ENV_PIN_SCL) && ENV_PIN_SCL >= 0
+#if WIRE_INTERFACES_COUNT > 1 
         wire = &Wire1;
         if (!detectIcm42607Address(Wire1, addr))
         {

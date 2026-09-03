@@ -21,7 +21,7 @@
 #include "ui/overlays/splash_overlay.hpp"
 #include "ui/theme/ui_widget_theme.hpp"
 #if defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213
-#include "heltec/drivers/display/e213_lvgl_port.hpp"
+#include "heltec/drivers/display/e213_port.hpp"
 #endif
 
 #include <Arduino.h>
@@ -668,7 +668,24 @@ void UiApp::handleFrameEvent(lv_event_t *e)
         break;
     }
 #if defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213
-    heltec::meshcore::dal::e213::requestRefresh("surface-event");
+    switch (event->type)
+    {
+    case EventType::NAV_OPEN:
+    case EventType::NAV_CLOSE:
+    case EventType::NAV_ACTIVITY:
+        // Navigation owns a refresh session and coalesces rapid selection changes.
+        break;
+    case EventType::APP_STATE_CHANGED:
+    case EventType::SURFACE_REFRESH:
+        heltec::meshcore::dal::e213::requestDeferredRefresh("surface-state");
+        break;
+    case EventType::REBIND_INPUT:
+        // Rebinding changes input ownership only and does not require a panel update.
+        break;
+    default:
+        heltec::meshcore::dal::e213::requestRefresh("surface-change");
+        break;
+    }
 #endif
 }
 

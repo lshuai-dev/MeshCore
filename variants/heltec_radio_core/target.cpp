@@ -1,12 +1,16 @@
 #include <Arduino.h>
 #include <helpers/ArduinoHelpers.h>
 #include "target.h"
+#if defined(RADIOCORE_BOARD_RC52) && defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
+#include <heltec/sensors/ICMCompassProvider.h>
+ICMCompassProvider compassProvider;
+#endif
 
 #if defined(RADIOCORE_BOARD_RCC6)
 #include <hal/Arduino/ArduinoHal.h>
 #endif
 
-HeltecRadioCoreBoard board;
+HeltecRadioCoreTargetBoard board;
 
 #if defined(RADIOCORE_BOARD_RCC6)
 namespace
@@ -156,7 +160,11 @@ AutoDiscoverRTCClock rtc_clock(fallback_clock);
   #endif
 #else
   #if defined(HELTEC_SENSOR_MANAGER) && HELTEC_SENSOR_MANAGER
+  #if defined(RADIOCORE_BOARD_RC52) && defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
+  HeltecEnvironmentSensorManager sensors(compassProvider);
+  #else
   HeltecEnvironmentSensorManager sensors;
+  #endif
   #else
   EnvironmentSensorManager sensors;
   #endif

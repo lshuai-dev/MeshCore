@@ -12,6 +12,7 @@
 
 static heltec::meshcore::ui::UiTheme s_ui_mono_flat;
 static heltec::meshcore::ui::UiTheme s_ui_ssd1306;
+static heltec::meshcore::ui::UiTheme s_ui_mono_custom;
 
 static lv_style_t s_mono_reset_style;
 static bool s_widget_styles_inited = false;
@@ -315,11 +316,12 @@ namespace heltec::meshcore::ui
 {
 
 static lv_theme_t *init_mono_flat_theme_variant(lv_disp_t *disp, const lv_font_t *font,
-                                                bool ssd1306, UiTheme &theme_storage)
+                                                bool ssd1306, UiTheme &theme_storage,
+                                                const UiThemeColors &colors)
 {
     if (!disp)
         return nullptr;
-    ui_set_active_theme_colors(&kMonoFlatColors);
+    ui_set_active_theme_colors(&colors);
     init_device_styles(disp, ssd1306);
     init_widget_styles(ssd1306);
 
@@ -334,19 +336,25 @@ static lv_theme_t *init_mono_flat_theme_variant(lv_disp_t *disp, const lv_font_t
     theme_storage.theme.font_normal = font;
     theme_storage.theme.font_large = font;
     theme_storage.theme.apply_cb = ui_mono_flat_apply;
-    ui_set_active_theme_colors(&kMonoFlatColors);
+    ui_set_active_theme_colors(&colors);
     lv_disp_set_theme(disp, &theme_storage.theme);
     return &theme_storage.theme;
 }
 
 lv_theme_t *init_ui_mono_flat_theme(lv_disp_t *disp, const lv_font_t *font)
 {
-    return init_mono_flat_theme_variant(disp, font, false, s_ui_mono_flat);
+    return init_mono_flat_theme_variant(disp, font, false, s_ui_mono_flat, kMonoFlatColors);
 }
 
 lv_theme_t *init_ui_ssd1306_theme(lv_disp_t *disp, const lv_font_t *font)
 {
-    return init_mono_flat_theme_variant(disp, font, true, s_ui_ssd1306);
+    return init_mono_flat_theme_variant(disp, font, true, s_ui_ssd1306, kMonoFlatColors);
+}
+
+lv_theme_t *init_ui_mono_flat_theme_with_colors(lv_disp_t *disp, const lv_font_t *font,
+                                                const UiThemeColors &colors)
+{
+    return init_mono_flat_theme_variant(disp, font, false, s_ui_mono_custom, colors);
 }
 
 } // namespace heltec::meshcore::ui
