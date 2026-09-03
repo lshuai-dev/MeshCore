@@ -166,34 +166,6 @@ const char* T1Board::getManufacturerName() const {
 
 #if !(defined(HELTEC_MESH_UI) && HELTEC_MESH_UI)
 void T1Board::variant_shutdown() {
-  nrf_gpio_cfg_default(PIN_TFT_CS);
-  nrf_gpio_cfg_default(PIN_TFT_DC);
-  nrf_gpio_cfg_default(PIN_TFT_SDA);
-  nrf_gpio_cfg_default(PIN_TFT_SCL);
-  nrf_gpio_cfg_default(PIN_TFT_RST);
-  nrf_gpio_cfg_default(PIN_TFT_LEDA_CTL);
-  nrf_gpio_cfg_default(PIN_TFT_VDD_CTL);
-
-  nrf_gpio_cfg_default(PIN_WIRE_SDA);
-  nrf_gpio_cfg_default(PIN_WIRE_SCL);
-
-  nrf_gpio_cfg_default(LORA_CS);
-  nrf_gpio_cfg_default(SX126X_DIO1);
-  nrf_gpio_cfg_default(SX126X_BUSY);
-  nrf_gpio_cfg_default(SX126X_RESET);
-  nrf_gpio_cfg_default(PIN_SPI_MISO);
-  nrf_gpio_cfg_default(PIN_SPI_MOSI);
-  nrf_gpio_cfg_default(PIN_SPI_SCK);
-
-  nrf_gpio_cfg_default(PIN_SPI1_MOSI);
-  nrf_gpio_cfg_default(PIN_SPI1_SCK);
-
-  nrf_gpio_cfg_default(PIN_GPS_RESET);
-  nrf_gpio_cfg_default(PIN_GPS_EN);
-  nrf_gpio_cfg_default(PIN_GPS_PPS);
-  nrf_gpio_cfg_default(PIN_GPS_RX);
-  nrf_gpio_cfg_default(PIN_GPS_TX);
-
   nrf_gpio_cfg_default(PIN_BUZZER_VOLTAGE_MULTIPLIER_1);
   nrf_gpio_cfg_default(PIN_BUZZER_VOLTAGE_MULTIPLIER_2);
 
@@ -209,4 +181,12 @@ void T1Board::variant_shutdown() {
   pinMode(PIN_BAT_CTL, OUTPUT);
   digitalWrite(PIN_BAT_CTL, !ADC_CTRL_ENABLED);
 }
-#endif
+
+void T1Board::powerOff() {
+  variant_shutdown();
+  NRF52Board::powerOff();
+}
+
+const char* T1Board::getManufacturerName() const {
+  return "Heltec T1";
+}

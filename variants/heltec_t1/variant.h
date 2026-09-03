@@ -25,10 +25,8 @@
 #define ST7735_SDA              (0 + 24)
 #define ST7735_SCK              (32 + 0)
 #define ST7735_RESET            (0 + 20)
-// Logical pin 0 maps to 0xFF (NRFX_SPIM_PIN_NOT_USED). The nRF52 SPI
-// constructor accepts uint8_t pins, so passing -1 would index pin 255.
-#define ST7735_MISO             (0)
-#define ST7735_BUSY             (-1)
+#define ST7735_MISO             (0) // 0 maps to 0xff on this device which is NRFX_SPIM_PIN_NOT_USED
+#define ST7735_BUSY             (0) // 0 maps to 0xff on this device which is NRFX_SPIM_PIN_NOT_USED
 #define ST7735_BL               (0 + 15)
 #define VTFT_CTRL               (0 + 13)
 
@@ -69,8 +67,7 @@
 // UART
 
 // No longer populated on PCB.
-#define PIN_SERIAL2_RX          (-1)
-#define PIN_SERIAL2_TX          (-1)
+// Removed the pin definitions to avoid potential issues with Uart.
 
 ////////////////////////////////////////////////////////////////////////////////
 // I2C

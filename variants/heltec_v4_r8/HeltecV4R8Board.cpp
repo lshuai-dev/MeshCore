@@ -177,11 +177,9 @@ uint16_t HeltecV4R8Board::getBattMilliVolts() {
 }
 
 const char* HeltecV4R8Board::getManufacturerName() const {
-#if defined(HELTEC_V4_R8_TFT)
+#ifdef HELTEC_V4_R8_TFT
   return "Heltec V4 R8 TFT";
-#elif defined(HELTEC_V4_R8_OLED)
-  return "Heltec V4 R8 OLED";
 #else
-  return "Heltec V4 R8";
+  return "Heltec V4 R8 OLED";
 #endif
 }

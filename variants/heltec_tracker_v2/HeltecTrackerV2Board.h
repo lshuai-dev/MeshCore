@@ -3,7 +3,6 @@
 #include <Arduino.h>
 #include <helpers/RefCountedDigitalPin.h>
 #include <helpers/ESP32Board.h>
-#include <driver/rtc_io.h>
 #include "LoRaFEMControl.h"
 
 class HeltecTrackerV2Board : public ESP32Board {
@@ -23,5 +22,8 @@ public:
   void powerOff() override;
   uint16_t getBattMilliVolts() override;
   const char* getManufacturerName() const override ;
+  bool setLoRaFemLnaEnabled(bool enable) override;
+  bool canControlLoRaFemLna() const override;
+  bool isLoRaFemLnaEnabled() const override;
 
 };
