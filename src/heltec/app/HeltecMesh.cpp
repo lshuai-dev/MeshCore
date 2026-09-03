@@ -1642,7 +1642,7 @@ void HeltecMesh::onSendTimeout()
 HeltecMesh::HeltecMesh(mesh::Radio &radio, mesh::RNG &rng, mesh::RTCClock &rtc,
                        SimpleMeshTables &tables, DataStore &store, AbstractUITask *ui)
     : BaseChatMesh(radio, *new ArduinoMillis(), rng, rtc, *new StaticPoolPacketManager(16), tables),
-      _serial(nullptr), telemetry(MAX_PACKET_PAYLOAD - 4), _store(&store), _ui(ui)
+      _serial(nullptr), telemetry(MAX_PACKET_PAYLOAD - 4), _store(&store), _ui(ui), _iter(0)
 {
     _iter_started = false;
     _cli_rescue = false;

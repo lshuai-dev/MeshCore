@@ -325,6 +325,7 @@ void NavigationPane::layoutGrid(bool update_emphasis)
     if (has_footer)
         footer_cell = findCellById(_footer_id);
     ui_theme_layout_navigation_grid(host, footer_cell);
+    lv_obj_update_layout(host);
 
     const uint8_t focus = focusedIndex();
     if (update_emphasis)
