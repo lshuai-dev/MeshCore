@@ -175,9 +175,8 @@ _lv_obj_t *FindFriendScreen::create(_lv_obj_t *parent)
 
     if (!createDial())
         return nullptr;
-    addSwitchRow("enable", &_sw_enabled);
-    // Settings controlled by the switch stay immediately below it. One runtime
-    // row shows either an actionable state or the current distance.
+    // Mode selection owns enable/disable state. One runtime row shows either
+    // an actionable state or the current distance.
     createControls();
     createInfoRows();
     configureFocusItems();
@@ -259,6 +258,15 @@ void FindFriendScreen::createInfoRows()
 
 void FindFriendScreen::render(const biz::FindFriendUi &u)
 {
+    if (_biz.teamPairState() == 3)
+    {
+        char code[24] = {};
+        lv_snprintf(code, sizeof(code), "code %04u",
+                    static_cast<unsigned>(_biz.teamPairingCode()));
+        setStatusText("Waiting for Leader");
+        showInfoOnly(code);
+        return;
+    }
     if (!_biz.findFriendEnabled())
     {
         setStatusText("");
@@ -466,6 +474,7 @@ void FindFriendScreen::onAppStateChanged(const AppStateEvent &event)
     if (event.type == AppStateEventType::CompassChanged ||
         event.type == AppStateEventType::GpsChanged ||
         event.type == AppStateEventType::FindFriendChanged ||
+        event.type == AppStateEventType::TeamChanged ||
         event.type == AppStateEventType::ConfigChanged)
     {
         refresh();

@@ -1,6 +1,7 @@
 #pragma once
 #include "app/find_friend_nav_estimator.hpp"
 #include "app/power_mgr.hpp"
+#include "app/team_config.hpp"
 #include "ui/core/app_state_event.hpp"
 #include "ui/core/biz_facade.hpp"
 
@@ -82,13 +83,30 @@ class MeshAppUi final : public IBizFacade
         return _compass_ui;
     }
     FindFriendUi findFriendUi() const override;
+    bool teamIsLeader() const override;
+    bool teamHasTeam() const override;
+    int teamMemberCount() const override;
+    int teamOnlineCount() const override;
+    int teamPairState() const override;
+    uint16_t teamPairingCode() const override;
+    bool teamPendingDetails(char *name, size_t length, uint64_t &session,
+                            uint16_t &code) const override;
+    int teamOfferCount() const override;
+    bool teamOfferLabel(int index, char *label, size_t length) const override;
+    bool teamSelectOffer(int index) override;
+    bool teamPrimaryAction() override;
+    bool teamSetActive(bool active) override;
+    bool teamSetJoining(bool open) override;
+    bool teamMessageTarget(int member_index, ui::UiSendMessageTarget &target) const override;
+    bool mapMessageTarget(const uint8_t *prefix, size_t length,
+                          ui::UiSendMessageTarget &target) const override;
+    uint64_t teamPendingSession() const override;
+    bool teamJoinWindowOpen() const override;
+    bool teamDecidePending(uint64_t session, bool approve) override;
+    bool teamLeave() override;
+    void teamCancel() override;
 
     bool locationShareEnabled() const override;
-    void setLocationShareEnabled(bool enabled) override;
-    int locShareIntervalIndex() const override;
-    void setLocShareIntervalIndex(int index) override;
-    int locShareIntervalOptionCount() const override;
-    const char *locShareIntervalOptionLabel(int index) const override;
     bool findFriendEnabled() const override;
     bool setFindFriendEnabled(bool enabled) override;
     void setGpsForegroundActive(bool active) override;
@@ -107,13 +125,10 @@ class MeshAppUi final : public IBizFacade
     void formatFindFriendWaypointInput(char *buf, size_t buf_len) const override;
 
     int findFriendContactCount() const override;
-    bool findFriendContactLabel(int index, char *buf, size_t buf_len) const override;
     int fillFindFriendContacts(int offset, int selected_contact_index, FindFriendContactItem *items,
                                int max_items, int *total_items, int *selected_rank) const override;
-    bool findFriendContactHasGps(int index) const override;
     int findFriendTargetContactIndex() const override;
     void setFindFriendTargetContactIndex(int index) override;
-    void cycleFindFriendTargetContact(int delta) override;
     bool tryAutoPickFindFriendTarget() override;
     void syncFindFriendContactList() override;
     void syncCompassCache() override;
@@ -152,7 +167,9 @@ class MeshAppUi final : public IBizFacade
     void ensureFindFriendPrefsLoaded() const;
     void setFfWaypointCache(double lat_deg, double lon_deg);
     void resetFindFriendNavState() const;
-    void syncFindFriendReceiptPin() const;
+    void syncFindFriendTeamPin() const;
+    bool findFriendMemberLabel(int index, char *buf, size_t buf_len) const;
+    bool findFriendMemberHasGps(int index) const;
     void persistFfPrefs(int mode, int wp_valid, double wp_lat, double wp_lon) const;
     int resolveFindFriendTargetContactIndex() const;
     bool setFindFriendTargetKeyFromIndex(int index) const;
@@ -182,6 +199,8 @@ class MeshAppUi final : public IBizFacade
     uint32_t _gps_track_start_ms = 0;
 
     bool _find_friend_foreground_active = false;
+    uint32_t _team_runtime_fingerprint = 0;
+    bool _team_runtime_fingerprint_valid = false;
 
 #if defined(ENV_INCLUDE_MAP) && ENV_INCLUDE_MAP
     mutable MapPlotUi _map_plot_cache{};

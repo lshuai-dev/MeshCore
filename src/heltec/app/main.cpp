@@ -440,7 +440,6 @@ void loop()
 {
     ApplicationRuntime &runtime = applicationRuntime();
     the_mesh.loop();
-    HeltecMesh::pollLocShareAdvert(the_mesh);
     sensors.loop();
 #if defined(ENV_INCLUDE_GPS) && ENV_INCLUDE_GPS
     // Sample the stable GPS layer after the provider has consumed this loop's

@@ -338,10 +338,14 @@ void SendMessageOverlay::renderRows()
         lv_obj_t *label = _row_labels[slot];
         if (!label)
             continue;
-        lv_label_set_text_static(label, rowLabel(item));
 #else
-        lv_label_set_text_static(row, rowLabel(item));
+        lv_obj_t *label = row;
 #endif
+        // Restore old ellipsis bytes before overwriting its backing storage.
+        lv_label_set_long_mode(label, LV_LABEL_LONG_CLIP);
+        SendMessageModel::safeCopy(_row_text[slot], sizeof(_row_text[slot]), rowLabel(item));
+        lv_label_set_text_static(label, _row_text[slot]);
+        lv_label_set_long_mode(label, LV_LABEL_LONG_DOT);
         if (slot == focus)
         {
             lv_obj_add_state(row, LV_STATE_CHECKED);

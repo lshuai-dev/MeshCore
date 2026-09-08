@@ -35,6 +35,7 @@ class SendMessageModel
         char label[24] = "broadcast";
     };
 
+    static constexpr int kRowTextCapacity = 28;
     static constexpr int kMaxContacts = 10;
     static constexpr int kMaxListItems = 10;
     static constexpr int kContactWindowStep = 5;
@@ -112,10 +113,10 @@ class SendMessageModel
     int _contact_total = 0;
     int _contact_window_start = 0;
 
-    char _main_rows[kMainRowCount][28]{};
-    char _cat_rows[kMaxCategoryRows][16]{};
+    char _target_row[kRowTextCapacity]{};
+    uint8_t _category_ids[kMaxCategoryRows]{};
     int _cat_count = 0;
-    char _list_rows[kMaxListItems][28]{};
+    char _list_rows[kMaxListItems][kRowTextCapacity]{};
     int _list_channel_idx[kMaxListItems]{};
     int _list_count = 0;
     int _list_kind = 0;

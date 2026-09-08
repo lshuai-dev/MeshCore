@@ -71,10 +71,16 @@ class TrackerScreen : public AbstractScreen
     _lv_obj_t *_btn_zoom_in = nullptr;
     _lv_obj_t *_btn_zoom_out = nullptr;
     _lv_obj_t *_btn_gps = nullptr;
+    _lv_obj_t *_btn_team = nullptr;
+    _lv_obj_t *_btn_group_message = nullptr;
+    void syncTeamTools();
+    static void onTeamToolClicked(lv_event_t *event);
     char _status_text[112] = "Map";
     lv_point_t _pan_origin = { 0, 0 };
     int32_t _pan_applied_x = 0;
     int32_t _pan_applied_y = 0;
+    uint8_t _pressed_marker[6] = {};
+    bool _pressed_marker_valid = false;
     bool _pan_active = false;
     bool _pan_moved = false;
     bool _user_panned = false;

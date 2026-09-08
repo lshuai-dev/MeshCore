@@ -495,7 +495,7 @@ void UiApp::handleFrameEvent(lv_event_t *e)
     case EventType::CONFIRM_OPEN:
     {
         const auto *request = static_cast<const UiConfirmRequest *>(event->payload);
-        if (!request || !inputOnActiveScreen())
+        if (!request || !inputOnActiveScreen() || _surfaces.isVisible(&_confirmOvl))
             break;
         _confirmOvl.setRequest(request->action);
         if (!_surfaces.isVisible(&_confirmOvl) && !_surfaces.show(&_confirmOvl))
@@ -510,15 +510,41 @@ void UiApp::handleFrameEvent(lv_event_t *e)
         if (!action || !_surfaces.isVisible(&_confirmOvl))
             break;
         const UiConfirmAction accepted_action = *action;
+        const uint64_t team_session = _confirmOvl.teamSession();
         if (_surfaces.show(&_confirmOvl, false) && !_surfaces.isVisible(&_confirmOvl))
         {
+            if (accepted_action == UiConfirmAction::TeamJoin)
+            {
+                _biz.showAlert(_biz.teamDecidePending(team_session, true) ?
+                               "Member approved" : "Request expired or send failed", 2000);
+                break;
+            }
+            if (accepted_action == UiConfirmAction::TeamLeave)
+            {
+                const bool ok = _biz.teamLeave();
+                _biz.showAlert(ok ? "Team updated" : "Team update failed", 2000);
+                break;
+            }
             (void)_surfaces.dispatchToActive(EventType::CONFIRM_ACCEPTED, &accepted_action);
         }
         break;
     }
     case EventType::CONFIRM_CANCELLED:
-        (void)_surfaces.show(&_confirmOvl, false);
+    {
+        const UiConfirmAction cancelled_action = _confirmOvl.action();
+        const uint64_t team_session = _confirmOvl.teamSession();
+        if (_surfaces.show(&_confirmOvl, false) && !_surfaces.isVisible(&_confirmOvl))
+        {
+            if (cancelled_action == UiConfirmAction::TeamJoin)
+            {
+                (void)_biz.teamDecidePending(team_session, false);
+                break;
+            }
+            (void)_surfaces.dispatchToActive(EventType::CONFIRM_CANCELLED,
+                                             &cancelled_action);
+        }
         break;
+    }
 #if !defined(HELTEC_V4_R8_TFT) || !defined(HELTEC_HAS_TOUCH) || !HELTEC_HAS_TOUCH
     case EventType::CONTEXT_OPEN:
         (void)defer(
@@ -721,6 +747,13 @@ void UiApp::tick()
     if (!_inited)
         return;
     lv_timer_handler();
+    // Shared approval UI also serves leaders without a Tracker screen.
+    if (_biz.teamIsLeader() && inputOnActiveScreen() &&
+        !_surfaces.isVisible(&_confirmOvl) && _biz.teamPendingSession() != 0)
+    {
+        _confirmOvl.setRequest(UiConfirmAction::TeamJoin);
+        (void)_surfaces.show(&_confirmOvl);
+    }
     syncDisplayTimeoutInhibit(millis());
 }
 

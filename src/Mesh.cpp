@@ -232,9 +232,9 @@ DispatcherAction Mesh::onRecvPacket(Packet* pkt) {
         MESH_DEBUG_PRINTLN("%s Mesh::onRecvPacket(): incomplete data packet", getLogDateTime());
       } else if (!_tables->wasSeen(pkt)) {
         _tables->markSeen(pkt);
-        // scan channels DB, for all matching hashes of 'channel_hash' (max 4 matches supported ATM)
-        GroupChannel channels[4];
-        int num = searchChannelsByHash(&channel_hash, channels, 4);
+        // Include room for two application-reserved channels in addition to four user collisions.
+        GroupChannel channels[6];
+        int num = searchChannelsByHash(&channel_hash, channels, 6);
         // for each matching channel, try to decrypt data
         for (int j = 0; j < num; j++) {
           // decrypt, checking MAC is valid

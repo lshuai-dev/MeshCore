@@ -52,6 +52,8 @@ enum class UiConfirmAction : uint8_t
 {
     FactoryReset,
     ClearData,
+    TeamJoin,
+    TeamLeave = 4, // Preserve existing event values; 3 was the removed reset action.
 };
 
 struct UiConfirmRequest

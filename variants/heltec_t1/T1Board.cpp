@@ -190,3 +190,4 @@ void T1Board::powerOff() {
 const char* T1Board::getManufacturerName() const {
   return "Heltec T1";
 }
+#endif

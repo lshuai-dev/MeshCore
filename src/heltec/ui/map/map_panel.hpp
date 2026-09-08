@@ -66,6 +66,8 @@ class MapPanel
     void set_gps(float lat, float lon, bool valid);
     void set_markers(const heltec::meshcore::biz::MapPlotMarker *markers, int count);
 
+    /** Hit-test screen coordinates and copy the rendered recipient identity. */
+    bool markerAt(lv_coord_t x, lv_coord_t y, uint8_t *prefix, size_t length) const;
     void zoom_in();
     void zoom_out();
     void pan_pixels(int16_t dx, int16_t dy);
@@ -143,6 +145,7 @@ class MapPanel
         lv_obj_t *label = nullptr;
         bool active = false;
         char glyph = '?';
+        int8_t data_index = -1;
         char text[2] = { '?', '\0' };
     };
 
@@ -159,7 +162,7 @@ class MapPanel
     {
         int32_t lat_micro = 0;
         int32_t lon_micro = 0;
-        int16_t contact_index = -1;
+        uint8_t pub_key_prefix[6] = {};
         char glyph = '?';
         bool is_self = false;
     };

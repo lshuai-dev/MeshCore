@@ -10,11 +10,6 @@
 
 namespace heltec::meshcore::biz
 {
-namespace
-{
-constexpr uint32_t kLocShareAcquireWindowMs = 30000;
-} // namespace
-
 bool MeshAppUi::applyGpsPowerPolicy()
 {
 #if !defined(ENV_INCLUDE_GPS) || !(ENV_INCLUDE_GPS)
@@ -31,20 +26,9 @@ bool MeshAppUi::applyGpsPowerPolicy()
         return false;
 
     const uint32_t now_ms = millis();
+    // Team uses its own Location schedule, not the retired Advert timer.
+    const bool team_share = locationShareEnabled();
     const bool gps_enabled = p->gps_enabled != 0;
-
-    const bool location_share = HeltecMesh::isLocationShareEnabled(p);
-    const uint32_t share_interval_sec = HeltecMesh::locShareAdvertIntervalSec();
-    const bool share_continuous =
-        location_share && share_interval_sec > 0 && share_interval_sec <= 30;
-    int32_t share_due_ms = -1;
-    bool share_wakeup_window = false;
-    const uint32_t next_advert_ms = HeltecMesh::locShareNextAdvertMillis();
-    if (location_share && share_interval_sec > 30 && next_advert_ms != 0)
-    {
-        share_due_ms = static_cast<int32_t>(next_advert_ms - now_ms);
-        share_wakeup_window = share_due_ms <= static_cast<int32_t>(kLocShareAcquireWindowMs);
-    }
 
     const bool track_active = gpsTrackRecording();
     const bool find_friend_enabled =
@@ -59,8 +43,8 @@ bool MeshAppUi::applyGpsPowerPolicy()
 
     _power.setGpsAllowed(gps_enabled);
     _power.setGpsDemand(power::GpsDemand::Track, track_active);
-    _power.setGpsDemand(power::GpsDemand::LocationContinuous, share_continuous);
-    _power.setGpsDemand(power::GpsDemand::LocationAcquire, share_wakeup_window);
+    _power.setGpsDemand(power::GpsDemand::LocationContinuous, team_share);
+    _power.setGpsDemand(power::GpsDemand::LocationAcquire, false);
     _power.setGpsDemand(power::GpsDemand::FindFriend, find_friend_foreground);
     return _power.reconcileGpsPower(now_ms);
 #endif
@@ -116,8 +100,8 @@ bool MeshAppUi::toggleGPS()
     NodePrefs *p = the_mesh.getNodePrefs();
     if (!p)
         return false;
-    setGpsEnabled(p->gps_enabled == 0);
-    return p->gps_enabled != 0;
+    setGpsEnabled(!gpsStatus().enabled);
+    return gpsStatus().enabled;
 }
 
 void MeshAppUi::setGpsEnabled(bool enabled)
@@ -155,11 +139,6 @@ void MeshAppUi::setGpsEnabled(bool enabled)
         }
     }
 #endif
-
-    if (!enabled && HeltecMesh::isLocationShareEnabled(p))
-    {
-        HeltecMesh::setLocationShareEnabled(the_mesh, false, true);
-    }
 
 #if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
     if (!enabled && findFriendEnabled())

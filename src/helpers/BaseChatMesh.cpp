@@ -203,33 +203,69 @@ void BaseChatMesh::onAdvertRecv(mesh::Packet* packet, const mesh::Identity& id, 
   onDiscoveredContact(*from, is_new, packet->path_len, packet->path);       // let UI know
 }
 
-int BaseChatMesh::searchPeersByHash(const uint8_t* hash) {
-  int n = 0;
-  for (int i = 0; i < num_contacts && n < MAX_SEARCH_RESULTS; i++) {
-    if (contacts[i].id.isHashMatch(hash)) {
-      matching_peer_indexes[n++] = i;  // store the INDEXES of matching contacts (for subsequent 'peer' methods)
+int BaseChatMesh::searchPeersByHash(const uint8_t* hash)
+{
+    int n = 0;
+    for (int &slot : matching_peer_indexes)
+    {
+        slot = -1;
     }
-  }
-  return n;
+    if (!hash)
+    {
+        return 0;
+    }
+    for (int i = 0; i < num_contacts && n < MAX_SEARCH_RESULTS; ++i)
+    {
+        if (contacts[i].id.isHashMatch(hash))
+        {
+            matching_peer_indexes[n++] = i;
+        }
+    }
+    const int extra_count = extraPeerCount();
+    for (int i = 0; i < extra_count && n < MAX_SEARCH_RESULTS; ++i)
+    {
+        const uint8_t* key = extraPeerKey(i);
+        if (key && memcmp(key, hash, PATH_HASH_SIZE) == 0 &&
+            !lookupContactByPubKey(key, PUB_KEY_SIZE))
+        {
+            matching_peer_indexes[n++] = MAX_CONTACTS + MAX_ANON_CONTACTS + i;
+        }
+    }
+    return n;
+}
+
+ContactInfo* BaseChatMesh::resolveMatchedPeer(int index)
+{
+    if (index < 0 || index >= MAX_SEARCH_RESULTS)
+    {
+        return nullptr;
+    }
+    const int slot = matching_peer_indexes[index];
+    if (slot >= MAX_CONTACTS + MAX_ANON_CONTACTS)
+    {
+        return extraPeerContact(slot - MAX_CONTACTS - MAX_ANON_CONTACTS);
+    }
+    return slot >= 0 && slot < num_contacts ? &contacts[slot] : nullptr;
 }
 
 void BaseChatMesh::getPeerSharedSecret(uint8_t* dest_secret, int peer_idx) {
-  int i = matching_peer_indexes[peer_idx];
-  if (i >= 0 && i < num_contacts) {
-    memcpy(dest_secret, contacts[i].getSharedSecret(self_id), PUB_KEY_SIZE);
+  ContactInfo* peer = resolveMatchedPeer(peer_idx);
+  if (peer) {
+    memcpy(dest_secret, peer->getSharedSecret(self_id), PUB_KEY_SIZE);
   } else {
-    MESH_DEBUG_PRINTLN("getPeerSharedSecret: Invalid peer idx: %d", i);
+    memset(dest_secret, 0, PUB_KEY_SIZE);
+    MESH_DEBUG_PRINTLN("getPeerSharedSecret: Invalid peer idx: %d", peer_idx);
   }
 }
 
 void BaseChatMesh::onPeerDataRecv(mesh::Packet* packet, uint8_t type, int sender_idx, const uint8_t* secret, uint8_t* data, size_t len) {
-  int i = matching_peer_indexes[sender_idx];
-  if (i < 0 || i >= num_contacts) {
-    MESH_DEBUG_PRINTLN("onPeerDataRecv: Invalid sender idx: %d", i);
+  ContactInfo* peer = resolveMatchedPeer(sender_idx);
+  if (!peer) {
+    MESH_DEBUG_PRINTLN("onPeerDataRecv: Invalid sender idx: %d", sender_idx);
     return;
   }
 
-  ContactInfo& from = contacts[i];
+  ContactInfo& from = *peer;
 
   if (type == PAYLOAD_TYPE_TXT_MSG && len > 5) {
     uint32_t timestamp;
@@ -319,13 +355,13 @@ void BaseChatMesh::onPeerDataRecv(mesh::Packet* packet, uint8_t type, int sender
 }
 
 bool BaseChatMesh::onPeerPathRecv(mesh::Packet* packet, int sender_idx, const uint8_t* secret, uint8_t* path, uint8_t path_len, uint8_t extra_type, uint8_t* extra, uint8_t extra_len) {
-  int i = matching_peer_indexes[sender_idx];
-  if (i < 0 || i >= num_contacts) {
-    MESH_DEBUG_PRINTLN("onPeerPathRecv: Invalid sender idx: %d", i);
+  ContactInfo* peer = resolveMatchedPeer(sender_idx);
+  if (!peer) {
+    MESH_DEBUG_PRINTLN("onPeerPathRecv: Invalid sender idx: %d", sender_idx);
     return false;
   }
 
-  ContactInfo& from = contacts[i];
+  ContactInfo& from = *peer;
 
   return onContactPathRecv(from, packet->path, packet->path_len, path, path_len, extra_type, extra, extra_len);
 }
@@ -341,7 +377,7 @@ bool BaseChatMesh::onContactPathRecv(ContactInfo& from, uint8_t* in_path, uint8_
   if (extra_type == PAYLOAD_TYPE_ACK && extra_len >= 4) {
     // also got an encoded ACK!
     if (processAck(extra) != NULL) {
-      txt_send_timeout = 0;   // matched one we're waiting for, cancel timeout timer
+      if (!hasPendingMessageAck()) txt_send_timeout = 0;
     }
   } else if (extra_type == PAYLOAD_TYPE_RESPONSE && extra_len > 0) {
     onContactResponse(from, extra, extra_len);
@@ -352,7 +388,7 @@ bool BaseChatMesh::onContactPathRecv(ContactInfo& from, uint8_t* in_path, uint8_
 void BaseChatMesh::onAckRecv(mesh::Packet* packet, uint32_t ack_crc) {
   ContactInfo* from;
   if ((from = processAck((uint8_t *)&ack_crc)) != NULL) {
-    txt_send_timeout = 0;   // matched one we're waiting for, cancel timeout timer
+    if (!hasPendingMessageAck()) txt_send_timeout = 0;
     packet->markDoNotRetransmit();   // ACK was for this node, so don't retransmit
 
     if (packet->isRouteFlood() && from->out_path_len != OUT_PATH_UNKNOWN) {
@@ -373,7 +409,7 @@ void BaseChatMesh::handleReturnPathRetry(const ContactInfo& contact, const uint8
 int BaseChatMesh::searchChannelsByHash(const uint8_t* hash, mesh::GroupChannel dest[], int max_matches) {
   int n = 0;
   for (int i = 0; i < MAX_GROUP_CHANNELS && n < max_matches; i++) {
-    if (channels[i].channel.hash[0] == hash[0]) {
+    if (channels[i].name[0] != '\0' && channels[i].channel.hash[0] == hash[0]) {
       dest[n++] = channels[i].channel;
     }
   }
@@ -538,6 +574,27 @@ bool BaseChatMesh::sendGroupData(mesh::GroupChannel& channel, uint8_t* path, uin
     sendDirect(pkt, path, path_len);
   }
 
+  return true;
+}
+
+bool BaseChatMesh::sendGroupDataZeroHop(mesh::GroupChannel& channel, uint16_t data_type,
+                                        const uint8_t* data, int data_len,
+                                        uint32_t delay_millis) {
+  if (data_len < 0 || data_len > MAX_GROUP_DATA_LENGTH) {
+    return false;
+  }
+
+  uint8_t temp[3 + MAX_GROUP_DATA_LENGTH];
+  temp[0] = (uint8_t)(data_type & 0xFF);
+  temp[1] = (uint8_t)(data_type >> 8);
+  temp[2] = (uint8_t)data_len;
+  if (data_len > 0) memcpy(&temp[3], data, data_len);
+
+  auto pkt = createGroupDatagram(PAYLOAD_TYPE_GRP_DATA, channel, temp, 3 + data_len);
+  if (pkt == NULL) {
+    return false;
+  }
+  sendZeroHop(pkt, delay_millis);
   return true;
 }
 

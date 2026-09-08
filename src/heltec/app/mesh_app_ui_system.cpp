@@ -35,6 +35,11 @@ bool MeshAppUi::factoryReset()
         return false;
 
     heltec::meshcore::ui::ui_task().disableSerial();
+#if HELTEC_TEAM_FEATURE
+    the_mesh.teamJoinService().cancel();
+    if (the_mesh.teamService().hasTeam() && !the_mesh.teamService().leaveTeam())
+        return false;
+#endif
     if (!ds->formatFileSystem())
         return false;
 
@@ -44,6 +49,10 @@ bool MeshAppUi::factoryReset()
 
 bool MeshAppUi::clearUserData()
 {
+#if HELTEC_TEAM_FEATURE
+    if (the_mesh.teamService().hasTeam() && !the_mesh.teamService().leaveTeam())
+        return false;
+#endif
     if (!the_mesh.clearAllContacts())
         return false;
     DataStore *ds = the_mesh.getDataStore();

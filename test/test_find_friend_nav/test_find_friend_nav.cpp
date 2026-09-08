@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 
 #include "heltec/app/find_friend_nav_estimator.hpp"
+#include "heltec/app/geodesic.hpp"
 
 #include <cmath>
 
@@ -127,6 +128,53 @@ TEST(FindFriendNav, NearbyStateUsesExitHysteresis) {
   input.target_lat_deg = 0.00038;
   output = estimator.update(input);
   EXPECT_FALSE(output.near_target);
+}
+
+TEST(Geodesic, CoincidentAndSubMeterCoordinates)
+{
+    using heltec::meshcore::geo::geodesic_inverse_wgs84;
+    double distance = 0.0;
+    double bearing = 0.0;
+    geodesic_inverse_wgs84(31.0, 121.0, 31.0, 121.0, distance, &bearing);
+    EXPECT_DOUBLE_EQ(0.0, distance);
+    geodesic_inverse_wgs84(31.0, 121.0, 31.000001, 121.0, distance, &bearing);
+    EXPECT_GT(distance, 0.10);
+    EXPECT_LT(distance, 0.12);
+    EXPECT_NEAR(0.0, bearing, 0.001);
+}
+
+#if HELTEC_GEO_COMPACT
+TEST(Geodesic, CompactUsesMeanRadiusSphere)
+{
+    const double distance = heltec::meshcore::geo::geodesic_distance_m(0.0, 0.0, 0.0, 1.0);
+    EXPECT_NEAR(111195.0802335, distance, 0.001);
+}
+#endif
+
+TEST(Geodesic, DateLineAndAntipodal)
+{
+    using heltec::meshcore::geo::geodesic_inverse_wgs84;
+    double distance = 0.0;
+    double bearing = 0.0;
+    geodesic_inverse_wgs84(0.0, 179.999, 0.0, -179.999, distance, &bearing);
+    EXPECT_NEAR(222.4, distance, 1.0);
+    EXPECT_NEAR(90.0, bearing, 0.001);
+    geodesic_inverse_wgs84(0.0, 0.0, 0.0, 180.0, distance, &bearing);
+    EXPECT_TRUE(std::isfinite(distance));
+    EXPECT_GT(distance, 20000000.0);
+    EXPECT_LT(distance, 20100000.0);
+    // Exactly antipodal points have no unique initial bearing.
+}
+
+TEST(Geodesic, PolarAndSymmetricDistance)
+{
+    using heltec::meshcore::geo::geodesic_distance_m;
+    const double forward = geodesic_distance_m(89.999, 0.0, 89.999, 90.0);
+    const double reverse = geodesic_distance_m(89.999, 90.0, 89.999, 0.0);
+    EXPECT_TRUE(std::isfinite(forward));
+    EXPECT_GT(forward, 150.0);
+    EXPECT_LT(forward, 165.0);
+    EXPECT_NEAR(forward, reverse, 0.001);
 }
 
 int main(int argc, char** argv) {

@@ -1216,6 +1216,28 @@ void DataStore::saveChannels(DataStoreHost *host)
     }
 }
 
+#if defined(HELTEC_TEAM_FEATURE) && HELTEC_TEAM_FEATURE
+
+static const char kTeamPrefsPath[] = "/team_prefs";
+static const char kTeamPrefsTempPath[] = "/team_prefs.tmp";
+static const char kTeamPrefsBackupPath[] = "/team_prefs.bak";
+
+bool DataStore::deleteTeamPrefs()
+{
+    if (!_fs)
+        return false;
+    bool ok = true;
+    const char *const paths[] = {kTeamPrefsPath, kTeamPrefsTempPath, kTeamPrefsBackupPath};
+    for (const char *path : paths)
+    {
+        if (_fs->exists(path) && !_fs->remove(path))
+            ok = false;
+    }
+    return ok;
+}
+
+#endif
+
 #if defined(NRF52_PLATFORM) || defined(STM32_PLATFORM)
 
 #define MAX_ADVERT_PKT_LEN (2 + 32 + PUB_KEY_SIZE + 4 + SIGNATURE_SIZE + MAX_ADVERT_DATA_SIZE)

@@ -19,6 +19,7 @@ enum class AppStateEventType : uint8_t
     RecentHeardChanged,
     ContactLocationChanged,
     FindFriendChanged,
+    TeamChanged,
     ConfigChanged,
     Count,
 };

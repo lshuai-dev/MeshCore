@@ -116,16 +116,18 @@ void UiSurface::addFocusObject(_lv_obj_t *obj)
         return;
     lv_obj_add_flag(obj, LV_OBJ_FLAG_CLICKABLE | LV_OBJ_FLAG_EVENT_BUBBLE);
     lv_obj_add_flag(obj, LV_OBJ_FLAG_SCROLL_ON_FOCUS);
-    while (lv_obj_remove_event_cb(obj, stop_focus_event_bubbling))
+    // Object-owned marker: bind once, without extra tables or repeated reallocations.
+    if (!lv_obj_get_event_user_data(obj, stop_focus_event_bubbling))
     {
+        lv_obj_add_event_cb(obj, stop_focus_event_bubbling,
+                            static_cast<lv_event_code_t>(LV_EVENT_FOCUSED | LV_EVENT_PREPROCESS),
+                            obj);
+        lv_obj_add_event_cb(obj, stop_focus_event_bubbling,
+                            static_cast<lv_event_code_t>(LV_EVENT_DEFOCUSED | LV_EVENT_PREPROCESS),
+                            obj);
     }
-    lv_obj_add_event_cb(obj, stop_focus_event_bubbling,
-                        static_cast<lv_event_code_t>(LV_EVENT_FOCUSED | LV_EVENT_PREPROCESS),
-                        nullptr);
-    lv_obj_add_event_cb(obj, stop_focus_event_bubbling,
-                        static_cast<lv_event_code_t>(LV_EVENT_DEFOCUSED | LV_EVENT_PREPROCESS),
-                        nullptr);
-    lv_group_add_obj(_focus_group, obj);
+    if (lv_obj_get_group(obj) != _focus_group)
+        lv_group_add_obj(_focus_group, obj);
     if (!_default_focus || !lv_obj_is_valid(_default_focus))
         _default_focus = obj;
     for (_lv_obj_t *p = lv_obj_get_parent(obj); p && p != _root; p = lv_obj_get_parent(p))

@@ -20,7 +20,9 @@
 #include "ui/overlays/keyboard_overlay.hpp"
 #endif
 #include "ui/overlays/preview_overlay.hpp"
+#if HELTEC_UI_INPUT_TOUCH
 #include "ui/overlays/quick_ping_overlay.hpp"
+#endif
 #include "ui/overlays/radio_param_sync_overlay.hpp"
 #include "ui/overlays/repeat_mode_overlay.hpp"
 #include "ui/overlays/splash_overlay.hpp"
@@ -197,7 +199,9 @@ static constexpr NavigationStyleConfig kNavigationStyleConfig = {
 static constexpr lv_coord_t kContextMenuBorderWidth = 1;
 static constexpr lv_coord_t kContextMenuTitleBorderWidth = 1;
 static constexpr lv_coord_t kContextMenuFrameInsetX = 8;
+#if HELTEC_UI_INPUT_TOUCH
 static constexpr lv_coord_t kQuickPingMessageListMinWidth = 104;
+#endif
 
 static const UiThemeProfile &theme_profile()
 {
@@ -2563,7 +2567,11 @@ static bool apply_quick_ping_overlay_theme(_lv_obj_t *)
 
 static bool apply_context_menu_child_theme(_lv_obj_t *obj)
 {
+#if HELTEC_UI_INPUT_TOUCH
     return apply_classic_context_menu_child_theme(obj) || apply_quick_ping_overlay_theme(obj);
+#else
+    return apply_classic_context_menu_child_theme(obj);
+#endif
 }
 
 static bool apply_dropdown_base_theme(_lv_obj_t *obj)

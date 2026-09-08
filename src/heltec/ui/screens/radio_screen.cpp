@@ -61,7 +61,7 @@ _lv_obj_t *RadioScreen::create(_lv_obj_t *parent)
         {
             lv_obj_set_flex_align(_row_lna, LV_FLEX_ALIGN_SPACE_BETWEEN, LV_FLEX_ALIGN_CENTER,
                                   LV_FLEX_ALIGN_START);
-            _lbl_lna = ht_label_create(_row_lna, "LNA");
+            _lbl_lna = ht_label_create_static(_row_lna, "LNA");
             _sw_lna = ht_switch_create(_row_lna);
             if (_lbl_lna)
             {

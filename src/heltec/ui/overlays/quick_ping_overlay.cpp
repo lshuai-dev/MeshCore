@@ -446,13 +446,20 @@ _lv_obj_t *QuickPingOverlay::create(_lv_obj_t *parent)
     {
         return nullptr;
     }
+    _rebuilding_focus_group = true;
+    addFocusObject(_dd_target);
+    addFocusObject(_dd_recipient);
+    addFocusObject(_ta_message);
+    addFocusObject(_dd_message);
+    addFocusObject(_keyboard);
+    _rebuilding_focus_group = false;
     updateMessageTextPresentation(false);
     return _root;
 }
 
 void QuickPingOverlay::onEnter()
 {
-    AbstractOverlay::onEnter();
+    UiSurface::onEnter(); // Keep startup-registered focus members.
     if (_backdrop && lv_obj_is_valid(_backdrop))
     {
         lv_obj_clear_flag(_backdrop, LV_OBJ_FLAG_HIDDEN);
@@ -488,7 +495,6 @@ void QuickPingOverlay::onExit()
     _message_submit_handled = false;
     closeDropdowns();
     setKeyboardVisible(false);
-    clearFocusObjects();
     AbstractOverlay::onExit();
 }
 
@@ -592,7 +598,7 @@ bool QuickPingOverlay::onKey(uint32_t key)
     if (keyboardVisible())
     {
         setKeyboardVisible(false);
-        rebuildFocusGroup(_ta_message);
+        restoreModeFocus(_ta_message);
         return true;
     }
     return emit(EventType::QUICK_PING_CLOSE);
@@ -833,10 +839,10 @@ void QuickPingOverlay::applyState(bool keep_focus)
 
     _lv_obj_t *preferred =
         keep_focus && _focus_group ? lv_group_get_focused(_focus_group) : _dd_target;
-    rebuildFocusGroup(preferred);
+    restoreModeFocus(preferred);
 }
 
-void QuickPingOverlay::rebuildFocusGroup(_lv_obj_t *preferred)
+void QuickPingOverlay::restoreModeFocus(_lv_obj_t *preferred)
 {
     if (!_focus_group)
         return;
@@ -845,17 +851,6 @@ void QuickPingOverlay::rebuildFocusGroup(_lv_obj_t *preferred)
         preferred = lv_group_get_focused(group);
 
     _rebuilding_focus_group = true;
-    clearFocusObjects();
-    if (focusable(_dd_target))
-        addFocusObject(_dd_target);
-    if (focusable(_dd_recipient))
-        addFocusObject(_dd_recipient);
-    if (focusable(_ta_message))
-        addFocusObject(_ta_message);
-    if (focusable(_dd_message))
-        addFocusObject(_dd_message);
-    if (focusable(_keyboard))
-        addFocusObject(_keyboard);
     lv_group_set_editing(group, false);
 
     if (preferred && lv_obj_is_valid(preferred) && lv_obj_get_group(preferred) == group &&
@@ -1166,6 +1161,8 @@ void QuickPingOverlay::setRowVisible(_lv_obj_t *row, bool visible)
     }
     else
     {
+        if (row == _row_recipient)
+            closeDropdowns(); // Popup lists are outside the hidden row's object tree.
         lv_obj_add_flag(row, LV_OBJ_FLAG_HIDDEN);
     }
 }
@@ -1404,7 +1401,7 @@ bool QuickPingOverlay::dismissTransientControls()
     if (!keyboardVisible())
         return false;
     setKeyboardVisible(false);
-    rebuildFocusGroup(_ta_message);
+    restoreModeFocus(_ta_message);
     return true;
 }
 
@@ -1427,7 +1424,7 @@ void QuickPingOverlay::closeKeyboardForOutsideTarget(_lv_obj_t *target)
     if (targetInside(target, _keyboard) || targetInside(target, _ta_message))
         return;
     setKeyboardVisible(false);
-    rebuildFocusGroup(focusable(target) ? target : nullptr);
+    restoreModeFocus(focusable(target) ? target : nullptr);
 }
 
 void QuickPingOverlay::handleDropdownRow(_lv_obj_t *target)
@@ -1450,7 +1447,7 @@ void QuickPingOverlay::handleDropdownRow(_lv_obj_t *target)
         return;
 
     closeKeyboardForOutsideTarget(dropdown);
-    rebuildFocusGroup(dropdown);
+    restoreModeFocus(dropdown);
     if (lv_dropdown_is_open(dropdown))
     {
         closeDropdown(dropdown);
@@ -1552,7 +1549,7 @@ void QuickPingOverlay::openPendingKeyboard()
     // A newly opened keyboard starts a new submission cycle.
     _message_submit_handled = false;
     setKeyboardVisible(true);
-    rebuildFocusGroup(_keyboard);
+    restoreModeFocus(_keyboard);
 }
 
 void QuickPingOverlay::submitMessageFromTextarea()
@@ -1563,7 +1560,7 @@ void QuickPingOverlay::submitMessageFromTextarea()
     if (!_ta_message)
     {
         setKeyboardVisible(false);
-        rebuildFocusGroup(nullptr);
+        restoreModeFocus(nullptr);
         return;
     }
     if (!currentTargetReady())
@@ -1571,7 +1568,7 @@ void QuickPingOverlay::submitMessageFromTextarea()
         _message_submit_handled = true;
         showMissingTargetAlert();
         setKeyboardVisible(false);
-        rebuildFocusGroup(_ta_message);
+        restoreModeFocus(_ta_message);
         return;
     }
     const char *text = lv_textarea_get_text(_ta_message);
@@ -1585,7 +1582,7 @@ void QuickPingOverlay::submitMessageFromTextarea()
         return;
     }
     setKeyboardVisible(false);
-    rebuildFocusGroup(_ta_message);
+    restoreModeFocus(_ta_message);
 }
 
 bool QuickPingOverlay::sendMessageText(const char *text)
@@ -1947,7 +1944,7 @@ void QuickPingOverlay::onKeyboardEvent(lv_event_t *e)
     else if (code == LV_EVENT_CANCEL)
     {
         self->setKeyboardVisible(false);
-        self->rebuildFocusGroup(self->_ta_message);
+        self->restoreModeFocus(self->_ta_message);
     }
     if (code == LV_EVENT_READY || code == LV_EVENT_CANCEL)
     {
@@ -1999,7 +1996,7 @@ void QuickPingOverlay::onKeyboardValuePre(lv_event_t *e)
     else if (strcmp(text, LV_SYMBOL_CLOSE) == 0)
     {
         self->setKeyboardVisible(false);
-        self->rebuildFocusGroup(self->_ta_message);
+        self->restoreModeFocus(self->_ta_message);
         lv_event_stop_processing(e);
     }
     if (strcmp(text, "ABC") == 0 || strcmp(text, "abc") == 0 || strcmp(text, "123") == 0 ||

@@ -101,6 +101,9 @@ class DataStore
     void saveContacts(DataStoreHost *host);
     void loadChannels(DataStoreHost *host);
     void saveChannels(DataStoreHost *host);
+#if defined(HELTEC_TEAM_FEATURE) && HELTEC_TEAM_FEATURE
+    bool deleteTeamPrefs();
+#endif
     void migrateToSecondaryFS();
     uint8_t getBlobByKey(const uint8_t key[], int key_len, uint8_t dest_buf[]);
     bool putBlobByKey(const uint8_t key[], int key_len, const uint8_t src_buf[], uint8_t len);

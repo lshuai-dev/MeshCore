@@ -61,6 +61,26 @@ static bool personalContactEligible(const ContactInfo &ci)
     return ci.name[0] != '\0';
 }
 
+#if HELTEC_TEAM_FEATURE
+static bool teamMemberHasContact(const heltec::meshcore::team::TeamMember &member)
+{
+    return the_mesh.lookupContactByPubKey(member.public_key, PUB_KEY_SIZE) != nullptr;
+}
+#endif
+
+#if HELTEC_TEAM_FEATURE
+static bool isJoinChannel(int index)
+{
+    return index == HELTEC_TEAM_JOIN_CHANNEL_INDEX;
+}
+#else
+static bool isJoinChannel(int index)
+{
+    (void)index;
+    return false;
+}
+#endif
+
 void showSendResult(int rc)
 {
     auto &t = heltec::meshcore::ui::ui_task();
@@ -172,6 +192,15 @@ int MeshAppUi::sendMessagePersonalCount() const
             continue;
         ++count;
     }
+#if HELTEC_TEAM_FEATURE
+    heltec::meshcore::team::TeamMember member{};
+    const size_t team_count = the_mesh.teamService().memberCount();
+    for (size_t index = 0; index < team_count; ++index)
+    {
+        if (the_mesh.teamService().memberAt(index, member) && !teamMemberHasContact(member))
+            ++count;
+    }
+#endif
     return count;
 }
 
@@ -200,6 +229,22 @@ bool MeshAppUi::sendMessagePersonalAt(int index, uint8_t pub_key_prefix[6], char
         }
         ++seen;
     }
+#if HELTEC_TEAM_FEATURE
+    heltec::meshcore::team::TeamMember member{};
+    const size_t team_count = the_mesh.teamService().memberCount();
+    for (size_t team_index = 0; team_index < team_count; ++team_index)
+    {
+        if (!the_mesh.teamService().memberAt(team_index, member) ||
+            teamMemberHasContact(member))
+            continue;
+        if (seen++ != index)
+            continue;
+        memcpy(pub_key_prefix, member.public_key, 6);
+        if (label && label_len > 0)
+            snprintf(label, label_len, "%.*s", member.name_len, member.name);
+        return true;
+    }
+#endif
     return false;
 }
 
@@ -211,7 +256,7 @@ bool MeshAppUi::sendMessageHasGroupChannels() const
     ChannelDetails ch;
     for (int idx = 0; idx < MAX_GROUP_CHANNELS; ++idx)
     {
-        if (the_mesh.getChannel(idx, ch) && ch.name[0] != '\0')
+        if (!isJoinChannel(idx) && the_mesh.getChannel(idx, ch) && ch.name[0] != '\0')
             return true;
     }
     return false;
@@ -227,7 +272,7 @@ int MeshAppUi::sendMessageGroupCount() const
     ChannelDetails ch;
     for (int idx = 0; idx < MAX_GROUP_CHANNELS; ++idx)
     {
-        if (the_mesh.getChannel(idx, ch) && ch.name[0] != '\0')
+        if (!isJoinChannel(idx) && the_mesh.getChannel(idx, ch) && ch.name[0] != '\0')
             ++count;
     }
     return count;
@@ -248,7 +293,7 @@ bool MeshAppUi::sendMessageGroupAt(int index, int *channel_idx, char *label, siz
     ChannelDetails ch;
     for (int idx = 0; idx < MAX_GROUP_CHANNELS; ++idx)
     {
-        if (!the_mesh.getChannel(idx, ch) || ch.name[0] == '\0')
+        if (isJoinChannel(idx) || !the_mesh.getChannel(idx, ch) || ch.name[0] == '\0')
             continue;
         if (seen == index)
         {
@@ -271,7 +316,7 @@ bool MeshAppUi::sendDirectMessage(const uint8_t pub_key_prefix[6], const char *t
 {
     if (!pub_key_prefix || !text || text[0] == '\0')
         return false;
-    ContactInfo *recipient = the_mesh.lookupContactByPubKey(pub_key_prefix, 6);
+    ContactInfo *recipient = the_mesh.lookupMessagePeer(pub_key_prefix, 6);
     if (!recipient)
     {
         heltec::meshcore::ui::ui_task().showAlert("Send failed", 900);

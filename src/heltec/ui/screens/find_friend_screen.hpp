@@ -41,6 +41,10 @@ class FindFriendScreen : public AbstractScreen
     enum class Action : uint8_t
     {
         None,
+        Team,
+        TeamLeave,
+        TeamGroupMessage,
+        TeamDirectMessage,
         WaypointGps,
         WaypointManual
     };
@@ -58,13 +62,11 @@ class FindFriendScreen : public AbstractScreen
     void createInfoRows();
     void createControls();
     void configureFocusItems();
-    _lv_obj_t *addSwitchRow(const char *title, _lv_obj_t **out_switch);
     _lv_obj_t *addDropdownRow(ChoiceRow &choice, const char *title, const char *options);
     _lv_obj_t *addActionRow(const char *title, Action action);
     void bindControl(_lv_obj_t *control);
     void syncControls(bool force_friend_options = false);
     void updateConditionalVisibility();
-    void setSwitchState(bool enabled);
     void setDropdownIndex(_lv_obj_t *dropdown, uint16_t index, bool force = false);
     void syncFriendDropdown(bool force = false);
     void loadFriendDropdownWindow(int start, int selected_rank, bool force);
@@ -77,7 +79,6 @@ class FindFriendScreen : public AbstractScreen
     void restoreWaypointKeyboardFocus();
     void handleAction(Action action, _lv_obj_t *source);
 
-    static void onSwitchValueChanged(lv_event_t *e);
     static void onDropdownValueChanged(lv_event_t *e);
     static void onDropdownStateEvent(lv_event_t *e);
     static void onDropdownReleasedPre(lv_event_t *e);
@@ -90,20 +91,27 @@ class FindFriendScreen : public AbstractScreen
     _lv_obj_t *_right_column = nullptr;
     lv_obj_t *_lbl_info = nullptr;
     lv_obj_t *_lbl_status = nullptr;
-    _lv_obj_t *_sw_enabled = nullptr;
     ChoiceRow _choice_mode;
+    ChoiceRow _choice_team;
     ChoiceRow _choice_friend;
     _lv_obj_t *_row_wp_gps = nullptr;
     _lv_obj_t *_row_wp_manual = nullptr;
+    _lv_obj_t *_row_team = nullptr;
+    _lv_obj_t *_row_team_leave = nullptr;
+    _lv_obj_t *_row_group_message = nullptr;
+    _lv_obj_t *_row_direct_message = nullptr;
     _lv_obj_t *_open_dropdown = nullptr;
     _lv_obj_t *_waypoint_keyboard_return_focus = nullptr;
     uint16_t _open_dropdown_original_index = 0;
     int _friend_open_original_mesh_idx = -1;
-    bool _syncing_switch = false;
     bool _syncing_dropdown = false;
     char _info_text[24] = "starting...";
     char _status_text[80] = {};
-    char _friend_options[384] = {};
+    // '(none)' + ten (newline + up to 31 label bytes) + terminator.
+    static constexpr int kFriendWindowSize = 10;
+    static constexpr int kFriendWindowStep = 5;
+    char _friend_options[7 + kFriendWindowSize * 32] = {};
+    char _team_options[132] = {};
     int16_t _ring_heading_tenths = 0;
     float _turn_show_deg = 0.f;
     bool _gps_fix = false;
@@ -111,8 +119,6 @@ class FindFriendScreen : public AbstractScreen
     bool _direction_valid = false;
     bool _near_target = false;
     bool _defer_cycle_target = false;
-    static constexpr int kFriendWindowSize = 10;
-    static constexpr int kFriendWindowStep = 5;
     int16_t _friend_mesh_map[kFriendWindowSize] = {};
     uint32_t _friend_options_hash = 0;
     int _friend_mesh_map_count = 0;

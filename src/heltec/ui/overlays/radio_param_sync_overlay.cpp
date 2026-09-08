@@ -266,7 +266,12 @@ void RadioParamSyncOverlay::renderRows()
 #if defined(HELTEC_V4_R8_TFT)
     if (!_roller)
         return;
-    rebuildRollerOptions();
+    const int current_index = _biz.currentLoRaBandPresetIndex();
+    if (_rendered_current_index != current_index)
+    {
+        rebuildRollerOptions();
+        _rendered_current_index = static_cast<int8_t>(current_index);
+    }
     lv_roller_set_selected(_roller, static_cast<uint16_t>(_select), LV_ANIM_OFF);
 #else
     const int cur_idx = _biz.currentLoRaBandPresetIndex();

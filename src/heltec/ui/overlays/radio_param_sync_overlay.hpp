@@ -45,6 +45,7 @@ class RadioParamSyncOverlay : public FramedOverlay
 #if defined(HELTEC_V4_R8_TFT)
     _lv_obj_t *_roller = nullptr;
     uint8_t _roller_press_selected = 0;
+    int8_t _rendered_current_index = -1;
 #endif
     int8_t _select = 0;
     uint8_t _count = 0;

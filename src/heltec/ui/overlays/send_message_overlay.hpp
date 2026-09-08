@@ -71,6 +71,7 @@ class SendMessageOverlay : public FramedOverlay
 
     _lv_obj_t *_list_mid = nullptr;
     _lv_obj_t *_row_objs[kMaxVisibleRows]{};
+    char _row_text[kMaxVisibleRows][SendMessageModel::kRowTextCapacity]{}; // Writable storage for LONG_DOT.
 #if defined(HELTEC_LORA_V4_TFT)
     _lv_obj_t *_row_labels[kMaxVisibleRows]{};
 #endif

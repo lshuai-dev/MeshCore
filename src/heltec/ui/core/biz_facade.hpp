@@ -4,6 +4,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
+namespace heltec::meshcore::ui { struct UiSendMessageTarget; }
+
 namespace heltec::meshcore::biz
 {
 struct CompassUi
@@ -22,7 +24,7 @@ struct MapPlotMarker
 {
     int32_t lat_micro = 0;
     int32_t lon_micro = 0;
-    int16_t contact_index = -1;
+    uint8_t pub_key_prefix[6] = {};
     char glyph = '?';
     bool is_self = false;
 };
@@ -195,26 +197,60 @@ class IBizFacade : public ui::IFeedback
     virtual const CompassUi &compassUi() const = 0;
     virtual FindFriendUi findFriendUi() const = 0;
 
+    virtual bool teamIsLeader() const { return false; }
+    virtual bool teamHasTeam() const { return false; }
+    virtual int teamMemberCount() const { return 0; }
+    virtual int teamOnlineCount() const { return 0; }
+    virtual int teamPairState() const { return 0; }
+    virtual uint16_t teamPairingCode() const { return 0; }
+    virtual bool teamPendingDetails(char *name, size_t length, uint64_t &session,
+                                    uint16_t &code) const
+    {
+        session = 0;
+        code = 0;
+        if (name && length > 0)
+            name[0] = '\0';
+        return false;
+    }
+    virtual int teamOfferCount() const { return 0; }
+    virtual bool teamOfferLabel(int index, char *label, size_t length) const
+    {
+        (void)index;
+        if (label && length > 0)
+            label[0] = '\0';
+        return false;
+    }
+    virtual bool teamSelectOffer(int index) { (void)index; return false; }
+    virtual bool teamPrimaryAction() { return false; }
+    virtual bool teamSetActive(bool active) { (void)active; return false; }
+    virtual bool teamSetJoining(bool open) { (void)open; return false; }
+    virtual bool teamMessageTarget(int member_index, ui::UiSendMessageTarget &target) const
+    { (void)member_index; (void)target; return false; }
+    virtual bool mapMessageTarget(const uint8_t *prefix, size_t length,
+                                  ui::UiSendMessageTarget &target) const
+    { (void)prefix; (void)length; (void)target; return false; }
+    virtual uint64_t teamPendingSession() const { return 0; }
+    virtual bool teamJoinWindowOpen() const { return false; }
+    virtual bool teamDecidePending(uint64_t session, bool approve)
+    { (void)session; (void)approve; return false; }
+    virtual bool teamLeave() { return false; }
+    virtual void teamCancel() {}
+
     // Location, compass, and find-friend state.
     virtual bool locationShareEnabled() const = 0;
-    virtual int locShareIntervalIndex() const = 0;
-    virtual int locShareIntervalOptionCount() const = 0;
-    virtual const char *locShareIntervalOptionLabel(int index) const = 0;
     virtual bool findFriendEnabled() const = 0;
     virtual int findFriendMode() const = 0;
     virtual void formatFindFriendWaypointInput(char *buf, size_t buf_len) const = 0;
     virtual int findFriendContactCount() const = 0;
-    virtual bool findFriendContactLabel(int index, char *buf, size_t buf_len) const = 0;
     struct FindFriendContactItem
     {
         int16_t contact_index = -1;
         char label[32] = {};
     };
-    /** Fill one recent-first page of contacts that have valid GPS coordinates. */
+    /** Fill one contact page; null items queries count/rank without building labels. */
     virtual int fillFindFriendContacts(int offset, int selected_contact_index,
                                        FindFriendContactItem *items, int max_items,
                                        int *total_items, int *selected_rank) const = 0;
-    virtual bool findFriendContactHasGps(int index) const = 0;
     virtual int findFriendTargetContactIndex() const = 0;
 
     // Device and radio commands.
@@ -240,8 +276,6 @@ class IBizFacade : public ui::IFeedback
         return false;
     }
     virtual void setCompanionLinkEnabled(bool enabled) = 0;
-    virtual void setLocationShareEnabled(bool enabled) = 0;
-    virtual void setLocShareIntervalIndex(int index) = 0;
     virtual bool setFindFriendEnabled(bool enabled) = 0;
     virtual void setGpsForegroundActive(bool active)
     {
@@ -276,7 +310,6 @@ class IBizFacade : public ui::IFeedback
     virtual bool saveFindFriendWaypointFromGps() = 0;
     virtual bool setFindFriendWaypoint(double lat_deg, double lon_deg) = 0;
     virtual void setFindFriendTargetContactIndex(int index) = 0;
-    virtual void cycleFindFriendTargetContact(int delta) = 0;
     /** Pick and persist the first contact with a usable stored location. */
     virtual bool tryAutoPickFindFriendTarget()
     {

@@ -12,6 +12,23 @@ void MeshAppUi::pollRuntime()
 {
     pollGpsTrack();
     pollRadioStatus();
+#if HELTEC_TEAM_FEATURE
+    // Non-overlapping fields: simultaneous changes must not cancel each other.
+    const uint32_t team_fingerprint =
+        static_cast<uint32_t>(the_mesh.teamService().changeSequence()) |
+        (static_cast<uint32_t>(the_mesh.teamJoinService().state()) << 16) |
+        (static_cast<uint32_t>(the_mesh.teamJoinService().offerCount()) << 24) |
+        (the_mesh.teamJoinService().joinWindowOpen() ? 0x40000000UL : 0UL) |
+        (the_mesh.teamService().locationShareEnabled() ? 0x20000000UL : 0UL) |
+        (the_mesh.teamService().enabled() ? 0x80000000UL : 0UL);
+    if (!_team_runtime_fingerprint_valid || team_fingerprint != _team_runtime_fingerprint)
+    {
+        _team_runtime_fingerprint = team_fingerprint;
+        _team_runtime_fingerprint_valid = true;
+        notifyAppState(heltec::meshcore::ui::AppStateEventType::TeamChanged);
+        notifyAppState(heltec::meshcore::ui::AppStateEventType::FindFriendChanged);
+    }
+#endif
 }
 
 void MeshAppUi::handlePowerChanged(heltec::meshcore::power::PowerChangeMask changes,

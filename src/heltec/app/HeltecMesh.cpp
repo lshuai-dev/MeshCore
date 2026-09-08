@@ -2,6 +2,7 @@
 
 #include "app/geodesic.hpp"
 #include "app/power_mgr.hpp"
+#include "app/team_log.hpp"
 #include "config/NodePrefs.h"
 #include "ui/core/app_state_notifier.hpp"
 
@@ -426,7 +427,9 @@ void HeltecMesh::resetLocShareAdvertSchedule()
 
 bool HeltecMesh::isLocationShareEnabled(const NodePrefs *prefs)
 {
-    return prefs && prefs->loc_share_enabled != 0;
+    // Retired Advert sharing preference must not reactivate after leaving a Team.
+    (void)prefs;
+    return false;
 }
 
 void HeltecMesh::setLocationShareEnabled(HeltecMesh &mesh, bool enabled, bool persist_prefs)
@@ -458,6 +461,10 @@ void HeltecMesh::setLocationShareEnabled(HeltecMesh &mesh, bool enabled, bool pe
 
 void HeltecMesh::pollLocShareAdvert(HeltecMesh &mesh)
 {
+#if HELTEC_TEAM_FEATURE
+    if (mesh.teamService().hasTeam())
+        return;
+#endif
     NodePrefs *p = mesh.getNodePrefs();
     if (!isLocationShareEnabled(p))
     {
@@ -565,6 +572,7 @@ void HeltecMesh::pollLocShareAdvert(HeltecMesh &mesh)
 #define STATS_TYPE_CORE                   0
 #define STATS_TYPE_RADIO                  1
 #define STATS_TYPE_PACKETS                2
+#define STATS_TYPE_TEAM                   3
 
 #define RESP_CODE_OK                      0
 #define RESP_CODE_ERR                     1
@@ -1121,6 +1129,14 @@ int HeltecMesh::getRecentlyHeard(AdvertPath dest[], int max_num)
 
 void HeltecMesh::onContactPathUpdated(const ContactInfo &contact)
 {
+#if HELTEC_TEAM_FEATURE
+    if (&contact == &_team_message_peer)
+    {
+        TEAM_LOG("dm path updated peer=%02X%02X%02X", contact.id.pub_key[0],
+                 contact.id.pub_key[1], contact.id.pub_key[2]);
+        return; // Transient Team routes must not schedule a contacts Flash write.
+    }
+#endif
     out_frame[0] = PUSH_CODE_PATH_UPDATED;
     memcpy(&out_frame[1], contact.id.pub_key, PUB_KEY_SIZE);
     _serial->writeFrame(out_frame, 1 + PUB_KEY_SIZE); // NOTE: app may not be connected
@@ -1128,15 +1144,61 @@ void HeltecMesh::onContactPathUpdated(const ContactInfo &contact)
     dirty_contacts_expiry = futureMillis(LAZY_CONTACTS_WRITE_DELAY);
 }
 
+#if HELTEC_TEAM_FEATURE
+const uint8_t *HeltecMesh::extraPeerKey(int index) const
+{
+    const auto *member = teamService().memberSlot(static_cast<size_t>(index));
+    return member ? member->public_key : nullptr;
+}
+
+ContactInfo *HeltecMesh::extraPeerContact(int index)
+{
+    const auto *member = teamService().memberSlot(static_cast<size_t>(index));
+    if (!member)
+        return nullptr;
+    // One scratch peer, shared by TX and RX; ACKs retain keys, never its address.
+    if (memcmp(_team_message_peer.id.pub_key, member->public_key, PUB_KEY_SIZE) != 0)
+    {
+        _team_message_peer = ContactInfo{};
+        memcpy(_team_message_peer.id.pub_key, member->public_key, PUB_KEY_SIZE);
+        _team_message_peer.out_path_len = OUT_PATH_UNKNOWN;
+    }
+    snprintf(_team_message_peer.name, sizeof(_team_message_peer.name), "%.*s",
+             member->name_len, member->name);
+    return &_team_message_peer;
+}
+#endif
+
+ContactInfo *HeltecMesh::lookupMessagePeer(const uint8_t *key, size_t key_len)
+{
+    if (!key || key_len == 0 || key_len > PUB_KEY_SIZE)
+        return nullptr;
+    ContactInfo *contact = lookupContactByPubKey(key, key_len);
+    if (contact)
+        return contact;
+#if HELTEC_TEAM_FEATURE
+    for (int index = 0; index < extraPeerCount(); ++index)
+    {
+        const uint8_t *peer_key = extraPeerKey(index);
+        if (peer_key && memcmp(peer_key, key, key_len) == 0)
+            return extraPeerContact(index);
+    }
+#endif
+    return nullptr;
+}
+
 void HeltecMesh::trackExpectedAck(uint32_t expected_ack, ContactInfo *contact)
 {
-    if (!expected_ack)
+    if (!expected_ack || !contact)
         return;
     expected_ack_table[next_ack_idx].msg_sent = _ms->getMillis();
     expected_ack_table[next_ack_idx].ack = expected_ack;
-    expected_ack_table[next_ack_idx].contact = contact;
+    memcpy(expected_ack_table[next_ack_idx].public_key, contact->id.pub_key, PUB_KEY_SIZE);
+    TEAM_LOG("dm queued peer=%02X%02X%02X ack=%08lX", contact->id.pub_key[0],
+             contact->id.pub_key[1], contact->id.pub_key[2],
+             static_cast<unsigned long>(expected_ack));
+    _pending_ack_index = static_cast<int8_t>(next_ack_idx);
     next_ack_idx = (next_ack_idx + 1) % EXPECTED_ACK_TABLE_SIZE;
-    txt_send_pending_contact = contact;
 }
 
 ContactInfo *HeltecMesh::processAck(const uint8_t *data)
@@ -1144,7 +1206,8 @@ ContactInfo *HeltecMesh::processAck(const uint8_t *data)
     // see if matches any in a table
     for (int i = 0; i < EXPECTED_ACK_TABLE_SIZE; i++)
     {
-        if (memcmp(data, &expected_ack_table[i].ack, 4) == 0)
+        if (expected_ack_table[i].ack != 0 &&
+            memcmp(data, &expected_ack_table[i].ack, 4) == 0)
         { // got an ACK from recipient
             out_frame[0] = PUSH_CODE_SEND_CONFIRMED;
             memcpy(&out_frame[1], data, 4);
@@ -1154,8 +1217,11 @@ ContactInfo *HeltecMesh::processAck(const uint8_t *data)
 
             // NOTE: the same ACK can be received multiple times!
             expected_ack_table[i].ack = 0; // clear expected hash, now that we have received ACK
-            txt_send_pending_contact = nullptr;
-            return expected_ack_table[i].contact;
+            TEAM_LOG("dm ack peer=%02X%02X%02X", expected_ack_table[i].public_key[0],
+                     expected_ack_table[i].public_key[1], expected_ack_table[i].public_key[2]);
+            if (_pending_ack_index == i)
+                _pending_ack_index = -1;
+            return lookupMessagePeer(expected_ack_table[i].public_key, PUB_KEY_SIZE);
         }
     }
     return checkConnectionsAck(data);
@@ -1268,6 +1334,8 @@ void HeltecMesh::sendFloodScoped(const mesh::GroupChannel &channel, mesh::Packet
 void HeltecMesh::onMessageRecv(const ContactInfo &from, mesh::Packet *pkt,
                                uint32_t sender_timestamp, const char *text)
 {
+    TEAM_LOG("dm rx peer=%02X%02X%02X", from.id.pub_key[0], from.id.pub_key[1],
+             from.id.pub_key[2]);
     markConnectionActive(from); // in case this is from a server, and we have a connection
     queueMessage(from, TXT_TYPE_PLAIN, pkt, sender_timestamp, nullptr, 0, text);
 }
@@ -1285,7 +1353,12 @@ void HeltecMesh::onSignedMessageRecv(const ContactInfo &from, mesh::Packet *pkt,
 {
     markConnectionActive(from);
     // from.sync_since change needs to be persisted
-    dirty_contacts_expiry = futureMillis(LAZY_CONTACTS_WRITE_DELAY);
+#if HELTEC_TEAM_FEATURE
+    if (&from != &_team_message_peer)
+#endif
+    {
+        dirty_contacts_expiry = futureMillis(LAZY_CONTACTS_WRITE_DELAY);
+    }
     queueMessage(from, TXT_TYPE_SIGNED_PLAIN, pkt, sender_timestamp, sender_prefix, 4, text);
 }
 
@@ -1342,6 +1415,31 @@ void HeltecMesh::onChannelMessageRecv(const mesh::GroupChannel &channel, mesh::P
     if (_ui)
         _ui->newMsg(path_len, channel_name, text, offline_queue_len);
 }
+
+#if HELTEC_TEAM_FEATURE
+void HeltecMesh::onChannelDataRecv(const mesh::GroupChannel &channel, mesh::Packet *pkt,
+                                   uint16_t data_type, const uint8_t *data, size_t data_len)
+{
+    (void)pkt;
+    if (data_type != heltec::meshcore::team::kDataTypeDev)
+    {
+        return;
+    }
+    const int channel_index = findChannelIdx(channel);
+    if (channel_index == HELTEC_TEAM_JOIN_CHANNEL_INDEX)
+    {
+        _team_join_service.handleJoinData(data, data_len);
+    }
+    else if (channel_index == HELTEC_TEAM_CHANNEL_INDEX)
+    {
+        _team_service.handleTeamData(data, data_len);
+    }
+    else
+    {
+        _team_service.noteWrongChannel();
+    }
+}
+#endif
 
 uint8_t HeltecMesh::onContactRequest(const ContactInfo &contact, uint32_t sender_timestamp,
                                      const uint8_t *data, uint8_t len, uint8_t *reply)
@@ -1631,12 +1729,20 @@ uint32_t HeltecMesh::calcDirectTimeoutMillisFor(uint32_t pkt_airtime_millis, uin
 
 void HeltecMesh::onSendTimeout()
 {
-    if (txt_send_pending_contact && txt_send_pending_contact->out_path_len >= 0)
+    ContactInfo *contact = _pending_ack_index >= 0 ?
+        lookupMessagePeer(expected_ack_table[_pending_ack_index].public_key, PUB_KEY_SIZE) :
+        nullptr;
+    if (contact && contact->out_path_len != OUT_PATH_UNKNOWN)
     {
-        txt_send_pending_contact->out_path_len = -1;
-        dirty_contacts_expiry = futureMillis(LAZY_CONTACTS_WRITE_DELAY);
+        contact->out_path_len = OUT_PATH_UNKNOWN;
+#if HELTEC_TEAM_FEATURE
+        if (contact != &_team_message_peer)
+#endif
+        {
+            dirty_contacts_expiry = futureMillis(LAZY_CONTACTS_WRITE_DELAY);
+        }
     }
-    txt_send_pending_contact = nullptr;
+    _pending_ack_index = -1;
 }
 
 HeltecMesh::HeltecMesh(mesh::Radio &radio, mesh::RNG &rng, mesh::RTCClock &rtc,
@@ -1650,7 +1756,8 @@ HeltecMesh::HeltecMesh(mesh::Radio &radio, mesh::RNG &rng, mesh::RTCClock &rtc,
     app_target_ver = 0;
     clearPendingReqs();
     next_ack_idx = 0;
-    txt_send_pending_contact = nullptr;
+    _pending_ack_index = -1;
+    memset(expected_ack_table, 0, sizeof(expected_ack_table));
     sign_data = nullptr;
     dirty_contacts_expiry = 0;
     memset(advert_paths, 0, sizeof(advert_paths));
@@ -1763,6 +1870,13 @@ bool HeltecMesh::getStableGpsFix(StableGpsFixSnapshot &out) const
 
 mesh::Packet *HeltecMesh::createPolicySelfAdvert(bool require_live_location)
 {
+#if HELTEC_TEAM_FEATURE
+    if (teamService().hasTeam())
+    {
+        // Team coordinates belong only in the encrypted Group Location frame.
+        return createSelfAdvert(_prefs.node_name);
+    }
+#endif
     const bool heltec_location_share = isLocationShareEnabled(&_prefs);
     if (!heltec_location_share && _prefs.advert_loc_policy == ADVERT_LOC_NONE)
     {
@@ -1912,6 +2026,10 @@ void HeltecMesh::begin(bool has_display)
     bootstrapRTCfromContacts();
     addChannel("Public", PUBLIC_GROUP_PSK); // pre-configure Andy's public channel
     _store->loadChannels(this);
+#if HELTEC_TEAM_FEATURE
+    _team_service.begin(*this, *_store);
+    _team_join_service.begin(*this, _team_service);
+#endif
 
     radio_set_params(_prefs.freq, _prefs.bw, _prefs.sf, _prefs.cr);
     radio_set_tx_power(_prefs.tx_power_dbm);
@@ -2880,7 +2998,12 @@ void HeltecMesh::handleCmdFrame(size_t len)
     {
         uint8_t channel_idx = cmd_frame[1];
         ChannelDetails channel;
-        if (getChannel(channel_idx, channel))
+#if HELTEC_TEAM_FEATURE
+        const bool channel_allowed = channel_idx < HELTEC_TEAM_USER_CHANNEL_CAPACITY;
+#else
+        const bool channel_allowed = true;
+#endif
+        if (channel_allowed && getChannel(channel_idx, channel))
         {
             int i = 0;
             out_frame[i++] = RESP_CODE_CHANNEL_INFO;
@@ -2907,7 +3030,12 @@ void HeltecMesh::handleCmdFrame(size_t len)
         StrHelper::strncpy(channel.name, (char *)&cmd_frame[2], 32);
         memset(channel.channel.secret, 0, sizeof(channel.channel.secret));
         memcpy(channel.channel.secret, &cmd_frame[2 + 32], 16); // NOTE: only 128-bit supported
-        if (setChannel(channel_idx, channel))
+#if HELTEC_TEAM_FEATURE
+        const bool channel_allowed = channel_idx < HELTEC_TEAM_USER_CHANNEL_CAPACITY;
+#else
+        const bool channel_allowed = true;
+#endif
+        if (channel_allowed && setChannel(channel_idx, channel))
         {
             saveChannels();
             writeOKFrame();
@@ -3179,6 +3307,25 @@ void HeltecMesh::handleCmdFrame(size_t len)
             i += 4;
             _serial->writeFrame(out_frame, i);
         }
+#if HELTEC_TEAM_FEATURE
+        else if (stats_type == STATS_TYPE_TEAM)
+        {
+            int i = 0;
+            out_frame[i++] = RESP_CODE_STATS;
+            out_frame[i++] = STATS_TYPE_TEAM;
+            const auto &team_stats = _team_service.stats();
+            const auto &join_stats = _team_join_service.stats();
+            static_assert(sizeof(team_stats) == 10 * sizeof(uint16_t),
+                          "Unexpected TeamStats padding");
+            static_assert(sizeof(join_stats) == 8 * sizeof(uint16_t),
+                          "Unexpected TeamJoinStats padding");
+            memcpy(&out_frame[i], &team_stats, sizeof(team_stats));
+            i += sizeof(team_stats);
+            memcpy(&out_frame[i], &join_stats, sizeof(join_stats));
+            i += sizeof(join_stats);
+            _serial->writeFrame(out_frame, i);
+        }
+#endif
         else
         {
             writeErrFrame(ERR_CODE_ILLEGAL_ARG); // invalid stats sub-type
@@ -3897,6 +4044,10 @@ void HeltecMesh::handleCompanionJsonCmdLineTo(BaseSerialInterface *outSerial, Pr
 void HeltecMesh::loop()
 {
     BaseChatMesh::loop();
+#if HELTEC_TEAM_FEATURE
+    _team_service.poll();
+    _team_join_service.poll();
+#endif
 
     if (_cli_rescue)
     {

@@ -56,6 +56,18 @@ lv_obj_t *ht_label_create(lv_obj_t *parent, const char *text, void *user_data)
     return obj;
 }
 
+lv_obj_t *ht_label_create_static(lv_obj_t *parent, const char *text, void *user_data)
+{
+    lv_obj_t *const obj = create_object_impl(&lv_label_class, parent, user_data);
+    if (obj)
+    {
+        // CLIP never writes through a borrowed pointer (unlike LONG_DOT).
+        lv_label_set_long_mode(obj, LV_LABEL_LONG_CLIP);
+        lv_label_set_text_static(obj, text ? text : "");
+    }
+    return obj;
+}
+
 #define HT_DEFINE_WIDGET_FACTORY(function_name, class_name)                                      \
     lv_obj_t *function_name(lv_obj_t *parent, void *user_data)                                  \
     {                                                                                            \

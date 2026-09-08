@@ -106,12 +106,11 @@ TargetFreshness FindFriendNavEstimator::classifyTargetFreshness(bool is_contact,
     return TargetFreshness::Stale;
 }
 
-void FindFriendNavEstimator::addGpsSample(double lat_deg, double lon_deg, uint32_t source_ms)
+void FindFriendNavEstimator::addGpsSample(double lat_deg, double lon_deg)
 {
     GpsSample &sample = _gps_samples[_gps_next];
     sample.lat_deg = lat_deg;
     sample.lon_deg = lon_deg;
-    sample.source_ms = source_ms;
     _gps_next = (_gps_next + 1U) % kGpsWindowSize;
     if (_gps_count < kGpsWindowSize)
         ++_gps_count;
@@ -127,8 +126,8 @@ void FindFriendNavEstimator::filteredGps(double &lat_deg, double &lon_deg, float
         return;
     }
 
-    double latitudes[kGpsWindowSize];
-    double longitude_deltas[kGpsWindowSize];
+    double latitudes[kGpsWindowSize] = {};
+    double longitude_deltas[kGpsWindowSize] = {};
     const double lon_reference = _gps_samples[0].lon_deg;
     for (size_t i = 0; i < _gps_count; ++i)
     {
@@ -144,7 +143,8 @@ void FindFriendNavEstimator::filteredGps(double &lat_deg, double &lon_deg, float
     if (lon_deg < -180.0)
         lon_deg += 360.0;
 
-    double deviations[kGpsWindowSize];
+    // Median latitude has already been extracted; reuse its scratch array.
+    double *const deviations = latitudes;
     for (size_t i = 0; i < _gps_count; ++i)
     {
         deviations[i] = geo::geodesic_distance_m(lat_deg, lon_deg, _gps_samples[i].lat_deg,
@@ -196,7 +196,7 @@ FindFriendNavOutput FindFriendNavEstimator::update(const FindFriendNavInput &inp
             !_gps_source_seen || (int32_t)(source_ms - _last_gps_source_ms) >= 100;
         if (coordinate_changed || source_advanced)
         {
-            addGpsSample(input.gps_lat_deg, input.gps_lon_deg, source_ms);
+            addGpsSample(input.gps_lat_deg, input.gps_lon_deg);
             _gps_source_seen = true;
             _last_gps_source_ms = source_ms;
             _last_gps_lat_deg = input.gps_lat_deg;

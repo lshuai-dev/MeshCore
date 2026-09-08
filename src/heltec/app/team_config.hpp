@@ -1,0 +1,78 @@
+/**
+ * @file    team_config.hpp
+ * @brief   Compile-time configuration for the Heltec Team feature.
+ * @version 1.0
+ * @date    2026-09-04
+ */
+#pragma once
+
+#ifndef HELTEC_TEAM_FEATURE
+#define HELTEC_TEAM_FEATURE 0
+#endif
+
+#ifndef HELTEC_TEAM_ROLE
+#define HELTEC_TEAM_ROLE 0
+#endif
+
+/* 0: off; 1: lifecycle/errors; 2: verbose frames/location. */
+#ifndef HELTEC_TEAM_LOG
+#define HELTEC_TEAM_LOG 0
+#endif
+
+#ifndef HELTEC_TEAM_MAX_MEMBERS
+#define HELTEC_TEAM_MAX_MEMBERS 32
+#endif
+
+#ifndef HELTEC_TEAM_JOIN_WINDOW_SEC
+#define HELTEC_TEAM_JOIN_WINDOW_SEC 120
+#endif
+
+#ifndef HELTEC_TEAM_JOIN_CONFIRM_SEC
+#define HELTEC_TEAM_JOIN_CONFIRM_SEC 30
+#endif
+
+#ifndef HELTEC_TEAM_JOIN_MAX_SESSIONS
+#define HELTEC_TEAM_JOIN_MAX_SESSIONS 4
+#endif
+
+#if HELTEC_TEAM_JOIN_MAX_SESSIONS < 1 || HELTEC_TEAM_JOIN_MAX_SESSIONS > 4
+#error "HELTEC_TEAM_JOIN_MAX_SESSIONS must be between 1 and 4"
+#endif
+
+#ifndef HELTEC_TEAM_LOCATION_PERIOD_SEC
+#define HELTEC_TEAM_LOCATION_PERIOD_SEC 30
+#endif
+
+#ifndef HELTEC_TEAM_LOCATION_IDLE_PERIOD_SEC
+#define HELTEC_TEAM_LOCATION_IDLE_PERIOD_SEC 300
+#endif
+
+#ifndef HELTEC_TEAM_LOCATION_MOVE_THRESHOLD_E6
+#define HELTEC_TEAM_LOCATION_MOVE_THRESHOLD_E6 90
+#endif
+
+#ifndef HELTEC_TEAM_PRESENCE_PERIOD_SEC
+#define HELTEC_TEAM_PRESENCE_PERIOD_SEC 900
+#endif
+
+#if HELTEC_TEAM_ROLE != 0 && HELTEC_TEAM_ROLE != 1
+#error "HELTEC_TEAM_ROLE must be 0 (Member) or 1 (Leader)"
+#endif
+
+#if HELTEC_TEAM_MAX_MEMBERS < 1 || HELTEC_TEAM_MAX_MEMBERS > 32
+#error "HELTEC_TEAM_MAX_MEMBERS must be between 1 and 32"
+#endif
+
+#if HELTEC_TEAM_FEATURE
+#ifndef MAX_GROUP_CHANNELS
+#error "HELTEC_TEAM_FEATURE requires MAX_GROUP_CHANNELS"
+#endif
+
+#define HELTEC_TEAM_USER_CHANNEL_CAPACITY (MAX_GROUP_CHANNELS - 2)
+#define HELTEC_TEAM_JOIN_CHANNEL_INDEX     (MAX_GROUP_CHANNELS - 2)
+#define HELTEC_TEAM_CHANNEL_INDEX          (MAX_GROUP_CHANNELS - 1)
+
+static_assert(MAX_GROUP_CHANNELS >= 3, "Team requires two reserved group channel slots");
+static_assert(HELTEC_TEAM_JOIN_CHANNEL_INDEX + 1 == HELTEC_TEAM_CHANNEL_INDEX,
+              "Team system channel slots must be contiguous");
+#endif

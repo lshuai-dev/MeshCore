@@ -10,9 +10,14 @@ namespace
 constexpr double kPi = 3.14159265358979323846;
 constexpr double kDeg2Rad = kPi / 180.0;
 constexpr double kRad2Deg = 180.0 / kPi;
+#if HELTEC_GEO_COMPACT
+constexpr double kSphereRadiusM = 6371008.8;
+#else
 constexpr double kWgs84A = 6378137.0;
 constexpr double kWgs84F = 1.0 / 298.257223563;
 constexpr double kWgs84B = (1.0 - kWgs84F) * kWgs84A;
+constexpr double kSphereRadiusM = kWgs84A;
+#endif
 
 double wrap_degrees_360(double degrees)
 {
@@ -45,7 +50,7 @@ void geodesic_inverse_spherical(double lat1_deg, double lon1_deg, double lat2_de
         a = 0.0;
     if (a > 1.0)
         a = 1.0;
-    distance_m = kWgs84A * 2.0 * atan2(sqrt(a), sqrt(1.0 - a));
+    distance_m = kSphereRadiusM * 2.0 * atan2(sqrt(a), sqrt(1.0 - a));
 
     if (bearing_deg)
     {
@@ -68,6 +73,10 @@ void geodesic_inverse_wgs84(double lat1_deg, double lon1_deg, double lat2_deg, d
         return;
     }
 
+#if HELTEC_GEO_COMPACT
+    geodesic_inverse_spherical(lat1_deg, lon1_deg, lat2_deg, lon2_deg, distance_m,
+                               initial_bearing_deg);
+#else
     const double phi1 = lat1_deg * kDeg2Rad;
     const double phi2 = lat2_deg * kDeg2Rad;
     const double longitude_delta = normalize_longitude_delta_rad((lon2_deg - lon1_deg) * kDeg2Rad);
@@ -151,6 +160,7 @@ void geodesic_inverse_wgs84(double lat1_deg, double lon1_deg, double lat2_deg, d
             atan2(cos_u2 * sin(lambda), cos_u1 * sin_u2 - sin_u1 * cos_u2 * cos(lambda)) *
             kRad2Deg);
     }
+#endif
 }
 
 double geodesic_distance_m(double lat1_deg, double lon1_deg, double lat2_deg, double lon2_deg)

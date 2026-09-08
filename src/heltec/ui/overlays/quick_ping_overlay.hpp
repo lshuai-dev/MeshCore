@@ -78,7 +78,7 @@ class QuickPingOverlay final : public AbstractOverlay
     _lv_obj_t *createMessageRow(_lv_obj_t *parent);
     _lv_obj_t *createKeyboard(_lv_obj_t *parent);
     void applyState(bool keep_focus = true);
-    void rebuildFocusGroup(_lv_obj_t *preferred = nullptr);
+    void restoreModeFocus(_lv_obj_t *preferred = nullptr);
     void syncLists();
     void loadContactWindow(int start);
     void moveContactSelection(int delta);

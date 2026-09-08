@@ -38,7 +38,12 @@ class AppStateUiDispatcher final
     void scheduleDispatch();
     void dispatchPending();
 
-    AppStateEvent _latest[kEventTypeCount]{};
+    // Only snapshot-bearing events need storage; invalidations use the pending mask.
+    decltype(AppStateEvent::battery) _battery{};
+    decltype(AppStateEvent::gps) _gps{};
+    decltype(AppStateEvent::compass) _compass{};
+    decltype(AppStateEvent::companion) _companion{};
+    decltype(AppStateEvent::unread) _unread{};
     SurfaceManager *_surfaces = nullptr;
     GlobalHandler _global_handler = nullptr;
     void *_global_handler_user_data = nullptr;

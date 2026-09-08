@@ -92,10 +92,9 @@ class FindFriendNavEstimator
     {
         double lat_deg = 0.0;
         double lon_deg = 0.0;
-        uint32_t source_ms = 0;
     };
 
-    void addGpsSample(double lat_deg, double lon_deg, uint32_t source_ms);
+    void addGpsSample(double lat_deg, double lon_deg);
     void filteredGps(double &lat_deg, double &lon_deg, float &scatter_m) const;
     void updateHeading(float heading_deg, uint8_t quality);
 

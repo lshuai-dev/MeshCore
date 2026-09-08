@@ -685,6 +685,7 @@ void MapPanel::layout_markers()
         if (!m.root)
             continue;
         m.active = true;
+        m.data_index = static_cast<int8_t>(i);
         _visible_marker_count++;
         lv_obj_clear_flag(m.root, LV_OBJ_FLAG_HIDDEN);
         lv_obj_set_pos(m.root, (lv_coord_t)(tx - 7), (lv_coord_t)(ty - 7));
@@ -970,8 +971,9 @@ void MapPanel::set_markers(const heltec::meshcore::biz::MapPlotMarker *markers, 
     {
         const auto &src = markers[i];
         const auto &cached = _marker_data[i];
-        unchanged = src.contact_index == cached.contact_index && src.glyph == cached.glyph &&
+        unchanged = src.glyph == cached.glyph &&
                     src.is_self == cached.is_self &&
+                    memcmp(src.pub_key_prefix, cached.pub_key_prefix, 6) == 0 &&
                     (src.is_self ||
                      (src.lat_micro == cached.lat_micro && src.lon_micro == cached.lon_micro));
     }
@@ -983,11 +985,38 @@ void MapPanel::set_markers(const heltec::meshcore::biz::MapPlotMarker *markers, 
     {
         _marker_data[i].lat_micro = markers[i].lat_micro;
         _marker_data[i].lon_micro = markers[i].lon_micro;
-        _marker_data[i].contact_index = markers[i].contact_index;
+        memcpy(_marker_data[i].pub_key_prefix, markers[i].pub_key_prefix, 6);
         _marker_data[i].glyph = markers[i].glyph;
         _marker_data[i].is_self = markers[i].is_self;
     }
     markDirty(DirtyMarkers);
+}
+
+bool MapPanel::markerAt(lv_coord_t x, lv_coord_t y, uint8_t *prefix, size_t length) const
+{
+    if (!prefix || length != 6 || !_viewport)
+        return false;
+    lv_area_t viewport{};
+    lv_obj_get_content_coords(_viewport, &viewport);
+    if (x < viewport.x1 || x > viewport.x2 || y < viewport.y1 || y > viewport.y2)
+        return false;
+    for (int i = kMaxMarkers - 1; i >= 0; --i)
+    {
+        const MarkerSlot &marker = _markers[i];
+        if (!marker.active || !marker.root || marker.data_index < 0 ||
+            marker.data_index >= _marker_count ||
+            lv_obj_has_flag(marker.root, LV_OBJ_FLAG_HIDDEN))
+            continue;
+        lv_area_t area{};
+        lv_obj_get_coords(marker.root, &area);
+        if (x >= area.x1 - 4 && x <= area.x2 + 4 &&
+            y >= area.y1 - 4 && y <= area.y2 + 4)
+        {
+            memcpy(prefix, _marker_data[marker.data_index].pub_key_prefix, length);
+            return true;
+        }
+    }
+    return false;
 }
 
 void MapPanel::zoom_in()

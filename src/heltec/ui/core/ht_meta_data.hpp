@@ -15,6 +15,9 @@ void ht_set_user_data(lv_obj_t *obj, void *user_data);
 lv_obj_t *ht_obj_create(lv_obj_t *parent, void *user_data = nullptr);
 lv_obj_t *ht_label_create(lv_obj_t *parent, const char *text = nullptr,
                           void *user_data = nullptr);
+/** Borrow lifetime-stable text; LONG_DOT requires writable backing storage. */
+lv_obj_t *ht_label_create_static(lv_obj_t *parent, const char *text,
+                                 void *user_data = nullptr);
 lv_obj_t *ht_btn_create(lv_obj_t *parent, void *user_data = nullptr);
 
 #if LV_USE_SWITCH

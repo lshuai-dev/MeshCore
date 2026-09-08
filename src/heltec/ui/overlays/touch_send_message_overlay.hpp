@@ -31,7 +31,7 @@ class SendMessageOverlay : public FramedOverlay
 
     lv_obj_t *focusedObject() const override
     {
-        return _list ? _list : _root;
+        return _focus_group ? lv_group_get_focused(_focus_group) : _root;
     }
     void onEnter() override;
     void onExit() override;
@@ -73,6 +73,7 @@ class SendMessageOverlay : public FramedOverlay
 
     _lv_obj_t *_list_mid = nullptr;
     _lv_obj_t *_list = nullptr;
+    _lv_obj_t *_empty_focus = nullptr;
     _lv_obj_t *_row_objs[kMaxListItems] = {};
     _lv_obj_t *_row_labels[kMaxListItems] = {};
     char _row_text[kMaxListItems][32] = {};

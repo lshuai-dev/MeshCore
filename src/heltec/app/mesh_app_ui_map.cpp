@@ -22,7 +22,7 @@ struct RawPoint
     double lon_deg;
     char glyph;
     bool is_self;
-    int16_t contact_index;
+    uint8_t pub_key_prefix[6] = {};
 };
 
 bool valid_geo_deg(double lat, double lon)
@@ -133,6 +133,8 @@ uint32_t mapPlotInputFingerprint(const GpsStatus &gps)
         ContactInfo c{};
         if (!the_mesh.getContactByIdx((uint32_t)i, c))
             continue;
+        for (size_t j = 0; j < 6; ++j)
+            h = fnv1a_u32(h, c.id.pub_key[j]);
         for (size_t j = 0; j < sizeof(c.name); ++j)
         {
             h = fnv1a_u32(h, static_cast<uint8_t>(c.name[j]));
@@ -140,13 +142,33 @@ uint32_t mapPlotInputFingerprint(const GpsStatus &gps)
         h = fnv1a_u32(h, (uint32_t)c.gps_lat);
         h = fnv1a_u32(h, (uint32_t)c.gps_lon);
     }
+#if HELTEC_TEAM_FEATURE
+    const size_t team_count = the_mesh.teamService().memberCount();
+    h = fnv1a_u32(h, static_cast<uint32_t>(team_count));
+    for (size_t i = 0; i < team_count; ++i)
+    {
+        heltec::meshcore::team::TeamMember member{};
+        if (the_mesh.teamService().memberAt(i, member))
+        {
+            for (size_t j = 0; j < 6; ++j)
+                h = fnv1a_u32(h, member.public_key[j]);
+            h = fnv1a_u32(h, static_cast<uint8_t>(member.name[0]));
+            h = fnv1a_u32(h, static_cast<uint32_t>(member.latitude_e6));
+            h = fnv1a_u32(h, static_cast<uint32_t>(member.longitude_e6));
+            h = fnv1a_u32(h, member.location_valid ? 1U : 0U);
+        }
+    }
+#endif
     return h;
 }
 
-MapPlotUi buildMapPlotUi(const GpsStatus &gps)
+void buildMapPlotUi(const GpsStatus &gps, MapPlotUi &out)
 {
-    MapPlotUi out{};
-    RawPoint raw[MapPlotUi::kMaxMarkers];
+    // Fill the existing cache directly; do not put another marker array on the stack.
+    out.marker_count = 0;
+    out.center_lat = 0.0;
+    out.center_lon = 0.0;
+    RawPoint raw[MapPlotUi::kMaxMarkers] = {};
     int raw_count = 0;
     int self_idx = -1;
 
@@ -158,7 +180,6 @@ MapPlotUi buildMapPlotUi(const GpsStatus &gps)
         p.lon_deg = gps.lon_deg;
         p.glyph = 'M';
         p.is_self = true;
-        p.contact_index = -1;
         self_idx = raw_count - 1;
     }
 
@@ -185,8 +206,31 @@ MapPlotUi buildMapPlotUi(const GpsStatus &gps)
         p.lon_deg = lon_deg;
         p.glyph = c.name[0] ? c.name[0] : '?';
         p.is_self = false;
-        p.contact_index = (int16_t)i;
+        memcpy(p.pub_key_prefix, c.id.pub_key, sizeof(p.pub_key_prefix));
     }
+
+#if HELTEC_TEAM_FEATURE
+    const size_t team_count = the_mesh.teamService().memberCount();
+    for (size_t i = 0; i < team_count; ++i)
+    {
+        heltec::meshcore::team::TeamMember member{};
+        if (!the_mesh.teamService().memberAt(i, member) || !member.location_valid ||
+            !geo::has_valid_gps_micro(member.latitude_e6, member.longitude_e6) ||
+            the_mesh.lookupContactByPubKey(member.public_key, PUB_KEY_SIZE) != nullptr)
+        {
+            continue;
+        }
+        ++contact_gps_total;
+        if (raw_count >= MapPlotUi::kMaxMarkers)
+            continue;
+        RawPoint &point = raw[raw_count++];
+        point.lat_deg = geo::microdeg_to_deg(member.latitude_e6);
+        point.lon_deg = geo::microdeg_to_deg(member.longitude_e6);
+        point.glyph = member.name[0] ? member.name[0] : 'T';
+        point.is_self = false;
+        memcpy(point.pub_key_prefix, member.public_key, sizeof(point.pub_key_prefix));
+    }
+#endif
 
     out.contact_gps_count = contact_gps_total;
     out.drawable = true;
@@ -210,7 +254,7 @@ MapPlotUi buildMapPlotUi(const GpsStatus &gps)
         m.lon_micro = (int32_t)llround(raw[i].lon_deg * 1000000.0);
         m.glyph = raw[i].glyph;
         m.is_self = raw[i].is_self;
-        m.contact_index = raw[i].contact_index;
+        memcpy(m.pub_key_prefix, raw[i].pub_key_prefix, sizeof(m.pub_key_prefix));
         if (raw_count > 1)
         {
             float east_m = 0.f;
@@ -224,7 +268,6 @@ MapPlotUi buildMapPlotUi(const GpsStatus &gps)
     out.span_w_m = (uint32_t)((double)width_m * 1.1);
     out.span_h_m = (uint32_t)((double)height_m * 1.1);
 
-    return out;
 }
 
 } // namespace
@@ -237,7 +280,7 @@ const MapPlotUi &MeshAppUi::mapPlotUi() const
     {
         return _map_plot_cache;
     }
-    _map_plot_cache = buildMapPlotUi(gps);
+    buildMapPlotUi(gps, _map_plot_cache);
     _map_plot_fp = fp;
     _map_plot_cache_valid = true;
     return _map_plot_cache;

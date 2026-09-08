@@ -34,27 +34,12 @@ class GPSScreen : public AbstractScreen
     void refreshSnapshot();
     void setSwitchState(_lv_obj_t *sw, bool on);
     bool ensureGpsEnabled(_lv_obj_t *dependent_switch);
-    void setAdvIntervalIndex(uint16_t index);
-    void updateConditionalVisibility();
-    void closeAdvDropdown();
-    void realignAdvDropdownList();
     static void onGpsSwitchKey(lv_event_t *e);
     static void onGpsSwitchValueChanged(lv_event_t *e);
-    static void onAdvDropdownKey(lv_event_t *e);
-    static void onAdvDropdownValueChanged(lv_event_t *e);
-    static void onAdvDropdownStateEvent(lv_event_t *e);
-    static void onAdvDropdownReleasedPre(lv_event_t *e);
-    static void realignAdvDropdownListAsync(void *user_data);
 
     _lv_obj_t *_row_power = nullptr;
     _lv_obj_t *_lbl_gps_prefix = nullptr;
     _lv_obj_t *_sw_gps = nullptr;
-    _lv_obj_t *_row_location_share = nullptr;
-    _lv_obj_t *_lbl_location_share = nullptr;
-    _lv_obj_t *_sw_location_share = nullptr;
-    _lv_obj_t *_row_adv_interval = nullptr;
-    _lv_obj_t *_lbl_adv_interval = nullptr;
-    _lv_obj_t *_dd_adv_interval = nullptr;
     _lv_obj_t *_lbl_fix = nullptr;
     _lv_obj_t *_lbl_sat = nullptr;
     _lv_obj_t *_lbl_latlon = nullptr;
@@ -69,12 +54,8 @@ class GPSScreen : public AbstractScreen
     char _latlon_text[56] = "lat -- lon --";
     char _alt_text[24] = "alt --";
     char _speed_text[24] = "speed -- km/h";
-    char _adv_interval_options[64] = {};
     biz::IBizFacade::GpsStatus _gps{};
     bool _syncing_switches = false;
-    bool _syncing_adv_interval = false;
-    bool _adv_dropdown_open = false;
-    uint16_t _adv_dropdown_original_index = 0;
 };
 
 } // namespace heltec::meshcore::ui

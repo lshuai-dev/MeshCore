@@ -2,6 +2,11 @@
 #include "config/DataStore.h"
 #include "config/NodePrefs.h"
 #include "core/AbstractUITask.h"
+#include "app/team_config.hpp"
+#if HELTEC_TEAM_FEATURE
+#include "app/team_service.hpp"
+#include "app/team_join_service.hpp"
+#endif
 
 #include <Arduino.h>
 #include <Mesh.h>
@@ -145,6 +150,24 @@ class HeltecMesh : public BaseChatMesh, public DataStoreHost
     {
         return _store;
     }
+#if HELTEC_TEAM_FEATURE
+    heltec::meshcore::team::TeamService &teamService()
+    {
+        return _team_service;
+    }
+    const heltec::meshcore::team::TeamService &teamService() const
+    {
+        return _team_service;
+    }
+    heltec::meshcore::team::TeamJoinService &teamJoinService()
+    {
+        return _team_join_service;
+    }
+    const heltec::meshcore::team::TeamJoinService &teamJoinService() const
+    {
+        return _team_join_service;
+    }
+#endif
     void reloadContactsFromStore();
     /** Same effect as app sending CMD_REMOVE_CONTACT for every entry, then persisting. */
     bool clearAllContacts();
@@ -202,6 +225,11 @@ class HeltecMesh : public BaseChatMesh, public DataStoreHost
     }
 
   protected:
+#if HELTEC_TEAM_FEATURE
+    int extraPeerCount() const override { return HELTEC_TEAM_MAX_MEMBERS; }
+    const uint8_t *extraPeerKey(int index) const override;
+    ContactInfo *extraPeerContact(int index) override;
+#endif
     float getAirtimeBudgetFactor() const override;
     int getInterferenceThreshold() const override;
     int calcRxDelay(float score, uint32_t air_time) const override;
@@ -231,6 +259,7 @@ class HeltecMesh : public BaseChatMesh, public DataStoreHost
                              const uint8_t *path) override;
     void onContactPathUpdated(const ContactInfo &contact) override;
     ContactInfo *processAck(const uint8_t *data) override;
+    bool hasPendingMessageAck() const override { return _pending_ack_index >= 0; }
     void queueMessage(const ContactInfo &from, uint8_t txt_type, mesh::Packet *pkt,
                       uint32_t sender_timestamp, const uint8_t *extra, int extra_len,
                       const char *text);
@@ -243,6 +272,11 @@ class HeltecMesh : public BaseChatMesh, public DataStoreHost
                              const uint8_t *sender_prefix, const char *text) override;
     void onChannelMessageRecv(const mesh::GroupChannel &channel, mesh::Packet *pkt,
                               uint32_t timestamp, const char *text) override;
+#if HELTEC_TEAM_FEATURE
+    void onChannelDataRecv(const mesh::GroupChannel &channel, mesh::Packet *pkt,
+                           uint16_t data_type, const uint8_t *data,
+                           size_t data_len) override;
+#endif
 
     uint8_t onContactRequest(const ContactInfo &contact, uint32_t sender_timestamp,
                              const uint8_t *data, uint8_t len, uint8_t *reply) override;
@@ -266,10 +300,18 @@ class HeltecMesh : public BaseChatMesh, public DataStoreHost
     }
     bool onChannelLoaded(uint8_t channel_idx, const ChannelDetails &ch) override
     {
+#if HELTEC_TEAM_FEATURE
+        if (channel_idx >= HELTEC_TEAM_USER_CHANNEL_CAPACITY)
+            return false;
+#endif
         return setChannel(channel_idx, ch);
     }
     bool getChannelForSave(uint8_t channel_idx, ChannelDetails &ch) override
     {
+#if HELTEC_TEAM_FEATURE
+        if (channel_idx >= HELTEC_TEAM_USER_CHANNEL_CAPACITY)
+            return false;
+#endif
         return getChannel(channel_idx, ch);
     }
 
@@ -280,6 +322,7 @@ class HeltecMesh : public BaseChatMesh, public DataStoreHost
 
   public:
     void trackExpectedAck(uint32_t expected_ack, ContactInfo *contact);
+    ContactInfo *lookupMessagePeer(const uint8_t *key, size_t key_len);
 
     void savePrefs()
     {
@@ -287,6 +330,10 @@ class HeltecMesh : public BaseChatMesh, public DataStoreHost
     }
 
   private:
+#if HELTEC_TEAM_FEATURE
+    friend class heltec::meshcore::team::TeamService;
+    friend class heltec::meshcore::team::TeamJoinService;
+#endif
     mesh::Packet *createPolicySelfAdvert(bool require_live_location);
     void recordContactLocationReceipt(const uint8_t pub_key[PUB_KEY_SIZE], bool advertised,
                                       int32_t lat_micro, int32_t lon_micro);
@@ -332,6 +379,10 @@ class HeltecMesh : public BaseChatMesh, public DataStoreHost
     }
 
     DataStore *_store;
+#if HELTEC_TEAM_FEATURE
+    heltec::meshcore::team::TeamService _team_service{};
+    heltec::meshcore::team::TeamJoinService _team_join_service{};
+#endif
     NodePrefs _prefs;
     uint32_t pending_login;
     uint32_t pending_status;
@@ -392,12 +443,15 @@ class HeltecMesh : public BaseChatMesh, public DataStoreHost
     {
         unsigned long msg_sent;
         uint32_t ack;
-        ContactInfo *contact;
+        uint8_t public_key[PUB_KEY_SIZE];
     };
 #define EXPECTED_ACK_TABLE_SIZE 8
     AckTableEntry expected_ack_table[EXPECTED_ACK_TABLE_SIZE]; // circular table
     int next_ack_idx;
-    ContactInfo *txt_send_pending_contact;
+    int8_t _pending_ack_index = -1;
+#if HELTEC_TEAM_FEATURE
+    ContactInfo _team_message_peer{};
+#endif
 
 #define ADVERT_PATH_TABLE_SIZE 16
     AdvertPath advert_paths[ADVERT_PATH_TABLE_SIZE]; // circular table

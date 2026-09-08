@@ -46,6 +46,13 @@ void AbstractOverlay::setFocusObject(_lv_obj_t *obj)
 {
     if (!_focus_group || !obj)
         return;
+    // Reopening a single-target overlay does not require reallocating its group node.
+    if (lv_obj_get_group(obj) == _focus_group && lv_group_get_obj_count(_focus_group) == 1)
+    {
+        _default_focus = obj;
+        lv_group_focus_obj(obj);
+        return;
+    }
     clearFocusObjects();
     addFocusObject(obj);
 }

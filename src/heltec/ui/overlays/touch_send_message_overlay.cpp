@@ -54,12 +54,19 @@ void SendMessageOverlay::syncOverlayGroup()
 {
     if (!_list || !_focus_group)
         return;
-    clearFocusObjects();
-    const int count = rowCount();
-    for (int i = 0; i < count && i < kMaxListItems; ++i)
+    const bool empty = rowCount() <= 0;
+    if (_empty_focus)
     {
-        if (_row_objs[i])
-            addFocusObject(_row_objs[i]);
+        if (empty)
+        {
+            lv_obj_clear_flag(_empty_focus, LV_OBJ_FLAG_HIDDEN);
+            lv_group_set_editing(_focus_group, false);
+            lv_group_focus_obj(_empty_focus);
+        }
+        else
+        {
+            lv_obj_add_flag(_empty_focus, LV_OBJ_FLAG_HIDDEN);
+        }
     }
 }
 
@@ -130,6 +137,16 @@ _lv_obj_t *SendMessageOverlay::create(lv_obj_t *parent)
         lv_obj_add_flag(_row_objs[i], LV_OBJ_FLAG_HIDDEN);
     }
 
+    _empty_focus = ht_obj_create(_list);
+    if (!_empty_focus)
+        return nullptr;
+    lv_obj_set_size(_empty_focus, 1, 1);
+    lv_obj_add_flag(_empty_focus, LV_OBJ_FLAG_HIDDEN);
+    _syncing_focus = true;
+    for (int i = 0; i < kMaxListItems; ++i)
+        addFocusObject(_row_objs[i]);
+    addFocusObject(_empty_focus);
+    _syncing_focus = false;
     setTarget(_model.target());
     return _root;
 }
@@ -199,7 +216,6 @@ void SendMessageOverlay::clearTouchList()
 {
     if (!_list)
         return;
-    clearFocusObjects();
     for (int i = 0; i < kMaxListItems; ++i)
     {
         if (!_row_objs[i])
@@ -315,19 +331,26 @@ void SendMessageOverlay::renderTouchList()
 {
     if (!_list)
         return;
+    if (_focus_group)
+        lv_group_set_editing(_focus_group, false);
     clearTouchList();
 
     const int count = rowCount();
     if (count <= 0)
+    {
+        syncOverlayGroup();
         return;
+    }
     _model.setSelectedIndex(_model.selectedIndex());
 
     for (int i = 0; i < count && i < kMaxListItems; ++i)
     {
         if (!_row_objs[i] || !_row_labels[i])
             continue;
-        SendMessageModel::safeCopy(_row_text[i], sizeof(_row_text[i]), rowLabel(i));
+        lv_label_set_long_mode(_row_labels[i], LV_LABEL_LONG_CLIP);
+        SendMessageModel::safeCopy(_row_text[i], SendMessageModel::kRowTextCapacity, rowLabel(i));
         lv_label_set_text_static(_row_labels[i], _row_text[i]);
+        lv_label_set_long_mode(_row_labels[i], LV_LABEL_LONG_DOT);
         lv_obj_clear_flag(_row_objs[i], LV_OBJ_FLAG_HIDDEN);
     }
     syncOverlayGroup();
@@ -557,7 +580,8 @@ void SendMessageOverlay::onEnter()
         return;
     if (!_list)
         return;
-    AbstractOverlay::onEnter();
+    // Fixed group members were registered during create(); do not replace them.
+    UiSurface::onEnter();
     fitToDisplay(lv_obj_get_parent(_root));
     fitToDisplay(_root);
     _model.reset(_biz);

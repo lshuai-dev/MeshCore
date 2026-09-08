@@ -14,8 +14,13 @@ namespace
 
 const char *confirmation_body(UiConfirmAction action)
 {
-    return action == UiConfirmAction::FactoryReset ? "Erase all settings and data?"
-                                                   : "Clear contacts and user data?";
+    if (action == UiConfirmAction::FactoryReset)
+        return "Erase all settings and data?";
+    if (action == UiConfirmAction::ClearData)
+        return "Clear contacts and user data?";
+    if (action == UiConfirmAction::TeamLeave)
+        return "Leave Team and erase its key?";
+    return "Approve this Team member?";
 }
 
 } // namespace
@@ -32,6 +37,7 @@ _lv_obj_t *ConfirmOverlay::create(_lv_obj_t *parent)
     setDialogTitle("Confirm");
 
     _body = ht_semantic_label_create(&ht_confirm_text_class, contentHost(),
+                                     _action == UiConfirmAction::TeamJoin ? _body_text :
                                      confirmation_body(_action));
     if (!_body)
         return nullptr;
@@ -91,8 +97,19 @@ _lv_obj_t *ConfirmOverlay::focusTarget() const
 void ConfirmOverlay::setRequest(UiConfirmAction action)
 {
     _action = action;
+    _team_session = 0;
+    if (_action == UiConfirmAction::TeamJoin)
+    {
+        char name[32] = {};
+        uint16_t code = 0;
+        (void)_biz.teamPendingDetails(name, sizeof(name), _team_session, code);
+        lv_snprintf(_body_text, sizeof(_body_text), "%s\nPairing code %04u\nApprove?",
+                    name[0] ? name : "Team member",
+                    static_cast<unsigned>(code));
+    }
     if (_body)
-        lv_label_set_text_static(_body, confirmation_body(_action));
+        lv_label_set_text_static(_body, _action == UiConfirmAction::TeamJoin ?
+                                _body_text : confirmation_body(_action));
 }
 
 bool ConfirmOverlay::onKey(uint32_t key)

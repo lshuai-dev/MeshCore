@@ -65,15 +65,15 @@ void SendMessageModel::loadContactWindow(const biz::IBizFacade &biz, int start)
 void SendMessageModel::rebuildTargetCategories(const biz::IBizFacade &biz)
 {
     _cat_count = 0;
-    safeCopy(_cat_rows[_cat_count++], sizeof(_cat_rows[0]), "broadcast");
+    _category_ids[_cat_count++] = 0;
 
     if (biz.sendMessageHasGroupChannels())
     {
-        safeCopy(_cat_rows[_cat_count++], sizeof(_cat_rows[0]), "group");
+        _category_ids[_cat_count++] = 1;
     }
     if (_contact_total > 0)
     {
-        safeCopy(_cat_rows[_cat_count++], sizeof(_cat_rows[0]), "personal");
+        _category_ids[_cat_count++] = 2;
     }
 }
 
@@ -154,26 +154,14 @@ void SendMessageModel::rebuildTargetList(const biz::IBizFacade &biz, int list_ki
     }
     else if (_list_kind == 2)
     {
-        for (int i = 0; i < _contact_count && _list_count < kMaxListItems; ++i)
-        {
-            safeCopy(_list_rows[_list_count], sizeof(_list_rows[0]), _contacts[i].name);
-            ++_list_count;
-        }
+        _list_count = _contact_count < kMaxListItems ? _contact_count : kMaxListItems;
     }
 }
 
 void SendMessageModel::rebuildMainRows()
 {
-    char target_line[28];
-    snprintf(target_line, sizeof(target_line), "to: %s",
+    snprintf(_target_row, sizeof(_target_row), "to: %s",
              _target.label[0] ? _target.label : "broadcast");
-    safeCopy(_main_rows[0], sizeof(_main_rows[0]), target_line);
-    safeCopy(_main_rows[1], sizeof(_main_rows[0]), "hi");
-    safeCopy(_main_rows[2], sizeof(_main_rows[0]), "bye");
-    safeCopy(_main_rows[3], sizeof(_main_rows[0]), "yes");
-    safeCopy(_main_rows[4], sizeof(_main_rows[0]), "no");
-    safeCopy(_main_rows[5], sizeof(_main_rows[0]), "ok");
-    safeCopy(_main_rows[6], sizeof(_main_rows[0]), "custom...");
     _row_count = kMainRowCount;
 }
 
@@ -225,19 +213,21 @@ int SendMessageModel::rowCount() const
 
 const char *SendMessageModel::rowLabel(int index) const
 {
+    static const char *const main_labels[] = { "hi", "bye", "yes", "no", "ok", "custom..." };
+    static const char *const category_labels[] = { "broadcast", "group", "personal" };
     switch (_page)
     {
     case Page::Main:
         if (index >= 0 && index < _row_count)
-            return _main_rows[index];
+            return index == 0 ? _target_row : main_labels[index - 1];
         break;
     case Page::TargetCategory:
         if (index >= 0 && index < _cat_count)
-            return _cat_rows[index];
+            return category_labels[_category_ids[index]];
         break;
     case Page::TargetList:
         if (index >= 0 && index < _list_count)
-            return _list_rows[index];
+            return _list_kind == 2 ? _contacts[index].name : _list_rows[index];
         break;
     }
     return "";

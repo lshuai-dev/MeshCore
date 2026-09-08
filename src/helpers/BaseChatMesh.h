@@ -78,6 +78,11 @@ class BaseChatMesh : public mesh::Mesh {
   void sendAckTo(const ContactInfo& dest, const uint8_t* ack_hash, uint8_t ack_len=4);
 
 protected:
+  // Optional transient peers; no persistent ContactInfo array is required.
+  virtual int extraPeerCount() const { return 0; }
+  virtual const uint8_t* extraPeerKey(int index) const { (void)index; return nullptr; }
+  virtual ContactInfo* extraPeerContact(int index) { (void)index; return nullptr; }
+  ContactInfo* resolveMatchedPeer(int index);
   BaseChatMesh(mesh::Radio& radio, mesh::MillisecondClock& ms, mesh::RNG& rng, mesh::RTCClock& rtc, mesh::PacketManager& mgr, mesh::MeshTables& tables)
       : mesh::Mesh(radio, ms, rng, rtc, mgr, tables)
   {
@@ -110,6 +115,7 @@ protected:
   virtual void onContactOverwrite(const uint8_t* pub_key) {};
   virtual void onDiscoveredContact(ContactInfo& contact, bool is_new, uint8_t path_len, const uint8_t* path) = 0;
   virtual ContactInfo* processAck(const uint8_t *data) = 0;
+  virtual bool hasPendingMessageAck() const { return false; }
   virtual void onContactPathUpdated(const ContactInfo& contact) = 0;
   virtual bool onContactPathRecv(ContactInfo& from, uint8_t* in_path, uint8_t in_path_len, uint8_t* out_path, uint8_t out_path_len, uint8_t extra_type, uint8_t* extra, uint8_t extra_len);
   virtual void onMessageRecv(const ContactInfo& contact, mesh::Packet* pkt, uint32_t sender_timestamp, const char *text) = 0;
@@ -159,6 +165,8 @@ public:
   int  sendCommandData(const ContactInfo& recipient, uint32_t timestamp, uint8_t attempt, const char* text, uint32_t& est_timeout);
   bool sendGroupMessage(uint32_t timestamp, mesh::GroupChannel& channel, const char* sender_name, const char* text, int text_len);
   bool sendGroupData(mesh::GroupChannel& channel, uint8_t* path, uint8_t path_len, uint16_t data_type, const uint8_t* data, int data_len);
+  bool sendGroupDataZeroHop(mesh::GroupChannel& channel, uint16_t data_type,
+                            const uint8_t* data, int data_len, uint32_t delay_millis = 0);
   int  sendLogin(const ContactInfo& recipient, const char* password, uint32_t& est_timeout);
   int  sendAnonReq(const ContactInfo& recipient, const uint8_t* data, uint8_t len, uint32_t& tag, uint32_t& est_timeout);
   int  sendRequest(const ContactInfo& recipient, uint8_t req_type, uint32_t& tag, uint32_t& est_timeout);

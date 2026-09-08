@@ -8,7 +8,6 @@
 // does not have to pass the same long list of -D arguments to every compiler.
 #define HELTEC_V4_R8 1
 #define USE_SX1262 1
-#define HELTEC_USE_ORLP_ED25519_VERIFY 1
 #define HELTEC_MESH_UI 1
 #define HAS_LNA_CONTROL 1
 #define ED25519_NO_SEED 1
