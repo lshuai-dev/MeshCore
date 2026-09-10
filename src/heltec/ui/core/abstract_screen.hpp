@@ -49,14 +49,19 @@ class AbstractScreen : public UiSurface
     void addFocusItem(_lv_obj_t *object, _lv_obj_t *frame = nullptr,
                       bool propagate_focus = true);
 
-  private:
-    static constexpr uint8_t kMaxFocusItems = 16;
-
     struct FocusItem
     {
         _lv_obj_t *object;
         _lv_obj_t *frame;
     };
+    // Called by the derived constructor after its fixed array has been initialized.
+    void setFocusStorage(FocusItem *items, uint8_t capacity)
+    {
+        _focus_items = items;
+        _focus_capacity = capacity;
+    }
+
+  private:
 
     bool isAvailableFocusItem(const _lv_obj_t *obj) const;
     _lv_obj_t *firstAvailableFocusItem() const;
@@ -74,7 +79,8 @@ class AbstractScreen : public UiSurface
     lv_group_t *_idle_group = nullptr;
     lv_group_t *_active_group = nullptr;
     FocusMode _focus_mode = FocusMode::Idle;
-    FocusItem _focus_items[kMaxFocusItems] = {};
+    FocusItem *_focus_items = nullptr;
+    uint8_t _focus_capacity = 0;
     uint8_t _focus_item_count = 0;
     bool _focus_activation_pending = false;
 };

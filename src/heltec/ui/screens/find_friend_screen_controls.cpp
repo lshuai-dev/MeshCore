@@ -1,14 +1,12 @@
 #if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
 
 #include "find_friend_screen.hpp"
-#include "screen_widget_classes.hpp"
+#include "app/team_join_service.hpp"
 #include "ui/app/ui_theme.hpp"
 #include "ui/core/ht_container.hpp"
-#include "ui/core/ht_meta_data.hpp"
 #include "ui/core/ui_deferred_queue.hpp"
 #include "ui/core/ht_event.h"
 #include "ui/theme/ui_widget_theme.hpp"
-
 #include <lvgl.h>
 #include <string.h>
 
@@ -16,6 +14,7 @@ namespace heltec::meshcore::ui
 {
 namespace
 {
+using heltec::meshcore::team::JoinState;
 
 #if defined(HELTEC_V4_R8_TFT)
 constexpr lv_coord_t kFindFriendRowHeight = 28;
@@ -119,9 +118,11 @@ _lv_obj_t *FindFriendScreen::addDropdownRow(ChoiceRow &choice, const char *title
     if (!choice.row)
         return nullptr;
     configure_row(choice.row, LV_FLEX_ALIGN_START);
-    choice.label = ht_label_create(choice.row, title);
+    choice.label = lv_label_create(choice.row);
+    if (choice.label)
+        lv_label_set_text(choice.label, title);
     configure_label(choice.label, LV_SIZE_CONTENT);
-    choice.dropdown = ht_dropdown_create(choice.row);
+    choice.dropdown = lv_dropdown_create(choice.row);
     if (!choice.dropdown)
         return choice.row;
 
@@ -156,7 +157,8 @@ _lv_obj_t *FindFriendScreen::addActionRow(const char *title, Action action)
     if (!row)
         return nullptr;
     configure_row(row, LV_FLEX_ALIGN_START);
-    _lv_obj_t *label = ht_label_create(row, title);
+    _lv_obj_t *label = lv_label_create(row);
+    if(label) lv_label_set_text(label, title);
     configure_label(label, lv_pct(100));
     lv_obj_add_flag(row, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_set_style_opa(row, LV_OPA_40, LV_STATE_DISABLED);
@@ -199,13 +201,13 @@ void FindFriendScreen::createControls()
     }
     addDropdownRow(_choice_mode, "mode", "friend\nwaypoint\nnone");
 #if HELTEC_TEAM_FEATURE
-    _row_team = addActionRow(_biz.teamIsLeader() ? "> open team joining" :
-                                                "> find / join team", Action::Team);
-    _row_team_leave = addActionRow("> leave team", Action::TeamLeave);
-    if (!_biz.teamIsLeader())
-        addDropdownRow(_choice_team, "team", "(none)");
+    if (_biz.teamIsLeader())
+    {
+        _row_team = addActionRow("> create team", Action::Team);
+    }
+    addDropdownRow(_choice_team, "team", "(none)");
 #endif
-    addDropdownRow(_choice_friend, "friend", "(none)");
+    addDropdownRow(_choice_friend, "member", "(none)");
 #if HELTEC_TEAM_FEATURE
     _row_group_message = addActionRow("> message team", Action::TeamGroupMessage);
     _row_direct_message = addActionRow("> message friend", Action::TeamDirectMessage);
@@ -219,7 +221,6 @@ void FindFriendScreen::configureFocusItems()
     /* Keep keypad/encoder traversal identical to the visual row order. */
     addFocusItem(_choice_mode.dropdown, _choice_mode.row);
     addFocusItem(_row_team);
-    addFocusItem(_row_team_leave);
     addFocusItem(_choice_team.dropdown, _choice_team.row);
     addFocusItem(_choice_friend.dropdown, _choice_friend.row);
     addFocusItem(_row_group_message);
@@ -237,7 +238,7 @@ void FindFriendScreen::configureFocusItems()
     // Match System Screen's deterministic focus scrolling. Pointer focus must
     // not snap the column after a drag or tap; keypad/encoder traversal owns it.
     _lv_obj_t *const focus_controls[] = {
-        _row_team, _row_team_leave, _choice_team.dropdown,
+        _row_team, _choice_team.dropdown,
         _choice_mode.dropdown,
         _choice_friend.dropdown,
         _row_group_message, _row_direct_message,
@@ -249,7 +250,7 @@ void FindFriendScreen::configureFocusItems()
             lv_obj_clear_flag(control, LV_OBJ_FLAG_SCROLL_ON_FOCUS);
     }
 
-    ht_set_user_data(_root, this);
+    lv_obj_set_user_data(_root, this);
     if (group())
     {
         lv_group_set_focus_cb(
@@ -261,9 +262,9 @@ void FindFriendScreen::configureFocusItems()
                     return;
                 for (_lv_obj_t *obj = focused; obj; obj = lv_obj_get_parent(obj))
                 {
-                    if (!ht_user_data(obj))
+                    if (!lv_obj_get_user_data(obj))
                         continue;
-                    auto *const self = static_cast<FindFriendScreen *>(ht_user_data(obj));
+                    auto *const self = static_cast<FindFriendScreen *>(lv_obj_get_user_data(obj));
                     if (self)
                         self->applyGroupFocus(focused);
                     return;
@@ -370,30 +371,56 @@ void FindFriendScreen::syncControls(bool force_friend_options)
     }
     if (_choice_team.dropdown && _open_dropdown != _choice_team.dropdown)
     {
-        size_t used = 0;
-        const int count = _biz.teamOfferCount();
-        if (count > 0)
+        char options[sizeof(_team_options)] = {};
+        const auto state = static_cast<JoinState>(_biz.teamPairState());
+        const char *hint = state == JoinState::Searching ? "searching..." : "select team";
+        switch (state)
         {
-            const int written = lv_snprintf(_team_options, sizeof(_team_options),
-                                            "select team");
-            if (written > 0)
-                used = static_cast<size_t>(written);
+        case JoinState::TimedOut: hint = "no team / timeout"; break;
+        case JoinState::Rejected: hint = "rejected"; break;
+        case JoinState::Error: hint = "join failed"; break;
+        case JoinState::WaitingForApproval: hint = "waiting..."; break;
+        default: break;
         }
-        for (int index = 0; index < count && used + 2 < sizeof(_team_options); ++index)
+        size_t used = static_cast<size_t>(lv_snprintf(options, sizeof(options), "%s", hint));
+        const int count = _biz.teamHasTeam() ? 0 : _biz.teamOfferCount();
+        for (int index = 0; index < count && index < 4; ++index)
         {
             char label[32] = {};
             if (!_biz.teamOfferLabel(index, label, sizeof(label)))
-                continue;
-            const int written = lv_snprintf(_team_options + used, sizeof(_team_options) - used,
-                                            "%s%s", used ? "\n" : "", label);
-            if (written <= 0 || static_cast<size_t>(written) >= sizeof(_team_options) - used)
+            {
+                lv_snprintf(label, sizeof(label), "Team %d", index + 1);
+            }
+            const int written = lv_snprintf(options + used, sizeof(options) - used,
+                                            "\n%s", label);
+            if (written <= 0 || static_cast<size_t>(written) >= sizeof(options) - used)
+            {
                 break;
+            }
             used += static_cast<size_t>(written);
         }
-        if (used == 0)
-            lv_snprintf(_team_options, sizeof(_team_options), "(none)");
-        lv_dropdown_set_options_static(_choice_team.dropdown, _team_options);
-        setDropdownIndex(_choice_team.dropdown, 0, true);
+        if (_biz.teamHasTeam())
+        {
+            UiSendMessageTarget target{};
+            if (_biz.teamMessageTarget(-1, target))
+            {
+                lv_snprintf(options, sizeof(options), "%s", target.label);
+            }
+            else
+            {
+                lv_snprintf(options, sizeof(options), "team active");
+            }
+        }
+        else
+        {
+            lv_snprintf(options + used, sizeof(options) - used, "\nsearch again");
+        }
+        if (strcmp(options, _team_options) != 0)
+        {
+            memcpy(_team_options, options, sizeof(_team_options));
+            lv_dropdown_set_options_static(_choice_team.dropdown, _team_options);
+            setDropdownIndex(_choice_team.dropdown, 0, true);
+        }
     }
     updateConditionalVisibility();
 }
@@ -402,24 +429,42 @@ void FindFriendScreen::updateConditionalVisibility()
 {
     const bool enabled = _biz.findFriendEnabled();
     const bool friend_mode = _biz.findFriendMode() == 0;
-    const int pair_state = _biz.teamPairState();
-    const bool leader = _biz.teamIsLeader();
-    const bool pairing = leader ? _biz.teamJoinWindowOpen() :
-                         pair_state == 1 || pair_state == 2 || pair_state == 3;
+    const auto state = static_cast<JoinState>(_biz.teamPairState());
     const bool team_mode = enabled && friend_mode;
-    set_hidden(_row_team, !team_mode || (!leader && _biz.teamHasTeam()));
+    const bool has_team = _biz.teamHasTeam();
+    set_hidden(_row_team, !team_mode);
     if (_row_team && lv_obj_get_child(_row_team, 0))
     {
-        const char *text = leader ? (pairing ? "> close joining" : "> open joining") :
-                                   (pairing ? "> cancel search / pairing" : "> find team");
+        const char *text = !has_team ? "> create team" :
+            (_biz.teamJoinWindowOpen() ? "> close joining" : "> open joining");
         _lv_obj_t *label = lv_obj_get_child(_row_team, 0);
         if (strcmp(lv_label_get_text(label), text) != 0)
+        {
             lv_label_set_text_static(label, text);
+        }
     }
-    set_hidden(_row_team_leave, !team_mode || !_biz.teamHasTeam());
-    set_hidden(_choice_team.row, !team_mode || pair_state != 2);
+    set_hidden(_choice_team.row, !enabled || (!has_team && (!friend_mode || _biz.teamIsLeader())));
+    if (_choice_team.label)
+    {
+        const char *label = !friend_mode && has_team ? "team sharing" : "team";
+        if (strcmp(lv_label_get_text(_choice_team.label), label) != 0)
+        {
+            lv_label_set_text_static(_choice_team.label, label);
+        }
+    }
+    if (_choice_team.dropdown)
+    {
+        if (has_team || !friend_mode || state == JoinState::WaitingForApproval)
+        {
+            lv_obj_add_state(_choice_team.dropdown, LV_STATE_DISABLED);
+        }
+        else
+        {
+            lv_obj_clear_state(_choice_team.dropdown, LV_STATE_DISABLED);
+        }
+    }
     set_hidden(_choice_mode.row, false);
-    set_hidden(_choice_friend.row, !team_mode || !_biz.teamHasTeam());
+    set_hidden(_choice_friend.row, !team_mode || !has_team);
     set_hidden(_row_group_message, !team_mode || !_biz.teamHasTeam());
     set_hidden(_row_direct_message, !team_mode || !_biz.teamHasTeam());
     const bool can_message = _biz.teamHasTeam();
@@ -440,12 +485,12 @@ void FindFriendScreen::updateConditionalVisibility()
     set_hidden(_row_wp_gps, !enabled || friend_mode);
     set_hidden(_row_wp_manual, !enabled || friend_mode);
 
-    if (_open_dropdown && hidden_in_tree(_open_dropdown))
+    if (_open_dropdown && !focusObjectAvailable(_open_dropdown))
         closeOpenDropdown();
     if (group())
     {
         _lv_obj_t *const focused = lv_group_get_focused(group());
-        if (focused && hidden_in_tree(focused) && _choice_mode.dropdown)
+        if (focused && !focusObjectAvailable(focused) && _choice_mode.dropdown)
         {
             lv_group_focus_obj(_choice_mode.dropdown);
             scrollFocusedIntoView(_choice_mode.dropdown);
@@ -464,10 +509,19 @@ void FindFriendScreen::onDropdownValueChanged(lv_event_t *e)
 
     if (dropdown == self->_choice_mode.dropdown)
     {
+        (void)defer_cancel(focusTeamDeferred, self);
         const int mode = static_cast<int>(lv_dropdown_get_selected(dropdown));
         if (mode == 2)
         {
             self->_biz.teamCancel();
+            if (self->_biz.teamHasTeam() && !self->_biz.teamLeave())
+            {
+                self->syncControls(true);
+                self->_biz.showAlert("Leave team failed", 2000);
+                return;
+            }
+            self->_biz.setFindFriendTargetContactIndex(-1);
+            self->syncFriendDropdown(true);
             (void)self->_biz.setFindFriendEnabled(false);
             self->syncControls(true);
             self->_biz.showAlert("Find friend: OFF", 2000);
@@ -483,6 +537,13 @@ void FindFriendScreen::onDropdownValueChanged(lv_event_t *e)
         if (mode == 0)
         {
             self->syncFriendDropdown(true);
+#if HELTEC_TEAM_FEATURE
+            if (!self->_biz.teamIsLeader() && !self->_biz.teamHasTeam())
+            {
+                self->startTeamSearch();
+                return;
+            }
+#endif
         }
         else
         {
@@ -510,7 +571,22 @@ void FindFriendScreen::onDropdownValueChanged(lv_event_t *e)
     else if (dropdown == self->_choice_team.dropdown)
     {
         const int selected = static_cast<int>(lv_dropdown_get_selected(dropdown));
-        if (selected <= 0)
+        if (!self->_biz.findFriendEnabled() || self->_biz.findFriendMode() != 0 ||
+            self->_biz.teamHasTeam() ||
+            static_cast<JoinState>(self->_biz.teamPairState()) == JoinState::WaitingForApproval)
+        {
+            return;
+        }
+        if (selected == lv_dropdown_get_option_cnt(dropdown) - 1)
+        {
+            self->startTeamSearch();
+            return;
+        }
+        if (selected == 0)
+        {
+            return;
+        }
+        if (selected < 0)
             return;
         const bool ok = self->_biz.teamSelectOffer(selected - 1);
         char status[32] = {};
@@ -518,9 +594,38 @@ void FindFriendScreen::onDropdownValueChanged(lv_event_t *e)
             lv_snprintf(status, sizeof(status), "Confirm %04u",
                         static_cast<unsigned>(self->_biz.teamPairingCode()));
         self->_biz.showAlert(ok ? status : "Join request failed", 3000);
-        if (!ok)
-            self->setDropdownIndex(dropdown, 0, true);
+        self->setDropdownIndex(dropdown, 0, true);
         self->updateConditionalVisibility();
+    }
+}
+
+void FindFriendScreen::startTeamSearch()
+{
+    closeOpenDropdown();
+    const bool started = _biz.teamStartSearch();
+    syncControls(true);
+    if (!started)
+    {
+        _biz.showAlert("Team search failed", 2000);
+        return;
+    }
+    if (!defer(focusTeamDeferred, this))
+    {
+        focusTeamDeferred(this);
+    }
+}
+
+void FindFriendScreen::focusTeamDeferred(void *user_data)
+{
+    auto *self = static_cast<FindFriendScreen *>(user_data);
+    if (!self || !self->_biz.findFriendEnabled() || self->_biz.findFriendMode() != 0 ||
+        self->_biz.teamHasTeam() || !self->_choice_team.dropdown)
+    {
+        return;
+    }
+    if (self->restoreFocus(self->_choice_team.dropdown, self->_choice_mode.dropdown))
+    {
+        self->scrollFocusedIntoView(self->_choice_team.dropdown);
     }
 }
 
@@ -757,9 +862,9 @@ void FindFriendScreen::realignDropdownListAsync(void *user_data)
         return;
     for (_lv_obj_t *obj = dropdown; obj; obj = lv_obj_get_parent(obj))
     {
-        if (!ht_user_data(obj))
+        if (!lv_obj_get_user_data(obj))
             continue;
-        auto *self = static_cast<FindFriendScreen *>(ht_user_data(obj));
+        auto *self = static_cast<FindFriendScreen *>(lv_obj_get_user_data(obj));
         if (self)
             self->realignDropdownList(dropdown);
         return;
@@ -918,40 +1023,18 @@ void FindFriendScreen::handleAction(Action action, _lv_obj_t *source)
     }
     if (action == Action::Team)
     {
-        const int pair_state = _biz.teamPairState();
-        const bool pairing = _biz.teamIsLeader() ? _biz.teamJoinWindowOpen() :
-                             pair_state == 1 || pair_state == 2 || pair_state == 3;
-        if (pairing)
+        if (!_biz.teamIsLeader())
         {
-            _biz.teamCancel();
-            syncControls(false);
+            startTeamSearch();
             return;
         }
-        const bool ok = _biz.teamPrimaryAction();
-        const int state = _biz.teamPairState();
-        char status[40] = {};
-        if (_biz.teamIsLeader())
+        const bool ok = !_biz.teamHasTeam() ? _biz.teamSetActive(true) :
+                       _biz.teamSetJoining(!_biz.teamJoinWindowOpen());
+        syncControls(true);
+        if (!ok)
         {
-            lv_snprintf(status, sizeof(status), "%s", ok ? "Joining open" : "Open failed");
+            _biz.showAlert("Team action failed", 2000);
         }
-        else if (state == 3)
-        {
-            lv_snprintf(status, sizeof(status), "Confirm %04u",
-                        static_cast<unsigned>(_biz.teamPairingCode()));
-        }
-        else
-        {
-            lv_snprintf(status, sizeof(status), "%s", ok ? "Team search started" :
-                        "No team found; retry");
-        }
-        _biz.showAlert(status, 3000);
-        return;
-    }
-    if (action == Action::TeamLeave)
-    {
-        UiConfirmRequest request{};
-        request.action = UiConfirmAction::TeamLeave;
-        (void)emit(EventType::CONFIRM_OPEN, &request);
         return;
     }
     if (action == Action::WaypointGps)
@@ -987,8 +1070,6 @@ void FindFriendScreen::onActionClicked(lv_event_t *e)
     Action action = Action::None;
     if (target == self->_row_team)
         action = Action::Team;
-    if (target == self->_row_team_leave)
-        action = Action::TeamLeave;
     if (target == self->_row_group_message)
         action = Action::TeamGroupMessage;
     if (target == self->_row_direct_message)

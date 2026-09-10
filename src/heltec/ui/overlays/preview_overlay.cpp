@@ -1,6 +1,4 @@
 #include "preview_overlay.hpp"
-
-#include "ui/core/ht_meta_data.hpp"
 #include "ui/core/ht_selector_view.hpp"
 #include "ui/core/ui_semantic_classes.hpp"
 #include "ui/core/operation_hints.hpp"
@@ -46,8 +44,8 @@ _lv_obj_t *PreviewOverlay::create(lv_obj_t *parent)
                           LV_FLEX_ALIGN_CENTER);
     lv_obj_clear_flag(row, LV_OBJ_FLAG_SCROLLABLE);
 
-    _title = ht_label_create(row);
-    _age = ht_label_create(row);
+    _title = lv_label_create(row);
+    _age = lv_label_create(row);
     if (!_title || !_age)
         return nullptr;
     lv_label_set_text_static(_title, _title_text);

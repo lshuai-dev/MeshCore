@@ -1,8 +1,5 @@
 #if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
-
 #include "calibration_overlay.hpp"
-
-#include "ui/core/ht_meta_data.hpp"
 #include "ui/core/operation_hints.hpp"
 #include "ui/core/ht_event.h"
 #include "ui/core/ui_semantic_classes.hpp"

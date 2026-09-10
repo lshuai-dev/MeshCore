@@ -1,8 +1,6 @@
 #include "gps_screen.hpp"
-
 #include "ui/app/ui_theme.hpp"
 #include "ui/core/ht_container.hpp"
-#include "ui/core/ht_meta_data.hpp"
 #include "ui/core/ui_deferred_queue.hpp"
 #include "ui/core/ht_event.h"
 #include "ui/theme/ui_widget_theme.hpp"
@@ -41,8 +39,9 @@ _lv_obj_t *GPSScreen::create(_lv_obj_t *parent)
     {
         lv_obj_set_flex_align(_row_power, LV_FLEX_ALIGN_SPACE_BETWEEN, LV_FLEX_ALIGN_CENTER,
                               LV_FLEX_ALIGN_CENTER);
-        _lbl_gps_prefix = ht_label_create_static(_row_power, "GPS");
-        _sw_gps = ht_switch_create(_row_power);
+        _lbl_gps_prefix = lv_label_create(_row_power);
+        if(_lbl_gps_prefix) lv_label_set_text_static(_lbl_gps_prefix, "GPS");
+        _sw_gps = lv_switch_create(_row_power);
         if (_lbl_gps_prefix)
             lv_obj_set_width(_lbl_gps_prefix, LV_SIZE_CONTENT);
         if (_sw_gps)
@@ -61,8 +60,9 @@ _lv_obj_t *GPSScreen::create(_lv_obj_t *parent)
     {
         lv_obj_set_flex_align(_row_track, LV_FLEX_ALIGN_SPACE_BETWEEN, LV_FLEX_ALIGN_CENTER,
                               LV_FLEX_ALIGN_CENTER);
-        _lbl_track = ht_label_create_static(_row_track, "GPS Track");
-        _sw_track = ht_switch_create(_row_track);
+        _lbl_track = lv_label_create(_row_track);
+        if(_lbl_track) lv_label_set_text_static(_lbl_track, "GPS Track");
+        _sw_track = lv_switch_create(_row_track);
         if (_lbl_track)
             lv_obj_set_width(_lbl_track, LV_SIZE_CONTENT);
         if (_sw_track)
@@ -77,19 +77,19 @@ _lv_obj_t *GPSScreen::create(_lv_obj_t *parent)
 #endif
 
     _lv_obj_t *const row_fix = ht_container_create(_root);
-    _lbl_fix = ht_label_create(row_fix);
+    _lbl_fix = lv_label_create(row_fix);
     lv_label_set_text_static(_lbl_fix, "no fix");
     _lv_obj_t *const row_sat = ht_container_create(_root);
-    _lbl_sat = ht_label_create(row_sat);
+    _lbl_sat = lv_label_create(row_sat);
     lv_label_set_text_static(_lbl_sat, _sat_text);
     _lv_obj_t *const row_latlon = ht_container_create(_root);
-    _lbl_latlon = ht_label_create(row_latlon);
+    _lbl_latlon = lv_label_create(row_latlon);
     lv_label_set_text_static(_lbl_latlon, _latlon_text);
     _lv_obj_t *const row_alt = ht_container_create(_root);
-    _lbl_alt = ht_label_create(row_alt);
+    _lbl_alt = lv_label_create(row_alt);
     lv_label_set_text_static(_lbl_alt, _alt_text);
     _lv_obj_t *const row_speed = ht_container_create(_root);
-    _lbl_speed = ht_label_create(row_speed);
+    _lbl_speed = lv_label_create(row_speed);
     lv_label_set_text_static(_lbl_speed, _speed_text);
 
     _lv_obj_t *const labels[] = {

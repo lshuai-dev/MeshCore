@@ -1,9 +1,6 @@
 #include "keyboard_overlay.hpp"
-
 #include "../core/biz_facade.hpp"
 #include "MeshCore.h"
-#include "ui/core/ht_meta_data.hpp"
-#include "ui/core/ht_meta_data_internal.hpp"
 #include "ui/core/ht_event.h"
 #include "ui/core/ui_semantic_classes.hpp"
 #if defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213
@@ -17,49 +14,16 @@
 
 namespace heltec::meshcore::ui
 {
-
-#if LV_USE_KEYBOARD
-const lv_obj_class_t ht_keyboard_overlay_class = {
-    &lv_obj_class, nullptr, nullptr,
-#if LV_USE_USER_DATA
-    nullptr,
-#endif
-    nullptr, LV_SIZE_CONTENT, LV_SIZE_CONTENT, LV_OBJ_CLASS_EDITABLE_INHERIT,
-    LV_OBJ_CLASS_GROUP_DEF_INHERIT, sizeof(lv_obj_t),
-};
-
-const lv_obj_class_t ht_keyboard_hint_class = {
-    &ht_overlay_bar_class, nullptr, nullptr,
-#if LV_USE_USER_DATA
-    nullptr,
-#endif
-    nullptr, LV_SIZE_CONTENT, LV_SIZE_CONTENT, LV_OBJ_CLASS_EDITABLE_INHERIT,
-    LV_OBJ_CLASS_GROUP_DEF_INHERIT, sizeof(lv_label_t),
-};
-
-const lv_obj_class_t ht_keyboard_editor_class = {
-    &lv_textarea_class, nullptr, nullptr,
-#if LV_USE_USER_DATA
-    nullptr,
-#endif
-    nullptr, LV_SIZE_CONTENT, LV_SIZE_CONTENT, LV_OBJ_CLASS_EDITABLE_INHERIT,
-    LV_OBJ_CLASS_GROUP_DEF_INHERIT, sizeof(lv_textarea_t),
-};
-
-const lv_obj_class_t ht_keyboard_matrix_class = {
-    &lv_keyboard_class, nullptr, nullptr,
-#if LV_USE_USER_DATA
-    nullptr,
-#endif
-    nullptr, LV_SIZE_CONTENT, LV_SIZE_CONTENT, LV_OBJ_CLASS_EDITABLE_INHERIT,
-    LV_OBJ_CLASS_GROUP_DEF_INHERIT, sizeof(lv_keyboard_t),
-};
-#endif
-
 _lv_obj_t *KeyboardOverlay::createRoot(_lv_obj_t *parent)
 {
 #if LV_USE_KEYBOARD
-    return detail::create_object(&ht_keyboard_overlay_class, parent);
+    lv_obj_t *const obj = lv_obj_class_create_obj(&ht_keyboard_overlay_class, parent);
+    if (!obj) {
+        return nullptr;
+    }
+
+    lv_obj_class_init_obj(obj);
+    return obj;
 #else
     (void)parent;
     return nullptr;
@@ -628,20 +592,32 @@ bool KeyboardOverlay::ensureContent()
         return false;
     if (_keyboard)
         return true;
-    _hint = detail::create_object(&ht_keyboard_hint_class, _root);
+    auto create_object = [](const lv_obj_class_t * class_p, lv_obj_t * parent) -> lv_obj_t * {
+        lv_obj_t *const obj = lv_obj_class_create_obj(class_p, parent);
+        if (!obj) {
+            return nullptr;
+        }
+
+        lv_obj_class_init_obj(obj);
+
+        return obj;
+    };
+
+    _hint = create_object(&ht_keyboard_hint_class, _root);
     if (!_hint)
         return false;
     lv_label_set_long_mode(_hint, LV_LABEL_LONG_CLIP);
     lv_snprintf(_title_text, sizeof(_title_text), "#broadcast");
     lv_label_set_text_static(_hint, _title_text);
-    _textarea = detail::create_object(&ht_keyboard_editor_class, _root);
+
+    _textarea = create_object(&ht_keyboard_editor_class, _root);
     if (!_textarea)
         return false;
     lv_textarea_set_one_line(_textarea, false);
     lv_textarea_set_max_length(_textarea, kMaxText);
     lv_textarea_set_text_buffer(_textarea, _text_buffer, sizeof(_text_buffer));
     lv_obj_set_scrollbar_mode(_textarea, LV_SCROLLBAR_MODE_OFF);
-    _keyboard = detail::create_object(&ht_keyboard_matrix_class, _root);
+    _keyboard = create_object(&ht_keyboard_matrix_class, _root);
     if (!_keyboard)
         return false;
     lv_keyboard_set_textarea(_keyboard, _textarea);

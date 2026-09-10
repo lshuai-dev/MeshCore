@@ -1,9 +1,5 @@
 #include "ui_navigator.hpp"
-
-#include "ui/core/ht_meta_data.hpp"
-#include "ui/core/ht_meta_data_internal.hpp"
 #include "ui/core/ui_semantic_classes.hpp"
-
 #include <lvgl.h>
 
 namespace
@@ -26,7 +22,7 @@ static NavigatorData *navigator_data(lv_obj_t *obj)
     {
         return nullptr;
     }
-    return static_cast<NavigatorData *>(heltec::meshcore::ui::ht_user_data(obj));
+    return static_cast<NavigatorData *>(lv_obj_get_user_data(obj));
 }
 
 static void release_navigator_data(lv_event_t *e)
@@ -34,10 +30,10 @@ static void release_navigator_data(lv_event_t *e)
     if (lv_event_get_code(e) != LV_EVENT_DELETE)
         return;
     lv_obj_t *obj = lv_event_get_target(e);
-    NavigatorData *w = static_cast<NavigatorData *>(heltec::meshcore::ui::ht_user_data(obj));
+    NavigatorData *w = static_cast<NavigatorData *>(lv_obj_get_user_data(obj));
     if (!w)
         return;
-    heltec::meshcore::ui::ht_set_user_data(obj, nullptr);
+    lv_obj_set_user_data(obj, nullptr);
     lv_mem_free(w);
 }
 
@@ -111,7 +107,14 @@ const lv_obj_class_t ht_navigator_class = {
 
 lv_obj_t *ht_navigator_create(lv_obj_t *parent, void *user_data)
 {
-    return detail::create_object(&ht_navigator_class, parent, user_data);
+    lv_obj_t *const obj = lv_obj_class_create_obj(&ht_navigator_class, parent);
+    if (!obj) {
+        return nullptr;
+    }
+
+    lv_obj_class_init_obj(obj);
+    lv_obj_set_user_data(obj, user_data);
+    return obj;
 }
 
 _lv_obj_t *ui_navigator_create_grid(_lv_obj_t *parent)

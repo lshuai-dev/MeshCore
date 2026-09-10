@@ -248,21 +248,6 @@ bool MeshAppUi::sendMessagePersonalAt(int index, uint8_t pub_key_prefix[6], char
     return false;
 }
 
-bool MeshAppUi::sendMessageHasGroupChannels() const
-{
-#ifndef MAX_GROUP_CHANNELS
-    return false;
-#else
-    ChannelDetails ch;
-    for (int idx = 0; idx < MAX_GROUP_CHANNELS; ++idx)
-    {
-        if (!isJoinChannel(idx) && the_mesh.getChannel(idx, ch) && ch.name[0] != '\0')
-            return true;
-    }
-    return false;
-#endif
-}
-
 int MeshAppUi::sendMessageGroupCount() const
 {
 #ifndef MAX_GROUP_CHANNELS

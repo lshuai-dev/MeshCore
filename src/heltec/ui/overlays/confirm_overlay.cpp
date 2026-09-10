@@ -1,6 +1,4 @@
 #include "confirm_overlay.hpp"
-
-#include "ui/core/ht_meta_data.hpp"
 #include "ui/core/operation_hints.hpp"
 #include "ui/core/ui_semantic_classes.hpp"
 

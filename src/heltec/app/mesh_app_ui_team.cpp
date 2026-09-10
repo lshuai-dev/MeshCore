@@ -164,6 +164,15 @@ bool MeshAppUi::teamPrimaryAction()
 #endif
 }
 
+bool MeshAppUi::teamStartSearch()
+{
+#if HELTEC_TEAM_FEATURE && HELTEC_TEAM_ROLE == 0
+    return the_mesh.teamJoinService().discoverTeams();
+#else
+    return false;
+#endif
+}
+
 bool MeshAppUi::teamSetActive(bool active)
 {
 #if HELTEC_TEAM_FEATURE && HELTEC_TEAM_ROLE == 1

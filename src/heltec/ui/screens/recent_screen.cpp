@@ -1,10 +1,5 @@
 #include "recent_screen.hpp"
-
-#include "screen_widget_classes.hpp"
-
 #include "ui/core/ht_container.hpp"
-#include "ui/core/ht_meta_data.hpp"
-
 #include <lvgl.h>
 
 namespace heltec::meshcore::ui
@@ -84,8 +79,10 @@ bool RecentScreen::createRowControl(int index)
     _rows[index] = ht_container_create(_root);
     if (!_rows[index])
         return false;
-    _names[index] = ht_label_create(_rows[index], "");
-    _ages[index] = ht_screen_trailing_label_create(_rows[index], "");
+    _names[index] = lv_label_create(_rows[index]);
+    if(_names[index]) lv_label_set_text(_names[index], "");
+    _ages[index] = lv_label_create(_rows[index]);
+    if(_ages[index]) lv_label_set_text(_ages[index], "");
     if (!_names[index] || !_ages[index])
     {
         lv_obj_del(_rows[index]);

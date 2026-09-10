@@ -1,11 +1,8 @@
 #include "system_screen.hpp"
-
 #include "../core/biz_facade.hpp"
 #include "config/LoRaBandPresets.h"
 #include "ui/app/ui_theme.hpp"
-#include "ui/core/ht_meta_data.hpp"
 #include "ui/core/ht_event.h"
-
 #include <Arduino.h>
 #include <lvgl.h>
 #include <string.h>
@@ -99,7 +96,7 @@ _lv_obj_t *SystemScreen::create(_lv_obj_t *parent)
     addFocusItem(_row_factory_reset);
     addFocusItem(_row_clear_data);
 
-    ht_set_user_data(_root, this);
+    lv_obj_set_user_data(_root, this);
 
     lv_group_set_focus_cb(
         group(),
@@ -110,7 +107,7 @@ _lv_obj_t *SystemScreen::create(_lv_obj_t *parent)
                 return;
             for (lv_obj_t *p = foc; p; p = lv_obj_get_parent(p))
             {
-                void *ud = ht_user_data(p);
+                void *ud = lv_obj_get_user_data(p);
                 if (!ud)
                     continue;
                 auto *self = static_cast<SystemScreen *>(ud);

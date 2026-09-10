@@ -19,6 +19,7 @@ class FindFriendScreen : public AbstractScreen
     FindFriendScreen(biz::IBizFacade &biz, const char *title, const lv_img_dsc_t *icon)
         : AbstractScreen(biz, title, icon)
     {
+        setFocusStorage(_screen_focus, kFocusCapacity);
     }
     void onEnter() override;
     void onExit() override;
@@ -31,6 +32,9 @@ class FindFriendScreen : public AbstractScreen
     _lv_obj_t *create(_lv_obj_t *parent) override;
 
   private:
+    static constexpr uint8_t kFocusCapacity = 9;
+    FocusItem _screen_focus[kFocusCapacity]{};
+
     struct ChoiceRow
     {
         _lv_obj_t *row = nullptr;
@@ -42,7 +46,6 @@ class FindFriendScreen : public AbstractScreen
     {
         None,
         Team,
-        TeamLeave,
         TeamGroupMessage,
         TeamDirectMessage,
         WaypointGps,
@@ -61,6 +64,8 @@ class FindFriendScreen : public AbstractScreen
     bool createDial();
     void createInfoRows();
     void createControls();
+    void startTeamSearch();
+    static void focusTeamDeferred(void *user_data);
     void configureFocusItems();
     _lv_obj_t *addDropdownRow(ChoiceRow &choice, const char *title, const char *options);
     _lv_obj_t *addActionRow(const char *title, Action action);
@@ -97,7 +102,6 @@ class FindFriendScreen : public AbstractScreen
     _lv_obj_t *_row_wp_gps = nullptr;
     _lv_obj_t *_row_wp_manual = nullptr;
     _lv_obj_t *_row_team = nullptr;
-    _lv_obj_t *_row_team_leave = nullptr;
     _lv_obj_t *_row_group_message = nullptr;
     _lv_obj_t *_row_direct_message = nullptr;
     _lv_obj_t *_open_dropdown = nullptr;
@@ -111,7 +115,7 @@ class FindFriendScreen : public AbstractScreen
     static constexpr int kFriendWindowSize = 10;
     static constexpr int kFriendWindowStep = 5;
     char _friend_options[7 + kFriendWindowSize * 32] = {};
-    char _team_options[132] = {};
+    char _team_options[164] = {};
     int16_t _ring_heading_tenths = 0;
     float _turn_show_deg = 0.f;
     bool _gps_fix = false;

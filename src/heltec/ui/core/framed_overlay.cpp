@@ -1,58 +1,10 @@
 #include "framed_overlay.hpp"
-
-#include "ht_meta_data_internal.hpp"
 #include "ui_semantic_classes.hpp"
 
 #include <lvgl.h>
 
 namespace heltec::meshcore::ui
 {
-
-const lv_obj_class_t ht_framed_overlay_header_class = {
-    &ht_overlay_bar_class,
-    nullptr,
-    nullptr,
-#if LV_USE_USER_DATA
-    nullptr,
-#endif
-    nullptr,
-    LV_SIZE_CONTENT,
-    LV_SIZE_CONTENT,
-    LV_OBJ_CLASS_EDITABLE_INHERIT,
-    LV_OBJ_CLASS_GROUP_DEF_INHERIT,
-    sizeof(lv_label_t),
-};
-
-const lv_obj_class_t ht_framed_overlay_content_class = {
-    &lv_obj_class,
-    nullptr,
-    nullptr,
-#if LV_USE_USER_DATA
-    nullptr,
-#endif
-    nullptr,
-    LV_SIZE_CONTENT,
-    LV_SIZE_CONTENT,
-    LV_OBJ_CLASS_EDITABLE_INHERIT,
-    LV_OBJ_CLASS_GROUP_DEF_INHERIT,
-    sizeof(lv_obj_t),
-};
-
-const lv_obj_class_t ht_framed_overlay_footer_class = {
-    &ht_overlay_bar_class,
-    nullptr,
-    nullptr,
-#if LV_USE_USER_DATA
-    nullptr,
-#endif
-    nullptr,
-    LV_SIZE_CONTENT,
-    LV_SIZE_CONTENT,
-    LV_OBJ_CLASS_EDITABLE_INHERIT,
-    LV_OBJ_CLASS_GROUP_DEF_INHERIT,
-    sizeof(lv_label_t),
-};
-
 FramedOverlay::FramedOverlay(biz::IBizFacade &biz)
     : FramedOverlay(biz, Options{})
 {
@@ -74,9 +26,20 @@ _lv_obj_t *FramedOverlay::create(_lv_obj_t *parent)
         return _root;
     }
 
+    auto create_object = [](const lv_obj_class_t * class_p, lv_obj_t * parent) -> lv_obj_t * {
+        lv_obj_t *const obj = lv_obj_class_create_obj(class_p, parent);
+        if (!obj) {
+            return nullptr;
+        }
+
+        lv_obj_class_init_obj(obj);
+
+        return obj;
+    };
+
     if (_options.has_header)
     {
-        _header = detail::create_object(&ht_framed_overlay_header_class, _root);
+        _header = create_object(&ht_framed_overlay_header_class, _root);
         if (!_header)
         {
             return nullptr;
@@ -85,7 +48,7 @@ _lv_obj_t *FramedOverlay::create(_lv_obj_t *parent)
         lv_label_set_long_mode(_header, LV_LABEL_LONG_CLIP);
     }
 
-    _content = detail::create_object(&ht_framed_overlay_content_class, _root);
+    _content = create_object(&ht_framed_overlay_content_class, _root);
     if (!_content)
     {
         return nullptr;
@@ -99,7 +62,7 @@ _lv_obj_t *FramedOverlay::create(_lv_obj_t *parent)
 
     if (_options.has_footer)
     {
-        _footer = detail::create_object(&ht_framed_overlay_footer_class, _root);
+        _footer = create_object(&ht_framed_overlay_footer_class, _root);
         if (!_footer)
         {
             return nullptr;

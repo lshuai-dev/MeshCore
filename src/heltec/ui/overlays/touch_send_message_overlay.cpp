@@ -5,7 +5,6 @@
 #include "heltec/ui/core/biz_facade.hpp"
 #include "keyboard_overlay.hpp"
 #include "ui/core/ht_container.hpp"
-#include "ui/core/ht_meta_data.hpp"
 #include "ui/core/operation_hints.hpp"
 #include "ui/core/ui_deferred_queue.hpp"
 #include "ui/core/ht_event.h"
@@ -60,8 +59,7 @@ void SendMessageOverlay::syncOverlayGroup()
         if (empty)
         {
             lv_obj_clear_flag(_empty_focus, LV_OBJ_FLAG_HIDDEN);
-            lv_group_set_editing(_focus_group, false);
-            lv_group_focus_obj(_empty_focus);
+            (void)restoreFocus(_empty_focus, nullptr);
         }
         else
         {
@@ -259,7 +257,7 @@ _lv_obj_t *SendMessageOverlay::createTouchRow(uint8_t index, const char *text)
             if (self->_syncing_focus)
                 return;
             self->_model.setSelectedIndex(static_cast<int>(
-                reinterpret_cast<uintptr_t>(ht_user_data(lv_event_get_target(e)))));
+                reinterpret_cast<uintptr_t>(lv_obj_get_user_data(lv_event_get_target(e)))));
             self->syncSelectionVisual();
         },
         LV_EVENT_FOCUSED, this);
@@ -274,7 +272,7 @@ _lv_obj_t *SendMessageOverlay::createTouchRow(uint8_t index, const char *text)
             if (!self)
                 return;
             self->_model.setSelectedIndex(static_cast<int>(
-                reinterpret_cast<uintptr_t>(ht_user_data(lv_event_get_target(e)))));
+                reinterpret_cast<uintptr_t>(lv_obj_get_user_data(lv_event_get_target(e)))));
             lv_event_stop_bubbling(e);
             lv_event_stop_processing(e);
             self->applySelection();
@@ -322,7 +320,7 @@ void SendMessageOverlay::syncSelectionVisual()
     if (_focus_group && selected < kMaxListItems && _row_objs[selected])
     {
         _syncing_focus = true;
-        lv_group_focus_obj(_row_objs[selected]);
+        (void)restoreFocus(_row_objs[selected], _empty_focus, false);
         _syncing_focus = false;
     }
 }

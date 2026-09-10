@@ -5,9 +5,7 @@
 #include "heltec/ui/map/geo_point.hpp"
 #include "heltec/ui/map/map_sd.hpp"
 #include "ui/app/ui_theme.hpp"
-#include "ui/core/ht_meta_data.hpp"
 #include "ui/core/ui_semantic_classes.hpp"
-#include "ui/core/ht_meta_data_internal.hpp"
 #include "ui/core/ht_event.h"
 
 #include <Arduino.h>
@@ -460,14 +458,29 @@ void TrackerScreen::onTeamToolClicked(lv_event_t *event)
         if (code == LV_EVENT_LONG_PRESSED)
         {
             if (!self->_biz.teamSetActive(!self->_biz.teamHasTeam()))
+            {
                 self->_biz.showAlert("Team toggle failed", 2000);
+            }
+            else
+            {
+                self->_biz.showAlert(self->_biz.teamHasTeam() ? "Team ON" : "Team OFF", 2000);
+            }
         }
         else if (code == LV_EVENT_SHORT_CLICKED)
         {
             if (!self->_biz.teamHasTeam())
+            {
                 self->_biz.showAlert("Hold to start Team", 2000);
+            }
             else if (!self->_biz.teamSetJoining(!self->_biz.teamJoinWindowOpen()))
+            {
                 self->_biz.showAlert("Joining unavailable", 2000);
+            }
+            else
+            {
+                self->_biz.showAlert(self->_biz.teamJoinWindowOpen() ?
+                                     "Team joining OPEN" : "Team joining CLOSED", 2000);
+            }
         }
     }
     else if (button == self->_btn_group_message && code == LV_EVENT_SHORT_CLICKED)
@@ -1050,15 +1063,15 @@ _lv_obj_t *TrackerScreen::create(_lv_obj_t *parent)
                 },
                 LV_EVENT_SIZE_CHANGED, this);
 
-            _btn_zoom_out = ht_btn_create(_toolbar);
-            _btn_zoom_in = ht_btn_create(_toolbar);
-            _btn_gps = ht_btn_create(_toolbar);
+            _btn_zoom_out = lv_btn_create(_toolbar);
+            _btn_zoom_in = lv_btn_create(_toolbar);
+            _btn_gps = lv_btn_create(_toolbar);
             if (_biz.teamIsLeader())
             {
-                _btn_team = ht_btn_create(_toolbar);
+                _btn_team = lv_btn_create(_toolbar);
             }
 #if HELTEC_TEAM_FEATURE
-            _btn_group_message = ht_btn_create(_toolbar);
+            _btn_group_message = lv_btn_create(_toolbar);
 #endif
             _lv_obj_t *const buttons[] = {
                 _btn_zoom_out,

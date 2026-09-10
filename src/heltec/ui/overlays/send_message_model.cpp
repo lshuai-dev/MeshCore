@@ -67,7 +67,7 @@ void SendMessageModel::rebuildTargetCategories(const biz::IBizFacade &biz)
     _cat_count = 0;
     _category_ids[_cat_count++] = 0;
 
-    if (biz.sendMessageHasGroupChannels())
+    if (biz.sendMessageGroupCount() > 0)
     {
         _category_ids[_cat_count++] = 1;
     }

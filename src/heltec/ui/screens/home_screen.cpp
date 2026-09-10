@@ -1,10 +1,8 @@
 #include "home_screen.hpp"
-
 #include "MeshCore.h"
 #include "ui/core/ht_container.hpp"
-#include "ui/core/ht_meta_data.hpp"
+#include "ui/core/ui_semantic_classes.hpp"
 #include "ui/core/ht_event.h"
-#include "ui/screens/screen_widget_classes.hpp"
 
 #include <lvgl.h>
 
@@ -83,9 +81,18 @@ _lv_obj_t *HomeScreen::create(_lv_obj_t *parent)
     _lv_obj_t *const id_row = ht_container_create(_root);
     _lv_obj_t *const message_row = ht_container_create(_root);
     _lv_obj_t *const status_row = ht_container_create(_root);
-    _lblId = id_row ? ht_screen_centered_label_create(id_row, "ID: --------") : nullptr;
-    _lblMsg = message_row ? ht_screen_centered_label_create(message_row, "MSG: 0") : nullptr;
-    _lblStatus = status_row ? ht_screen_centered_label_create(status_row, "") : nullptr;
+
+    auto create_label = [](lv_obj_t *parent, const char *text) -> lv_obj_t * {
+        lv_obj_t *const label = lv_obj_class_create_obj(&ht_screen_centered_label_class, parent);
+        if(!label) return nullptr;
+        lv_obj_class_init_obj(label);
+        if (text) lv_label_set_text(label, text);
+
+        return label;
+    };
+    _lblId = id_row ? create_label(id_row, "ID: --------") : nullptr;
+    _lblMsg = message_row ? create_label(message_row, "MSG: 0") : nullptr;
+    _lblStatus = status_row ? create_label(status_row, "") : nullptr;
 
     lv_snprintf(_id_line, sizeof(_id_line), "ID: --------");
     lv_snprintf(_message_line, sizeof(_message_line), "MSG: 0");

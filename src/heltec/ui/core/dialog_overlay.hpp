@@ -1,16 +1,8 @@
 #pragma once
-
 #include "abstract_overlay.hpp"
 
 namespace heltec::meshcore::ui
 {
-
-extern const lv_obj_class_t ht_dialog_overlay_class;
-extern const lv_obj_class_t ht_dialog_panel_class;
-extern const lv_obj_class_t ht_dialog_title_class;
-extern const lv_obj_class_t ht_dialog_content_class;
-extern const lv_obj_class_t ht_dialog_actions_class;
-
 class DialogOverlay : public AbstractOverlay
 {
   public:

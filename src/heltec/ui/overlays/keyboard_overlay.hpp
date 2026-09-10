@@ -12,11 +12,6 @@ struct _lv_obj_t;
 namespace heltec::meshcore::ui
 {
 
-extern const lv_obj_class_t ht_keyboard_overlay_class;
-extern const lv_obj_class_t ht_keyboard_hint_class;
-extern const lv_obj_class_t ht_keyboard_editor_class;
-extern const lv_obj_class_t ht_keyboard_matrix_class;
-
 class KeyboardOverlay : public AbstractOverlay
 {
   public:

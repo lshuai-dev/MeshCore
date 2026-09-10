@@ -1,6 +1,4 @@
 #include "ui_surface.hpp"
-
-#include "ht_meta_data.hpp"
 #include "ht_event.h"
 
 #include <lvgl.h>
@@ -30,7 +28,7 @@ bool UiSurface::init(_lv_obj_t *parent)
 
 _lv_obj_t *UiSurface::createRoot(_lv_obj_t *parent)
 {
-    return ht_obj_create(parent);
+    return lv_obj_create(parent);
 }
 
 _lv_obj_t *UiSurface::create(_lv_obj_t *parent)
@@ -108,6 +106,36 @@ _lv_obj_t *UiSurface::focusedObject() const
             return foc;
     }
     return defaultFocus();
+}
+
+bool UiSurface::focusObjectAvailable(const _lv_obj_t *obj)
+{
+    if (!obj || !lv_obj_is_valid(obj) || lv_obj_has_state(obj, LV_STATE_DISABLED))
+        return false;
+    for (const _lv_obj_t *parent = obj; parent; parent = lv_obj_get_parent(parent))
+    {
+        if (lv_obj_has_flag(parent, LV_OBJ_FLAG_HIDDEN))
+            return false;
+    }
+    return true;
+}
+
+bool UiSurface::restoreFocus(_lv_obj_t *preferred, _lv_obj_t *fallback, bool reset_editing)
+{
+    if (!_focus_group)
+        return false;
+    if (reset_editing)
+        lv_group_set_editing(_focus_group, false);
+    _lv_obj_t *const candidates[] = { preferred, lv_group_get_focused(_focus_group), fallback };
+    for (_lv_obj_t *candidate : candidates)
+    {
+        if (focusObjectAvailable(candidate) && lv_obj_get_group(candidate) == _focus_group)
+        {
+            lv_group_focus_obj(candidate);
+            return true;
+        }
+    }
+    return false;
 }
 
 void UiSurface::addFocusObject(_lv_obj_t *obj)

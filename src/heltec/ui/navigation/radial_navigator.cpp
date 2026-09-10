@@ -4,7 +4,6 @@
 #include "heltec/ui/images.h"
 #include "ui/app/ui_behavior_profile.hpp"
 #include "ui/app/ui_theme.hpp"
-#include "ui/core/ht_meta_data.hpp"
 #include "ui/core/ui_semantic_classes.hpp"
 #include "ui/core/ht_event.h"
 #include "ui/core/ui_motion_scheduler.hpp"
@@ -33,7 +32,7 @@ static bool navImgHeader(_lv_obj_t *btn, lv_img_header_t *hdr)
 
 static uint8_t navButtonId(_lv_obj_t *btn)
 {
-    return static_cast<uint8_t>(reinterpret_cast<uintptr_t>(ht_user_data(btn)));
+    return static_cast<uint8_t>(reinterpret_cast<uintptr_t>(lv_obj_get_user_data(btn)));
 }
 
 static void setNavButtonClickPad(_lv_obj_t *btn, lv_coord_t pad)
@@ -542,9 +541,10 @@ void RadialNavigator::setIcon(uint8_t id, const lv_img_dsc_t *img)
     }
 
     _lv_obj_t *btn =
-        ht_imgbtn_create(host, reinterpret_cast<void *>(static_cast<uintptr_t>(id)));
+        lv_imgbtn_create(host);
     if (!btn)
         return;
+    lv_obj_set_user_data(btn, reinterpret_cast<void *>(static_cast<uintptr_t>(id)));
     invalidateSlotCache();
     _geometry_valid = false;
     lv_imgbtn_set_src(btn, LV_IMGBTN_STATE_PRESSED, nav_img, nullptr, nullptr);

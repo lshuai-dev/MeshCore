@@ -1,6 +1,4 @@
 #include "abstract_screen.hpp"
-
-#include "ht_meta_data.hpp"
 #include "ui/core/ui_deferred_queue.hpp"
 #include "ui/core/ht_event.h"
 #include "ui/core/ht_container.hpp"
@@ -20,7 +18,7 @@ AbstractScreen::AbstractScreen(biz::IBizFacade &biz, const char *title, const lv
 
 _lv_obj_t *AbstractScreen::createRoot(_lv_obj_t *parent)
 {
-    return _root_scroll_focus ? ht_scroll_view_create(parent) : ht_obj_create(parent);
+    return _root_scroll_focus ? ht_scroll_view_create(parent) : lv_obj_create(parent);
 }
 
 _lv_obj_t *AbstractScreen::create(_lv_obj_t *parent)
@@ -33,7 +31,7 @@ _lv_obj_t *AbstractScreen::create(_lv_obj_t *parent)
     if (_focus_group)
     {
         lv_group_set_wrap(_focus_group, true);
-        ht_set_user_data(_root, this);
+        lv_obj_set_user_data(_root, this);
     }
 
     _idle_group = lv_group_create();
@@ -228,7 +226,11 @@ void AbstractScreen::onFramePressed(lv_event_t *e)
 
 void AbstractScreen::addFocusItem(_lv_obj_t *object, _lv_obj_t *frame, bool propagate_focus)
 {
-    if (!object || !_focus_group || _focus_item_count >= kMaxFocusItems || hasFocusItem(object))
+    if (!object || !_focus_group || hasFocusItem(object))
+        return;
+    LV_ASSERT_MSG(_focus_items && _focus_item_count < _focus_capacity,
+                  "Screen focus capacity exhausted");
+    if (!_focus_items || _focus_item_count >= _focus_capacity)
         return;
 
     _lv_obj_t *const focus_frame = frame ? frame : object;
@@ -253,17 +255,7 @@ void AbstractScreen::addFocusItem(_lv_obj_t *object, _lv_obj_t *frame, bool prop
 
 bool AbstractScreen::isAvailableFocusItem(const _lv_obj_t *obj) const
 {
-    if (!obj || !lv_obj_is_valid(obj) || lv_obj_get_group(obj) != _focus_group ||
-        lv_obj_has_state(obj, LV_STATE_DISABLED))
-    {
-        return false;
-    }
-    for (const _lv_obj_t *current = obj; current; current = lv_obj_get_parent(current))
-    {
-        if (lv_obj_has_flag(current, LV_OBJ_FLAG_HIDDEN))
-            return false;
-    }
-    return true;
+    return focusObjectAvailable(obj) && lv_obj_get_group(obj) == _focus_group;
 }
 
 _lv_obj_t *AbstractScreen::firstAvailableFocusItem() const

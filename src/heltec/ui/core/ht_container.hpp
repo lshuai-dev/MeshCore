@@ -4,9 +4,6 @@
  */
 #ifndef HELTEC_UI_CORE_HT_CONTAINER_HPP
 #define HELTEC_UI_CORE_HT_CONTAINER_HPP
-
-#include "ht_meta_data.hpp"
-
 #include <lvgl.h>
 
 namespace heltec::meshcore::ui

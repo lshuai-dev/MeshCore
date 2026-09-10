@@ -16,6 +16,7 @@ class HomeScreen : public AbstractScreen
     HomeScreen(biz::IBizFacade &biz, const char *title, const lv_img_dsc_t *icon)
         : AbstractScreen(biz, title, icon)
     {
+        setFocusStorage(_screen_focus, kFocusCapacity);
     }
     eScreenId screenId() const override
     {
@@ -26,6 +27,9 @@ class HomeScreen : public AbstractScreen
     _lv_obj_t *create(_lv_obj_t *parent) override;
 
   private:
+    static constexpr uint8_t kFocusCapacity = 3;
+    FocusItem _screen_focus[kFocusCapacity]{};
+
     void onAppStateChanged(const AppStateEvent &event) override;
     void onSurfaceRefresh() override;
     void refreshSnapshot();

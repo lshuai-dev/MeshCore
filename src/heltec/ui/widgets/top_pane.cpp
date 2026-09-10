@@ -1,8 +1,5 @@
 #include "top_pane.hpp"
-
 #include "ui/app/ui_theme.hpp"
-#include "ui/core/ht_meta_data.hpp"
-
 #include <lvgl.h>
 
 namespace heltec::meshcore::ui
@@ -126,7 +123,7 @@ bool TopPane::create(_lv_obj_t *parent)
     lv_obj_set_flex_align(_root, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
     lv_obj_clear_flag(_root, LV_OBJ_FLAG_SCROLLABLE);
 
-    _lv_obj_t *left_slot = ht_obj_create(_root);
+    _lv_obj_t *left_slot = lv_obj_create(_root);
     if (!left_slot)
     {
         lv_obj_del(_root);
@@ -137,7 +134,7 @@ bool TopPane::create(_lv_obj_t *parent)
     lv_obj_set_flex_grow(left_slot, 1);
     lv_obj_clear_flag(left_slot, LV_OBJ_FLAG_SCROLLABLE);
 
-    _lv_obj_t *center_slot = ht_obj_create(_root);
+    _lv_obj_t *center_slot = lv_obj_create(_root);
     if (!center_slot)
     {
         lv_obj_del(_root);
@@ -151,13 +148,14 @@ bool TopPane::create(_lv_obj_t *parent)
                           LV_FLEX_ALIGN_CENTER);
     lv_obj_clear_flag(center_slot, LV_OBJ_FLAG_SCROLLABLE);
 
-    _title = ht_label_create(center_slot, "");
+    _title = lv_label_create(center_slot);
     if (!_title)
     {
         lv_obj_del(_root);
         _root = nullptr;
         return false;
     }
+    lv_label_set_text(_title, "");
     lv_obj_set_size(_title, lv_pct(100), LV_SIZE_CONTENT);
     lv_obj_align(_title, LV_ALIGN_CENTER, 0, 0);
     lv_obj_clear_flag(_title, LV_OBJ_FLAG_SCROLLABLE | LV_OBJ_FLAG_SCROLL_ON_FOCUS);
@@ -182,7 +180,7 @@ bool TopPane::create(_lv_obj_t *parent)
                           LV_FLEX_ALIGN_CENTER);
     lv_obj_clear_flag(right_slot, LV_OBJ_FLAG_SCROLLABLE);
 
-    _bat_cont = ht_obj_create(right_slot);
+    _bat_cont = lv_obj_create(right_slot);
     if (!_bat_cont)
     {
         lv_obj_del(_root);
@@ -211,7 +209,7 @@ bool TopPane::create(_lv_obj_t *parent)
     lv_obj_clear_flag(bat_outline, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_add_event_cb(bat_outline, onBatteryOutlineSizeChanged, LV_EVENT_SIZE_CHANGED, this);
 
-    _bat_fill = ht_obj_create(bat_outline);
+    _bat_fill = lv_obj_create(bat_outline);
     if (!_bat_fill)
     {
         lv_obj_del(_root);

@@ -2,7 +2,6 @@
 
 #include "config/LoRaBandPresets.h"
 #include "heltec/ui/core/biz_facade.hpp"
-#include "ui/core/ht_meta_data.hpp"
 #include "ui/core/ht_selector_view.hpp"
 #include "ui/core/ui_semantic_classes.hpp"
 #include "ui/core/operation_hints.hpp"
@@ -61,7 +60,7 @@ _lv_obj_t *RadioParamSyncOverlay::create(lv_obj_t *parent)
 #if LV_USE_ROLLER == 0
 #error "HELTEC_V4_R8_TFT radio preset overlay requires LV_USE_ROLLER=1"
 #endif
-    _roller = ht_roller_create(_list);
+    _roller = lv_roller_create(_list);
     if (!_roller)
         return nullptr;
     lv_obj_set_width(_roller, lv_pct(100));
@@ -97,7 +96,7 @@ _lv_obj_t *RadioParamSyncOverlay::create(lv_obj_t *parent)
 #else
     for (uint8_t i = 0; i < _count; i++)
     {
-        lv_obj_t *row = ht_label_create(_list);
+        lv_obj_t *row = lv_label_create(_list);
         if (!row)
             return nullptr;
         lv_obj_set_width(row, lv_pct(100));

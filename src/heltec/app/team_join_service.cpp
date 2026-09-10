@@ -402,6 +402,10 @@ void TeamJoinService::clearMemberEphemeral()
 void TeamJoinService::receiveDiscover(const uint8_t *data, size_t length)
 {
 #if HELTEC_TEAM_ROLE == 1
+    TEAM_LOG("discover rx begin data=%p length=%u window=%u mesh=%p team=%p",
+             static_cast<const void *>(data), static_cast<unsigned>(length),
+             joinWindowOpen() ? 1U : 0U, static_cast<void *>(_mesh),
+             static_cast<void *>(_team));
     if (!_mesh || !_team || !data || !joinWindowOpen() || length != 6)
         return;
     const uint32_t now = millis();
@@ -426,12 +430,16 @@ void TeamJoinService::receiveDiscover(const uint8_t *data, size_t length)
              static_cast<unsigned long>(uxTaskGetStackHighWaterMark(nullptr)));
 #endif
     const uint32_t request_id = get_u32(data + 2);
+    TEAM_LOG("discover request=%08lX", static_cast<unsigned long>(request_id));
     Session *session = findSessionByRequest(request_id);
     if (!session)
     {
         session = allocateSession();
         if (!session)
+        {
+            TEAM_INFO("discover dropped: no session");
             return;
+        }
         session->request_id = request_id;
         _mesh->getRNG()->random(reinterpret_cast<uint8_t *>(&session->session_id),
                                 sizeof(session->session_id));
@@ -439,6 +447,7 @@ void TeamJoinService::receiveDiscover(const uint8_t *data, size_t length)
             session->session_id = 1; // Zero is the UI's no-pending-session sentinel.
         _mesh->getRNG()->random(session->leader_nonce, sizeof(session->leader_nonce));
         session->expires_ms = millis() + kSessionDurationMs;
+        TEAM_LOG("discover session allocated id=%08lX", static_cast<unsigned long>(session->session_id));
     }
     session->offer_pending = true;
     TEAM_LOG("discover accepted request=%08lX offer deferred",
@@ -458,6 +467,11 @@ bool TeamJoinService::sendOffer(Session &session)
     if (!_mesh || !_team)
         return false;
     const TeamCredentials &credentials = _team->credentials();
+    TEAM_LOG("offer build request=%08lX session=%08lX name_len=%u",
+             static_cast<unsigned long>(session.request_id),
+             static_cast<unsigned long>(session.session_id),
+             static_cast<unsigned>(credentials.name_len));
+    TEAM_LOG("offer tx begin frame_cap=%u", 102U);
     if (credentials.name_len > kMaxNameBytes)
     {
         TEAM_INFO("offer rejected invalid name length=%u",
@@ -482,6 +496,7 @@ bool TeamJoinService::sendOffer(Session &session)
     memcpy(frame + offset, credentials.name, credentials.name_len);
     offset += credentials.name_len;
     const bool sent = sendJoin(frame, offset, _mesh->getRNG()->nextInt(0, 2001));
+    TEAM_LOG("offer tx end bytes=%u sent=%u", static_cast<unsigned>(offset), sent ? 1U : 0U);
     if (sent)
         increment(_stats.offer_tx);
     return sent;
@@ -944,11 +959,10 @@ void TeamJoinService::receiveDecision(const uint8_t *data, size_t length)
         return;
     }
     (void)sendAck(credentials.key_version);
-    const bool sync_queued = _team->requestSync();
     secure_clear(&credentials, sizeof(credentials));
     clearMemberEphemeral();
     _state = JoinState::Joined;
-    TEAM_INFO("decision accepted: joined ack attempted sync_queued=%u", sync_queued);
+    TEAM_INFO("decision accepted: joined ack attempted; status/sync scheduled");
 #else
     (void)data;
     (void)length;

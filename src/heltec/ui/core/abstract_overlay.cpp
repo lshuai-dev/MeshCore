@@ -1,6 +1,4 @@
 #include "abstract_overlay.hpp"
-
-#include "ht_meta_data.hpp"
 #include "ui_semantic_classes.hpp"
 
 namespace heltec::meshcore::ui

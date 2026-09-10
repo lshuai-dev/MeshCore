@@ -22,9 +22,6 @@ namespace heltec::meshcore::team
 namespace
 {
 
-constexpr uint8_t kLocationValid = 0x10;
-constexpr uint8_t kBatteryValid = 0x02;
-
 const uint8_t kJoinSecret[32] = {
     0x64, 0x98, 0xBB, 0x21, 0x91, 0x31, 0xF4, 0x0D, 0x77, 0x46, 0xA8,
     0x52, 0xEC, 0x5B, 0x99, 0x70, 0x0E, 0xAF, 0x3E, 0x18, 0xDD, 0x79,
@@ -55,16 +52,6 @@ void increment(uint16_t &counter)
         ++counter;
 }
 
-int16_t altitude_dm(long altitude_milli)
-{
-    const long value = altitude_milli / 100L;
-    if (value < INT16_MIN)
-        return INT16_MIN;
-    if (value > INT16_MAX)
-        return INT16_MAX;
-    return static_cast<int16_t>(value);
-}
-
 } // namespace
 
 void TeamService::begin(HeltecMesh &mesh, DataStore &store)
@@ -76,10 +63,8 @@ void TeamService::begin(HeltecMesh &mesh, DataStore &store)
     _last_sync_request_tx_ms = 0;
     clearMembers();
     mesh.getRNG()->random(reinterpret_cast<uint8_t *>(&_boot_id), sizeof(_boot_id));
-    mesh.getRNG()->random(reinterpret_cast<uint8_t *>(&_presence_sequence),
-                          sizeof(_presence_sequence));
-    mesh.getRNG()->random(reinterpret_cast<uint8_t *>(&_location_sequence),
-                          sizeof(_location_sequence));
+    mesh.getRNG()->random(reinterpret_cast<uint8_t *>(&_status_sequence),
+                          sizeof(_status_sequence));
     mesh.getRNG()->random(reinterpret_cast<uint8_t *>(&_sync_sequence), sizeof(_sync_sequence));
     // Migration only: never read old credentials, even if their deletion fails.
     if (!store.deleteTeamPrefs())
@@ -231,18 +216,14 @@ bool TeamService::setEnabled(bool enabled)
     _enabled = enabled;
     if (!enabled)
     {
-        _next_presence_ms = 0;
-        _next_location_ms = 0;
+        _next_status_ms = 0;
         _startup_sync_ms = 0;
         _startup_sync_attempts = 0;
-        _pending_presence_ms = 0;
-        _pending_location_ms = 0;
+        _pending_status_ms = 0;
     }
     else
     {
         scheduleInitialFrames();
-        _startup_sync_attempts = 0;
-        _startup_sync_ms = millis() + _mesh->getRNG()->nextInt(1000, 5001);
     }
     TEAM_LOG("enable=%u ok", enabled);
     return true;
@@ -252,9 +233,12 @@ void TeamService::scheduleInitialFrames()
 {
     if (!enabled() || !_mesh)
         return;
-    _next_presence_ms = millis() + _mesh->getRNG()->nextInt(0, 5001);
-    _next_location_ms = enabled() ? millis() + _mesh->getRNG()->nextInt(1000, 5001) : 0;
-    TEAM_LOG("location scheduled period_s=%u idle_s=%u gps_on=%u",
+    _last_status_sent_ms = 0;
+    _next_status_ms = millis() + _mesh->getRNG()->nextInt(1000, 5001);
+    // Publish our identity before requesting the other members; all TX stays in poll().
+    _startup_sync_ms = _next_status_ms + 1000UL;
+    _startup_sync_attempts = 0;
+    TEAM_LOG("status scheduled period_s=%u idle_s=%u gps_on=%u",
              HELTEC_TEAM_LOCATION_PERIOD_SEC, HELTEC_TEAM_LOCATION_IDLE_PERIOD_SEC,
              _mesh->getNodePrefs()->gps_enabled != 0);
 }
@@ -267,9 +251,6 @@ CommonHeader TeamService::makeHeader(uint8_t flags, uint16_t sequence) const
     memcpy(header.sender_id, _mesh->self_id.pub_key, sizeof(header.sender_id));
     header.boot_id = _boot_id;
     header.sequence = sequence;
-    header.timestamp = _mesh->getRTCClock()->getCurrentTime();
-    if (header.timestamp != 0)
-        header.flags |= 0x01;
     return header;
 }
 
@@ -289,109 +270,63 @@ bool TeamService::sendFrame(const uint8_t *data, size_t length)
     return sent;
 }
 
-bool TeamService::sendPresence()
-{
-    PresenceFrame frame{};
-    frame.battery_mv = _mesh->currentBatteryMilliVolts();
-    frame.header = makeHeader(frame.battery_mv ? kBatteryValid : 0, _presence_sequence);
-    frame.device_type =
-#if defined(HELTEC_T1)
-        1;
-#else
-        2;
-#endif
-    memcpy(frame.public_key, _mesh->self_id.pub_key, sizeof(frame.public_key));
-    frame.capabilities = 0;
-#if defined(ENV_INCLUDE_GPS) && ENV_INCLUDE_GPS
-    frame.capabilities |= 0x0001;
-#endif
-#if HELTEC_TEAM_ROLE == 1
-    frame.capabilities |= 0x0008;
-#endif
-    size_t name_len = strnlen(_mesh->getNodeName(), kMaxNameBytes);
-    while (name_len > 0 && !valid_utf8(
-               reinterpret_cast<const uint8_t *>(_mesh->getNodeName()), name_len))
-        --name_len;
-    frame.name_len = static_cast<uint8_t>(name_len);
-    memcpy(frame.name, _mesh->getNodeName(), frame.name_len);
-    uint8_t data[87] = {};
-    size_t length = 0;
-    if (!encode_presence(frame, data, sizeof(data), length) || !sendFrame(data, length))
-        return false;
-    TEAM_LOG("presence seq=%u battery_mv=%u", frame.header.sequence, frame.battery_mv);
-    ++_presence_sequence;
-    return true;
-}
-
-bool TeamService::sendLocation(bool force_invalid, bool force_update)
+bool TeamService::sendStatus(bool force_update)
 {
     HeltecMesh::StableGpsFixSnapshot gps{};
     const NodePrefs *prefs = _mesh->getNodePrefs();
-    const bool valid = !force_invalid && prefs && prefs->gps_enabled != 0 &&
+    const bool valid = prefs && prefs->gps_enabled != 0 &&
                        _mesh->getStableGpsFix(gps) && gps.valid;
-    if (!valid && !force_invalid)
+    const uint32_t now = millis();
+    if (!force_update && _last_status_sent_ms != 0 && valid == _sent_valid_location)
     {
-        if (!_sent_valid_location && !force_update)
+        const bool moved = valid &&
+            (abs(static_cast<int32_t>(gps.lat_micro) - _last_sent_latitude_e6) >=
+                 HELTEC_TEAM_LOCATION_MOVE_THRESHOLD_E6 ||
+             abs(static_cast<int32_t>(gps.lon_micro) - _last_sent_longitude_e6) >=
+                 HELTEC_TEAM_LOCATION_MOVE_THRESHOLD_E6);
+        const uint32_t period = valid ? HELTEC_TEAM_LOCATION_IDLE_PERIOD_SEC :
+                                        HELTEC_TEAM_PRESENCE_PERIOD_SEC;
+        if (!moved && now - _last_status_sent_ms < period * 1000UL)
         {
-            TEAM_LOG("location skipped reason=%s", prefs && prefs->gps_enabled ?
-                     "no_valid_fix" : "gps_off");
-            return true;
-        }
-        TEAM_LOG("location invalidation force_sync=%u", force_update);
-        force_invalid = true;
-    }
-    if (valid && !force_update && _last_location_sent_ms != 0)
-    {
-        const int32_t lat_delta = abs(static_cast<int32_t>(gps.lat_micro) -
-                                      _last_sent_latitude_e6);
-        const int32_t lon_delta = abs(static_cast<int32_t>(gps.lon_micro) -
-                                      _last_sent_longitude_e6);
-        const bool moved = lat_delta >= HELTEC_TEAM_LOCATION_MOVE_THRESHOLD_E6 ||
-                           lon_delta >= HELTEC_TEAM_LOCATION_MOVE_THRESHOLD_E6;
-        const bool idle_due = millis() - _last_location_sent_ms >=
-                              HELTEC_TEAM_LOCATION_IDLE_PERIOD_SEC * 1000UL;
-        if (!moved && !idle_due)
-        {
-            TEAM_LOG("location skipped reason=stationary age_s=%lu",
-                     static_cast<unsigned long>((millis() - _last_location_sent_ms) / 1000UL));
             return true;
         }
     }
 
-    LocationFrame frame{};
+    StatusFrame frame{};
     frame.battery_mv = _mesh->currentBatteryMilliVolts();
-    uint8_t flags = frame.battery_mv ? kBatteryValid : 0;
-    if (valid)
-        flags |= kLocationValid;
-    frame.header = makeHeader(flags, _location_sequence);
+    frame.header = makeHeader((frame.battery_mv ? kStatusBatteryValid : 0) |
+                              (valid ? kStatusLocationValid : 0), _status_sequence);
+    memcpy(frame.public_key, _mesh->self_id.pub_key, sizeof(frame.public_key));
+    size_t name_len = strnlen(_mesh->getNodeName(), kMaxNameBytes);
+    while (name_len > 0 && !valid_utf8(
+               reinterpret_cast<const uint8_t *>(_mesh->getNodeName()), name_len))
+    {
+        --name_len;
+    }
+    frame.name_len = static_cast<uint8_t>(name_len);
+    memcpy(frame.name, _mesh->getNodeName(), name_len);
     if (valid)
     {
         frame.latitude_e6 = static_cast<int32_t>(gps.lat_micro);
         frame.longitude_e6 = static_cast<int32_t>(gps.lon_micro);
-        frame.altitude_dm = altitude_dm(gps.alt_milli);
         frame.fix_age_sec = saturate_u16(gps.age_ms / 1000UL);
-        frame.satellites = gps.satellites > UINT8_MAX ? UINT8_MAX
-                                                       : static_cast<uint8_t>(gps.satellites);
     }
-    uint8_t data[48] = {};
+    uint8_t data[kStatusMaxSize] = {};
     size_t length = 0;
-    if (!encode_location(frame, data, sizeof(data), length) || !sendFrame(data, length))
+    if (!encode_status(frame, data, sizeof(data), length) || !sendFrame(data, length))
     {
-        TEAM_INFO("location queue_failed seq=%u sync=%u", frame.header.sequence, force_update);
+        TEAM_INFO("status queue_failed seq=%u sync=%u", frame.header.sequence, force_update);
         return false;
     }
-    TEAM_LOG("location seq=%u valid=%u fix_age=%u sats=%u", frame.header.sequence,
-             valid, frame.fix_age_sec, frame.satellites);
-    TEAM_LOG("location queued sync=%u lat_e6=%ld lon_e6=%ld", force_update,
-             static_cast<long>(frame.latitude_e6), static_cast<long>(frame.longitude_e6));
-    ++_location_sequence;
+    TEAM_LOG("status queued seq=%u sync=%u valid=%u age=%u bytes=%u lat=%ld lon=%ld",
+             frame.header.sequence, force_update, valid, frame.fix_age_sec,
+             static_cast<unsigned int>(length), static_cast<long>(frame.latitude_e6),
+             static_cast<long>(frame.longitude_e6));
+    ++_status_sequence;
     _sent_valid_location = valid;
-    _last_location_sent_ms = millis();
-    if (valid)
-    {
-        _last_sent_latitude_e6 = frame.latitude_e6;
-        _last_sent_longitude_e6 = frame.longitude_e6;
-    }
+    _last_status_sent_ms = now;
+    _last_sent_latitude_e6 = frame.latitude_e6;
+    _last_sent_longitude_e6 = frame.longitude_e6;
     return true;
 }
 
@@ -400,7 +335,23 @@ void TeamService::poll()
     if (!enabled())
         return;
     const uint32_t now = millis();
-    if (deadline_passed(now, _startup_sync_ms))
+    if (deadline_passed(now, _pending_status_ms))
+    {
+        const bool sent = sendStatus(true);
+        ++_sync_status_attempts;
+        _pending_status_ms = !sent && _sync_status_attempts < 3 ? now + 1000UL : 0;
+        if (sent)
+        {
+            _next_status_ms = now + HELTEC_TEAM_LOCATION_PERIOD_SEC * 1000UL;
+        }
+        TEAM_LOG("sync status response queued=%u attempt=%u", sent, _sync_status_attempts);
+    }
+    else if (_pending_status_ms == 0 && deadline_passed(now, _next_status_ms))
+    {
+        _next_status_ms = now + (sendStatus() ?
+            HELTEC_TEAM_LOCATION_PERIOD_SEC * 1000UL : 5000UL);
+    }
+    if (_last_status_sent_ms != 0 && deadline_passed(now, _startup_sync_ms))
     {
         _startup_sync_ms = 0;
         const bool sent = requestSync();
@@ -410,63 +361,19 @@ void TeamService::poll()
         if (!sent && _startup_sync_attempts < 3)
             _startup_sync_ms = now + 5000UL;
     }
-    if (_pending_presence_ms == 0 && deadline_passed(now, _next_presence_ms))
-    {
-        if (sendPresence())
-            _next_presence_ms = now + HELTEC_TEAM_PRESENCE_PERIOD_SEC * 1000UL;
-        else
-            _next_presence_ms = now + 5000UL;
-    }
-    if (enabled() && _pending_presence_ms == 0 && _pending_location_ms == 0 &&
-        deadline_passed(now, _next_location_ms))
-    {
-        if (sendLocation())
-            _next_location_ms = now + HELTEC_TEAM_LOCATION_PERIOD_SEC * 1000UL;
-        else
-            _next_location_ms = now + 5000UL;
-    }
-    if (deadline_passed(now, _pending_presence_ms))
-    {
-        const bool sent = sendPresence();
-        TEAM_LOG("sync presence response due queued=%u", sent);
-        ++_sync_presence_attempts;
-        _pending_presence_ms = !sent && _sync_presence_attempts < 3 ? now + 1000UL : 0;
-        if (sent)
-            _next_presence_ms = now + HELTEC_TEAM_PRESENCE_PERIOD_SEC * 1000UL;
-        if (!sent && _pending_presence_ms == 0)
-        {
-            // Do not send a location-only reply when identity could not be queued.
-            _pending_location_ms = 0;
-        }
-        else if (sent && _pending_location_ms != 0 &&
-                 static_cast<int32_t>(_pending_location_ms - now) < 300)
-        {
-            _pending_location_ms = now + 300UL;
-        }
-    }
-    if (enabled() && _pending_presence_ms == 0 &&
-        deadline_passed(now, _pending_location_ms))
-    {
-        const bool sent = sendLocation(false, true);
-        TEAM_LOG("sync location response due queued=%u", sent);
-        ++_sync_location_attempts;
-        _pending_location_ms = !sent && _sync_location_attempts < 3 ? now + 1000UL : 0;
-        if (sent)
-            _next_location_ms = now + HELTEC_TEAM_LOCATION_PERIOD_SEC * 1000UL;
-    }
 }
 
-TeamMember *TeamService::findMember(const uint8_t sender_id[kSenderIdSize])
+TeamMember *TeamService::findMember(const uint8_t public_key[kPublicKeySize])
 {
     for (TeamMember &member : _members)
     {
-        if (member.occupied && memcmp(member.sender_id, sender_id, kSenderIdSize) == 0)
+        if (member.occupied && memcmp(member.public_key, public_key, kPublicKeySize) == 0)
             return &member;
     }
     return nullptr;
 }
 
-TeamMember *TeamService::allocateMember(const uint8_t sender_id[kSenderIdSize])
+TeamMember *TeamService::allocateMember(const uint8_t public_key[kPublicKeySize])
 {
     TeamMember *oldest = nullptr;
     for (TeamMember &member : _members)
@@ -476,7 +383,7 @@ TeamMember *TeamService::allocateMember(const uint8_t sender_id[kSenderIdSize])
             oldest = &member;
             break;
         }
-        if (memcmp(member.sender_id, _pinned_member_id, kSenderIdSize) == 0)
+        if (memcmp(member.public_key, _pinned_member_id, kSenderIdSize) == 0)
             continue;
         if (member.role == 1 && oldest && oldest->role != 1)
             continue;
@@ -491,27 +398,22 @@ TeamMember *TeamService::allocateMember(const uint8_t sender_id[kSenderIdSize])
     }
     *oldest = TeamMember{};
     oldest->occupied = true;
-    memcpy(oldest->sender_id, sender_id, kSenderIdSize);
+    memcpy(oldest->public_key, public_key, kPublicKeySize);
     return oldest;
 }
 
-void TeamService::receivePresence(const uint8_t *data, size_t length)
+void TeamService::receiveStatus(const uint8_t *data, size_t length)
 {
-    PresenceFrame frame{};
-    if (decode_presence(data, length, frame) != DecodeResult::Ok)
+    StatusFrame frame{};
+    if (decode_status(data, length, frame) != DecodeResult::Ok ||
+        !any_nonzero(frame.public_key, sizeof(frame.public_key)))
     {
         increment(_stats.rx_decode_error);
-        TEAM_LOG("rx presence decode_error bytes=%u", static_cast<unsigned int>(length));
+        TEAM_LOG("rx status decode_error bytes=%u", static_cast<unsigned int>(length));
         return;
     }
     if (memcmp(frame.public_key, _mesh->self_id.pub_key, kPublicKeySize) == 0)
-        return;
-    if (memcmp(frame.header.sender_id, frame.public_key, kSenderIdSize) != 0)
     {
-        increment(_stats.rx_decode_error);
-        TEAM_INFO("rx presence rejected: sender/public key mismatch id=%02X%02X%02X",
-                 frame.header.sender_id[0], frame.header.sender_id[1],
-                 frame.header.sender_id[2]);
         return;
     }
     const bool leader_key = memcmp(frame.public_key, _credentials.leader_public_key,
@@ -519,112 +421,41 @@ void TeamService::receivePresence(const uint8_t *data, size_t length)
     if ((frame.header.role == 1) != leader_key)
     {
         increment(_stats.rx_decode_error);
-        TEAM_LOG("rx presence role_mismatch id=%02X%02X%02X", frame.header.sender_id[0],
-                 frame.header.sender_id[1], frame.header.sender_id[2]);
         return;
     }
-    TeamMember *member = findMember(frame.header.sender_id);
-    if (!member)
-        member = allocateMember(frame.header.sender_id);
-    if (!member)
-        return;
-    if (member->presence_seen &&
-        memcmp(member->public_key, frame.public_key, kPublicKeySize) != 0)
-    {
-        increment(_stats.rx_decode_error);
-        TEAM_INFO("rx presence rejected: sender collision id=%02X%02X%02X",
-                 frame.header.sender_id[0], frame.header.sender_id[1],
-                 frame.header.sender_id[2]);
-        return;
-    }
-    if (member->boot_id == frame.header.boot_id && member->presence_seen &&
-        !sequence_is_newer(frame.header.sequence, member->presence_sequence))
+    TeamMember *member = findMember(frame.public_key);
+    if (member && member->boot_id == frame.header.boot_id &&
+        !sequence_is_newer(frame.header.sequence, member->sequence))
     {
         increment(_stats.rx_duplicate_or_old);
-        TEAM_LOG("rx presence old id=%02X%02X%02X seq=%u current=%u",
-                 frame.header.sender_id[0], frame.header.sender_id[1],
-                 frame.header.sender_id[2], frame.header.sequence,
-                 member->presence_sequence);
+        TEAM_LOG("rx status old seq=%u current=%u", frame.header.sequence, member->sequence);
         return;
     }
-    if (member->boot_id != frame.header.boot_id)
+    if (!member)
     {
-        member->location_valid = false;
-        member->location_seen = false;
-        member->location_sequence = 0;
+        member = allocateMember(frame.public_key);
+    }
+    if (!member)
+    {
+        return;
     }
     member->boot_id = frame.header.boot_id;
-    member->presence_sequence = frame.header.sequence;
-    member->presence_seen = true;
+    member->sequence = frame.header.sequence;
     member->role = frame.header.role;
     member->battery_mv = frame.battery_mv;
     member->name_len = frame.name_len;
     memcpy(member->name, frame.name, frame.name_len + 1);
-    memcpy(member->public_key, frame.public_key, sizeof(member->public_key));
-    member->last_seen_ms = millis();
-    ++_change_sequence;
-    increment(_stats.rx_presence);
-    TEAM_LOG("rx presence id=%02X%02X%02X seq=%u role=%u members=%u",
-             frame.header.sender_id[0], frame.header.sender_id[1], frame.header.sender_id[2],
-             frame.header.sequence, frame.header.role,
-             static_cast<unsigned int>(memberCount()));
-}
-
-void TeamService::receiveLocation(const uint8_t *data, size_t length)
-{
-    LocationFrame frame{};
-    if (decode_location(data, length, frame) != DecodeResult::Ok)
-    {
-        increment(_stats.rx_decode_error);
-        TEAM_LOG("rx location decode_error bytes=%u", static_cast<unsigned int>(length));
-        return;
-    }
-    TeamMember *member = findMember(frame.header.sender_id);
-    if (!member)
-    {
-        increment(_stats.rx_duplicate_or_old);
-        TEAM_INFO("rx location rejected: no presence id=%02X%02X%02X",
-                 frame.header.sender_id[0], frame.header.sender_id[1],
-                 frame.header.sender_id[2]);
-        return;
-    }
-    if (member->boot_id != frame.header.boot_id || member->role != frame.header.role)
-    {
-        increment(_stats.rx_duplicate_or_old);
-        TEAM_INFO("rx location rejected: identity state id=%02X%02X%02X",
-                 frame.header.sender_id[0], frame.header.sender_id[1],
-                 frame.header.sender_id[2]);
-        return;
-    }
-    if (member->location_seen &&
-        !sequence_is_newer(frame.header.sequence, member->location_sequence))
-    {
-        increment(_stats.rx_duplicate_or_old);
-        TEAM_LOG("rx location old id=%02X%02X%02X seq=%u current=%u",
-                 frame.header.sender_id[0], frame.header.sender_id[1],
-                 frame.header.sender_id[2], frame.header.sequence,
-                 member->location_sequence);
-        return;
-    }
-    member->location_sequence = frame.header.sequence;
-    member->location_seen = true;
-    member->location_valid = (frame.header.flags & kLocationValid) != 0;
+    member->location_valid = (frame.header.flags & kStatusLocationValid) != 0;
     member->latitude_e6 = frame.latitude_e6;
     member->longitude_e6 = frame.longitude_e6;
-    member->accuracy_dm = frame.accuracy_dm;
     member->fix_age_sec = frame.fix_age_sec;
-    member->battery_mv = frame.battery_mv;
-    member->satellites = frame.satellites;
-    member->location_received_ms = millis();
-    member->last_seen_ms = member->location_received_ms;
+    member->last_seen_ms = millis();
     ++_change_sequence;
-    increment(_stats.rx_location);
-    TEAM_LOG("rx location id=%02X%02X%02X seq=%u valid=%u age=%u sats=%u",
-             frame.header.sender_id[0], frame.header.sender_id[1], frame.header.sender_id[2],
-             frame.header.sequence, member->location_valid, frame.fix_age_sec,
-             frame.satellites);
-    TEAM_LOG("rx location applied lat_e6=%ld lon_e6=%ld",
-             static_cast<long>(frame.latitude_e6), static_cast<long>(frame.longitude_e6));
+    increment(_stats.rx_status);
+    TEAM_LOG("rx status id=%02X%02X%02X seq=%u role=%u valid=%u age=%u members=%u",
+             frame.public_key[0], frame.public_key[1], frame.public_key[2],
+             frame.header.sequence, frame.header.role, member->location_valid,
+             frame.fix_age_sec, static_cast<unsigned int>(memberCount()));
 }
 
 void TeamService::receiveSyncRequest(const uint8_t *data, size_t length)
@@ -674,44 +505,21 @@ void TeamService::receiveSyncRequest(const uint8_t *data, size_t length)
     jitter ^= jitter << 13;
     jitter ^= jitter >> 17;
     jitter ^= jitter << 5;
-    uint32_t presence_delay_ms = 0;
-    uint32_t location_delay_ms = 0;
-    if ((frame.response_mask & 0x01) != 0)
+    const uint32_t delay_ms = 1UL + jitter % window_ms;
+    // Coalesce requests without postponing an already pending reply.
+    if (_pending_status_ms == 0)
     {
-        const uint32_t reserve_ms = ((frame.response_mask & 0x02) != 0 && enabled()) ?
-                                    1000UL : 0;
-        const uint32_t presence_window_ms = window_ms > reserve_ms ?
-                                            window_ms - reserve_ms : 0;
-        presence_delay_ms = jitter % (presence_window_ms + 1UL);
-        const uint32_t deadline = now + presence_delay_ms;
-        if (_pending_presence_ms == 0 ||
-            presence_delay_ms < _pending_presence_ms - now)
+        _sync_status_attempts = 0;
+        _pending_status_ms = now + delay_ms;
+        if (_pending_status_ms == 0)
         {
-            if (_pending_presence_ms == 0)
-                _sync_presence_attempts = 0;
-            _pending_presence_ms = deadline;
-        }
-    }
-    if ((frame.response_mask & 0x02) != 0 && enabled())
-    {
-        const uint32_t after_presence_ms = 300UL + ((jitter >> 16) % 701UL);
-        location_delay_ms = presence_delay_ms + after_presence_ms;
-        if (location_delay_ms > window_ms)
-            location_delay_ms = window_ms;
-        const uint32_t deadline = now + location_delay_ms;
-        if (_pending_location_ms == 0 || location_delay_ms < _pending_location_ms - now)
-        {
-            if (_pending_location_ms == 0)
-                _sync_location_attempts = 0;
-            _pending_location_ms = deadline;
+            _pending_status_ms = 1;
         }
     }
     increment(_stats.rx_sync_request);
-    TEAM_LOG("rx sync id=%02X%02X%02X mask=%02X window=%u presence_ms=%lu location_ms=%lu",
+    TEAM_LOG("rx sync id=%02X%02X%02X window=%u status_ms=%lu",
              frame.header.sender_id[0], frame.header.sender_id[1], frame.header.sender_id[2],
-             frame.response_mask, frame.response_window_sec,
-             static_cast<unsigned long>(presence_delay_ms),
-             static_cast<unsigned long>(location_delay_ms));
+             frame.response_window_sec, static_cast<unsigned long>(delay_ms));
 }
 
 void TeamService::handleTeamData(const uint8_t *data, size_t length)
@@ -726,11 +534,8 @@ void TeamService::handleTeamData(const uint8_t *data, size_t length)
              static_cast<unsigned int>(length));
     switch (frame_subtype(data, length))
     {
-    case Subtype::Presence:
-        receivePresence(data, length);
-        break;
-    case Subtype::Location:
-        receiveLocation(data, length);
+    case Subtype::Status:
+        receiveStatus(data, length);
         break;
     case Subtype::SyncRequest:
         receiveSyncRequest(data, length);
@@ -765,7 +570,6 @@ bool TeamService::requestSync()
     frame.header = makeHeader(0, _sync_sequence);
     _mesh->getRNG()->random(reinterpret_cast<uint8_t *>(&frame.request_id),
                             sizeof(frame.request_id));
-    frame.response_mask = 0x03;
     frame.response_window_sec = 15;
     uint8_t data[32] = {};
     size_t length = 0;
@@ -818,15 +622,12 @@ void TeamService::pinMember(const uint8_t public_key[kPublicKeySize])
 
 void TeamService::clearMembers()
 {
-    _next_presence_ms = 0;
-    _next_location_ms = 0;
-    _pending_presence_ms = 0;
-    _pending_location_ms = 0;
+    _next_status_ms = 0;
+    _pending_status_ms = 0;
     _startup_sync_ms = 0;
     _startup_sync_attempts = 0;
-    _sync_presence_attempts = 0;
-    _sync_location_attempts = 0;
-    _last_location_sent_ms = 0;
+    _sync_status_attempts = 0;
+    _last_status_sent_ms = 0;
     _last_sent_latitude_e6 = 0;
     _last_sent_longitude_e6 = 0;
     _sent_valid_location = false;

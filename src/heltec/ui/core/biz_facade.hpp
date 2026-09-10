@@ -150,7 +150,6 @@ class IBizFacade : public ui::IFeedback
     virtual int sendMessagePersonalCount() const = 0;
     virtual bool sendMessagePersonalAt(int index, uint8_t pub_key_prefix[6], char *label,
                                        size_t label_len) const = 0;
-    virtual bool sendMessageHasGroupChannels() const = 0;
     virtual int sendMessageGroupCount() const = 0;
     virtual bool sendMessageGroupAt(int index, int *channel_idx, char *label,
                                     size_t label_len) const = 0;
@@ -221,6 +220,7 @@ class IBizFacade : public ui::IFeedback
         return false;
     }
     virtual bool teamSelectOffer(int index) { (void)index; return false; }
+    virtual bool teamStartSearch() { return false; }
     virtual bool teamPrimaryAction() { return false; }
     virtual bool teamSetActive(bool active) { (void)active; return false; }
     virtual bool teamSetJoining(bool open) { (void)open; return false; }
@@ -307,7 +307,6 @@ class IBizFacade : public ui::IFeedback
         return nullptr;
     }
     virtual bool setFindFriendMode(int mode) = 0;
-    virtual bool saveFindFriendWaypointFromGps() = 0;
     virtual bool setFindFriendWaypoint(double lat_deg, double lon_deg) = 0;
     virtual void setFindFriendTargetContactIndex(int index) = 0;
     /** Pick and persist the first contact with a usable stored location. */

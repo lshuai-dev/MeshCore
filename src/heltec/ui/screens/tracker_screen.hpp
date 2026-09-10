@@ -23,6 +23,7 @@ class TrackerScreen : public AbstractScreen
     TrackerScreen(biz::IBizFacade &biz, const char *title, const lv_img_dsc_t *icon)
         : AbstractScreen(biz, title, icon, false)
     {
+        setFocusStorage(_screen_focus, kFocusCapacity);
     }
     void onEnter() override;
     void onExit() override;
@@ -37,6 +38,9 @@ class TrackerScreen : public AbstractScreen
     _lv_obj_t *create(_lv_obj_t *parent) override;
 
   private:
+    static constexpr uint8_t kFocusCapacity = 5;
+    FocusItem _screen_focus[kFocusCapacity]{};
+
     _lv_obj_t *createRoot(_lv_obj_t *parent) override;
     void onAppStateChanged(const AppStateEvent &event) override;
     void onSurfaceRefresh() override;

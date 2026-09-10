@@ -1,7 +1,5 @@
 #include "repeat_mode_overlay.hpp"
-
 #include "ui/core/biz_facade.hpp"
-#include "ui/core/ht_meta_data.hpp"
 #include "ui/core/operation_hints.hpp"
 #include "ui/core/ht_event.h"
 #include "ui/theme/ui_widget_theme.hpp"
@@ -97,7 +95,7 @@ _lv_obj_t *RepeatModeOverlay::create(_lv_obj_t *parent)
 #if LV_USE_ROLLER == 0
 #error "HELTEC_V4_R8_TFT repeat mode overlay requires LV_USE_ROLLER=1"
 #endif
-    _touch_roller = ht_roller_create(list);
+    _touch_roller = lv_roller_create(list);
     if (!_touch_roller)
         return nullptr;
     lv_obj_set_width(_touch_roller, lv_pct(100));

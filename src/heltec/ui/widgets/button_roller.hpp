@@ -1,5 +1,4 @@
 #pragma once
-#include "ui/core/ht_meta_data.hpp"
 #include "ui/core/ui_semantic_classes.hpp"
 
 #include <lvgl.h>

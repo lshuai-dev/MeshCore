@@ -4,8 +4,6 @@
 #include "heltec/ui/core/abstract_menu.hpp"
 #include "heltec/ui/images.h"
 #include "ui/app/ui_behavior_profile.hpp"
-#include "ui/core/ht_meta_data.hpp"
-#include "ui/core/ht_meta_data_internal.hpp"
 #include "ui/core/ht_event.h"
 #include "ui/core/ui_semantic_classes.hpp"
 #include "ui/core/ui_motion_scheduler.hpp"
@@ -159,7 +157,7 @@ void ContextMenu::selectPane(uint8_t index)
     updateIconSelection();
 
     lv_obj_t *btn = lv_obj_get_child(_header_icon_row, _active_menu);
-    auto *menu = btn ? static_cast<AbstractMenu *>(ht_user_data(btn)) : nullptr;
+    auto *menu = btn ? static_cast<AbstractMenu *>(lv_obj_get_user_data(btn)) : nullptr;
     if (!menu || !menu->page())
         return;
 
@@ -191,7 +189,7 @@ bool ContextMenu::activatePaneButton(lv_obj_t *btn, bool enter_leaf)
     if (!enter_leaf)
         return true;
 
-    auto *menu = static_cast<AbstractMenu *>(ht_user_data(btn));
+    auto *menu = static_cast<AbstractMenu *>(lv_obj_get_user_data(btn));
     if (!menu)
         return false;
     enterMenuLeaf(menu);
@@ -278,7 +276,7 @@ _lv_obj_t *ContextMenu::create(_lv_obj_t *parent)
     lv_obj_clear_flag(_root, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_set_flex_flow(_root, LV_FLEX_FLOW_COLUMN);
 
-    _menu = ht_menu_create(_root);
+    _menu = lv_menu_create(_root);
     if (!_menu)
         return nullptr;
     lv_obj_set_size(_menu, lv_pct(100), lv_pct(100));
@@ -332,7 +330,7 @@ _lv_obj_t *ContextMenu::create(_lv_obj_t *parent)
     lv_obj_move_to_index(_header_icon_row, 0);
     lv_obj_clear_flag(_header_icon_row, LV_OBJ_FLAG_SCROLLABLE);
 
-    lv_obj_t *nav_row = ht_obj_create(mh);
+    lv_obj_t *nav_row = lv_obj_create(mh);
     if (!nav_row)
         return nullptr;
     lv_obj_set_size(nav_row, lv_pct(100), LV_SIZE_CONTENT);
@@ -434,7 +432,7 @@ bool ContextMenu::registerMenu(const char *title, const lv_img_dsc_t *icon, Abst
         },
         LV_EVENT_KEY, this);
 
-    lv_obj_t *im = ht_img_create(btn);
+    lv_obj_t *im = lv_img_create(btn);
     if (!im)
         return false;
 #if defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213

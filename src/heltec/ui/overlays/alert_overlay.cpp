@@ -1,6 +1,4 @@
 #include "alert_overlay.hpp"
-
-#include "ui/core/ht_meta_data.hpp"
 #include "ui/core/ht_event.h"
 #include "ui/core/ui_semantic_classes.hpp"
 

@@ -6,7 +6,6 @@
 #include "heltec/ui/images.h"
 #include "ui/app/ui_behavior_profile.hpp"
 #include "ui/app/ui_theme.hpp"
-#include "ui/core/ht_meta_data.hpp"
 #include "ui/core/ui_semantic_classes.hpp"
 #include "ui/core/ht_event.h"
 #include "ui/core/ui_motion_scheduler.hpp"
@@ -152,7 +151,7 @@ static bool navTouchMovedBeyondThreshold(const lv_point_t &origin, const lv_poin
 
 static uint8_t navCellId(_lv_obj_t *cell)
 {
-    return static_cast<uint8_t>(reinterpret_cast<uintptr_t>(ht_user_data(cell)));
+    return static_cast<uint8_t>(reinterpret_cast<uintptr_t>(lv_obj_get_user_data(cell)));
 }
 
 static void layoutRootToTileView(_lv_obj_t *root, _lv_obj_t *tileview)
@@ -652,7 +651,7 @@ void NavigationPane::setIcon(uint8_t id, const lv_img_dsc_t *img)
     lv_obj_clear_flag(icon_area, LV_OBJ_FLAG_SCROLLABLE | LV_OBJ_FLAG_CLICKABLE);
     lv_obj_add_flag(icon_area, LV_OBJ_FLAG_EVENT_BUBBLE);
 
-    _lv_obj_t *icon = ht_img_create(icon_area);
+    _lv_obj_t *icon = lv_img_create(icon_area);
     if (!icon)
     {
         lv_obj_del(cell);

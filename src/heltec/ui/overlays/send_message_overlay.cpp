@@ -5,7 +5,6 @@
 #include "heltec/ui/core/biz_facade.hpp"
 #include "keyboard_overlay.hpp"
 #include "ui/app/ui_theme.hpp"
-#include "ui/core/ht_meta_data.hpp"
 #include "ui/core/operation_hints.hpp"
 #include "ui/core/ht_selector_view.hpp"
 #include "ui/core/ui_semantic_classes.hpp"
@@ -186,7 +185,7 @@ bool SendMessageOverlay::ensureRowPool()
 #if defined(HELTEC_LORA_V4_TFT)
         lv_obj_t *row = ht_obj_create(_list_mid);
 #else
-        lv_obj_t *row = ht_label_create(_list_mid);
+        lv_obj_t *row = lv_label_create(_list_mid);
 #endif
         if (!row)
             return false;
@@ -333,7 +332,7 @@ void SendMessageOverlay::renderRows()
 
         const int item = wrapIndex(sel + slot - focus);
         lv_obj_clear_flag(row, LV_OBJ_FLAG_HIDDEN);
-        ht_set_user_data(row, reinterpret_cast<void *>(static_cast<uintptr_t>(item)));
+        lv_obj_set_user_data(row, reinterpret_cast<void *>(static_cast<uintptr_t>(item)));
 #if defined(HELTEC_LORA_V4_TFT)
         lv_obj_t *label = _row_labels[slot];
         if (!label)

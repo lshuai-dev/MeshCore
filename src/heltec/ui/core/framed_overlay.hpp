@@ -4,11 +4,6 @@
 
 namespace heltec::meshcore::ui
 {
-
-extern const lv_obj_class_t ht_framed_overlay_header_class;
-extern const lv_obj_class_t ht_framed_overlay_content_class;
-extern const lv_obj_class_t ht_framed_overlay_footer_class;
-
 class FramedOverlay : public AbstractOverlay
 {
   public:

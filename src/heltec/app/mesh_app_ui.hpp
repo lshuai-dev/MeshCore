@@ -46,7 +46,6 @@ class MeshAppUi final : public IBizFacade
     int sendMessagePersonalCount() const override;
     bool sendMessagePersonalAt(int index, uint8_t pub_key_prefix[6], char *label,
                                size_t label_len) const override;
-    bool sendMessageHasGroupChannels() const override;
     int sendMessageGroupCount() const override;
     bool sendMessageGroupAt(int index, int *channel_idx, char *label,
                             size_t label_len) const override;
@@ -94,6 +93,7 @@ class MeshAppUi final : public IBizFacade
     int teamOfferCount() const override;
     bool teamOfferLabel(int index, char *label, size_t length) const override;
     bool teamSelectOffer(int index) override;
+    bool teamStartSearch() override;
     bool teamPrimaryAction() override;
     bool teamSetActive(bool active) override;
     bool teamSetJoining(bool open) override;
@@ -120,7 +120,6 @@ class MeshAppUi final : public IBizFacade
 
     int findFriendMode() const override;
     bool setFindFriendMode(int mode) override;
-    bool saveFindFriendWaypointFromGps() override;
     bool setFindFriendWaypoint(double lat_deg, double lon_deg) override;
     void formatFindFriendWaypointInput(char *buf, size_t buf_len) const override;
 

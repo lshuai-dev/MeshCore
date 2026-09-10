@@ -1,7 +1,6 @@
 #pragma once
 #include "app_state_event.hpp"
 #include "biz_facade.hpp"
-#include "ht_meta_data.hpp"
 #include "ht_event.h"
 
 struct _lv_obj_t;
@@ -61,6 +60,8 @@ class UiSurface
         return false;
     }
 
+    static bool focusObjectAvailable(const _lv_obj_t *obj);
+    bool restoreFocus(_lv_obj_t *preferred, _lv_obj_t *fallback, bool reset_editing = true);
     void addFocusObject(_lv_obj_t *obj);
     void clearFocusObjects();
     bool ensureFocusGroup();

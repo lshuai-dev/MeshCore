@@ -6,7 +6,6 @@
 #include "ui/app/ui_theme.hpp"
 #include "ui/core/app_state_notifier.hpp"
 #include "ui/core/backlight_policy.hpp"
-#include "ui/core/ht_meta_data.hpp"
 #include "ui/core/ui_semantic_classes.hpp"
 #include "ui/core/input_pipeline.hpp"
 #include "ui/core/screen_id.hpp"
@@ -132,7 +131,7 @@ UiApp::UiApp(biz::IBizFacade &biz, heltec::meshcore::power::PowerMgr &power)
 AbstractScreen *UiApp::activeScreen() const
 {
     lv_obj_t *tile = _tileview ? lv_tileview_get_tile_act(_tileview) : nullptr;
-    return tile ? static_cast<AbstractScreen *>(ht_user_data(tile)) : nullptr;
+    return tile ? static_cast<AbstractScreen *>(lv_obj_get_user_data(tile)) : nullptr;
 }
 
 AbstractScreen *UiApp::screenAt(uint8_t index) const
@@ -140,7 +139,7 @@ AbstractScreen *UiApp::screenAt(uint8_t index) const
     if (!_tileview)
         return nullptr;
     lv_obj_t *tile = lv_obj_get_child(_tileview, index);
-    return tile ? static_cast<AbstractScreen *>(ht_user_data(tile)) : nullptr;
+    return tile ? static_cast<AbstractScreen *>(lv_obj_get_user_data(tile)) : nullptr;
 }
 
 AbstractScreen *UiApp::resolveActiveScreen() const
@@ -748,8 +747,10 @@ void UiApp::tick()
         return;
     lv_timer_handler();
     // Shared approval UI also serves leaders without a Tracker screen.
-    if (_biz.teamIsLeader() && inputOnActiveScreen() &&
-        !_surfaces.isVisible(&_confirmOvl) && _biz.teamPendingSession() != 0)
+    // A join request is a device-level Team event. Do not gate it on the
+    // currently focused screen; Tracker and Find Friend must both receive it.
+    if (_biz.teamIsLeader() && !_surfaces.isVisible(&_confirmOvl) &&
+        _biz.teamPendingSession() != 0)
     {
         _confirmOvl.setRequest(UiConfirmAction::TeamJoin);
         (void)_surfaces.show(&_confirmOvl);
@@ -785,7 +786,7 @@ bool UiApp::initScreens(_lv_obj_t *content)
     lv_obj_set_size(_root, lv_pct(100), lv_pct(100));
     lv_obj_clear_flag(_root, LV_OBJ_FLAG_SCROLLABLE);
 
-    _tileview = ht_tileview_create(_root);
+    _tileview = lv_tileview_create(_root);
     if (!_tileview)
         return false;
     lv_obj_set_size(_tileview, lv_pct(100), lv_pct(100));
@@ -802,14 +803,13 @@ bool UiApp::initScreens(_lv_obj_t *content)
             continue;
 
 #if defined(UI_NAVIGATION_GRID) && UI_NAVIGATION_GRID
-        lv_obj_t *tile =
-            ht_tileview_add_tile(_tileview, i, 0, LV_DIR_NONE, scr);
+        lv_obj_t *tile = lv_tileview_add_tile(_tileview, i, 0, LV_DIR_NONE);
 #else
-        lv_obj_t *tile =
-            ht_tileview_add_tile(_tileview, i, 0, LV_DIR_HOR, scr);
+        lv_obj_t *tile = lv_tileview_add_tile(_tileview, i, 0, LV_DIR_HOR);
 #endif
         if (!tile)
             return false;
+        lv_obj_set_user_data(tile, scr);
 
         lv_obj_set_scrollbar_mode(tile, LV_SCROLLBAR_MODE_OFF);
         lv_obj_clear_flag(tile, LV_OBJ_FLAG_SCROLLABLE);

@@ -1,14 +1,11 @@
 #if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
-
 #include "find_friend_screen.hpp"
-
-#include "screen_widget_classes.hpp"
-
 #include "MeshCore.h"
 #include "compass_ui_common.hpp"
-#include "ui/core/ht_meta_data.hpp"
 #include "ui/core/ht_event.h"
-
+#include "ui/core/ui_deferred_queue.hpp"
+#include "app/team_join_service.hpp"
+#include "ui/core/ui_deferred_queue.hpp"
 #include <Arduino.h>
 #include <lvgl.h>
 
@@ -187,9 +184,10 @@ _lv_obj_t *FindFriendScreen::create(_lv_obj_t *parent)
 
 bool FindFriendScreen::createDial()
 {
-    _dial_row = ht_find_friend_dial_host_create(_root);
+    _dial_row = lv_obj_class_create_obj(&ht_find_friend_dial_host_class, _root);
     if (!_dial_row)
         return false;
+    lv_obj_class_init_obj(_dial_row);
     // Keep the dial fixed in the left column. Only the settings/info column on
     // the right scrolls when its rows no longer fit on screen.
     lv_obj_clear_flag(_root, LV_OBJ_FLAG_SCROLLABLE);
@@ -243,14 +241,14 @@ void FindFriendScreen::createInfoRows()
     if (!_right_column)
         return;
 
-    _lbl_info = ht_label_create(_right_column);
+    _lbl_info = lv_label_create(_right_column);
     compass_style_info_label(_lbl_info, "starting...", LV_LABEL_LONG_CLIP);
     if (_lbl_info)
     {
         lv_label_set_text_static(_lbl_info, _info_text);
     }
 
-    _lbl_status = ht_label_create(_right_column);
+    _lbl_status = lv_label_create(_right_column);
     compass_style_info_label(_lbl_status, "", LV_LABEL_LONG_WRAP);
     if (_lbl_status)
         lv_label_set_text_static(_lbl_status, _status_text);
@@ -258,7 +256,26 @@ void FindFriendScreen::createInfoRows()
 
 void FindFriendScreen::render(const biz::FindFriendUi &u)
 {
-    if (_biz.teamPairState() == 3)
+    const auto team_state =
+        static_cast<heltec::meshcore::team::JoinState>(_biz.teamPairState());
+    if (_biz.findFriendEnabled() && _biz.findFriendMode() == 0 && !_biz.teamHasTeam())
+    {
+        if (team_state == heltec::meshcore::team::JoinState::Searching)
+        {
+            setStatusText("Searching Team...");
+            showInfoOnly("Waiting for Team offers");
+            return;
+        }
+        if (team_state == heltec::meshcore::team::JoinState::TimedOut ||
+            team_state == heltec::meshcore::team::JoinState::Error)
+        {
+            setStatusText("Team search timed out");
+            showInfoOnly("Select search again");
+            return;
+        }
+    }
+    if (static_cast<heltec::meshcore::team::JoinState>(_biz.teamPairState()) ==
+        heltec::meshcore::team::JoinState::WaitingForApproval)
     {
         char code[24] = {};
         lv_snprintf(code, sizeof(code), "code %04u",
@@ -429,6 +446,7 @@ void FindFriendScreen::runDeferredEnterActions()
 
 void FindFriendScreen::onExit()
 {
+    (void)defer_cancel(focusTeamDeferred, this);
     _defer_cycle_target = false;
     closeOpenDropdown();
     _waypoint_keyboard_return_focus = nullptr;

@@ -1,12 +1,10 @@
 #include "ui/theme/ui_widget_theme.hpp"
 #include "ui/theme/ui_theme_internal.hpp"
-
 #include "ui/app/ui_theme.hpp"
 #include "ui/core/abstract_overlay.hpp"
 #include "ui/core/dialog_overlay.hpp"
 #include "ui/core/framed_overlay.hpp"
 #include "ui/core/ht_container.hpp"
-#include "ui/core/ht_meta_data.hpp"
 #include "ui/core/ht_scroll_view.hpp"
 #include "ui/core/screen_id.hpp"
 #include "ui/core/ui_semantic_classes.hpp"
@@ -27,7 +25,6 @@
 #include "ui/overlays/repeat_mode_overlay.hpp"
 #include "ui/overlays/splash_overlay.hpp"
 #include "ui/screens/compass_dial_widget.hpp"
-#include "ui/screens/screen_widget_classes.hpp"
 #if defined(ENV_INCLUDE_MAP) && ENV_INCLUDE_MAP
 #include "ui/screens/tracker_screen.hpp"
 #endif
@@ -2365,7 +2362,7 @@ static bool apply_classic_context_menu_child_theme(_lv_obj_t *obj)
     return false;
 }
 
-#if HELTEC_UI_INPUT_TOUCH
+#if  defined(HELTEC_UI_INPUT_TOUCH) && HELTEC_UI_INPUT_TOUCH
 static bool apply_quick_ping_overlay_theme(_lv_obj_t *obj)
 {
     if (!obj)

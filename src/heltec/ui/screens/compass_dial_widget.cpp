@@ -1,9 +1,6 @@
 #if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
-
 #include "compass_dial_widget.hpp"
-
 #include "ui/app/ui_theme.hpp"
-#include "ui/core/ht_meta_data.hpp"
 #include "ui/theme/ui_widget_theme.hpp"
 
 namespace heltec::meshcore::ui
@@ -112,7 +109,7 @@ bool CompassDialWidget::create(lv_obj_t *parent_row)
     lv_obj_clear_flag(hub, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_add_flag(hub, LV_OBJ_FLAG_OVERFLOW_VISIBLE);
 
-    ring = ht_obj_create(hub);
+    ring = lv_obj_create(hub);
     if (!ring)
         return false;
     lv_obj_clear_flag(ring, LV_OBJ_FLAG_SCROLLABLE);

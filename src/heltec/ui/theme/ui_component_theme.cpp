@@ -1,5 +1,4 @@
 #include "ui/app/ui_theme.hpp"
-#include "ui/core/ht_meta_data.hpp"
 #include "ui/core/ui_semantic_classes.hpp"
 #include "ui/screens/compass_dial_widget.hpp"
 #include "ui/theme/ui_widget_theme.hpp"

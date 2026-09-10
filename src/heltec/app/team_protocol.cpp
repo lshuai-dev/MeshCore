@@ -120,8 +120,7 @@ bool encode_header(Writer &writer, Subtype subtype, const CommonHeader &header)
     return writer.put_u8(kProtocolVersion) && writer.put_u8(static_cast<uint8_t>(subtype)) &&
            writer.put_u8(header.flags) && writer.put_u8(header.role) &&
            writer.put(header.sender_id, sizeof(header.sender_id)) &&
-           writer.put_u16(header.boot_id) && writer.put_u16(header.sequence) &&
-           writer.put_u32(header.timestamp);
+           writer.put_u16(header.boot_id) && writer.put_u16(header.sequence);
 }
 
 DecodeResult decode_header(Reader &reader, Subtype subtype, CommonHeader &header)
@@ -136,8 +135,7 @@ DecodeResult decode_header(Reader &reader, Subtype subtype, CommonHeader &header
         return DecodeResult::UnsupportedSubtype;
     if (!reader.get_u8(header.flags) || !reader.get_u8(header.role) ||
         !reader.get(header.sender_id, sizeof(header.sender_id)) ||
-        !reader.get_u16(header.boot_id) || !reader.get_u16(header.sequence) ||
-        !reader.get_u32(header.timestamp))
+        !reader.get_u16(header.boot_id) || !reader.get_u16(header.sequence))
     {
         return DecodeResult::InvalidLength;
     }
@@ -217,52 +215,41 @@ Subtype frame_subtype(const uint8_t *data, size_t length)
     return static_cast<Subtype>(data[1]);
 }
 
-bool encode_presence(const PresenceFrame &frame, uint8_t *output, size_t capacity,
-                     size_t &output_length)
+namespace
 {
-    output_length = 0;
-    if (!valid_common(frame.header) || frame.name_len > kMaxNameBytes ||
-        !valid_utf8(reinterpret_cast<const uint8_t *>(frame.name), frame.name_len) ||
-        memcmp(frame.header.sender_id, frame.public_key, kSenderIdSize) != 0)
-    {
-        return false;
-    }
-    Writer writer(output, capacity);
-    if (!encode_header(writer, Subtype::Presence, frame.header) ||
-        !writer.put_u8(frame.device_type) ||
-        !writer.put(frame.public_key, sizeof(frame.public_key)) ||
-        !writer.put_u16(frame.capabilities) || !writer.put_u16(frame.battery_mv) ||
-        !writer.put_u8(frame.name_len) || !writer.put(frame.name, frame.name_len))
-    {
-        return false;
-    }
-    output_length = writer.size();
-    return true;
+bool valid_status(const StatusFrame &frame)
+{
+    const bool located = (frame.header.flags & kStatusLocationValid) != 0;
+    return valid_common(frame.header) &&
+           (frame.header.flags & ~(kStatusBatteryValid | kStatusLocationValid)) == 0 &&
+           frame.latitude_e6 >= -90000000 && frame.latitude_e6 <= 90000000 &&
+           frame.longitude_e6 >= -180000000 && frame.longitude_e6 <= 180000000 &&
+           (located || (frame.latitude_e6 == 0 && frame.longitude_e6 == 0 &&
+                        frame.fix_age_sec == 0)) &&
+           ((frame.header.flags & kStatusBatteryValid) != 0 || frame.battery_mv == 0);
 }
+} // namespace
 
-bool encode_location(const LocationFrame &frame, uint8_t *output, size_t capacity,
-                     size_t &output_length)
+bool encode_status(const StatusFrame &frame, uint8_t *output, size_t capacity,
+                   size_t &output_length)
 {
     output_length = 0;
-    const bool location_valid = (frame.header.flags & 0x10) != 0;
-    if (!valid_common(frame.header) || frame.latitude_e6 < -90000000 ||
-        frame.latitude_e6 > 90000000 || frame.longitude_e6 < -180000000 ||
-        frame.longitude_e6 > 180000000 || frame.course_cdeg > 35999 ||
-        (!location_valid &&
-         (frame.latitude_e6 != 0 || frame.longitude_e6 != 0 || frame.altitude_dm != 0 ||
-          frame.accuracy_dm != 0 || frame.speed_cms != 0 || frame.course_cdeg != 0 ||
-          frame.fix_age_sec != 0 || frame.satellites != 0)))
+    if (!valid_status(frame) || frame.name_len > kMaxNameBytes ||
+        !valid_utf8(reinterpret_cast<const uint8_t *>(frame.name), frame.name_len))
     {
         return false;
     }
     Writer writer(output, capacity);
-    if (!encode_header(writer, Subtype::Location, frame.header) ||
+    const uint8_t flags = frame.header.flags | (frame.header.role ? kStatusLeader : 0);
+    if (!writer.put_u8(kProtocolVersion) ||
+        !writer.put_u8(static_cast<uint8_t>(Subtype::Status)) || !writer.put_u8(flags) ||
+        !writer.put_u16(frame.header.boot_id) || !writer.put_u16(frame.header.sequence) ||
+        !writer.put(frame.public_key, sizeof(frame.public_key)) ||
+        !writer.put_u16(frame.battery_mv) ||
         !writer.put_u32(static_cast<uint32_t>(frame.latitude_e6)) ||
         !writer.put_u32(static_cast<uint32_t>(frame.longitude_e6)) ||
-        !writer.put_u16(static_cast<uint16_t>(frame.altitude_dm)) ||
-        !writer.put_u16(frame.accuracy_dm) || !writer.put_u16(frame.speed_cms) ||
-        !writer.put_u16(frame.course_cdeg) || !writer.put_u16(frame.fix_age_sec) ||
-        !writer.put_u8(frame.satellites) || !writer.put_u16(frame.battery_mv))
+        !writer.put_u16(frame.fix_age_sec) || !writer.put_u8(frame.name_len) ||
+        !writer.put(frame.name, frame.name_len))
     {
         return false;
     }
@@ -274,14 +261,14 @@ bool encode_sync_request(const SyncRequestFrame &frame, uint8_t *output, size_t 
                          size_t &output_length)
 {
     output_length = 0;
-    if (!valid_common(frame.header) || (frame.response_mask & 0x03) == 0 ||
-        frame.response_window_sec < 5 || frame.response_window_sec > 30)
+    if (!valid_common(frame.header) || frame.response_window_sec < 5 ||
+        frame.response_window_sec > 30)
     {
         return false;
     }
     Writer writer(output, capacity);
     if (!encode_header(writer, Subtype::SyncRequest, frame.header) ||
-        !writer.put_u16(frame.request_id) || !writer.put_u8(frame.response_mask) ||
+        !writer.put_u16(frame.request_id) ||
         !writer.put_u8(frame.response_window_sec))
     {
         return false;
@@ -290,60 +277,51 @@ bool encode_sync_request(const SyncRequestFrame &frame, uint8_t *output, size_t 
     return true;
 }
 
-DecodeResult decode_presence(const uint8_t *data, size_t length, PresenceFrame &frame)
+DecodeResult decode_status(const uint8_t *data, size_t length, StatusFrame &frame)
 {
-    frame = PresenceFrame{};
+    frame = StatusFrame{};
     Reader reader(data, length);
-    DecodeResult result = decode_header(reader, Subtype::Presence, frame.header);
-    if (result != DecodeResult::Ok)
-        return result;
-    if (!reader.get_u8(frame.device_type) ||
+    uint8_t version = 0;
+    uint8_t subtype = 0;
+    uint8_t flags = 0;
+    uint32_t latitude = 0;
+    uint32_t longitude = 0;
+    if (!reader.get_u8(version) || !reader.get_u8(subtype))
+    {
+        return DecodeResult::InvalidLength;
+    }
+    if (version != kProtocolVersion)
+    {
+        return DecodeResult::UnsupportedVersion;
+    }
+    if (subtype != static_cast<uint8_t>(Subtype::Status))
+    {
+        return DecodeResult::UnsupportedSubtype;
+    }
+    if (!reader.get_u8(flags) || !reader.get_u16(frame.header.boot_id) ||
+        !reader.get_u16(frame.header.sequence) ||
         !reader.get(frame.public_key, sizeof(frame.public_key)) ||
-        !reader.get_u16(frame.capabilities) || !reader.get_u16(frame.battery_mv) ||
+        !reader.get_u16(frame.battery_mv) || !reader.get_u32(latitude) ||
+        !reader.get_u32(longitude) || !reader.get_u16(frame.fix_age_sec) ||
         !reader.get_u8(frame.name_len) || frame.name_len > kMaxNameBytes ||
         reader.remaining() != frame.name_len || !reader.get(frame.name, frame.name_len))
     {
         return DecodeResult::InvalidLength;
     }
-    if (!valid_utf8(reinterpret_cast<const uint8_t *>(frame.name), frame.name_len))
-        return DecodeResult::InvalidUtf8;
-    if (memcmp(frame.header.sender_id, frame.public_key, kSenderIdSize) != 0)
-        return DecodeResult::InvalidField;
-    frame.name[frame.name_len] = '\0';
-    return DecodeResult::Ok;
-}
-
-DecodeResult decode_location(const uint8_t *data, size_t length, LocationFrame &frame)
-{
-    frame = LocationFrame{};
-    Reader reader(data, length);
-    DecodeResult result = decode_header(reader, Subtype::Location, frame.header);
-    uint32_t latitude = 0;
-    uint32_t longitude = 0;
-    uint16_t altitude = 0;
-    if (result != DecodeResult::Ok)
-        return result;
-    if (!reader.get_u32(latitude) || !reader.get_u32(longitude) ||
-        !reader.get_u16(altitude) || !reader.get_u16(frame.accuracy_dm) ||
-        !reader.get_u16(frame.speed_cms) || !reader.get_u16(frame.course_cdeg) ||
-        !reader.get_u16(frame.fix_age_sec) || !reader.get_u8(frame.satellites) ||
-        !reader.get_u16(frame.battery_mv) || reader.remaining() != 0)
-    {
-        return DecodeResult::InvalidLength;
-    }
+    frame.header.role = (flags & kStatusLeader) != 0 ? 1 : 0;
+    frame.header.flags = flags & ~kStatusLeader;
+    memcpy(frame.header.sender_id, frame.public_key, kSenderIdSize);
     frame.latitude_e6 = static_cast<int32_t>(latitude);
     frame.longitude_e6 = static_cast<int32_t>(longitude);
-    frame.altitude_dm = static_cast<int16_t>(altitude);
-    if (frame.latitude_e6 < -90000000 || frame.latitude_e6 > 90000000 ||
-        frame.longitude_e6 < -180000000 || frame.longitude_e6 > 180000000 ||
-        frame.course_cdeg > 35999 ||
-        ((frame.header.flags & 0x10) == 0 &&
-         (frame.latitude_e6 != 0 || frame.longitude_e6 != 0 || frame.altitude_dm != 0 ||
-          frame.accuracy_dm != 0 || frame.speed_cms != 0 || frame.course_cdeg != 0 ||
-          frame.fix_age_sec != 0 || frame.satellites != 0)))
+    if (!valid_status(frame))
     {
         return DecodeResult::InvalidField;
     }
+    if (!valid_utf8(reinterpret_cast<const uint8_t *>(frame.name), frame.name_len))
+    {
+        return DecodeResult::InvalidUtf8;
+    }
+    frame.name[frame.name_len] = '\0';
     return DecodeResult::Ok;
 }
 
@@ -354,12 +332,12 @@ DecodeResult decode_sync_request(const uint8_t *data, size_t length, SyncRequest
     DecodeResult result = decode_header(reader, Subtype::SyncRequest, frame.header);
     if (result != DecodeResult::Ok)
         return result;
-    if (!reader.get_u16(frame.request_id) || !reader.get_u8(frame.response_mask) ||
+    if (!reader.get_u16(frame.request_id) ||
         !reader.get_u8(frame.response_window_sec) || reader.remaining() != 0)
     {
         return DecodeResult::InvalidLength;
     }
-    if ((frame.response_mask & 0x03) == 0 || frame.response_window_sec < 5 ||
+    if (frame.response_window_sec < 5 ||
         frame.response_window_sec > 30)
     {
         return DecodeResult::InvalidField;

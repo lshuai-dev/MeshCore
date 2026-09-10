@@ -1,10 +1,7 @@
 #include "radio_screen.hpp"
-
 #include "ui/app/ui_theme.hpp"
 #include "ui/core/ht_container.hpp"
-#include "ui/core/ht_meta_data.hpp"
 #include "ui/core/ht_event.h"
-
 #include <lvgl.h>
 
 namespace heltec::meshcore::ui
@@ -35,10 +32,10 @@ _lv_obj_t *RadioScreen::create(_lv_obj_t *parent)
     _lv_obj_t *const row_line3 = ht_container_create(_root);
     _lv_obj_t *const row_line4 = ht_container_create(_root);
     _lv_obj_t *const rows[] = { row_line1, row_line2, row_line3, row_line4 };
-    _line1 = ht_label_create(row_line1);
-    _line2 = ht_label_create(row_line2);
-    _line3 = ht_label_create(row_line3);
-    _line4 = ht_label_create(row_line4);
+    _line1 = lv_label_create(row_line1);
+    _line2 = lv_label_create(row_line2);
+    _line3 = lv_label_create(row_line3);
+    _line4 = lv_label_create(row_line4);
 
     _lv_obj_t *const labels[] = { _line1, _line2, _line3, _line4 };
     for (int i = 0; i < 4; ++i)
@@ -62,7 +59,7 @@ _lv_obj_t *RadioScreen::create(_lv_obj_t *parent)
             lv_obj_set_flex_align(_row_lna, LV_FLEX_ALIGN_SPACE_BETWEEN, LV_FLEX_ALIGN_CENTER,
                                   LV_FLEX_ALIGN_START);
             _lbl_lna = ht_label_create_static(_row_lna, "LNA");
-            _sw_lna = ht_switch_create(_row_lna);
+            _sw_lna = lv_switch_create(_row_lna);
             if (_lbl_lna)
             {
                 lv_obj_set_width(_lbl_lna, LV_SIZE_CONTENT);

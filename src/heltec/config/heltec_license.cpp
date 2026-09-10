@@ -1,7 +1,4 @@
 #include "config/heltec_license.h"
-
-#include "ui/core/ht_meta_data.hpp"
-
 #include <cstring>
 
 #if defined(NRF52_PLATFORM)
@@ -661,7 +658,7 @@ static void heltecLicenseShowUnauthorizedUi(const char *display_id)
 
     lv_obj_clear_flag(s_gate_root, LV_OBJ_FLAG_SCROLLABLE);
 
-    s_gate_title = ht_label_create(s_gate_root);
+    s_gate_title = lv_label_create(s_gate_root);
     if (s_gate_title)
     {
         lv_label_set_text(s_gate_title, "Not Authorized");

@@ -5,7 +5,6 @@
 #include "map_sd.hpp"
 #include "ui/app/ui_theme.hpp"
 #include "ui/core/biz_facade.hpp"
-#include "ui/core/ht_meta_data.hpp"
 #include "ui/core/ui_semantic_classes.hpp"
 #include "ui/theme/ui_widget_theme.hpp"
 
@@ -199,7 +198,7 @@ bool MapPanel::createTileSlot(int idx)
     lv_obj_clear_flag(t.root, LV_OBJ_FLAG_SCROLLABLE | LV_OBJ_FLAG_CLICKABLE);
     lv_obj_add_flag(t.root, LV_OBJ_FLAG_HIDDEN);
 
-    t.img = ht_img_create(t.root);
+    t.img = lv_img_create(t.root);
     if (!t.img)
     {
         lv_obj_del(t.root);

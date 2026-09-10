@@ -1,7 +1,4 @@
 #pragma once
-
-#include "ui/core/ht_meta_data.hpp"
-
 #include <lvgl.h>
 #include <stdint.h>
 

@@ -15,6 +15,7 @@ class RecentScreen : public AbstractScreen
     RecentScreen(biz::IBizFacade &biz, const char *title, const lv_img_dsc_t *icon)
         : AbstractScreen(biz, title, icon)
     {
+        setFocusStorage(_screen_focus, kFocusCapacity);
     }
     eScreenId screenId() const override
     {
@@ -28,6 +29,9 @@ class RecentScreen : public AbstractScreen
     bool onKey(uint32_t key) override;
 
   private:
+    static constexpr uint8_t kFocusCapacity = 16;
+    FocusItem _screen_focus[kFocusCapacity]{};
+
     // The advert cache capacity is independent of the number of LVGL row
     // controls. Only as many controls as fit completely in the viewport are
     // created; those controls are reused for each data window.

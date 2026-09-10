@@ -3,7 +3,6 @@
 #include "MeshCore.h"
 #include "ui/app/ui_behavior_profile.hpp"
 #include "ui/app/ui_theme.hpp"
-#include "ui/core/ht_meta_data.hpp"
 #include "ui/core/ui_semantic_classes.hpp"
 #include "ui/core/ui_motion_scheduler.hpp"
 #include "ui/theme/ui_widget_theme.hpp"
@@ -160,15 +159,16 @@ lv_obj_t *ButtonRoller::addItem(const char *label)
     if (!_root || _count >= kMaxItems || !_group)
         return nullptr;
 
-    lv_obj_t *const btn = ht_btn_create(_root);
+    lv_obj_t *const btn = lv_btn_create(_root);
     if (!btn)
         return nullptr;
     lv_obj_set_width(btn, lv_pct(100));
     lv_obj_add_flag(btn, LV_OBJ_FLAG_EVENT_BUBBLE);
 
-    lv_obj_t *const lbl = ht_label_create(btn, label ? label : "");
+    lv_obj_t *const lbl = lv_label_create(btn);
     if (lbl)
     {
+        lv_label_set_text(lbl, label ? label : "");
         lv_obj_set_size(lbl, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
         lv_obj_align(lbl, LV_ALIGN_LEFT_MID, 0, 0);
     }

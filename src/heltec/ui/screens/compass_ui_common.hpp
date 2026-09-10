@@ -2,7 +2,6 @@
 
 #include "compass_dial_widget.hpp"
 #include "compass_needle.hpp"
-#include "ui/core/ht_meta_data.hpp"
 #include "ui/theme/ui_widget_theme.hpp"
 
 #include <lvgl.h>

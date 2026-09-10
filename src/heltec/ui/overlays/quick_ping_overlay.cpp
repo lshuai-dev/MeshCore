@@ -1,7 +1,6 @@
 #include "quick_ping_overlay.hpp"
 
 #include "ui/core/ht_container.hpp"
-#include "ui/core/ht_meta_data_internal.hpp"
 #include "ui/core/ui_semantic_classes.hpp"
 
 #include <lvgl.h>
@@ -54,7 +53,6 @@ const lv_obj_class_t ht_quick_ping_keyboard_counter_class =
 #include "heltec/ui/core/biz_facade.hpp"
 #include "heltec/ui/images.h"
 #include "ui/app/ui_theme.hpp"
-#include "ui/core/ht_meta_data.hpp"
 #include "ui/core/ui_deferred_queue.hpp"
 #include "ui/core/ht_event.h"
 #include "ui/core/ui_motion_scheduler.hpp"
@@ -272,18 +270,6 @@ bool sameKey(const uint8_t lhs[6], const uint8_t rhs[6])
     return memcmp(lhs, rhs, 6) == 0;
 }
 
-bool focusable(_lv_obj_t *obj)
-{
-    if (!obj || !lv_obj_is_valid(obj) || lv_obj_has_state(obj, LV_STATE_DISABLED))
-        return false;
-    for (_lv_obj_t *p = obj; p; p = lv_obj_get_parent(p))
-    {
-        if (lv_obj_has_flag(p, LV_OBJ_FLAG_HIDDEN))
-            return false;
-    }
-    return true;
-}
-
 size_t normalizeSingleLineText(const char *source, char *dest, size_t dest_size)
 {
     if (!dest || dest_size == 0)
@@ -366,7 +352,7 @@ _lv_obj_t *createFieldIcon(_lv_obj_t *row, const lv_img_dsc_t *image)
     lv_obj_clear_flag(badge,
                       LV_OBJ_FLAG_SCROLLABLE | LV_OBJ_FLAG_CLICKABLE | LV_OBJ_FLAG_CLICK_FOCUSABLE);
 
-    _lv_obj_t *icon = ht_img_create(badge);
+    _lv_obj_t *icon = lv_img_create(badge);
     if (!icon)
         return badge;
     lv_img_set_src(icon, image);
@@ -610,19 +596,19 @@ _lv_obj_t *QuickPingOverlay::focusedObject() const
     {
         if (_lv_obj_t *focused = lv_group_get_focused(_focus_group))
         {
-            if (focusable(focused))
+            if (focusObjectAvailable(focused))
                 return focused;
         }
     }
-    if (focusable(_dd_target))
+    if (focusObjectAvailable(_dd_target))
         return _dd_target;
-    if (focusable(_dd_recipient))
+    if (focusObjectAvailable(_dd_recipient))
         return _dd_recipient;
-    if (focusable(_ta_message))
+    if (focusObjectAvailable(_ta_message))
         return _ta_message;
-    if (focusable(_dd_message))
+    if (focusObjectAvailable(_dd_message))
         return _dd_message;
-    if (focusable(_keyboard))
+    if (focusObjectAvailable(_keyboard))
         return _keyboard;
     return _root;
 }
@@ -656,7 +642,7 @@ _lv_obj_t *QuickPingOverlay::createDropdownRow(_lv_obj_t *parent, const char *la
         lv_label_set_long_mode(label, has_icon ? LV_LABEL_LONG_CLIP : LV_LABEL_LONG_DOT);
     }
 
-    _lv_obj_t *dropdown = ht_dropdown_create(row);
+    _lv_obj_t *dropdown = lv_dropdown_create(row);
     if (!dropdown)
         return row;
     const lv_coord_t control_x = has_icon ? kIconDropdownControlX : kDropdownControlX;
@@ -716,7 +702,7 @@ _lv_obj_t *QuickPingOverlay::createMessageRow(_lv_obj_t *parent)
         lv_obj_add_event_cb(label, onOutsideEvent, LV_EVENT_CLICKED, this);
     }
 
-    _ta_message = ht_textarea_create(controls);
+    _ta_message = lv_textarea_create(controls);
     if (_ta_message)
     {
         lv_textarea_set_one_line(_ta_message, true);
@@ -740,7 +726,7 @@ _lv_obj_t *QuickPingOverlay::createMessageRow(_lv_obj_t *parent)
         lv_obj_add_event_cb(_ta_message, syncControlFocusToRow, LV_EVENT_DEFOCUSED, nullptr);
     }
 
-    _dd_message = ht_dropdown_create(controls);
+    _dd_message = lv_dropdown_create(controls);
     if (_dd_message)
     {
         lv_obj_set_size(_dd_message, kMessageDropdownWidth, kDropdownControlHeight);
@@ -766,7 +752,7 @@ _lv_obj_t *QuickPingOverlay::createMessageRow(_lv_obj_t *parent)
 
 _lv_obj_t *QuickPingOverlay::createKeyboard(_lv_obj_t *parent)
 {
-    _lv_obj_t *keyboard = ht_keyboard_create(parent);
+    _lv_obj_t *keyboard = lv_keyboard_create(parent);
     if (!keyboard)
         return nullptr;
     lv_obj_set_size(keyboard, lv_pct(100), lv_pct(100));
@@ -846,38 +832,18 @@ void QuickPingOverlay::restoreModeFocus(_lv_obj_t *preferred)
 {
     if (!_focus_group)
         return;
-    lv_group_t *group = _focus_group;
-    if (!preferred)
-        preferred = lv_group_get_focused(group);
-
+    _lv_obj_t *fallback = nullptr;
+    _lv_obj_t *const candidates[] = { _dd_target, _dd_recipient, _ta_message, _dd_message, _keyboard };
+    for (_lv_obj_t *candidate : candidates)
+    {
+        if (focusObjectAvailable(candidate))
+        {
+            fallback = candidate;
+            break;
+        }
+    }
     _rebuilding_focus_group = true;
-    lv_group_set_editing(group, false);
-
-    if (preferred && lv_obj_is_valid(preferred) && lv_obj_get_group(preferred) == group &&
-        focusable(preferred))
-    {
-        lv_group_focus_obj(preferred);
-    }
-    else if (focusable(_dd_target))
-    {
-        lv_group_focus_obj(_dd_target);
-    }
-    else if (focusable(_dd_recipient))
-    {
-        lv_group_focus_obj(_dd_recipient);
-    }
-    else if (focusable(_ta_message))
-    {
-        lv_group_focus_obj(_ta_message);
-    }
-    else if (focusable(_dd_message))
-    {
-        lv_group_focus_obj(_dd_message);
-    }
-    else if (focusable(_keyboard))
-    {
-        lv_group_focus_obj(_keyboard);
-    }
+    (void)restoreFocus(preferred, fallback);
     _rebuilding_focus_group = false;
 }
 
@@ -1424,7 +1390,7 @@ void QuickPingOverlay::closeKeyboardForOutsideTarget(_lv_obj_t *target)
     if (targetInside(target, _keyboard) || targetInside(target, _ta_message))
         return;
     setKeyboardVisible(false);
-    restoreModeFocus(focusable(target) ? target : nullptr);
+    restoreModeFocus(focusObjectAvailable(target) ? target : nullptr);
 }
 
 void QuickPingOverlay::handleDropdownRow(_lv_obj_t *target)
@@ -1438,7 +1404,7 @@ void QuickPingOverlay::handleDropdownRow(_lv_obj_t *target)
     {
         dropdown = _dd_recipient;
     }
-    if (!focusable(dropdown))
+    if (!focusObjectAvailable(dropdown))
         return;
 
     // A click originating from the dropdown button is already toggled by the
@@ -1544,7 +1510,7 @@ void QuickPingOverlay::openPendingKeyboard()
     if (!_keyboard_open_pending)
         return;
     _keyboard_open_pending = false;
-    if (!focusable(_ta_message) || !currentTargetReady())
+    if (!focusObjectAvailable(_ta_message) || !currentTargetReady())
         return;
     // A newly opened keyboard starts a new submission cycle.
     _message_submit_handled = false;

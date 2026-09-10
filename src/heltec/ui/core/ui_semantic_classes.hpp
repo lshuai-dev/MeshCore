@@ -4,6 +4,28 @@
 
 namespace heltec::meshcore::ui
 {
+extern const lv_obj_class_t ht_dialog_overlay_class;
+extern const lv_obj_class_t ht_dialog_panel_class;
+extern const lv_obj_class_t ht_dialog_title_class;
+extern const lv_obj_class_t ht_dialog_content_class;
+extern const lv_obj_class_t ht_dialog_actions_class;
+
+extern const lv_obj_class_t ht_framed_overlay_header_class;
+extern const lv_obj_class_t ht_framed_overlay_content_class;
+extern const lv_obj_class_t ht_framed_overlay_footer_class;
+
+extern const lv_obj_class_t ht_screen_trailing_label_class;
+extern const lv_obj_class_t ht_screen_centered_label_class;
+extern const lv_obj_class_t ht_find_friend_dial_host_class;
+extern const lv_obj_class_t ht_volume_controls_class;
+extern const lv_obj_class_t ht_volume_button_class;
+
+#if LV_USE_KEYBOARD
+extern const lv_obj_class_t ht_keyboard_overlay_class;
+extern const lv_obj_class_t ht_keyboard_hint_class;
+extern const lv_obj_class_t ht_keyboard_editor_class;
+extern const lv_obj_class_t ht_keyboard_matrix_class;
+#endif
 
 extern const lv_obj_class_t ht_top_pane_class;
 extern const lv_obj_class_t ht_top_pane_right_slot_class;
@@ -33,18 +55,21 @@ extern const lv_obj_class_t ht_app_screen_host_class;
 
 extern const lv_obj_class_t ht_navigation_root_class;
 extern const lv_obj_class_t ht_navigation_content_class;
+#if defined(UI_NAVIGATION_GRID) && UI_NAVIGATION_GRID
 extern const lv_obj_class_t ht_navigation_cell_class;
 extern const lv_obj_class_t ht_navigation_icon_area_class;
 extern const lv_obj_class_t ht_navigation_title_bar_class;
+#endif
 extern const lv_obj_class_t ht_navigation_ring_class;
 
+#if defined(ENV_INCLUDE_MAP) && ENV_INCLUDE_MAP
 extern const lv_obj_class_t ht_map_status_label_class;
 extern const lv_obj_class_t ht_map_viewport_class;
 extern const lv_obj_class_t ht_map_toolbar_class;
 extern const lv_obj_class_t ht_map_layer_class;
 extern const lv_obj_class_t ht_map_tile_class;
 extern const lv_obj_class_t ht_map_marker_class;
-
+#endif
 extern const lv_obj_class_t ht_overlay_root_class;
 extern const lv_obj_class_t ht_overlay_bar_class;
 extern const lv_obj_class_t ht_overlay_feedback_label_class;
@@ -57,9 +82,11 @@ extern const lv_obj_class_t ht_preview_metadata_row_class;
 extern const lv_obj_class_t ht_preview_origin_class;
 extern const lv_obj_class_t ht_preview_text_class;
 
+#if defined(HELTEC_UI_INPUT_TOUCH) && HELTEC_UI_INPUT_TOUCH
 extern const lv_obj_class_t ht_quick_ping_row_class;
 extern const lv_obj_class_t ht_quick_ping_badge_class;
 extern const lv_obj_class_t ht_quick_ping_message_row_class;
+#endif
 
 extern const lv_obj_class_t ht_radio_sync_overlay_class;
 extern const lv_obj_class_t ht_radio_sync_list_class;

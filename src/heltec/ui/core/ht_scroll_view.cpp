@@ -4,8 +4,6 @@
  */
 #include "ht_scroll_view.hpp"
 
-#include "ht_meta_data_internal.hpp"
-
 namespace heltec::meshcore::ui
 {
 namespace
@@ -80,7 +78,16 @@ const lv_obj_class_t ht_scroll_view_class = {
 
 lv_obj_t *ht_scroll_view_create(lv_obj_t *parent, void *user_data)
 {
-    return detail::create_object(&ht_scroll_view_class, parent, user_data);
+    lv_obj_t *const obj = lv_obj_class_create_obj(&ht_scroll_view_class, parent);
+    if (!obj) {
+        return nullptr;
+    }
+
+    lv_obj_class_init_obj(obj);
+
+    lv_obj_set_user_data(obj, user_data);
+
+    return obj; 
 }
 
 } // namespace heltec::meshcore::ui

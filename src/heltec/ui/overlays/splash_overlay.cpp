@@ -2,7 +2,6 @@
 
 #include "heltec/app/HeltecMesh.h"
 #include "heltec/ui/images.h"
-#include "ui/core/ht_meta_data.hpp"
 #include "ui/core/ui_semantic_classes.hpp"
 #if defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213
 #include "heltec/drivers/display/e213_port.hpp"
@@ -45,7 +44,7 @@ bool SplashOverlay::create(_lv_obj_t *parent)
     lv_obj_set_style_bg_opa(_root, LV_OPA_COVER, LV_PART_MAIN);
 #endif
 
-    _logo = ht_img_create(_root);
+    _logo = lv_img_create(_root);
     if (!_logo)
         return false;
 #if defined(HELTEC_V4_R8_TFT)
@@ -59,19 +58,19 @@ bool SplashOverlay::create(_lv_obj_t *parent)
     lv_obj_set_style_img_recolor_opa(_logo, LV_OPA_TRANSP, LV_PART_MAIN);
 #endif
 
-    _ver = ht_label_create(_root);
+    _ver = lv_label_create(_root);
     if (!_ver)
         return false;
     lv_obj_set_width(_ver, lv_pct(100));
     lv_label_set_long_mode(_ver, LV_LABEL_LONG_CLIP);
 
-    _date = ht_label_create(_root);
+    _date = lv_label_create(_root);
     if (!_date)
         return false;
     lv_obj_set_width(_date, lv_pct(100));
     lv_label_set_long_mode(_date, LV_LABEL_LONG_CLIP);
 
-    _attribution = ht_label_create(_root);
+    _attribution = lv_label_create(_root);
     if (!_attribution)
         return false;
     lv_obj_set_width(_attribution, lv_pct(100));

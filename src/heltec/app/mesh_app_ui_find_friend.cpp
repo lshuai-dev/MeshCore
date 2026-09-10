@@ -262,15 +262,6 @@ bool MeshAppUi::setFindFriendWaypoint(double lat_deg, double lon_deg)
     return true;
 }
 
-bool MeshAppUi::saveFindFriendWaypointFromGps()
-{
-    ensureFindFriendPrefsLoaded();
-    const GpsStatus gps = gpsStatus();
-    if (!gps.fix_valid)
-        return false;
-    return setFindFriendWaypoint(gps.lat_deg, gps.lon_deg);
-}
-
 void MeshAppUi::formatFindFriendWaypointInput(char *buf, size_t buf_len) const
 {
     if (!buf || buf_len == 0)
@@ -510,8 +501,8 @@ FindFriendUi MeshAppUi::findFriendUi() const
                         tgt_lon = microdeg_to_deg(member.longitude_e6);
                         have_tgt = true;
                     }
-                    u.target_age_known = member.location_received_ms != 0;
-                    u.target_age_ms = millis() - member.location_received_ms +
+                    u.target_age_known = member.last_seen_ms != 0;
+                    u.target_age_ms = millis() - member.last_seen_ms +
                                       static_cast<uint32_t>(member.fix_age_sec) * 1000UL;
                 }
             }

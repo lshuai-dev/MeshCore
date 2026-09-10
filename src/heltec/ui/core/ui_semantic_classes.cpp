@@ -1,7 +1,4 @@
 #include "ui_semantic_classes.hpp"
-
-#include "ht_meta_data.hpp"
-#include "ht_meta_data_internal.hpp"
 #include "ht_container.hpp"
 #include "ht_selector_view.hpp"
 #include "ui/navigation/ui_navigator.hpp"
@@ -22,6 +19,29 @@ namespace heltec::meshcore::ui
         LV_OBJ_CLASS_GROUP_DEF_INHERIT,                                                         \
         sizeof(instance_type),                                                                  \
     }
+
+HT_DEFINE_SEMANTIC_CLASS(ht_dialog_overlay_class, lv_obj_class, lv_obj_t);
+HT_DEFINE_SEMANTIC_CLASS(ht_dialog_panel_class, lv_obj_class, lv_obj_t);
+HT_DEFINE_SEMANTIC_CLASS(ht_dialog_title_class, lv_obj_class, lv_obj_t);
+HT_DEFINE_SEMANTIC_CLASS(ht_dialog_content_class, lv_obj_class, lv_obj_t);
+HT_DEFINE_SEMANTIC_CLASS(ht_dialog_actions_class, lv_obj_class, lv_obj_t);
+
+HT_DEFINE_SEMANTIC_CLASS(ht_framed_overlay_header_class, lv_label_class, lv_label_t);
+HT_DEFINE_SEMANTIC_CLASS(ht_framed_overlay_content_class, lv_obj_class, lv_obj_t);
+HT_DEFINE_SEMANTIC_CLASS(ht_framed_overlay_footer_class, lv_label_class, lv_label_t);
+
+HT_DEFINE_SEMANTIC_CLASS(ht_screen_trailing_label_class, lv_label_class, lv_label_t);
+HT_DEFINE_SEMANTIC_CLASS(ht_screen_centered_label_class, lv_label_class, lv_label_t);
+HT_DEFINE_SEMANTIC_CLASS(ht_find_friend_dial_host_class, lv_obj_class, lv_obj_t);
+HT_DEFINE_SEMANTIC_CLASS(ht_volume_controls_class, lv_obj_class, lv_obj_t);
+HT_DEFINE_SEMANTIC_CLASS(ht_volume_button_class, lv_btn_class, lv_btn_t);
+
+#if LV_USE_KEYBOARD
+HT_DEFINE_SEMANTIC_CLASS(ht_keyboard_overlay_class, lv_obj_class, lv_obj_t);
+HT_DEFINE_SEMANTIC_CLASS(ht_keyboard_hint_class, ht_overlay_bar_class, lv_label_t);
+HT_DEFINE_SEMANTIC_CLASS(ht_keyboard_editor_class, lv_textarea_class, lv_textarea_t);
+HT_DEFINE_SEMANTIC_CLASS(ht_keyboard_matrix_class, lv_keyboard_class, lv_keyboard_t);
+#endif
 
 HT_DEFINE_SEMANTIC_CLASS(ht_top_pane_class, lv_obj_class, lv_obj_t);
 HT_DEFINE_SEMANTIC_CLASS(ht_top_pane_right_slot_class, lv_obj_class, lv_obj_t);
@@ -51,18 +71,21 @@ HT_DEFINE_SEMANTIC_CLASS(ht_app_screen_host_class, lv_obj_class, lv_obj_t);
 
 HT_DEFINE_SEMANTIC_CLASS(ht_navigation_root_class, lv_obj_class, lv_obj_t);
 HT_DEFINE_SEMANTIC_CLASS(ht_navigation_content_class, lv_obj_class, lv_obj_t);
+#if defined(UI_NAVIGATION_GRID) && UI_NAVIGATION_GRID
 HT_DEFINE_SEMANTIC_CLASS(ht_navigation_cell_class, lv_obj_class, lv_obj_t);
 HT_DEFINE_SEMANTIC_CLASS(ht_navigation_icon_area_class, lv_obj_class, lv_obj_t);
 HT_DEFINE_SEMANTIC_CLASS(ht_navigation_title_bar_class, lv_obj_class, lv_obj_t);
+#endif
 HT_DEFINE_SEMANTIC_CLASS(ht_navigation_ring_class, ht_navigator_class, ht_navigator_t);
 
+#if defined(ENV_INCLUDE_MAP) && ENV_INCLUDE_MAP
 HT_DEFINE_SEMANTIC_CLASS(ht_map_status_label_class, lv_label_class, lv_label_t);
 HT_DEFINE_SEMANTIC_CLASS(ht_map_viewport_class, lv_obj_class, lv_obj_t);
 HT_DEFINE_SEMANTIC_CLASS(ht_map_toolbar_class, lv_obj_class, lv_obj_t);
 HT_DEFINE_SEMANTIC_CLASS(ht_map_layer_class, lv_obj_class, lv_obj_t);
 HT_DEFINE_SEMANTIC_CLASS(ht_map_tile_class, lv_obj_class, lv_obj_t);
 HT_DEFINE_SEMANTIC_CLASS(ht_map_marker_class, lv_obj_class, lv_obj_t);
-
+#endif
 HT_DEFINE_SEMANTIC_CLASS(ht_overlay_root_class, lv_obj_class, lv_obj_t);
 HT_DEFINE_SEMANTIC_CLASS(ht_overlay_bar_class, lv_label_class, lv_label_t);
 HT_DEFINE_SEMANTIC_CLASS(ht_overlay_feedback_label_class, lv_label_class, lv_label_t);
@@ -75,10 +98,11 @@ HT_DEFINE_SEMANTIC_CLASS(ht_preview_metadata_row_class, lv_obj_class, lv_obj_t);
 HT_DEFINE_SEMANTIC_CLASS(ht_preview_origin_class, lv_label_class, lv_label_t);
 HT_DEFINE_SEMANTIC_CLASS(ht_preview_text_class, lv_label_class, lv_label_t);
 
+#if defined(HELTEC_UI_INPUT_TOUCH) && HELTEC_UI_INPUT_TOUCH
 HT_DEFINE_SEMANTIC_CLASS(ht_quick_ping_row_class, ht_container_class, ht_container_t);
 HT_DEFINE_SEMANTIC_CLASS(ht_quick_ping_badge_class, lv_obj_class, lv_obj_t);
 HT_DEFINE_SEMANTIC_CLASS(ht_quick_ping_message_row_class, lv_obj_class, lv_obj_t);
-
+#endif
 HT_DEFINE_SEMANTIC_CLASS(ht_radio_sync_overlay_class, ht_selector_view_class,
                          ht_selector_view_t);
 HT_DEFINE_SEMANTIC_CLASS(ht_radio_sync_list_class, lv_obj_class, lv_obj_t);
@@ -96,7 +120,14 @@ HT_DEFINE_SEMANTIC_CLASS(ht_splash_overlay_class, lv_obj_class, lv_obj_t);
 
 lv_obj_t *ht_semantic_create(const lv_obj_class_t *class_p, lv_obj_t *parent, void *user_data)
 {
-    return detail::create_object(class_p, parent, user_data);
+    lv_obj_t *const obj = lv_obj_class_create_obj(class_p, parent);
+    if (!obj) {
+        return nullptr;
+    }
+
+    lv_obj_class_init_obj(obj);
+    lv_obj_set_user_data(obj, user_data);
+    return obj;
 }
 
 lv_obj_t *ht_semantic_label_create(const lv_obj_class_t *class_p, lv_obj_t *parent,

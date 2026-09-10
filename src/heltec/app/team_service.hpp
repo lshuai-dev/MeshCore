@@ -32,30 +32,24 @@ struct TeamMember
 {
     bool occupied = false;
     bool location_valid = false;
-    bool presence_seen = false;
-    bool location_seen = false;
     uint8_t role = 0;
-    uint8_t sender_id[kSenderIdSize] = {};
     uint8_t public_key[kPublicKeySize] = {};
     uint16_t boot_id = 0;
-    uint16_t presence_sequence = 0;
-    uint16_t location_sequence = 0;
+    uint16_t sequence = 0;
     uint16_t battery_mv = 0;
-    uint16_t accuracy_dm = 0;
     int32_t latitude_e6 = 0;
     int32_t longitude_e6 = 0;
     uint16_t fix_age_sec = 0;
     uint32_t last_seen_ms = 0;
-    uint32_t location_received_ms = 0;
-    uint8_t satellites = 0;
     uint8_t name_len = 0;
     char name[kMaxNameBytes + 1] = {};
 };
 
 struct TeamStats
 {
-    uint16_t rx_presence = 0;
-    uint16_t rx_location = 0;
+    uint16_t rx_status = 0;
+    // Preserve the existing 10-counter Companion ABI; former Location slot stays zero.
+    uint16_t reserved = 0;
     uint16_t rx_sync_request = 0;
     uint16_t rx_decode_error = 0;
     uint16_t rx_wrong_channel = 0;
@@ -88,7 +82,7 @@ class TeamService
     const TeamMember *memberSlot(size_t slot) const
     {
         return enabled() && slot < HELTEC_TEAM_MAX_MEMBERS &&
-               _members[slot].occupied && _members[slot].presence_seen ? &_members[slot] : nullptr;
+               _members[slot].occupied ? &_members[slot] : nullptr;
     }
     const TeamStats &stats() const { return _stats; }
     void resetStats() { _stats = TeamStats{}; }
@@ -108,34 +102,28 @@ class TeamService
     void clearTeamChannel();
     void scheduleInitialFrames();
     CommonHeader makeHeader(uint8_t flags, uint16_t sequence) const;
-    bool sendPresence();
-    bool sendLocation(bool force_invalid = false, bool force_update = false);
+    bool sendStatus(bool force_update = false);
     bool sendFrame(const uint8_t *data, size_t length);
-    void receivePresence(const uint8_t *data, size_t length);
-    void receiveLocation(const uint8_t *data, size_t length);
+    void receiveStatus(const uint8_t *data, size_t length);
     void receiveSyncRequest(const uint8_t *data, size_t length);
-    TeamMember *findMember(const uint8_t sender_id[kSenderIdSize]);
-    TeamMember *allocateMember(const uint8_t sender_id[kSenderIdSize]);
+    TeamMember *findMember(const uint8_t public_key[kPublicKeySize]);
+    TeamMember *allocateMember(const uint8_t public_key[kPublicKeySize]);
     void clearMembers();
 
     HeltecMesh *_mesh = nullptr;
     TeamCredentials _credentials{};
     TeamMember _members[HELTEC_TEAM_MAX_MEMBERS] = {};
-    uint32_t _next_presence_ms = 0;
-    uint32_t _next_location_ms = 0;
-    uint32_t _pending_presence_ms = 0;
-    uint32_t _pending_location_ms = 0;
-    uint8_t _sync_presence_attempts = 0;
-    uint8_t _sync_location_attempts = 0;
+    uint32_t _next_status_ms = 0;
+    uint32_t _pending_status_ms = 0;
+    uint8_t _sync_status_attempts = 0;
     uint32_t _startup_sync_ms = 0;
     uint8_t _startup_sync_attempts = 0;
     uint16_t _boot_id = 0;
-    uint16_t _presence_sequence = 0;
-    uint16_t _location_sequence = 0;
+    uint16_t _status_sequence = 0;
     uint16_t _sync_sequence = 0;
     int32_t _last_sent_latitude_e6 = 0;
     int32_t _last_sent_longitude_e6 = 0;
-    uint32_t _last_location_sent_ms = 0;
+    uint32_t _last_status_sent_ms = 0;
     uint32_t _last_sync_request_rx_ms = 0;
     uint32_t _last_sync_request_tx_ms = 0;
     bool _sync_request_tx_seen = false;

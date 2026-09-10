@@ -1,7 +1,6 @@
 #include "cascading_menu.hpp"
 
 #if LV_USE_MENU
-#include "ui/core/ht_meta_data.hpp"
 #include "ui/core/ht_event.h"
 #include "ui/theme/ui_widget_theme.hpp"
 #if defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213
@@ -73,7 +72,9 @@ bool CascadingMenu::create(lv_obj_t *menu, const char *title)
 
     _menu_host = menu;
 
-    _page = ht_menu_page_create(menu, title, this);
+    _page = lv_menu_page_create(menu, title ? const_cast<char *>(title) : nullptr);
+    if (_page)
+        lv_obj_set_user_data(_page, this);
     if (!_page)
         return false;
     ui_theme_apply_cascading_menu_page(_page);
@@ -107,13 +108,13 @@ bool CascadingMenu::create(lv_obj_t *menu, const char *title)
             if (!btn)
                 continue;
             ui_theme_apply_cascading_menu_item(btn);
-            ht_set_user_data(btn, this);
+            lv_obj_set_user_data(btn, this);
             lv_obj_add_event_cb(
                 btn,
                 [](lv_event_t *e)
                 {
                     CascadingMenu *const menu =
-                        static_cast<CascadingMenu *>(ht_user_data(lv_event_get_target(e)));
+                        static_cast<CascadingMenu *>(lv_obj_get_user_data(lv_event_get_target(e)));
                     if (!menu)
                         return;
                     const uint32_t index = lv_obj_get_index(lv_event_get_target(e));
@@ -133,7 +134,7 @@ bool CascadingMenu::create(lv_obj_t *menu, const char *title)
                 [](lv_event_t *e)
                 {
                     CascadingMenu *const menu =
-                        static_cast<CascadingMenu *>(ht_user_data(lv_event_get_target(e)));
+                        static_cast<CascadingMenu *>(lv_obj_get_user_data(lv_event_get_target(e)));
                     if (!menu)
                         return;
                     const uint32_t index = lv_obj_get_index(lv_event_get_target(e));
@@ -161,7 +162,7 @@ bool CascadingMenu::create(lv_obj_t *menu, const char *title)
                                 return;
 
                             CascadingMenu *const menu =
-                                static_cast<CascadingMenu *>(ht_user_data(lv_event_get_target(e)));
+                                static_cast<CascadingMenu *>(lv_obj_get_user_data(lv_event_get_target(e)));
                             if (!menu)
                                 return;
 
@@ -213,7 +214,7 @@ bool CascadingMenu::create(lv_obj_t *menu, const char *title)
                         if (!item || !item->cmd)
                             return;
                         CascadingMenu *const menu =
-                            static_cast<CascadingMenu *>(ht_user_data(lv_event_get_target(e)));
+                            static_cast<CascadingMenu *>(lv_obj_get_user_data(lv_event_get_target(e)));
                         if (menu)
                         {
                             item->cmd(menu->_biz, menu->_event_target);
