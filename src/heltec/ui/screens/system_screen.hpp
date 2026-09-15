@@ -2,49 +2,31 @@
 
 #include "../core/abstract_screen.hpp"
 #include "../core/app_state_event.hpp"
-#include "../core/ui_feedback.hpp"
+#include "../core/feedback.hpp"
 
-namespace heltec::meshcore::biz
-{
+namespace heltec::meshcore::biz {
 class IBizFacade;
 }
 
-namespace heltec::meshcore::ui
-{
+namespace heltec::meshcore::ui {
 
-class SystemScreen : public AbstractScreen
-{
+class SystemScreen : public AbstractScreen {
   public:
     SystemScreen(biz::IBizFacade &biz, const char *title, const lv_img_dsc_t *icon)
-        : AbstractScreen(biz, title, icon), _feedback(biz)
-    {
-        setFocusStorage(_screen_focus, kFocusCapacity);
-    }
-    eScreenId screenId() const override
-    {
-        return eScreenId::System;
+        : AbstractScreen(biz, title, icon), _feedback(biz) {
     }
     void onEnter() override;
     void onExit() override;
 
   protected:
-    _lv_obj_t *create(_lv_obj_t *parent) override;
+    bool buildSurface() override;
 
   private:
-    static constexpr uint8_t kFocusCapacity = 9;
-    FocusItem _screen_focus[kFocusCapacity]{};
-
     void onAppStateChanged(const AppStateEvent &event) override;
-    void onSurfaceRefresh() override;
-    void onUiEvent(const UiEvent &event) override;
-    enum class SysAction : uint8_t
-    {
-        None,
-        FactoryReset,
-        ClearData
-    };
-    struct ChoiceRow
-    {
+    void onActivated() override;
+    void onUIEvent(const UiEvent &event) override;
+    enum class SysAction : uint8_t { None, FactoryReset, ClearData };
+    struct ChoiceRow {
         _lv_obj_t *row = nullptr;
         _lv_obj_t *dropdown = nullptr;
     };
@@ -55,6 +37,7 @@ class SystemScreen : public AbstractScreen
     _lv_obj_t *addDropdownRow(_lv_obj_t *scroll, ChoiceRow &choice, const char *title);
 #if defined(HAS_BUZZER_VOLUME_CONTROL) && HAS_BUZZER_VOLUME_CONTROL
     _lv_obj_t *addBuzzerVolumeRow(_lv_obj_t *scroll);
+    void addBuzzerVolumeButton(_lv_obj_t *parent, const char *text, _lv_obj_t **out_button);
 #endif
 
     static void onWidgetKeyPreprocess(lv_event_t *e);
@@ -64,6 +47,7 @@ class SystemScreen : public AbstractScreen
     static void onDropdownStateEvent(lv_event_t *e);
     static void onDropdownReleasedPre(lv_event_t *e);
     static void realignDropdownListAsync(void *user_data);
+    static void onGroupFocusChanged(lv_group_t *group);
 #if defined(HAS_BUZZER_VOLUME_CONTROL) && HAS_BUZZER_VOLUME_CONTROL
     static void onBuzzerVolumeButtonClicked(lv_event_t *e);
 #endif

@@ -5,35 +5,29 @@
 
 #include <lvgl.h>
 
-namespace heltec::meshcore::ui
-{
+namespace heltec::meshcore::ui {
 
-bool InputDispatcher::dispatch(InputHost &host, InputCommand command, uint32_t now_ms)
-{
+bool InputDispatcher::dispatch(InputHost &host, InputCommand command, uint32_t now_ms) {
     (void)now_ms;
-    if (!host.isReady())
-        return true;
+    if (!host.isReady()) return true;
 
     host.reconcileInput();
 
-    switch (command)
-    {
+    switch (command) {
 
     case InputCommand::GoHome:
         host.ensureTileKeypadFocus();
         return true;
 
     case InputCommand::OpenNavigation:
-        if (lv_obj_t *frame = host.frameRoot())
-        {
-            ht_event_send(frame, EventType::NAV_OPEN);
+        if (lv_obj_t *frame = host.frameRoot()) {
+            ht_event_send(frame, EventType::NavOpen);
         }
         return true;
 
     case InputCommand::OpenAction:
-        if (lv_obj_t *frame = host.frameRoot())
-        {
-            ht_event_send(frame, EventType::ACTION_OPEN);
+        if (lv_obj_t *frame = host.frameRoot()) {
+            ht_event_send(frame, EventType::ActionOpen);
         }
         return true;
 

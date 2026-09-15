@@ -4,13 +4,13 @@
 #include "MeshCore.h"
 #include "heltec/drivers/input/touch_port.hpp"
 #include "heltec/ui/images.h"
-#include "ui/app/ui_behavior_profile.hpp"
-#include "ui/app/ui_theme.hpp"
-#include "ui/core/ui_semantic_classes.hpp"
+#include "ui/app/behavior_profile.hpp"
+#include "ui/app/theme.hpp"
+#include "ui/core/widget_classes.hpp"
 #include "ui/core/ht_event.h"
-#include "ui/core/ui_motion_scheduler.hpp"
-#include "ui/navigation/ui_navigator.hpp"
-#include "ui/theme/ui_widget_theme.hpp"
+#include "ui/core/scheduler.hpp"
+#include "ui/navigation/grid_navigator.hpp"
+#include "ui/theme/widget_theme.hpp"
 
 #include <math.h>
 #ifndef M_PI
@@ -542,17 +542,13 @@ void NavigationPane::setTileView(_lv_obj_t *tileview)
     updateGeometry();
 }
 
-_lv_obj_t *NavigationPane::createRoot(_lv_obj_t *parent)
+NavigationPane::NavigationPane(biz::IBizFacade &biz)
+    : UiSurface(biz, ht_navigation_root_class)
 {
-    return ht_semantic_create(&ht_navigation_root_class, parent);
 }
 
-_lv_obj_t *NavigationPane::create(_lv_obj_t *parent)
+bool NavigationPane::buildSurface()
 {
-    if (_root)
-        return _root;
-    if (!UiSurface::create(parent))
-        return nullptr;
     layoutRootToTileView(_root, _tileview);
     lv_obj_clear_flag(_root, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_add_flag(_root, LV_OBJ_FLAG_OVERFLOW_VISIBLE);
@@ -560,17 +556,8 @@ _lv_obj_t *NavigationPane::create(_lv_obj_t *parent)
 
     _nav = ui_navigator_create_grid(_root);
     if (!_nav)
-    {
-        if (_focus_group)
-        {
-            lv_group_del(_focus_group);
-            _focus_group = nullptr;
-        }
-        lv_obj_del(_root);
-        _root = nullptr;
-        return nullptr;
-    }
-    addFocusObject(_nav);
+        return false;
+    lv_group_add_obj(focusGroup(), _nav);
 
     lv_obj_add_event_cb(
         _root,
@@ -597,7 +584,7 @@ _lv_obj_t *NavigationPane::create(_lv_obj_t *parent)
     lv_obj_add_flag(_nav, LV_OBJ_FLAG_HIDDEN);
     updateGeometry();
     lv_obj_add_flag(_root, LV_OBJ_FLAG_HIDDEN);
-    return _root;
+    return true;
 }
 
 void NavigationPane::setIcon(uint8_t id, const lv_img_dsc_t *img)
@@ -627,7 +614,7 @@ void NavigationPane::setIcon(uint8_t id, const lv_img_dsc_t *img)
         return;
     }
 
-    _lv_obj_t *cell = ht_semantic_create(
+    _lv_obj_t *cell = ht_class_create(
         &ht_navigation_cell_class, host,
         reinterpret_cast<void *>(static_cast<uintptr_t>(id)));
     if (!cell)
@@ -637,7 +624,7 @@ void NavigationPane::setIcon(uint8_t id, const lv_img_dsc_t *img)
     lv_obj_clear_flag(cell, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_add_flag(cell, LV_OBJ_FLAG_EVENT_BUBBLE);
 
-    _lv_obj_t *icon_area = ht_semantic_create(&ht_navigation_icon_area_class, cell);
+    _lv_obj_t *icon_area = ht_class_create(&ht_navigation_icon_area_class, cell);
     if (!icon_area)
     {
         lv_obj_del(cell);
@@ -662,7 +649,7 @@ void NavigationPane::setIcon(uint8_t id, const lv_img_dsc_t *img)
     lv_obj_clear_flag(icon, LV_OBJ_FLAG_CLICKABLE | LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_add_flag(icon, LV_OBJ_FLAG_EVENT_BUBBLE);
 
-    _lv_obj_t *bar = ht_semantic_create(&ht_navigation_title_bar_class, cell);
+    _lv_obj_t *bar = ht_class_create(&ht_navigation_title_bar_class, cell);
     if (!bar)
     {
         lv_obj_del(cell);
@@ -674,7 +661,7 @@ void NavigationPane::setIcon(uint8_t id, const lv_img_dsc_t *img)
     lv_obj_add_flag(bar, LV_OBJ_FLAG_EVENT_BUBBLE);
 
     _lv_obj_t *lbl =
-        ht_label_create(bar, _labels[id] ? _labels[id] : "");
+        ht_label_create(&lv_label_class, bar, _labels[id] ? _labels[id] : "");
     if (!lbl)
     {
         lv_obj_del(cell);
@@ -831,7 +818,7 @@ void NavigationPane::sendTilePreview(uint8_t tile_idx)
 {
     if (!_tileview || tile_idx >= kMaxButtons)
         return;
-    ht_event_send(_tileview, EventType::TILE_PREVIEW, &tile_idx);
+    ht_event_send(_tileview, EventType::TilePreview, &tile_idx);
 }
 
 _lv_obj_t *NavigationPane::frameRoot() const
@@ -853,7 +840,7 @@ void NavigationPane::onCellClicked(_lv_obj_t *cell)
     sendTilePreview(_ring_layout_focus);
     if (_lv_obj_t *frame = frameRoot())
     {
-        ht_event_send(frame, EventType::NAV_ACTIVITY);
+        ht_event_send(frame, EventType::NavActivity);
     }
 }
 
@@ -917,7 +904,7 @@ bool NavigationPane::commitFocused()
     {
         return false;
     }
-    ht_event_send(_tileview, EventType::TILE_COMMIT, &_ring_layout_focus);
+    ht_event_send(_tileview, EventType::TileCommit, &_ring_layout_focus);
     return true;
 }
 
@@ -939,7 +926,7 @@ bool NavigationPane::onKey(uint32_t lv_key)
     {
         if (lv_obj_t *frame = frameRoot())
         {
-            ht_event_send(frame, EventType::NAV_CLOSE);
+            ht_event_send(frame, EventType::NavClose);
         }
         return true;
     }
@@ -951,7 +938,7 @@ bool NavigationPane::onKey(uint32_t lv_key)
     {
         if (_lv_obj_t *frame = frameRoot())
         {
-            ht_event_send(frame, EventType::NAV_ACTIVITY);
+            ht_event_send(frame, EventType::NavActivity);
         }
         stepNavFocus(navStepDelta(lv_key));
         return true;
@@ -996,7 +983,7 @@ bool NavigationPane::requestCloseAnimation()
         self->_ring_fade_busy = false;
         if (_lv_obj_t *frame = self->frameRoot())
         {
-            ht_event_send(frame, EventType::NAV_CLOSE);
+            ht_event_send(frame, EventType::NavClose);
         }
     };
     motion.ready_data = this;

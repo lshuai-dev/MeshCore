@@ -1,5 +1,5 @@
 #pragma once
-#include "ui/core/ui_semantic_classes.hpp"
+#include "ui/core/widget_classes.hpp"
 
 #include <lvgl.h>
 #include <stdint.h>

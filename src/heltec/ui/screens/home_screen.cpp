@@ -1,8 +1,4 @@
 #include "home_screen.hpp"
-#include "MeshCore.h"
-#include "ui/core/ht_container.hpp"
-#include "ui/core/ui_semantic_classes.hpp"
-#include "ui/core/ht_event.h"
 
 #include <lvgl.h>
 
@@ -38,7 +34,7 @@ void HomeScreen::onAppStateChanged(const AppStateEvent &event)
     }
 }
 
-void HomeScreen::onSurfaceRefresh()
+void HomeScreen::onActivated()
 {
     refreshSnapshot();
 }
@@ -72,65 +68,42 @@ void HomeScreen::refreshLabels()
     }
 }
 
-_lv_obj_t *HomeScreen::create(_lv_obj_t *parent)
+bool HomeScreen::buildSurface()
 {
-    if (!AbstractScreen::create(parent))
-        return nullptr;
+    if (!AbstractScreen::buildSurface())
+        return false;
     lv_obj_set_flex_align(_root, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
-
-    _lv_obj_t *const id_row = ht_container_create(_root);
-    _lv_obj_t *const message_row = ht_container_create(_root);
-    _lv_obj_t *const status_row = ht_container_create(_root);
-
-    auto create_label = [](lv_obj_t *parent, const char *text) -> lv_obj_t * {
-        lv_obj_t *const label = lv_obj_class_create_obj(&ht_screen_centered_label_class, parent);
-        if(!label) return nullptr;
-        lv_obj_class_init_obj(label);
-        if (text) lv_label_set_text(label, text);
-
-        return label;
-    };
-    _lblId = id_row ? create_label(id_row, "ID: --------") : nullptr;
-    _lblMsg = message_row ? create_label(message_row, "MSG: 0") : nullptr;
-    _lblStatus = status_row ? create_label(status_row, "") : nullptr;
 
     lv_snprintf(_id_line, sizeof(_id_line), "ID: --------");
     lv_snprintf(_message_line, sizeof(_message_line), "MSG: 0");
     _status_line[0] = '\0';
-    if (_lblId)
-        lv_label_set_text_static(_lblId, _id_line);
-    if (_lblMsg)
-        lv_label_set_text_static(_lblMsg, _message_line);
-    if (_lblStatus)
-        lv_label_set_text_static(_lblStatus, _status_line);
 
-    struct HomeItem
+    _lblId = lv_label_create(_root);
+    _lblMsg = lv_label_create(_root);
+    _lblStatus = lv_label_create(_root);
+    if (!_lblId || !_lblMsg || !_lblStatus)
+        return false;
+
+    lv_label_set_text_static(_lblId, _id_line);
+    lv_label_set_text_static(_lblMsg, _message_line);
+    lv_label_set_text_static(_lblStatus, _status_line);
+
+    _lv_obj_t *const labels[] = { _lblId, _lblMsg, _lblStatus };
+    for (_lv_obj_t *const label : labels)
     {
-        _lv_obj_t *row;
-        _lv_obj_t *label;
-    };
-    const HomeItem items[] = {
-        { id_row, _lblId },
-        { message_row, _lblMsg },
-        { status_row, _lblStatus },
-    };
-    for (const HomeItem &item : items)
-    {
-        if (!item.row || !item.label)
-            continue;
 #if defined(HELTEC_T114_WITH_DISPLAY)
-        lv_obj_set_size(item.label, lv_pct(100), LV_SIZE_CONTENT);
+        lv_obj_set_size(label, lv_pct(100), LV_SIZE_CONTENT);
 #else
-        lv_obj_set_size(item.label, lv_pct(100), 12);
+        lv_obj_set_size(label, lv_pct(100), 12);
 #endif
-        lv_obj_clear_flag(item.label, LV_OBJ_FLAG_SCROLLABLE | LV_OBJ_FLAG_SCROLL_ON_FOCUS);
-        lv_label_set_long_mode(item.label, LV_LABEL_LONG_CLIP);
-        addFocusItem(item.label, item.row);
+        lv_obj_set_style_text_align(label, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
+        lv_obj_clear_flag(label, LV_OBJ_FLAG_SCROLLABLE | LV_OBJ_FLAG_SCROLL_ON_FOCUS);
+        lv_label_set_long_mode(label, LV_LABEL_LONG_CLIP);
+        addFocusableObject(label);
     }
-    if (_lblStatus)
-        lv_label_set_long_mode(_lblStatus, LV_LABEL_LONG_WRAP);
+    lv_label_set_long_mode(_lblStatus, LV_LABEL_LONG_WRAP);
 
-    return _root;
+    return true;
 }
 
 } // namespace heltec::meshcore::ui

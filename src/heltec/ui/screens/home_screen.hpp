@@ -1,37 +1,23 @@
 #pragma once
 #include "../core/abstract_screen.hpp"
 #include "../core/app_state_event.hpp"
-
-namespace heltec::meshcore::biz
-{
+namespace heltec::meshcore::biz {
 class IBizFacade;
 }
 
-namespace heltec::meshcore::ui
-{
-
-class HomeScreen : public AbstractScreen
-{
+namespace heltec::meshcore::ui {
+class HomeScreen : public AbstractScreen {
   public:
     HomeScreen(biz::IBizFacade &biz, const char *title, const lv_img_dsc_t *icon)
-        : AbstractScreen(biz, title, icon)
-    {
-        setFocusStorage(_screen_focus, kFocusCapacity);
-    }
-    eScreenId screenId() const override
-    {
-        return eScreenId::Home;
+        : AbstractScreen(biz, title, icon) {
     }
 
   protected:
-    _lv_obj_t *create(_lv_obj_t *parent) override;
+    bool buildSurface() override;
 
   private:
-    static constexpr uint8_t kFocusCapacity = 3;
-    FocusItem _screen_focus[kFocusCapacity]{};
-
     void onAppStateChanged(const AppStateEvent &event) override;
-    void onSurfaceRefresh() override;
+    void onActivated() override;
     void refreshSnapshot();
     void refreshLabels();
 
@@ -41,9 +27,9 @@ class HomeScreen : public AbstractScreen
     int _message_count = 0;
     bool _companion_connected = false;
     uint32_t _pairing_pin = 0;
-    char _id_line[40] = {};
-    char _message_line[24] = {};
-    char _status_line[24] = {};
+    char _id_line[16] = {};
+    char _message_line[16] = {};
+    char _status_line[32] = {};
 };
 
 } // namespace heltec::meshcore::ui

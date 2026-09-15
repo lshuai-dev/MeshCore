@@ -1,13 +1,10 @@
 #if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
 #include "find_friend_screen.hpp"
-#include "MeshCore.h"
-#include "compass_ui_common.hpp"
-#include "ui/core/ht_event.h"
-#include "ui/core/ui_deferred_queue.hpp"
 #include "app/team_join_service.hpp"
-#include "ui/core/ui_deferred_queue.hpp"
-#include <Arduino.h>
-#include <lvgl.h>
+#include "compass_common.hpp"
+#include "ui/core/ht_event.h"
+
+#include <string.h>
 
 #ifndef FF_INFO_COL_WIDTH_PCT
 #define FF_INFO_COL_WIDTH_PCT 40
@@ -21,11 +18,9 @@
 #define FF_INFO_COL_PAD_LEFT 2
 #endif
 
-namespace heltec::meshcore::ui
-{
+namespace heltec::meshcore::ui {
 
-namespace
-{
+namespace {
 #if defined(HELTEC_T1)
 // T1: 80px panel height - 12px top pane - 2px tile padding on each side.
 constexpr lv_coord_t kT1FindFriendContentHeight = 64;
@@ -33,51 +28,43 @@ constexpr lv_coord_t kT1FindFriendDialPadding = 4;
 constexpr lv_coord_t kT1FindFriendDialColumnWidth = kT1FindFriendContentHeight;
 #endif
 
-void set_static_text(lv_obj_t *label, char *buffer, size_t capacity, const char *text)
-{
-    if (!label || !buffer || capacity == 0)
-        return;
-    lv_snprintf(buffer, capacity, "%s", text ? text : "");
+void set_static_text(lv_obj_t *label, char *buffer, size_t capacity, const char *text) {
+    if (!label || !buffer || capacity == 0) return;
+    const char *value = text ? text : "";
+    if (strncmp(buffer, value, capacity) == 0) return;
+    lv_snprintf(buffer, capacity, "%s", value);
     lv_label_set_text_static(label, buffer);
 }
 
-void format_age_short(char *buf, size_t len, bool known, uint32_t age_ms)
-{
-    if (!buf || len == 0)
-        return;
-    if (!known)
-    {
+void format_age_short(char *buf, size_t len, bool known, uint32_t age_ms) {
+    if (!buf || len == 0) return;
+    if (!known) {
         lv_snprintf(buf, len, "?");
         return;
     }
     const uint32_t seconds = age_ms / 1000U;
-    if (seconds < 60U)
-    {
+    if (seconds < 60U) {
         lv_snprintf(buf, len, "%lus", (unsigned long)seconds);
-    }
-    else if (seconds < 3600U)
-    {
+    } else if (seconds < 3600U) {
         lv_snprintf(buf, len, "%lum", (unsigned long)(seconds / 60U));
-    }
-    else
-    {
+    } else {
         lv_snprintf(buf, len, "%luh", (unsigned long)(seconds / 3600U));
     }
 }
 
-void format_nav_distance(char *buf, size_t len, const biz::FindFriendUi &u)
-{
-    if (!buf || len == 0 || u.distance_m < 0.0)
+void format_nav_distance(char *buf, size_t len, const biz::FindFriendUi &u) {
+    if (!buf || len == 0) return;
+    if (u.distance_m < 0.0) {
+        lv_snprintf(buf, len, "--");
         return;
+    }
     const char *approximate = u.confidence == biz::FindFriendConfidence::Low ? "~" : "";
-    if (u.distance_m >= 10000.0)
-    {
+    if (u.distance_m >= 10000.0) {
         const uint32_t km = static_cast<uint32_t>(u.distance_m / 1000.0 + 0.5);
         lv_snprintf(buf, len, "%s%lukm", approximate, (unsigned long)km);
         return;
     }
-    if (u.distance_m >= 1000.0)
-    {
+    if (u.distance_m >= 1000.0) {
         const uint32_t km_tenths = static_cast<uint32_t>(u.distance_m / 100.0 + 0.5);
         lv_snprintf(buf, len, "%s%lu.%lukm", approximate, (unsigned long)(km_tenths / 10U),
                     (unsigned long)(km_tenths % 10U));
@@ -85,12 +72,9 @@ void format_nav_distance(char *buf, size_t len, const biz::FindFriendUi &u)
     }
 
     uint32_t step_m = 1;
-    if (u.estimated_accuracy_m >= 40.0f)
-    {
+    if (u.estimated_accuracy_m >= 40.0f) {
         step_m = 10;
-    }
-    else if (u.estimated_accuracy_m >= 15.0f)
-    {
+    } else if (u.estimated_accuracy_m >= 15.0f) {
         step_m = 5;
     }
     const uint32_t meters = static_cast<uint32_t>(u.distance_m + 0.5);
@@ -99,79 +83,69 @@ void format_nav_distance(char *buf, size_t len, const biz::FindFriendUi &u)
 }
 } // namespace
 
-void FindFriendScreen::setInfoText(const char *info)
-{
+void FindFriendScreen::setInfoText(const char *info) {
     set_static_text(_lbl_info, _info_text, sizeof(_info_text), info);
-    if (!_lbl_info)
-        return;
-    if (_info_text[0])
-    {
+    if (!_lbl_info) return;
+    if (_info_text[0]) {
         lv_obj_clear_flag(_lbl_info, LV_OBJ_FLAG_HIDDEN);
-    }
-    else
-    {
+    } else {
         lv_obj_add_flag(_lbl_info, LV_OBJ_FLAG_HIDDEN);
     }
 }
 
-void FindFriendScreen::setStatusText(const char *status)
-{
-    if (status != _status_text)
-    {
-        set_static_text(_lbl_status, _status_text, sizeof(_status_text), status);
-    }
-    else if (_lbl_status)
-    {
-        lv_label_set_text_static(_lbl_status, _status_text);
-    }
-    if (!_lbl_status)
-        return;
-    if (_status_text[0])
-    {
+void FindFriendScreen::setStatusText(const char *status) {
+    set_static_text(_lbl_status, _status_text, sizeof(_status_text), status);
+    if (!_lbl_status) return;
+    if (_status_text[0]) {
         lv_obj_clear_flag(_lbl_status, LV_OBJ_FLAG_HIDDEN);
-    }
-    else
-    {
+    } else {
         lv_obj_add_flag(_lbl_status, LV_OBJ_FLAG_HIDDEN);
     }
 }
 
-void FindFriendScreen::showInfoOnly(const char *info)
-{
-    _dial.setDialHidden(true);
-    _dial.setLayersVisible(false);
-    _dial.invalidateNeedle();
+void FindFriendScreen::showInfoOnly(const char *info) {
+    _dial.setVisible(false);
     setInfoText(info);
 }
 
-void FindFriendScreen::onEnter()
-{
-    MESH_DEBUG_PRINTLN("[FF] onEnter t=%lu", (unsigned long)millis());
+void FindFriendScreen::showHeadingOnly(const biz::FindFriendUi &ui, const char *info) {
+    _dial.setVisible(true);
+    _dial.setFriendNeedle(0, false, false, false, false);
+    _direction_valid = false;
+    _near_target = false;
+    _on_target = false;
+    _gps_fix = false;
+    if (ui.heading_valid) {
+        const float heading = compass_screen_heading(ui.heading_deg, 0);
+        const int16_t ring =
+            compass_dial_redraw_tenths((int16_t)compass_heading_tenths(heading));
+        if (ring != _ring_heading_tenths) {
+            _ring_heading_tenths = ring;
+            _dial.setRingHeading(ring);
+        }
+    }
+    setInfoText(info);
+}
+
+void FindFriendScreen::onEnter() {
     AbstractScreen::onEnter();
-    if (_right_column)
-        lv_obj_scroll_to_y(_right_column, 0, LV_ANIM_OFF);
+    if (_right_column) lv_obj_scroll_to_y(_right_column, 0, LV_ANIM_OFF);
     _biz.setFindFriendForegroundActive(true);
     closeOpenDropdown();
+    _suppress_released_dropdown = nullptr;
     syncControls(true);
     _defer_cycle_target = _biz.findFriendEnabled();
 
-    if (_dial_row)
-        lv_obj_update_layout(_dial_row);
+    if (_dial_row) lv_obj_update_layout(_dial_row);
     _dial.layoutSize();
 
-    _dial.setDialHidden(true);
-    _dial.setLayersVisible(false);
-    setInfoText(_biz.findFriendEnabled() ? "starting..." : "");
-    setStatusText("");
+    render(_biz.findFriendUi());
 }
 
-_lv_obj_t *FindFriendScreen::create(_lv_obj_t *parent)
-{
-    if (!AbstractScreen::create(parent))
-        return nullptr;
+bool FindFriendScreen::buildSurface() {
+    if (!AbstractScreen::buildSurface()) return false;
 
-    if (!createDial())
-        return nullptr;
+    if (!createDial()) return false;
     // Mode selection owns enable/disable state. One runtime row shows either
     // an actionable state or the current distance.
     createControls();
@@ -179,15 +153,13 @@ _lv_obj_t *FindFriendScreen::create(_lv_obj_t *parent)
     configureFocusItems();
     syncControls(true);
 
-    return _root;
+    return true;
 }
 
-bool FindFriendScreen::createDial()
-{
-    _dial_row = lv_obj_class_create_obj(&ht_find_friend_dial_host_class, _root);
-    if (!_dial_row)
-        return false;
-    lv_obj_class_init_obj(_dial_row);
+bool FindFriendScreen::createDial() {
+    _dial_row = lv_obj_create(_root);
+    if (!_dial_row) return false;
+    ui_theme_apply_find_friend_dial_host(_dial_row);
     // Keep the dial fixed in the left column. Only the settings/info column on
     // the right scrolls when its rows no longer fit on screen.
     lv_obj_clear_flag(_root, LV_OBJ_FLAG_SCROLLABLE);
@@ -206,8 +178,7 @@ bool FindFriendScreen::createDial()
     _dial.edge_margin = kT1FindFriendDialPadding;
 #endif
     _dial.needle_kind = CompassDialNeedleKind::FriendTurn;
-    if (!_dial.create(_dial_row))
-        return false;
+    if (!_dial.create(_dial_row)) return false;
 #if defined(HELTEC_T1)
     // Give the graphic only the square it needs; the settings column receives
     // every remaining horizontal pixel.
@@ -223,8 +194,7 @@ bool FindFriendScreen::createDial()
                                                1
 #endif
     );
-    if (!_right_column)
-        return false;
+    if (!_right_column) return false;
 #if defined(HELTEC_T1)
     lv_obj_set_width(_right_column, 0);
     lv_obj_set_flex_grow(_right_column, 1);
@@ -236,58 +206,48 @@ bool FindFriendScreen::createDial()
     return true;
 }
 
-void FindFriendScreen::createInfoRows()
-{
-    if (!_right_column)
-        return;
+void FindFriendScreen::createInfoRows() {
+    if (!_right_column) return;
 
     _lbl_info = lv_label_create(_right_column);
     compass_style_info_label(_lbl_info, "starting...", LV_LABEL_LONG_CLIP);
-    if (_lbl_info)
-    {
+    if (_lbl_info) {
         lv_label_set_text_static(_lbl_info, _info_text);
     }
 
     _lbl_status = lv_label_create(_right_column);
     compass_style_info_label(_lbl_status, "", LV_LABEL_LONG_WRAP);
-    if (_lbl_status)
-        lv_label_set_text_static(_lbl_status, _status_text);
+    if (_lbl_status) lv_label_set_text_static(_lbl_status, _status_text);
 }
 
-void FindFriendScreen::render(const biz::FindFriendUi &u)
-{
+void FindFriendScreen::render(const biz::FindFriendUi &u) {
+    const biz::IBizFacade::TeamStatus team = _biz.teamStatus();
     const auto team_state =
-        static_cast<heltec::meshcore::team::JoinState>(_biz.teamPairState());
-    if (_biz.findFriendEnabled() && _biz.findFriendMode() == 0 && !_biz.teamHasTeam())
-    {
-        if (team_state == heltec::meshcore::team::JoinState::Searching)
-        {
+        static_cast<heltec::meshcore::team::JoinState>(team.pair_state);
+    if (_biz.findFriendEnabled() && _biz.findFriendMode() == 0 && !team.has_team) {
+        if (team_state == heltec::meshcore::team::JoinState::Searching) {
             setStatusText("Searching Team...");
-            showInfoOnly("Waiting for Team offers");
+            showHeadingOnly(u, "Waiting for Team offers");
             return;
         }
         if (team_state == heltec::meshcore::team::JoinState::TimedOut ||
-            team_state == heltec::meshcore::team::JoinState::Error)
-        {
+            team_state == heltec::meshcore::team::JoinState::Error) {
             setStatusText("Team search timed out");
-            showInfoOnly("Select search again");
+            showHeadingOnly(u, "Select search again");
             return;
         }
     }
-    if (static_cast<heltec::meshcore::team::JoinState>(_biz.teamPairState()) ==
-        heltec::meshcore::team::JoinState::WaitingForApproval)
-    {
+    if (static_cast<heltec::meshcore::team::JoinState>(team.pair_state) ==
+        heltec::meshcore::team::JoinState::WaitingForApproval) {
         char code[24] = {};
-        lv_snprintf(code, sizeof(code), "code %04u",
-                    static_cast<unsigned>(_biz.teamPairingCode()));
+        lv_snprintf(code, sizeof(code), "code %04u", static_cast<unsigned>(team.pairing_code));
         setStatusText("Waiting for Leader");
-        showInfoOnly(code);
+        showHeadingOnly(u, code);
         return;
     }
-    if (!_biz.findFriendEnabled())
-    {
+    if (!_biz.findFriendEnabled()) {
         setStatusText("");
-        showInfoOnly("");
+        showHeadingOnly(u, "");
         return;
     }
 
@@ -299,229 +259,183 @@ void FindFriendScreen::render(const biz::FindFriendUi &u)
     const char *target_status =
         u.target_freshness == biz::FindFriendTargetFreshness::Aging ? " target aging" : "";
     const char *declination_status = u.declination_configured ? "" : " declination unset";
-    if (u.mode == 0 && u.target_selected)
-    {
+    if (u.mode == 0 && u.target_selected) {
         char target_age[12];
         format_age_short(target_age, sizeof(target_age), u.target_age_known, u.target_age_ms);
         lv_snprintf(_status_text, sizeof(_status_text), "GPS %s %usat\nfriend %s\nQ%d%s%s%s%s",
                     gps_age, (unsigned)u.gps_satellites, target_age, u.compass_quality,
                     compass_status, gps_status, target_status, declination_status);
-    }
-    else
-    {
+    } else {
         lv_snprintf(_status_text, sizeof(_status_text), "GPS %s %usat\nQ%d%s%s%s", gps_age,
                     (unsigned)u.gps_satellites, u.compass_quality, compass_status, gps_status,
                     declination_status);
     }
     setStatusText(_status_text);
 
-    if (!u.compass_hw)
-    {
+    if (!u.compass_hw) {
         showInfoOnly("no compass");
         return;
     }
-    if (!u.heading_valid)
-    {
-        if (!u.target_selected)
-        {
+    if (!u.heading_valid) {
+        if (!u.target_selected) {
             showInfoOnly("");
-        }
-        else if (!u.target_valid)
-        {
+        } else if (!u.target_valid) {
             showInfoOnly("no location");
-        }
-        else if (u.target_freshness == biz::FindFriendTargetFreshness::Unknown ||
-                 u.target_freshness == biz::FindFriendTargetFreshness::Stale)
-        {
+        } else if (u.target_freshness == biz::FindFriendTargetFreshness::Unknown ||
+                   u.target_freshness == biz::FindFriendTargetFreshness::Stale) {
             showInfoOnly("target stale");
-        }
-        else if (u.near_target)
-        {
-            _dial.setDialHidden(false);
-            _dial.setLayersVisible(true);
-            _dial.friend_direction_valid = false;
-            _dial.friend_near_target = true;
+        } else if (u.near_target) {
+            _dial.setVisible(true);
+            _dial.setFriendNeedle(0, u.gps_fix, false, false, true);
             _near_target = true;
             _direction_valid = false;
-            _dial.invalidateNeedle();
             setInfoText("nearby");
-        }
-        else if (!u.gps_fix)
-        {
+        } else if (!u.gps_fix) {
             showInfoOnly("need gps");
-        }
-        else if (u.compass_quality < 2)
-        {
+        } else if (u.compass_quality < 2) {
             showInfoOnly("calibrate");
-        }
-        else
-        {
+        } else {
             showInfoOnly("starting...");
         }
         return;
     }
 
-    _dial.setDialHidden(false);
-    _dial.setLayersVisible(true);
+    _dial.setVisible(true);
 
     const float hdg = compass_screen_heading(u.heading_deg, 0);
-    const int16_t new_ring = dial_heading_tenths((int16_t)(hdg * 10.f + 0.5f));
-    const float new_turn = (u.bearing_valid && u.heading_valid) ? u.turn_deg : 0.f;
+    const int16_t new_ring =
+        compass_dial_redraw_tenths((int16_t)compass_heading_tenths(hdg));
+    const int16_t new_turn =
+        (u.bearing_valid && u.heading_valid)
+            ? (int16_t)(((int32_t)compass_heading_tenths(u.turn_deg) + 5) / 10 * 10)
+            : 0;
     const bool new_gps = u.gps_fix;
     const bool new_on_target = u.relative_valid && compass_turn_on_target_deg(u.turn_deg);
     const bool new_direction_valid = u.relative_valid;
     const bool new_near_target = u.near_target;
 
-    if (new_ring != _ring_heading_tenths)
-    {
+    if (new_ring != _ring_heading_tenths) {
         _ring_heading_tenths = new_ring;
-        _dial.ring_heading_tenths = new_ring;
-        _dial.invalidateRing();
+        _dial.setRingHeading(new_ring);
     }
-    if (new_turn != _turn_show_deg || new_gps != _gps_fix || new_on_target != _on_target ||
-        new_direction_valid != _direction_valid || new_near_target != _near_target)
-    {
-        _turn_show_deg = new_turn;
+    if (new_turn != _turn_show_tenths || new_gps != _gps_fix || new_on_target != _on_target ||
+        new_direction_valid != _direction_valid || new_near_target != _near_target) {
+        _turn_show_tenths = new_turn;
         _gps_fix = new_gps;
         _on_target = new_on_target;
         _direction_valid = new_direction_valid;
         _near_target = new_near_target;
-        _dial.friend_turn_deg = new_turn;
-        _dial.friend_gps_fix = new_gps;
-        _dial.friend_on_target = new_on_target;
-        _dial.friend_direction_valid = new_direction_valid;
-        _dial.friend_near_target = new_near_target;
-        _dial.invalidateNeedle();
+        _dial.setFriendNeedle(new_turn, new_gps, new_direction_valid, new_on_target,
+                              new_near_target);
     }
 
-    if (!u.target_selected)
-    {
+    if (!u.target_selected) {
         setInfoText("");
-    }
-    else if (!u.target_valid)
-    {
+    } else if (!u.target_valid) {
         setInfoText("no location");
-    }
-    else if (u.target_freshness == biz::FindFriendTargetFreshness::Unknown ||
-             u.target_freshness == biz::FindFriendTargetFreshness::Stale)
-    {
+    } else if (u.target_freshness == biz::FindFriendTargetFreshness::Unknown ||
+               u.target_freshness == biz::FindFriendTargetFreshness::Stale) {
         setInfoText("target stale");
-    }
-    else if (u.near_target)
-    {
+    } else if (u.near_target) {
         setInfoText("nearby");
-    }
-    else if (!u.gps_fix)
-    {
+    } else if (!u.gps_fix) {
         setInfoText("need gps");
-    }
-    else if (u.bearing_valid)
-    {
+    } else if (u.bearing_valid) {
         format_nav_distance(_info_text, sizeof(_info_text), u);
-        if (_lbl_info)
-        {
+        if (_lbl_info) {
             lv_obj_clear_flag(_lbl_info, LV_OBJ_FLAG_HIDDEN);
             lv_label_set_text_static(_lbl_info, _info_text);
         }
-    }
-    else
-    {
+    } else {
         setInfoText("starting...");
     }
 }
 
-void FindFriendScreen::runDeferredEnterActions()
-{
-    if (_defer_cycle_target)
-    {
+void FindFriendScreen::runDeferredEnterActions() {
+    if (_defer_cycle_target) {
         _defer_cycle_target = false;
         if (_biz.findFriendEnabled() && _biz.findFriendMode() == 0 &&
-            _biz.findFriendTargetContactIndex() < 0 && _biz.findFriendContactCount() > 0)
-        {
-            MESH_DEBUG_PRINTLN("[FF] tryAutoPick contacts=%d", _biz.findFriendContactCount());
+            _biz.findFriendTargetContactIndex() < 0 && _biz.findFriendContactCount() > 0) {
             (void)_biz.tryAutoPickFindFriendTarget();
         }
     }
 }
 
-void FindFriendScreen::onExit()
-{
-    (void)defer_cancel(focusTeamDeferred, this);
+void FindFriendScreen::onExit() {
+    (void)lv_async_call_cancel(focusTeamDeferred, this);
+    (void)lv_async_call_cancel(focusMemberDeferred, this);
     _defer_cycle_target = false;
+    _focus_team_when_offer_available = false;
+    _focus_member_when_team_active = false;
     closeOpenDropdown();
+    _suppress_released_dropdown = nullptr;
     _waypoint_keyboard_return_focus = nullptr;
     _biz.setFindFriendForegroundActive(false);
     AbstractScreen::onExit();
 }
 
-void FindFriendScreen::refresh()
-{
+void FindFriendScreen::refresh() {
     syncControls();
-    if (_dial.side == 0)
-    {
-        if (_dial_row)
-            lv_obj_update_layout(_dial_row);
+    refreshNavigation();
+}
+
+void FindFriendScreen::refreshNavigation() {
+    if (_dial.side == 0) {
+        if (_dial_row) lv_obj_update_layout(_dial_row);
         _dial.layoutSize();
     }
 
-    if (!_biz.findFriendEnabled())
-    {
+    if (!_biz.findFriendEnabled()) {
         render(_biz.findFriendUi());
         return;
     }
 
     runDeferredEnterActions();
 
-    _biz.syncCompassCache();
     render(_biz.findFriendUi());
 }
 
-void FindFriendScreen::onAppStateChanged(const AppStateEvent &event)
-{
-    if (event.type == AppStateEventType::ContactLocationChanged)
-    {
-        _biz.syncFindFriendContactList();
+void FindFriendScreen::onAppStateChanged(const AppStateEvent &event) {
+    if (event.type == AppStateEventType::ContactLocationChanged) {
+        bool target_changed = false;
         if (_biz.findFriendEnabled() && _biz.findFriendMode() == 0 &&
-            _biz.findFriendTargetContactIndex() < 0)
-        {
-            (void)_biz.tryAutoPickFindFriendTarget();
+            _biz.findFriendTargetContactIndex() < 0) {
+            target_changed = _biz.tryAutoPickFindFriendTarget();
         }
-        refresh();
+        if (target_changed)
+            syncControls();
+        refreshNavigation();
         return;
     }
     if (event.type == AppStateEventType::CompassChanged ||
-        event.type == AppStateEventType::GpsChanged ||
-        event.type == AppStateEventType::FindFriendChanged ||
-        event.type == AppStateEventType::TeamChanged ||
-        event.type == AppStateEventType::ConfigChanged)
+        event.type == AppStateEventType::GpsChanged)
     {
+        refreshNavigation();
+        return;
+    }
+    if (event.type == AppStateEventType::FindFriendChanged ||
+        event.type == AppStateEventType::TeamChanged ||
+        event.type == AppStateEventType::ConfigChanged) {
         refresh();
     }
 }
 
-void FindFriendScreen::onSurfaceRefresh()
-{
+void FindFriendScreen::onActivated() {
     refresh();
 }
 
-void FindFriendScreen::onUiEvent(const UiEvent &event)
-{
-    if (event.type == EventType::WAYPOINT_KEYBOARD_CLOSED)
-    {
+void FindFriendScreen::onUIEvent(const UiEvent &event) {
+    if (event.type == EventType::WaypointKeyboardClosed) {
         restoreWaypointKeyboardFocus();
         return;
     }
-    if (event.type != EventType::WAYPOINT_KEYBOARD_SUBMIT || !event.payload)
-        return;
+    if (event.type != EventType::WaypointKeyboardSubmit || !event.payload) return;
 
     const auto *submit = static_cast<const UiWaypointKeyboardSubmit *>(event.payload);
-    if (_biz.setFindFriendWaypoint(submit->lat, submit->lon))
-    {
+    if (_biz.setFindFriendWaypoint(submit->lat, submit->lon)) {
         _biz.showAlert("Waypoint saved", 2000);
         syncControls();
-    }
-    else
-    {
+    } else {
         _biz.showAlert("Save failed", 2000);
     }
 }

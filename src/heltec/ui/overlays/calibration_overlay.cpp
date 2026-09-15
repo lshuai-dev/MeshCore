@@ -2,7 +2,7 @@
 #include "calibration_overlay.hpp"
 #include "ui/core/operation_hints.hpp"
 #include "ui/core/ht_event.h"
-#include "ui/core/ui_semantic_classes.hpp"
+#include "ui/core/widget_classes.hpp"
 
 #include <Arduino.h>
 #include <lvgl.h>
@@ -34,10 +34,11 @@ constexpr uint8_t kStreakNeed = COMPASS_CALIB_QUALITY_STREAK;
 
 } // namespace
 
-_lv_obj_t *CalibrationOverlay::create(lv_obj_t *parent)
+bool CalibrationOverlay::buildSurface()
 {
-    if (!DialogOverlay::create(parent))
-        return nullptr;
+    if (!DialogOverlay::buildSurface())
+        return false;
+
     lv_obj_set_size(panel(), lv_pct(100), lv_pct(100));
     lv_obj_set_flex_align(panel(), LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER,
                           LV_FLEX_ALIGN_CENTER);
@@ -54,27 +55,27 @@ _lv_obj_t *CalibrationOverlay::create(lv_obj_t *parent)
         },
         LV_EVENT_CLICKED, this);
 
-    _body = ht_semantic_label_create(&ht_overlay_feedback_label_class, contentHost());
+    _body = ht_label_create(&ht_overlay_feedback_label_class, contentHost());
     if (!_body)
-        return nullptr;
+        return false;
     lv_label_set_text_static(_body, _body_text);
     lv_obj_set_width(_body, lv_pct(100));
     lv_label_set_long_mode(_body, LV_LABEL_LONG_WRAP);
 
-    _footer = ht_semantic_label_create(&ht_overlay_feedback_label_class, actionsHost());
+    _footer = ht_label_create(&ht_overlay_feedback_label_class, actionsHost());
     if (!_footer)
-        return nullptr;
+        return false;
     lv_label_set_text_static(_footer, _footer_text);
     lv_obj_set_width(_footer, lv_pct(100));
     lv_label_set_long_mode(_footer, LV_LABEL_LONG_CLIP);
 
     _timeout_timer = lv_timer_create(timeoutTimerCb, 250U, this);
     if (!_timeout_timer)
-        return nullptr;
+        return false;
     lv_timer_set_repeat_count(_timeout_timer, -1);
     lv_timer_pause(_timeout_timer);
 
-    return _root;
+    return true;
 }
 
 _lv_obj_t *CalibrationOverlay::focusTarget() const
@@ -88,7 +89,7 @@ bool CalibrationOverlay::onKey(uint32_t key)
         return true;
     if (key == LV_KEY_ESC)
     {
-        return emit(EventType::CALIBRATION_CLOSE);
+        return emitEvent(EventType::CalibrationClose);
     }
     return false;
 }
@@ -103,7 +104,7 @@ void CalibrationOverlay::confirm()
     }
     if (_phase != Phase::Calibrating)
     {
-        (void)emit(EventType::CALIBRATION_CLOSE);
+        (void)emitEvent(EventType::CalibrationClose);
     }
 }
 
@@ -325,7 +326,7 @@ void CalibrationOverlay::onAppStateChanged(const AppStateEvent &event)
     checkTimeout();
 }
 
-void CalibrationOverlay::onSurfaceRefresh()
+void CalibrationOverlay::onActivated()
 {
     render();
 }
@@ -339,9 +340,11 @@ void CalibrationOverlay::onSurfaceRefresh()
 namespace heltec::meshcore::ui
 {
 
-_lv_obj_t *CalibrationOverlay::create(_lv_obj_t *)
+bool CalibrationOverlay::buildSurface()
 {
-    return nullptr;
+    if (!DialogOverlay::buildSurface())
+        return false;
+    return false;
 }
 _lv_obj_t *CalibrationOverlay::focusTarget() const
 {
@@ -360,7 +363,7 @@ void CalibrationOverlay::onExit()
 void CalibrationOverlay::onAppStateChanged(const AppStateEvent &)
 {
 }
-void CalibrationOverlay::onSurfaceRefresh()
+void CalibrationOverlay::onActivated()
 {
 }
 void CalibrationOverlay::startTimeoutTimer()

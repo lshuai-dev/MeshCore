@@ -1,13 +1,13 @@
 #include <lvgl.h>
 
 #if LV_USE_THEME_MONO
-#include "ui/app/ui_behavior_profile.hpp"
-#include "ui/app/ui_theme.hpp"
+#include "ui/app/behavior_profile.hpp"
+#include "ui/app/theme.hpp"
 #include "ui/images.h"
 #include "ui/menus/context_menu.hpp"
-#include "ui/navigation/ui_navigator.hpp"
-#include "ui/theme/ui_widget_theme.hpp"
-#include "ui_theme_mono_flat.hpp"
+#include "ui/navigation/grid_navigator.hpp"
+#include "ui/theme/widget_theme.hpp"
+#include "theme_mono_flat.hpp"
 
 static heltec::meshcore::ui::UiTheme s_ui_mono_flat;
 static heltec::meshcore::ui::UiTheme s_ui_ssd1306;

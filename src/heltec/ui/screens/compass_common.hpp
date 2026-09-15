@@ -2,7 +2,7 @@
 
 #include "compass_dial_widget.hpp"
 #include "compass_needle.hpp"
-#include "ui/theme/ui_widget_theme.hpp"
+#include "ui/theme/widget_theme.hpp"
 
 #include <lvgl.h>
 
@@ -15,6 +15,7 @@ inline void compass_style_info_label(lv_obj_t *lb, const char *text, lv_label_lo
         return;
     lv_obj_set_width(lb, lv_pct(100));
     lv_label_set_long_mode(lb, wrap);
+    ui_theme_apply_compass_label(lb);
     // All callers pass either literals or storage owned by the screen. Keep
     // the label pointed at that storage so refreshes do not allocate/free a
     // new LVGL text buffer on a device that runs indefinitely.
@@ -26,7 +27,7 @@ inline lv_obj_t *compass_create_info_column(lv_obj_t *parent, lv_coord_t width_p
 {
     if (!parent)
         return nullptr;
-    lv_obj_t *info = ht_semantic_create(&ht_compass_info_column_class, parent);
+    lv_obj_t *info = lv_obj_create(parent);
     if (!info)
         return nullptr;
     lv_obj_set_size(info, lv_pct(width_pct), lv_pct(100));
@@ -36,6 +37,7 @@ inline lv_obj_t *compass_create_info_column(lv_obj_t *parent, lv_coord_t width_p
     ui_theme_set_compass_info_layout(info, pad_left, pad_row);
     lv_obj_clear_flag(info, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_add_flag(info, LV_OBJ_FLAG_OVERFLOW_VISIBLE);
+    ui_theme_apply_compass_plain(info);
     return info;
 }
 

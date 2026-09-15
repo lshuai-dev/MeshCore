@@ -3,90 +3,76 @@
 #include <lvgl.h>
 #include <stdint.h>
 
-namespace heltec::meshcore::ui
-{
+namespace heltec::meshcore::ui {
 
-enum class EventType : uint8_t
-{
-    NAV_OPEN,
-    NAV_CLOSE,
-    NAV_ACTIVITY,
-    TILE_PREVIEW,
-    TILE_COMMIT,
-    ACTION_OPEN,
-    CONFIRM_OPEN,
-    CONFIRM_ACCEPTED,
-    CONFIRM_CANCELLED,
-    CONTEXT_OPEN,
-    CONTEXT_CLOSE,
-    SEND_MESSAGE_OPEN,
-    CALIBRATION_OPEN,
-    REPEAT_MODE_OPEN,
-    QUICK_PING_OPEN,
-    QUICK_PING_CLOSE,
-    PREVIEW_NEXT,
-    PREVIEW_CLOSE,
-    ALERT_CLOSE,
-    RADIO_SYNC_CLOSE,
-    REPEAT_MODE_CLOSE,
-    CALIBRATION_CLOSE,
-    KEYBOARD_CLOSE,
-    SEND_MESSAGE_CLOSE,
-    MESSAGE_KEYBOARD_OPEN,
-    WAYPOINT_KEYBOARD_OPEN,
-    WAYPOINT_KEYBOARD_CLOSED,
-    MESSAGE_KEYBOARD_SUBMIT,
-    WAYPOINT_KEYBOARD_SUBMIT,
-    REBIND_INPUT,
-    APP_STATE_CHANGED,
-    SURFACE_REFRESH,
+enum class EventType : uint8_t {
+    NavOpen,
+    NavClose,
+    NavActivity,
+    TilePreview,
+    TileCommit,
+    ActionOpen,
+    ConfirmOpen,
+    ConfirmAccepted,
+    ConfirmCancelled,
+    ContextOpen,
+    ContextClose,
+    SendMessageOpen,
+    CalibrationOpen,
+    RepeatModeOpen,
+    QuickPingClose,
+    PreviewNext,
+    PreviewClose,
+    AlertClose,
+    RadioSyncClose,
+    RepeatModeClose,
+    CalibrationClose,
+    KeyboardClose,
+    SendMessageClose,
+    MessageKeyboardOpen,
+    WaypointKeyboardOpen,
+    WaypointKeyboardClosed,
+    MessageKeyboardSubmit,
+    WaypointKeyboardSubmit,
 };
 
-struct UiEvent
-{
+struct UiEvent {
     EventType type;
     const void *payload;
 };
 
-enum class UiConfirmAction : uint8_t
-{
+enum class UiConfirmAction : uint8_t {
     FactoryReset,
     ClearData,
     TeamJoin,
     TeamLeave = 4, // Preserve existing event values; 3 was the removed reset action.
 };
 
-struct UiConfirmRequest
-{
+struct UiConfirmRequest {
     UiConfirmAction action = UiConfirmAction::FactoryReset;
 };
 
-struct UiMessageKeyboardRequest
-{
+struct UiMessageKeyboardRequest {
     const char *title = nullptr;
 };
 
-enum class UiMessageTargetKind : uint8_t
-{
+enum class UiMessageTargetKind : uint8_t {
     Direct = 0,
     Channel = 1,
 };
 
-struct UiSendMessageTarget
-{
+struct UiSendMessageTarget {
     UiMessageTargetKind kind = UiMessageTargetKind::Direct;
     uint8_t pub_key_prefix[6] = {};
     int channel_idx = -1;
     char label[24] = {};
 };
 
-struct UiMessageKeyboardSubmit
-{
+struct UiMessageKeyboardSubmit {
     const char *text = nullptr;
 };
 
-struct UiWaypointKeyboardSubmit
-{
+struct UiWaypointKeyboardSubmit {
     double lat = 0;
     double lon = 0;
 };

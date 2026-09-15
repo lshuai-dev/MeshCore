@@ -1,6 +1,6 @@
 #pragma once
 
-#include "ui_widget_theme.hpp"
+#include "widget_theme.hpp"
 
 namespace heltec::meshcore::ui
 {

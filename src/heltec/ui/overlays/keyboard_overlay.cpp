@@ -2,7 +2,7 @@
 #include "../core/biz_facade.hpp"
 #include "MeshCore.h"
 #include "ui/core/ht_event.h"
-#include "ui/core/ui_semantic_classes.hpp"
+#include "ui/core/widget_classes.hpp"
 #if defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213
 #include "heltec/drivers/display/e213_port.hpp"
 #endif
@@ -14,20 +14,9 @@
 
 namespace heltec::meshcore::ui
 {
-_lv_obj_t *KeyboardOverlay::createRoot(_lv_obj_t *parent)
+KeyboardOverlay::KeyboardOverlay(biz::IBizFacade &biz)
+    : AbstractOverlay(biz, ht_keyboard_overlay_class)
 {
-#if LV_USE_KEYBOARD
-    lv_obj_t *const obj = lv_obj_class_create_obj(&ht_keyboard_overlay_class, parent);
-    if (!obj) {
-        return nullptr;
-    }
-
-    lv_obj_class_init_obj(obj);
-    return obj;
-#else
-    (void)parent;
-    return nullptr;
-#endif
 }
 
 #if LV_USE_KEYBOARD
@@ -511,7 +500,7 @@ void KeyboardOverlay::on_keyboard_key_pre(lv_event_t *e)
     }
     if (key == LV_KEY_ESC)
     {
-        self->emit(EventType::KEYBOARD_CLOSE);
+        self->emitEvent(EventType::KeyboardClose);
         lv_event_stop_processing(e);
         lv_event_stop_bubbling(e);
     }
@@ -562,7 +551,7 @@ void KeyboardOverlay::on_keyboard_events(lv_event_t *e)
     }
     else if (code == LV_EVENT_CANCEL)
     {
-        self->emit(EventType::KEYBOARD_CLOSE);
+        self->emitEvent(EventType::KeyboardClose);
     }
     else if (code == LV_EVENT_VALUE_CHANGED)
     {
@@ -573,17 +562,11 @@ void KeyboardOverlay::on_keyboard_events(lv_event_t *e)
     }
 }
 
-_lv_obj_t *KeyboardOverlay::create(lv_obj_t *parent)
+bool KeyboardOverlay::buildSurface()
 {
-    if (!AbstractOverlay::create(parent))
-        return nullptr;
-    if (!ensureContent())
-    {
-        lv_obj_del(_root);
-        _root = nullptr;
-    }
-
-    return _root;
+    if (!AbstractOverlay::buildSurface())
+        return false;
+    return ensureContent();
 }
 
 bool KeyboardOverlay::ensureContent()
@@ -603,7 +586,7 @@ bool KeyboardOverlay::ensureContent()
         return obj;
     };
 
-    _hint = create_object(&ht_keyboard_hint_class, _root);
+    _hint = create_object(&ht_overlay_bar_class, _root);
     if (!_hint)
         return false;
     lv_label_set_long_mode(_hint, LV_LABEL_LONG_CLIP);
@@ -698,8 +681,8 @@ void KeyboardOverlay::onEnter()
     lv_obj_update_layout(_root);
     if (_compose_mode == ComposeMode::Waypoint)
         lv_obj_scroll_to_y(_root, 0, LV_ANIM_OFF);
-    if (_focus_group)
-        lv_group_set_editing(_focus_group, true);
+    if (focusGroup())
+        lv_group_set_editing(focusGroup(), true);
     lv_obj_invalidate(_root);
 }
 
@@ -717,8 +700,8 @@ void KeyboardOverlay::onExit()
         lv_keyboard_set_mode(_keyboard, message_keyboard_mode());
         apply_message_keyboard_layout(_root, _keyboard, _textarea);
     }
-    if (_focus_group)
-        lv_group_set_editing(_focus_group, false);
+    if (focusGroup())
+        lv_group_set_editing(focusGroup(), false);
     if (_root)
         lv_obj_add_flag(_root, LV_OBJ_FLAG_SCROLLABLE);
     _compose_mode = ComposeMode::Message;
@@ -730,7 +713,7 @@ bool KeyboardOverlay::onKey(uint32_t key)
 {
     if (key == LV_KEY_ESC)
     {
-        emit(EventType::KEYBOARD_CLOSE);
+        emitEvent(EventType::KeyboardClose);
         return true;
     }
     return false;
@@ -752,11 +735,11 @@ void KeyboardOverlay::submitMessageInput()
     strncpy(_submitted_text, txt, sizeof(_submitted_text) - 1);
     _submitted_text[sizeof(_submitted_text) - 1] = '\0';
 
-    emit(EventType::KEYBOARD_CLOSE);
+    emitEvent(EventType::KeyboardClose);
 
     UiMessageKeyboardSubmit submit;
     submit.text = _submitted_text;
-    emit(EventType::MESSAGE_KEYBOARD_SUBMIT, &submit);
+    emitEvent(EventType::MessageKeyboardSubmit, &submit);
 }
 
 void KeyboardOverlay::submitWaypointInput()
@@ -775,19 +758,21 @@ void KeyboardOverlay::submitWaypointInput()
     }
 
     // Close before returning the parsed value so the owning screen is active.
-    emit(EventType::KEYBOARD_CLOSE);
+    emitEvent(EventType::KeyboardClose);
 
     UiWaypointKeyboardSubmit submit;
     submit.lat = lat;
     submit.lon = lon;
-    emit(EventType::WAYPOINT_KEYBOARD_SUBMIT, &submit);
+    emitEvent(EventType::WaypointKeyboardSubmit, &submit);
 }
 
 #else /* !LV_USE_KEYBOARD */
 
-_lv_obj_t *KeyboardOverlay::create(_lv_obj_t *)
+bool KeyboardOverlay::buildSurface()
 {
-    return nullptr;
+    if (!AbstractOverlay::buildSurface())
+        return false;
+    return false;
 }
 
 bool KeyboardOverlay::prepareMessageInput(const char * /*title*/)

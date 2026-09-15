@@ -1,7 +1,7 @@
 #include "quick_ping_overlay.hpp"
 
 #include "ui/core/ht_container.hpp"
-#include "ui/core/ui_semantic_classes.hpp"
+#include "ui/core/widget_classes.hpp"
 
 #include <lvgl.h>
 
@@ -52,11 +52,10 @@ const lv_obj_class_t ht_quick_ping_keyboard_counter_class =
 
 #include "heltec/ui/core/biz_facade.hpp"
 #include "heltec/ui/images.h"
-#include "ui/app/ui_theme.hpp"
-#include "ui/core/ui_deferred_queue.hpp"
+#include "ui/app/theme.hpp"
 #include "ui/core/ht_event.h"
-#include "ui/core/ui_motion_scheduler.hpp"
-#include "ui/theme/ui_widget_theme.hpp"
+#include "ui/core/scheduler.hpp"
+#include "ui/theme/widget_theme.hpp"
 
 #include <cstring>
 
@@ -88,6 +87,26 @@ constexpr lv_coord_t kIconLabelWidth = 56;
 constexpr lv_coord_t kIconDropdownControlX = 91;
 constexpr lv_coord_t kIconDropdownControlWidth = 120;
 constexpr lv_coord_t kMessageDropdownWidth = 26;
+
+bool focus_object_available(const lv_obj_t *obj)
+{
+    if (!obj || !lv_obj_is_valid(obj) || lv_obj_has_state(obj, LV_STATE_DISABLED))
+        return false;
+    for (const lv_obj_t *current = obj; current; current = lv_obj_get_parent(current))
+    {
+        if (lv_obj_has_flag(current, LV_OBJ_FLAG_HIDDEN))
+            return false;
+    }
+    return true;
+}
+
+lv_obj_t *create_object(const lv_obj_class_t *class_p, lv_obj_t *parent)
+{
+    lv_obj_t *const object = lv_obj_class_create_obj(class_p, parent);
+    if (object)
+        lv_obj_class_init_obj(object);
+    return object;
+}
 constexpr lv_coord_t kMessageInputWidth = kIconDropdownControlWidth - kMessageDropdownWidth;
 constexpr lv_coord_t kKeyboardEditorHeight = 40;
 constexpr lv_coord_t kKeyboardEditorInset = 4;
@@ -344,7 +363,7 @@ _lv_obj_t *createFieldIcon(_lv_obj_t *row, const lv_img_dsc_t *image)
     if (!row || !image)
         return nullptr;
 
-    _lv_obj_t *badge = ht_semantic_create(&ht_quick_ping_badge_class, row);
+    _lv_obj_t *badge = ht_class_create(&ht_quick_ping_badge_class, row);
     if (!badge)
         return nullptr;
     lv_obj_set_size(badge, kIconBadgeSize, kIconBadgeSize);
@@ -363,34 +382,47 @@ _lv_obj_t *createFieldIcon(_lv_obj_t *row, const lv_img_dsc_t *image)
 
 } // namespace
 
-_lv_obj_t *QuickPingOverlay::createRoot(_lv_obj_t *parent)
+QuickPingOverlay::QuickPingOverlay(biz::IBizFacade &biz)
+    : AbstractOverlay(biz, ht_quick_ping_overlay_class)
 {
-    return detail::create_object(&ht_quick_ping_overlay_class, parent);
 }
 
-_lv_obj_t *QuickPingOverlay::create(_lv_obj_t *parent)
+void QuickPingOverlay::prepareTarget(const UiSendMessageTarget *target)
 {
-    if (_root)
-        return _root;
+    _pending_target_valid = target != nullptr;
+    if (!target)
+        return;
+
+    _pending_target_direct = target->kind == UiMessageTargetKind::Direct;
+    _pending_target_channel = target->channel_idx;
+    memcpy(_pending_target_key, target->pub_key_prefix, sizeof(_pending_target_key));
+}
+
+bool QuickPingOverlay::buildSurface()
+{
+    if (!AbstractOverlay::buildSurface())
+        return false;
+
+    lv_obj_t *const parent = lv_obj_get_parent(_root);
     if (!parent)
-        return nullptr;
+        return false;
 
     // Create the backdrop before the pane root so it stays above the existing
     // overlay siblings while the pane itself is kept on top by SurfaceManager.
-    _backdrop = detail::create_object(&ht_quick_ping_backdrop_class, parent);
+    _backdrop = create_object(&ht_quick_ping_backdrop_class, parent);
     if (!_backdrop)
-        return nullptr;
+        return false;
     lv_obj_set_size(_backdrop, lv_pct(100), lv_pct(100));
     lv_obj_set_pos(_backdrop, 0, 0);
     lv_obj_clear_flag(_backdrop, LV_OBJ_FLAG_SCROLLABLE | LV_OBJ_FLAG_CLICKABLE);
     lv_obj_add_flag(_backdrop, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_move_foreground(_root);
 
-    if (!AbstractOverlay::create(parent))
-    {
+    auto fail = [this]() {
         lv_obj_del(_backdrop);
         _backdrop = nullptr;
-        return nullptr;
-    }
+        return false;
+    };
 
     lv_obj_set_size(_root, kPaneWidth, kPaneHeight);
     lv_obj_align(_root, LV_ALIGN_TOP_LEFT, kPaneInset, kPaneInset);
@@ -400,24 +432,24 @@ _lv_obj_t *QuickPingOverlay::create(_lv_obj_t *parent)
     lv_obj_add_flag(_root, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_add_event_cb(_root, onOutsideEvent, LV_EVENT_CLICKED, this);
 
-    _title_bar = detail::create_object(&ht_quick_ping_title_bar_class, _root);
+    _title_bar = create_object(&ht_quick_ping_title_bar_class, _root);
     if (!_title_bar)
-        return nullptr;
+        return fail();
     lv_obj_set_size(_title_bar, lv_pct(100), kTitleBarHeight);
     lv_obj_set_flex_flow(_title_bar, LV_FLEX_FLOW_ROW);
     lv_obj_set_flex_align(_title_bar, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER,
                           LV_FLEX_ALIGN_CENTER);
     lv_obj_clear_flag(_title_bar, LV_OBJ_FLAG_SCROLLABLE);
 
-    _title = ht_label_create(_title_bar, "Quick Ping");
+    _title = ht_label_create(&lv_label_class, _title_bar, "Quick Ping");
     if (!_title)
-        return nullptr;
+        return fail();
     lv_obj_set_size(_title, lv_pct(100), LV_SIZE_CONTENT);
     lv_label_set_long_mode(_title, LV_LABEL_LONG_DOT);
 
-    _content = detail::create_object(&ht_quick_ping_content_class, _root);
+    _content = create_object(&ht_quick_ping_content_class, _root);
     if (!_content)
-        return nullptr;
+        return fail();
     lv_obj_set_width(_content, lv_pct(100));
     lv_obj_set_flex_grow(_content, 1);
     lv_obj_set_flex_flow(_content, LV_FLEX_FLOW_COLUMN);
@@ -430,17 +462,17 @@ _lv_obj_t *QuickPingOverlay::create(_lv_obj_t *parent)
     _keyboard = createKeyboard(_content);
     if (!_row_target || !_row_recipient || !_row_message || !_keyboard)
     {
-        return nullptr;
+        return fail();
     }
     _rebuilding_focus_group = true;
-    addFocusObject(_dd_target);
-    addFocusObject(_dd_recipient);
-    addFocusObject(_ta_message);
-    addFocusObject(_dd_message);
-    addFocusObject(_keyboard);
+    lv_group_add_obj(focusGroup(), _dd_target);
+    lv_group_add_obj(focusGroup(), _dd_recipient);
+    lv_group_add_obj(focusGroup(), _ta_message);
+    lv_group_add_obj(focusGroup(), _dd_message);
+    lv_group_add_obj(focusGroup(), _keyboard);
     _rebuilding_focus_group = false;
     updateMessageTextPresentation(false);
-    return _root;
+    return true;
 }
 
 void QuickPingOverlay::onEnter()
@@ -455,6 +487,7 @@ void QuickPingOverlay::onEnter()
     _close_animation_ready = false;
     closeDropdowns();
     syncLists();
+    applyPendingTarget();
     syncDropdownOptions();
     applyState(false);
     lv_obj_update_layout(_root);
@@ -473,7 +506,7 @@ void QuickPingOverlay::onExit()
         ui_motion_cancel(_root, slideYExec);
         lv_obj_set_y(_root, kPaneInset);
     }
-    defer_cancel(openPendingKeyboardAsync, this);
+    (void)lv_async_call_cancel(openPendingKeyboardAsync, this);
     clearRepeatSelection();
     _close_animating = false;
     _close_animation_ready = false;
@@ -567,7 +600,7 @@ void QuickPingOverlay::closeAnimationReady(void *user_data)
         return;
     self->_close_animating = false;
     self->_close_animation_ready = true;
-    (void)self->emit(EventType::QUICK_PING_CLOSE);
+    (void)self->emitEvent(EventType::QuickPingClose);
 }
 
 bool QuickPingOverlay::onKey(uint32_t key)
@@ -587,30 +620,7 @@ bool QuickPingOverlay::onKey(uint32_t key)
         restoreModeFocus(_ta_message);
         return true;
     }
-    return emit(EventType::QUICK_PING_CLOSE);
-}
-
-_lv_obj_t *QuickPingOverlay::focusedObject() const
-{
-    if (_focus_group)
-    {
-        if (_lv_obj_t *focused = lv_group_get_focused(_focus_group))
-        {
-            if (focusObjectAvailable(focused))
-                return focused;
-        }
-    }
-    if (focusObjectAvailable(_dd_target))
-        return _dd_target;
-    if (focusObjectAvailable(_dd_recipient))
-        return _dd_recipient;
-    if (focusObjectAvailable(_ta_message))
-        return _ta_message;
-    if (focusObjectAvailable(_dd_message))
-        return _dd_message;
-    if (focusObjectAvailable(_keyboard))
-        return _keyboard;
-    return _root;
+    return emitEvent(EventType::QuickPingClose);
 }
 
 _lv_obj_t *QuickPingOverlay::createDropdownRow(_lv_obj_t *parent, const char *label_text,
@@ -618,7 +628,7 @@ _lv_obj_t *QuickPingOverlay::createDropdownRow(_lv_obj_t *parent, const char *la
 {
     if (out_dropdown)
         *out_dropdown = nullptr;
-    _lv_obj_t *row = ht_semantic_create(&ht_quick_ping_row_class, parent);
+    _lv_obj_t *row = ht_class_create(&ht_quick_ping_row_class, parent);
     if (!row)
         return nullptr;
     lv_obj_set_size(row, lv_pct(100), kDropdownRowHeight);
@@ -630,15 +640,34 @@ _lv_obj_t *QuickPingOverlay::createDropdownRow(_lv_obj_t *parent, const char *la
     lv_obj_add_event_cb(row, onOutsideEvent, LV_EVENT_CLICKED, this);
 
     const bool has_icon = icon != nullptr;
+    _lv_obj_t *caption = row;
     if (has_icon)
-        createFieldIcon(row, icon);
+    {
+        caption = lv_obj_create(row);
+        if (caption)
+        {
+            lv_obj_set_width(caption, LV_SIZE_CONTENT);
+            lv_obj_set_height(caption, kDropdownRowHeight);
+            lv_obj_set_style_max_width(caption, kIconDropdownControlX, LV_PART_MAIN);
+            lv_obj_set_layout(caption, LV_LAYOUT_FLEX);
+            lv_obj_set_flex_flow(caption, LV_FLEX_FLOW_ROW);
+            lv_obj_set_flex_align(caption, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER,
+                                  LV_FLEX_ALIGN_CENTER);
+            lv_obj_clear_flag(caption, LV_OBJ_FLAG_SCROLLABLE | LV_OBJ_FLAG_CLICKABLE);
+            lv_obj_set_pos(caption, 0, 0);
+            createFieldIcon(caption, icon);
+        }
+    }
 
     _lv_obj_t *label =
-        ht_label_create(row, label_text ? label_text : "");
+        ht_label_create(&lv_label_class, caption, label_text ? label_text : "");
     if (label)
     {
-        lv_obj_set_width(label, has_icon ? kIconLabelWidth : kRowLabelWidth);
-        lv_obj_align(label, LV_ALIGN_LEFT_MID, has_icon ? kIconLabelX : kRowLabelX, 0);
+        lv_obj_set_width(label, has_icon ? LV_SIZE_CONTENT : kRowLabelWidth);
+        if (has_icon)
+            lv_obj_set_style_max_width(label, kIconDropdownControlX - kIconBadgeSize, LV_PART_MAIN);
+        if (!has_icon)
+            lv_obj_align(label, LV_ALIGN_LEFT_MID, kRowLabelX, 0);
         lv_label_set_long_mode(label, has_icon ? LV_LABEL_LONG_CLIP : LV_LABEL_LONG_DOT);
     }
 
@@ -667,7 +696,7 @@ _lv_obj_t *QuickPingOverlay::createDropdownRow(_lv_obj_t *parent, const char *la
 
 _lv_obj_t *QuickPingOverlay::createMessageRow(_lv_obj_t *parent)
 {
-    _lv_obj_t *row = ht_semantic_create(&ht_quick_ping_message_row_class, parent);
+    _lv_obj_t *row = ht_class_create(&ht_quick_ping_message_row_class, parent);
     if (!row)
         return nullptr;
     lv_obj_set_size(row, lv_pct(100), kDropdownRowHeight);
@@ -678,8 +707,30 @@ _lv_obj_t *QuickPingOverlay::createMessageRow(_lv_obj_t *parent)
     lv_obj_add_event_cb(row, onOutsideEvent, LV_EVENT_PRESSED, this);
     lv_obj_add_event_cb(row, onOutsideEvent, LV_EVENT_CLICKED, this);
 
+    _lv_obj_t *caption = lv_obj_create(row);
+    if (caption)
+    {
+        lv_obj_set_width(caption, LV_SIZE_CONTENT);
+        lv_obj_set_height(caption, kDropdownRowHeight);
+        lv_obj_set_style_max_width(caption, kIconDropdownControlX, LV_PART_MAIN);
+        lv_obj_set_layout(caption, LV_LAYOUT_FLEX);
+        lv_obj_set_flex_flow(caption, LV_FLEX_FLOW_ROW);
+        lv_obj_set_flex_align(caption, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER,
+                              LV_FLEX_ALIGN_CENTER);
+        lv_obj_clear_flag(caption, LV_OBJ_FLAG_SCROLLABLE | LV_OBJ_FLAG_CLICKABLE);
+        createFieldIcon(caption, &quick_ping_message_img);
+        _lv_obj_t *caption_label = ht_label_create(&lv_label_class, caption, "message:");
+        if (caption_label)
+        {
+            lv_obj_set_width(caption_label, LV_SIZE_CONTENT);
+            lv_obj_set_style_max_width(caption_label, kIconDropdownControlX - kIconBadgeSize,
+                                       LV_PART_MAIN);
+            lv_label_set_long_mode(caption_label, LV_LABEL_LONG_CLIP);
+        }
+    }
+
     _lv_obj_t *controls =
-        detail::create_object(&ht_quick_ping_message_controls_class, row);
+        create_object(&ht_quick_ping_message_controls_class, row);
     if (!controls)
         return row;
     lv_obj_set_size(controls, lv_pct(100), kDropdownRowHeight);
@@ -687,20 +738,7 @@ _lv_obj_t *QuickPingOverlay::createMessageRow(_lv_obj_t *parent)
     lv_obj_set_layout(controls, 0);
     lv_obj_clear_flag(controls,
                       LV_OBJ_FLAG_SCROLLABLE | LV_OBJ_FLAG_CLICKABLE | LV_OBJ_FLAG_CLICK_FOCUSABLE);
-
-    createFieldIcon(controls, &quick_ping_message_img);
-
-    _lv_obj_t *label = ht_label_create(controls, "message:");
-    if (label)
-    {
-        lv_obj_set_width(label, kIconLabelWidth);
-        lv_obj_align(label, LV_ALIGN_LEFT_MID, kIconLabelX, 0);
-        lv_label_set_long_mode(label, LV_LABEL_LONG_CLIP);
-        lv_obj_add_flag(label, LV_OBJ_FLAG_CLICKABLE);
-        lv_obj_clear_flag(label, LV_OBJ_FLAG_CLICK_FOCUSABLE);
-        lv_obj_add_event_cb(label, onOutsideEvent, LV_EVENT_PRESSED, this);
-        lv_obj_add_event_cb(label, onOutsideEvent, LV_EVENT_CLICKED, this);
-    }
+    lv_obj_move_foreground(caption);
 
     _ta_message = lv_textarea_create(controls);
     if (_ta_message)
@@ -710,6 +748,8 @@ _lv_obj_t *QuickPingOverlay::createMessageRow(_lv_obj_t *parent)
         // intended fixed control height afterwards.
         lv_obj_set_size(_ta_message, kMessageInputWidth, kDropdownControlHeight);
         lv_obj_align(_ta_message, LV_ALIGN_TOP_LEFT, kIconDropdownControlX, kDropdownControlY);
+        lv_obj_set_scroll_dir(_ta_message, LV_DIR_HOR);
+        lv_obj_clear_flag(_ta_message, LV_OBJ_FLAG_SCROLL_CHAIN_HOR);
         ui_theme_center_single_line_textarea(_ta_message);
         lv_textarea_set_max_length(_ta_message, kMaxMessageLength);
         lv_textarea_set_text_buffer(_ta_message, _message_text, sizeof(_message_text));
@@ -766,7 +806,7 @@ _lv_obj_t *QuickPingOverlay::createKeyboard(_lv_obj_t *parent)
     lv_keyboard_set_map(keyboard, LV_KEYBOARD_MODE_USER_4, kMessageCompactSymbolKbMap,
                         kMessageCompactSymbolKbCtrl);
 
-    _keyboard_editor = detail::create_object(&ht_quick_ping_keyboard_editor_class, keyboard);
+    _keyboard_editor = create_object(&ht_quick_ping_keyboard_editor_class, keyboard);
     if (!_keyboard_editor)
     {
         lv_obj_del(keyboard);
@@ -785,7 +825,7 @@ _lv_obj_t *QuickPingOverlay::createKeyboard(_lv_obj_t *parent)
     lv_textarea_set_cursor_pos(_keyboard_editor, LV_TEXTAREA_CURSOR_LAST);
     lv_obj_add_event_cb(_keyboard_editor, onKeyboardEditorEvent, LV_EVENT_VALUE_CHANGED, this);
 
-    _keyboard_counter = detail::create_object(&ht_quick_ping_keyboard_counter_class,
+    _keyboard_counter = create_object(&ht_quick_ping_keyboard_counter_class,
                                               _keyboard_editor);
     if (!_keyboard_counter)
     {
@@ -824,26 +864,28 @@ void QuickPingOverlay::applyState(bool keep_focus)
     setDropdownEnabled(_dd_message, message_ready);
 
     _lv_obj_t *preferred =
-        keep_focus && _focus_group ? lv_group_get_focused(_focus_group) : _dd_target;
+        keep_focus && focusGroup() ? lv_group_get_focused(focusGroup()) : _dd_target;
     restoreModeFocus(preferred);
 }
 
 void QuickPingOverlay::restoreModeFocus(_lv_obj_t *preferred)
 {
-    if (!_focus_group)
+    if (!focusGroup())
         return;
     _lv_obj_t *fallback = nullptr;
     _lv_obj_t *const candidates[] = { _dd_target, _dd_recipient, _ta_message, _dd_message, _keyboard };
     for (_lv_obj_t *candidate : candidates)
     {
-        if (focusObjectAvailable(candidate))
+        if (focus_object_available(candidate))
         {
             fallback = candidate;
             break;
         }
     }
     _rebuilding_focus_group = true;
-    (void)restoreFocus(preferred, fallback);
+    lv_obj_t *const target = focus_object_available(preferred) ? preferred : fallback;
+    if (target && lv_obj_get_group(target) == focusGroup())
+        lv_group_focus_obj(target);
     _rebuilding_focus_group = false;
 }
 
@@ -955,6 +997,42 @@ void QuickPingOverlay::syncLists()
             _contact_index = 0;
         if (_contact_index >= _contact_count)
             _contact_index = _contact_count - 1;
+    }
+}
+
+void QuickPingOverlay::applyPendingTarget()
+{
+    if (!_pending_target_valid)
+        return;
+    _pending_target_valid = false;
+
+    if (!_pending_target_direct)
+    {
+        _target_index = static_cast<uint8_t>(TargetKind::Group);
+        for (int index = 0; index < _group_count; ++index)
+        {
+            if (_groups[index].channel_idx == _pending_target_channel)
+            {
+                _group_index = static_cast<uint8_t>(index);
+                return;
+            }
+        }
+        return;
+    }
+
+    _target_index = static_cast<uint8_t>(TargetKind::Personal);
+    for (int global_index = 0; global_index < _contact_total; ++global_index)
+    {
+        uint8_t candidate[sizeof(_pending_target_key)] = {};
+        if (!_biz.sendMessagePersonalAt(global_index, candidate, nullptr, 0) ||
+            !sameKey(candidate, _pending_target_key))
+        {
+            continue;
+        }
+        const int start = (global_index / kContactWindowStep) * kContactWindowStep;
+        loadContactWindow(start);
+        _contact_index = global_index - _contact_window_start;
+        return;
     }
 }
 
@@ -1197,9 +1275,8 @@ void QuickPingOverlay::updateMessageTextPresentation(bool editing)
     if (!text_label || !lv_obj_is_valid(text_label))
         return;
 
-    // While editing, keep the label content-sized so the textarea can follow the
-    // cursor normally. Outside editing, constrain it to the viewport and show a
-    // static clipped value from the beginning.
+    // Let lv_textarea manage the label scroll position while editing.  Re-aligning
+    // the internal label here would reset the horizontal cursor scroll.
     if (editing)
     {
         lv_label_set_long_mode(text_label, LV_LABEL_LONG_CLIP);
@@ -1214,9 +1291,10 @@ void QuickPingOverlay::updateMessageTextPresentation(bool editing)
     }
 
     lv_obj_update_layout(_ta_message);
-    lv_obj_align(text_label, LV_ALIGN_LEFT_MID, 0, 0);
     if (!editing)
+    {
         lv_obj_scroll_to(_ta_message, 0, 0, LV_ANIM_OFF);
+    }
 }
 
 void QuickPingOverlay::updateKeyboardCounter()
@@ -1390,7 +1468,7 @@ void QuickPingOverlay::closeKeyboardForOutsideTarget(_lv_obj_t *target)
     if (targetInside(target, _keyboard) || targetInside(target, _ta_message))
         return;
     setKeyboardVisible(false);
-    restoreModeFocus(focusObjectAvailable(target) ? target : nullptr);
+    restoreModeFocus(focus_object_available(target) ? target : nullptr);
 }
 
 void QuickPingOverlay::handleDropdownRow(_lv_obj_t *target)
@@ -1404,7 +1482,7 @@ void QuickPingOverlay::handleDropdownRow(_lv_obj_t *target)
     {
         dropdown = _dd_recipient;
     }
-    if (!focusObjectAvailable(dropdown))
+    if (!focus_object_available(dropdown))
         return;
 
     // A click originating from the dropdown button is already toggled by the
@@ -1460,12 +1538,9 @@ void QuickPingOverlay::handleRecipientChanged()
     else if (targetKind() == TargetKind::Personal)
     {
         _contact_index = _contact_count > 0 && selected < _contact_count ? selected : 0;
-        const int global = _contact_window_start + _contact_index;
-        const int direction =
-            _contact_index >= kMaxContacts - 2 ? 1 : (_contact_index <= 1 ? -1 : 0);
-        recenterContactWindow(global, direction);
     }
-    applyState(true);
+    closeDropdown(_dd_recipient);
+    restoreModeFocus(_dd_recipient);
 }
 
 void QuickPingOverlay::handleMessageSelectionChanged()
@@ -1501,7 +1576,7 @@ void QuickPingOverlay::handleMessageInput()
     if (keyboardVisible() || _keyboard_open_pending)
         return;
     _keyboard_open_pending = true;
-    if (!defer(openPendingKeyboardAsync, this))
+    if (lv_async_call(openPendingKeyboardAsync, this) != LV_RES_OK)
         _keyboard_open_pending = false;
 }
 
@@ -1510,7 +1585,7 @@ void QuickPingOverlay::openPendingKeyboard()
     if (!_keyboard_open_pending)
         return;
     _keyboard_open_pending = false;
-    if (!focusObjectAvailable(_ta_message) || !currentTargetReady())
+    if (!focus_object_available(_ta_message) || !currentTargetReady())
         return;
     // A newly opened keyboard starts a new submission cycle.
     _message_submit_handled = false;
@@ -1617,7 +1692,7 @@ void QuickPingOverlay::activateDropdown(_lv_obj_t *dropdown)
 
 void QuickPingOverlay::clearRepeatSelection()
 {
-    defer_cancel(finishRepeatSelectionAsync, this);
+    (void)lv_async_call_cancel(finishRepeatSelectionAsync, this);
     _repeat_pending = false;
     _repeat_index = 0;
     _repeat_dropdown = nullptr;
@@ -1631,7 +1706,7 @@ void QuickPingOverlay::armRepeatSelection(_lv_obj_t *dropdown)
     _repeat_pending = true;
     _repeat_index = lv_dropdown_get_selected(dropdown);
     _repeat_dropdown = dropdown;
-    if (!defer(finishRepeatSelectionAsync, this))
+    if (lv_async_call(finishRepeatSelectionAsync, this) != LV_RES_OK)
         clearRepeatSelection();
 }
 

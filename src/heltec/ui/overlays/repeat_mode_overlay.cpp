@@ -2,7 +2,7 @@
 #include "ui/core/biz_facade.hpp"
 #include "ui/core/operation_hints.hpp"
 #include "ui/core/ht_event.h"
-#include "ui/theme/ui_widget_theme.hpp"
+#include "ui/theme/widget_theme.hpp"
 
 #include <lvgl.h>
 
@@ -68,22 +68,23 @@ bool format_frequency_item(const biz::IBizFacade &biz, int index, char *buffer, 
 
 } // namespace
 
-_lv_obj_t *RepeatModeOverlay::createRoot(_lv_obj_t *parent)
+RepeatModeOverlay::RepeatModeOverlay(biz::IBizFacade &biz)
+    : FramedOverlay(biz, ht_repeat_mode_overlay_class)
 {
-    return ht_semantic_create(&ht_repeat_mode_overlay_class, parent);
 }
 
-_lv_obj_t *RepeatModeOverlay::create(_lv_obj_t *parent)
+bool RepeatModeOverlay::buildSurface()
 {
-    if (!FramedOverlay::create(parent))
-        return nullptr;
+    if (!FramedOverlay::buildSurface())
+        return false;
 
-    setHeaderText("Repeat frequency");
-    setFooterText(operation_hint::kRepeatMode);
 
-    _lv_obj_t *const list = ht_semantic_create(&ht_repeat_mode_list_class, contentHost());
+    setTitle("Repeat frequency");
+    setToolTip(operation_hint::kRepeatMode);
+
+    _lv_obj_t *const list = ht_class_create(&ht_repeat_mode_list_class, _content);
     if (!list)
-        return nullptr;
+        return false;
     lv_obj_set_width(list, lv_pct(100));
     lv_obj_set_flex_grow(list, 1);
     lv_obj_set_flex_flow(list, LV_FLEX_FLOW_COLUMN);
@@ -97,12 +98,12 @@ _lv_obj_t *RepeatModeOverlay::create(_lv_obj_t *parent)
 #endif
     _touch_roller = lv_roller_create(list);
     if (!_touch_roller)
-        return nullptr;
+        return false;
     lv_obj_set_width(_touch_roller, lv_pct(100));
     lv_obj_add_event_cb(_touch_roller, onRollerEvent, LV_EVENT_CLICKED, this);
 #else
     if (!_roller.create(list, group(), &ht_repeat_mode_roller_class))
-        return nullptr;
+        return false;
     lv_obj_add_flag(_roller.root(), LV_OBJ_FLAG_EVENT_BUBBLE);
 #endif
 
@@ -118,7 +119,7 @@ _lv_obj_t *RepeatModeOverlay::create(_lv_obj_t *parent)
 #if !defined(HELTEC_V4_R8_TFT)
         _lv_obj_t *const button = _roller.addItem(label);
         if (!button)
-            return nullptr;
+            return false;
         _frequency_buttons[_frequency_count] = button;
         if (_lv_obj_t *const label_obj = lv_obj_get_child(button, 0))
         {
@@ -153,7 +154,7 @@ _lv_obj_t *RepeatModeOverlay::create(_lv_obj_t *parent)
     lv_roller_set_visible_row_count(_touch_roller, _frequency_count > 0 ? _frequency_count : 1);
 #endif
 
-    return _root;
+    return true;
 }
 
 _lv_obj_t *RepeatModeOverlay::focusTarget() const
@@ -278,7 +279,7 @@ void RepeatModeOverlay::applySelection(uint8_t item_index)
     if (!error && _biz.forwardingEnabled())
     {
         _biz.showAlert("Repeat mode enabled", 1200);
-        (void)emit(EventType::REPEAT_MODE_CLOSE);
+        (void)emitEvent(EventType::RepeatModeClose);
         return;
     }
 
@@ -290,7 +291,7 @@ void RepeatModeOverlay::cancelSelection()
 {
     if (_applying)
         return;
-    (void)emit(EventType::REPEAT_MODE_CLOSE);
+    (void)emitEvent(EventType::RepeatModeClose);
 }
 
 void RepeatModeOverlay::setApplying(bool applying)

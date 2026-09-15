@@ -29,10 +29,10 @@ void formatAge(int32_t secs, char *buf, size_t buf_size)
 
 } // namespace
 
-_lv_obj_t *RecentScreen::create(_lv_obj_t *parent)
+bool RecentScreen::buildSurface()
 {
-    if (!AbstractScreen::create(parent))
-        return nullptr;
+    if (!AbstractScreen::buildSurface())
+        return false;
     lv_obj_add_flag(_root, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_set_scroll_dir(_root, LV_DIR_VER);
     lv_obj_set_scrollbar_mode(_root, LV_SCROLLBAR_MODE_AUTO);
@@ -41,10 +41,9 @@ _lv_obj_t *RecentScreen::create(_lv_obj_t *parent)
     // between variants, so the number of reusable controls must be derived from
     // the actual LVGL layout instead of a device-specific constant.
     if (!createRowControl(0))
-        return nullptr;
-    lv_snprintf(_name_text[0], sizeof(_name_text[0]), "Ag");
+        return false;
     lv_snprintf(_age_text[0], sizeof(_age_text[0]), "00h");
-    lv_label_set_text_static(_names[0], _name_text[0]);
+    lv_label_set_text_static(_names[0], "Ag");
     lv_label_set_text_static(_ages[0], _age_text[0]);
     lv_obj_update_layout(_root);
 
@@ -64,25 +63,21 @@ _lv_obj_t *RecentScreen::create(_lv_obj_t *parent)
     _refresh_timer = lv_timer_create(refreshTimerCallback, 1000U, this);
     if (_refresh_timer)
     {
-        lv_timer_set_repeat_count(_refresh_timer, -1);
         lv_timer_pause(_refresh_timer);
     }
-    refreshRows();
-    return _root;
+    return true;
 }
 
 bool RecentScreen::createRowControl(int index)
 {
-    if (index < 0 || index >= kAdvertCapacity)
+    if (index < 0 || index >= kMaxRowControls)
         return false;
 
     _rows[index] = ht_container_create(_root);
     if (!_rows[index])
         return false;
     _names[index] = lv_label_create(_rows[index]);
-    if(_names[index]) lv_label_set_text(_names[index], "");
     _ages[index] = lv_label_create(_rows[index]);
-    if(_ages[index]) lv_label_set_text(_ages[index], "");
     if (!_names[index] || !_ages[index])
     {
         lv_obj_del(_rows[index]);
@@ -91,14 +86,12 @@ bool RecentScreen::createRowControl(int index)
         _ages[index] = nullptr;
         return false;
     }
-    lv_label_set_text_static(_names[index], _name_text[index]);
+    lv_label_set_text_static(_names[index], "");
     lv_label_set_text_static(_ages[index], _age_text[index]);
     lv_obj_set_width(_names[index], 1);
     lv_obj_set_flex_grow(_names[index], 1);
     lv_label_set_long_mode(_names[index], LV_LABEL_LONG_DOT);
     lv_obj_set_width(_ages[index], LV_SIZE_CONTENT);
-    lv_obj_add_event_cb(_rows[index], onRowFocused, LV_EVENT_FOCUSED, this);
-    addFocusItem(_rows[index]);
     return true;
 }
 
@@ -132,12 +125,11 @@ int RecentScreen::calculateRowControlCount()
     const int count = static_cast<int>((available_height + gap) / (row_height + gap));
     if (count < 1)
         return 1;
-    return count < kAdvertCapacity ? count : kAdvertCapacity;
+    return count < kMaxRowControls ? count : kMaxRowControls;
 }
 
 void RecentScreen::onEnter()
 {
-    refreshRows();
     if (_refresh_timer)
     {
         lv_timer_reset(_refresh_timer);
@@ -155,24 +147,22 @@ void RecentScreen::onExit()
 
 void RecentScreen::refreshRows()
 {
-    _item_count = _biz.fillRecentlyHeard(_items, kAdvertCapacity);
-    if (_item_count < 0)
-        _item_count = 0;
-    if (_item_count > kAdvertCapacity)
-        _item_count = kAdvertCapacity;
+    int item_count = _biz.fillRecentlyHeard(_items, kAdvertCapacity);
+    if (item_count < 0)
+        item_count = 0;
+    if (item_count > kAdvertCapacity)
+        item_count = kAdvertCapacity;
+    _item_count = static_cast<uint8_t>(item_count);
+    _age_tick_ms = lv_tick_get();
 
-    if (_item_count == 0)
+    if (_item_count == 0 || _row_control_count == 0)
     {
-        _selected_index = 0;
         _window_start = 0;
     }
-    else
+    else if (_window_start >= _item_count)
     {
-        if (_selected_index >= _item_count)
-            _selected_index = _item_count - 1;
-        if (_selected_index < 0)
-            _selected_index = 0;
-        _window_start = (_selected_index / _row_control_count) * _row_control_count;
+        const int last_page = (_item_count - 1) / _row_control_count;
+        _window_start = static_cast<uint8_t>(last_page * _row_control_count);
     }
     renderWindow();
 }
@@ -184,91 +174,62 @@ void RecentScreen::renderWindow()
         const int item = _window_start + row;
         if (item < _item_count)
         {
-            lv_snprintf(_name_text[row], sizeof(_name_text[row]), "%s", _items[item].name);
             formatAge(_items[item].age_seconds, _age_text[row], sizeof(_age_text[row]));
             lv_obj_clear_state(_rows[row], LV_STATE_DISABLED);
             lv_obj_clear_flag(_rows[row], LV_OBJ_FLAG_HIDDEN);
+            lv_label_set_text_static(_names[row], _items[item].name);
         }
         else if (row == 0 && _item_count == 0)
         {
-            lv_snprintf(_name_text[row], sizeof(_name_text[row]), "(no recent adverts)");
             _age_text[row][0] = '\0';
             lv_obj_clear_state(_rows[row], LV_STATE_DISABLED);
             lv_obj_clear_flag(_rows[row], LV_OBJ_FLAG_HIDDEN);
+            lv_label_set_text_static(_names[row], "(no recent adverts)");
         }
         else
         {
-            _name_text[row][0] = '\0';
             _age_text[row][0] = '\0';
             lv_obj_add_state(_rows[row], LV_STATE_DISABLED);
             lv_obj_add_flag(_rows[row], LV_OBJ_FLAG_HIDDEN);
+            lv_label_set_text_static(_names[row], "");
         }
-        lv_label_set_text_static(_names[row], _name_text[row]);
         lv_label_set_text_static(_ages[row], _age_text[row]);
     }
 }
 
-void RecentScreen::moveSelection(int delta)
+void RecentScreen::movePage(int delta)
 {
-    if (_item_count <= 0 || delta == 0)
+    if (_item_count == 0 || _row_control_count == 0 || delta == 0)
         return;
-    int next = _selected_index + (delta > 0 ? 1 : -1);
-    if (next >= _item_count)
-        next = 0;
-    if (next < 0)
-        next = _item_count - 1;
-    _selected_index = next;
 
-    const int next_window = (_selected_index / _row_control_count) * _row_control_count;
-    if (next_window != _window_start)
-    {
-        _window_start = next_window;
-        renderWindow();
-    }
-    focusSelection();
-}
+    const int page_count = (_item_count + _row_control_count - 1) / _row_control_count;
+    if (page_count <= 1)
+        return;
 
-void RecentScreen::focusSelection()
-{
-    if (_row_control_count <= 0)
-        return;
-    int row = _item_count > 0 ? _selected_index - _window_start : 0;
-    if (row < 0 || row >= _row_control_count || !_rows[row])
-        return;
-    lv_group_focus_obj(_rows[row]);
-    lv_obj_scroll_to_view(_rows[row], LV_ANIM_OFF);
+    int page = _window_start / _row_control_count;
+    page += delta > 0 ? 1 : -1;
+    if (page >= page_count)
+        page = 0;
+    else if (page < 0)
+        page = page_count - 1;
+
+    _window_start = static_cast<uint8_t>(page * _row_control_count);
+    renderWindow();
 }
 
 bool RecentScreen::onKey(uint32_t key)
 {
     if (key == LV_KEY_DOWN || key == LV_KEY_RIGHT || key == LV_KEY_NEXT)
     {
-        moveSelection(1);
+        movePage(1);
         return true;
     }
     if (key == LV_KEY_UP || key == LV_KEY_LEFT || key == LV_KEY_PREV)
     {
-        moveSelection(-1);
+        movePage(-1);
         return true;
     }
     return AbstractScreen::onKey(key);
-}
-
-void RecentScreen::onRowFocused(lv_event_t *event)
-{
-    auto *self = event ? static_cast<RecentScreen *>(lv_event_get_user_data(event)) : nullptr;
-    lv_obj_t *target = event ? lv_event_get_target(event) : nullptr;
-    if (!self || !target)
-        return;
-    for (int row = 0; row < self->_row_control_count; ++row)
-    {
-        if (self->_rows[row] != target)
-            continue;
-        const int item = self->_window_start + row;
-        if (item < self->_item_count)
-            self->_selected_index = item;
-        return;
-    }
 }
 
 void RecentScreen::onAppStateChanged(const AppStateEvent &event)
@@ -277,7 +238,7 @@ void RecentScreen::onAppStateChanged(const AppStateEvent &event)
         refreshRows();
 }
 
-void RecentScreen::onSurfaceRefresh()
+void RecentScreen::onActivated()
 {
     refreshRows();
 }
@@ -285,8 +246,23 @@ void RecentScreen::onSurfaceRefresh()
 void RecentScreen::refreshTimerCallback(lv_timer_t *timer)
 {
     auto *self = timer ? static_cast<RecentScreen *>(timer->user_data) : nullptr;
-    if (self)
-        self->refreshRows();
+    if (!self)
+        return;
+
+    const uint32_t now = lv_tick_get();
+    const uint32_t elapsed_seconds = (now - self->_age_tick_ms) / 1000U;
+    if (elapsed_seconds == 0)
+        return;
+    self->_age_tick_ms += elapsed_seconds * 1000U;
+    for (uint8_t index = 0; index < self->_item_count; ++index)
+    {
+        const int32_t age = self->_items[index].age_seconds;
+        self->_items[index].age_seconds =
+            age > INT32_MAX - static_cast<int32_t>(elapsed_seconds)
+                ? INT32_MAX
+                : age + static_cast<int32_t>(elapsed_seconds);
+    }
+    self->renderWindow();
 }
 
 } // namespace heltec::meshcore::ui

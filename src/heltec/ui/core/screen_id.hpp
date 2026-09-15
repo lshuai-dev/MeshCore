@@ -1,5 +1,5 @@
 #pragma once
-#include "ui_capabilities.hpp"
+#include "capabilities.hpp"
 #include <stdint.h>
 
 namespace heltec::meshcore::ui

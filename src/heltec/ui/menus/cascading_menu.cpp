@@ -1,8 +1,7 @@
 #include "cascading_menu.hpp"
 
 #if LV_USE_MENU
-#include "ui/core/ht_event.h"
-#include "ui/theme/ui_widget_theme.hpp"
+#include "ui/theme/widget_theme.hpp"
 #if defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213
 #include "heltec/drivers/display/e213_port.hpp"
 #endif
@@ -14,28 +13,6 @@
 namespace heltec::meshcore::ui
 {
 
-lv_group_t *CascadingMenu::group() const
-{
-    if (_active_child && _active_child->group())
-        return _active_child->group();
-    return _focus_group;
-}
-
-_lv_obj_t *CascadingMenu::focusedObject() const
-{
-    if (_active_child)
-    {
-        if (lv_obj_t *focused = _active_child->focusedObject())
-            return focused;
-    }
-    if (_focus_group)
-    {
-        if (lv_obj_t *focused = lv_group_get_focused(_focus_group))
-            return focused;
-    }
-    return _roller.root();
-}
-
 bool CascadingMenu::enterSubmenuAt(uint8_t index)
 {
     if (index >= _item_count || !_menu_host)
@@ -45,10 +22,10 @@ bool CascadingMenu::enterSubmenuAt(uint8_t index)
         return false;
 
     _focused_index = index;
+    _roller.setInputEnabled(false);
     _active_child = item.submenu;
     lv_menu_set_page(_menu_host, item.submenu->page());
     item.submenu->resetInputState(true);
-    ht_event_send(_menu_host, EventType::REBIND_INPUT);
     return true;
 }
 
@@ -60,17 +37,18 @@ void CascadingMenu::leaveSubmenu()
     _active_child = nullptr;
     lv_menu_set_page(_menu_host, _page);
     resetInputState(true);
-    ht_event_send(_menu_host, EventType::REBIND_INPUT);
 }
 
-bool CascadingMenu::create(lv_obj_t *menu, const char *title)
+bool CascadingMenu::create(lv_obj_t *menu, lv_group_t *group, const char *title,
+                           lv_obj_t *event_target)
 {
-    if (!menu || !title)
+    if (!menu || !group || !title)
         return false;
     if (_page && _roller.root())
         return true;
 
     _menu_host = menu;
+    _event_target = event_target;
 
     _page = lv_menu_page_create(menu, title ? const_cast<char *>(title) : nullptr);
     if (_page)
@@ -80,13 +58,7 @@ bool CascadingMenu::create(lv_obj_t *menu, const char *title)
     ui_theme_apply_cascading_menu_page(_page);
     lv_obj_clear_flag(_page, LV_OBJ_FLAG_SCROLLABLE);
 
-    if (!ensureFocusGroup())
-    {
-        lv_obj_del(_page);
-        _page = nullptr;
-        return false;
-    }
-    _root = _page;
+    _focus_group = group;
 
     if (!_roller.create(_page, _focus_group))
     {
@@ -95,7 +67,6 @@ bool CascadingMenu::create(lv_obj_t *menu, const char *title)
         return false;
     }
 
-    lv_group_focus_freeze(_focus_group, true);
     char buf[kPageTitleLen] = { 0 };
     for (uint8_t i = 0; i < _item_count; ++i)
     {
@@ -151,9 +122,9 @@ bool CascadingMenu::create(lv_obj_t *menu, const char *title)
                 memset(buf, 0, sizeof(buf));
                 snprintf(buf, sizeof(buf) - 1, "%s > %s", title ? title : "",
                          _items[i].label ? _items[i].label : "");
-                _items[i].submenu->setEventTarget(_event_target);
-                if (_items[i].submenu->create(menu, buf))
+                if (_items[i].submenu->create(menu, _focus_group, buf, _event_target))
                 {
+                    _items[i].submenu->resetInputState(false);
                     lv_obj_add_event_cb(
                         btn,
                         [](lv_event_t *e)
@@ -226,8 +197,6 @@ bool CascadingMenu::create(lv_obj_t *menu, const char *title)
             }
         }
     }
-    lv_group_focus_freeze(_focus_group, false);
-
     return true;
 }
 
@@ -244,12 +213,16 @@ bool CascadingMenu::addCommandHandler(const char *label, MenuHandlerFn action)
 
 void CascadingMenu::resetInputState(bool focus_first_item)
 {
+    if (_active_child)
+        _active_child->resetInputState(false);
     _active_child = nullptr;
     if (!focus_first_item)
     {
         _roller.resetFocus(false);
+        _roller.setInputEnabled(false);
         return;
     }
+    _roller.setInputEnabled(true);
     if (_item_count == 0)
     {
         _roller.resetFocus(true);

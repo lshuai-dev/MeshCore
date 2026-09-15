@@ -4,11 +4,10 @@
 
 #include "heltec/ui/core/biz_facade.hpp"
 #include "keyboard_overlay.hpp"
-#include "ui/app/ui_theme.hpp"
+#include "ui/app/theme.hpp"
 #include "ui/core/operation_hints.hpp"
 #include "ui/core/ht_selector_view.hpp"
-#include "ui/core/ui_semantic_classes.hpp"
-#include "ui/core/ui_deferred_queue.hpp"
+#include "ui/core/widget_classes.hpp"
 #include "ui/core/ht_event.h"
 
 #if defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213
@@ -21,9 +20,9 @@
 namespace heltec::meshcore::ui
 {
 
-_lv_obj_t *SendMessageOverlay::createRoot(_lv_obj_t *parent)
+SendMessageOverlay::SendMessageOverlay(biz::IBizFacade &biz)
+    : FramedOverlay(biz, ht_send_message_selector_overlay_class)
 {
-    return ht_semantic_create(&ht_send_message_selector_overlay_class, parent);
 }
 
 namespace
@@ -49,11 +48,6 @@ const char *footerForPage(bool back_to_parent)
 
 } // namespace
 
-_lv_obj_t *SendMessageOverlay::focusTarget() const
-{
-    return _root;
-}
-
 bool SendMessageOverlay::onKey(uint32_t key)
 {
     if (key == LV_KEY_NEXT || key == LV_KEY_RIGHT || key == LV_KEY_DOWN || key == LV_KEY_PREV ||
@@ -75,10 +69,11 @@ bool SendMessageOverlay::onKey(uint32_t key)
     return false;
 }
 
-_lv_obj_t *SendMessageOverlay::create(lv_obj_t *parent)
+bool SendMessageOverlay::buildSurface()
 {
-    if (!FramedOverlay::create(parent))
-        return nullptr;
+    if (!FramedOverlay::buildSurface())
+        return false;
+
     lv_obj_add_event_cb(
         _root,
         [](lv_event_t *e)
@@ -98,12 +93,12 @@ _lv_obj_t *SendMessageOverlay::create(lv_obj_t *parent)
         },
         LV_EVENT_CLICKED, this);
 
-    setHeaderText("Send message");
-    setFooterText(operation_hint::kMessageSelect);
+    setTitle("Send message");
+    setToolTip(operation_hint::kMessageSelect);
 
-    _list_mid = ht_semantic_create(&ht_send_message_list_class, contentHost());
+    _list_mid = ht_class_create(&ht_send_message_list_class, _content);
     if (!_list_mid)
-        return nullptr;
+        return false;
     lv_obj_set_width(_list_mid, lv_pct(100));
     lv_obj_set_flex_grow(_list_mid, 1);
     lv_obj_set_flex_flow(_list_mid, LV_FLEX_FLOW_COLUMN);
@@ -112,10 +107,10 @@ _lv_obj_t *SendMessageOverlay::create(lv_obj_t *parent)
     lv_obj_clear_flag(_list_mid, LV_OBJ_FLAG_SCROLLABLE);
 
     if (!ensureRowPool())
-        return nullptr;
+        return false;
 
     setTarget(_model.target());
-    return _root;
+    return true;
 }
 
 void SendMessageOverlay::syncContacts()
@@ -282,10 +277,8 @@ void SendMessageOverlay::renderRows()
         title = (_model.listKind() == 1) ? "group" : "personal";
         footer_text = footerForPage(true);
     }
-    setHeaderText(title);
-    setFooterText(footer_text);
-    lv_obj_clear_flag(header(), LV_OBJ_FLAG_HIDDEN);
-    lv_obj_clear_flag(footer(), LV_OBJ_FLAG_HIDDEN);
+    setTitle(title);
+    setToolTip(footer_text);
 
     if (!ensureRowPool())
         return;
@@ -378,7 +371,7 @@ void SendMessageOverlay::sendMessageText(const char *text, bool alert_on_direct_
     memcpy(pub_key_prefix, target.pub_key_prefix, 6);
 
     // Close before alert/send so the result overlay becomes the top surface.
-    emit(EventType::SEND_MESSAGE_CLOSE);
+    emitEvent(EventType::SendMessageClose);
 
     bool ok = false;
     if (kind == TargetKind::Personal)
@@ -406,7 +399,7 @@ void SendMessageOverlay::scheduleSendResultAlert(bool ok)
     if (_send_alert_scheduled)
         return;
     _send_alert_scheduled = true;
-    if (!defer(showSendResultAlertAsync, this))
+    if (lv_async_call(showSendResultAlertAsync, this) != LV_RES_OK)
     {
         _send_alert_scheduled = false;
         _biz.showAlert(ok ? "Queued" : "Failed", 1600);
@@ -432,7 +425,7 @@ void SendMessageOverlay::openCustomKeyboard()
     const Target &target = _model.target();
     UiMessageKeyboardRequest req;
     req.title = target.label;
-    (void)emit(EventType::MESSAGE_KEYBOARD_OPEN, &req);
+    (void)emitEvent(EventType::MessageKeyboardOpen, &req);
 }
 
 void SendMessageOverlay::handleBack()
@@ -452,7 +445,7 @@ void SendMessageOverlay::handleBack()
         renderRows();
         return;
     }
-    emit(EventType::SEND_MESSAGE_CLOSE);
+    emitEvent(EventType::SendMessageClose);
 }
 
 void SendMessageOverlay::applySelection()
@@ -586,7 +579,7 @@ void SendMessageOverlay::onEnter()
 
 void SendMessageOverlay::onExit()
 {
-    clearFocusObjects();
+    lv_group_remove_all_objs(focusGroup());
     for (int i = 0; i < kMaxVisibleRows; ++i)
     {
         if (_row_objs[i])

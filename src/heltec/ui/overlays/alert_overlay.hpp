@@ -28,13 +28,9 @@ class AlertOverlay : public DialogOverlay
     void setText(const char *text);
 
   protected:
-    _lv_obj_t *create(_lv_obj_t *parent) override;
+    bool buildSurface() override;
 
   private:
-    _lv_obj_t *focusTarget() const override
-    {
-        return _root;
-    }
     bool onKey(uint32_t key) override;
 
     _lv_obj_t *_label = nullptr;

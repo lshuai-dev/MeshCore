@@ -1,5 +1,5 @@
 #include "heltec/drivers/input/touch_port.hpp"
-#include "ui/app/ui_app.hpp"
+#include "ui/app/app.hpp"
 
 #include <Arduino.h>
 

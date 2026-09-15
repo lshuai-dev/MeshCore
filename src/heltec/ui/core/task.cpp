@@ -1,18 +1,17 @@
-#include "ui_task.hpp"
+#include "task.hpp"
 
 #include "heltec/app/HeltecMesh.h"
 #include "heltec/core/board_features.hpp"
 #include "heltec/drivers/input/touch_input.hpp"
 #include "ui/core/app_state_notifier.hpp"
-#include "ui/core/ui_host.hpp"
+#include "ui/core/host.hpp"
 
 #include <Arduino.h>
 #include <lvgl.h>
 
 extern HeltecMesh the_mesh;
 
-namespace heltec::meshcore::ui
-{
+namespace heltec::meshcore::ui {
 
 #if defined(HAS_BUZZER_VOLUME_CONTROL) && HAS_BUZZER_VOLUME_CONTROL
 #if !defined(PIN_BUZZER)
@@ -23,10 +22,8 @@ namespace heltec::meshcore::ui
 #error "HAS_BUZZER_VOLUME_CONTROL requires PIN_BUZZER and both voltage multiplier pins"
 #endif
 
-static void apply_buzzer_volume_level(HeltecBuzzer &buzzer, uint8_t level)
-{
-    if (level > 3)
-        level = 3;
+static void apply_buzzer_volume_level(HeltecBuzzer &buzzer, uint8_t level) {
+    if (level > 3) level = 3;
 #if defined(HELTEC_BUZZER_PWM_VOLUME_CONTROL) && HELTEC_BUZZER_PWM_VOLUME_CONTROL
     buzzer.setVolumeLevel(level);
 #else
@@ -38,8 +35,7 @@ static void apply_buzzer_volume_level(HeltecBuzzer &buzzer, uint8_t level)
 #endif
 
 #ifdef PIN_BUZZER
-static void ensure_buzzer_hw()
-{
+static void ensure_buzzer_hw() {
 #if defined(PIN_BUZZER_VOLTAGE_MULTIPLIER_1)
     pinMode(PIN_BUZZER_VOLTAGE_MULTIPLIER_1, OUTPUT);
 #if !(defined(HAS_BUZZER_VOLUME_CONTROL) && HAS_BUZZER_VOLUME_CONTROL)
@@ -53,17 +49,6 @@ static void ensure_buzzer_hw()
 #endif
 #endif
 }
-#endif
-
-#if defined(MESH_DEBUG) && MESH_DEBUG
-#define UI_TASK_ALERT_LOG(fmt, ...)                             \
-    do                                                          \
-    {                                                           \
-        Serial.printf("[alert:task] " fmt "\n", ##__VA_ARGS__); \
-        Serial.flush();                                         \
-    } while (0)
-#else
-#define UI_TASK_ALERT_LOG(fmt, ...) ((void)0)
 #endif
 
 #ifdef PIN_STATUS_LED
@@ -81,29 +66,23 @@ static void ensure_buzzer_hw()
 #endif
 #endif
 
-void UiTask::attachHost(IUiHost *host)
-{
+void UiTask::attachHost(IUiHost *host) {
     // UiTask and IUiHost run on the same cooperative Arduino loop. A future
     // concurrent producer must marshal at its own task or ISR boundary.
     _ui_host = host;
 }
 
 #ifdef PIN_STATUS_LED
-void UiTask::pollStatusLed()
-{
+void UiTask::pollStatusLed() {
     const uint32_t now = millis();
-    if ((int32_t)(now - _status_led_next_ms) < 0)
-        return;
+    if ((int32_t)(now - _status_led_next_ms) < 0) return;
 
-    if (!_status_led_on)
-    {
+    if (!_status_led_on) {
         _status_led_on = 1;
         _status_led_on_ms =
             (_msg_count > 0) ? (uint16_t)LED_ON_MSG_MILLIS : (uint16_t)LED_ON_MILLIS;
         _status_led_next_ms = now + _status_led_on_ms;
-    }
-    else
-    {
+    } else {
         _status_led_on = 0;
         _status_led_next_ms = now + (uint32_t)(LED_CYCLE_MILLIS - _status_led_on_ms);
     }
@@ -111,13 +90,11 @@ void UiTask::pollStatusLed()
 }
 #endif
 
-void UiTask::begin(NodePrefs *node_prefs)
-{
+void UiTask::begin(NodePrefs *node_prefs) {
     _node_prefs = node_prefs;
 #if defined(HAS_LNA_CONTROL) && HAS_LNA_CONTROL
     if (_node_prefs && (!isLnaCanControl() ||
-                        !heltec::meshcore::board::setLnaEnable(_node_prefs->lna_enabled != 0)))
-    {
+                        !heltec::meshcore::board::setLnaEnable(_node_prefs->lna_enabled != 0))) {
         _node_prefs->lna_enabled = 0;
     }
 #endif
@@ -125,8 +102,7 @@ void UiTask::begin(NodePrefs *node_prefs)
     config_ev.type = AppStateEventType::ConfigChanged;
     app_state_notifier().notify(config_ev);
 #if HELTEC_TOUCH_INPUT
-    if (lv_disp_t *d = lv_disp_get_default())
-    {
+    if (lv_disp_t *d = lv_disp_get_default()) {
         heltec::meshcore::dal::touch_input::armInit((uint16_t)lv_disp_get_hor_res(d),
                                                     (uint16_t)lv_disp_get_ver_res(d));
     }
@@ -139,8 +115,7 @@ void UiTask::begin(NodePrefs *node_prefs)
                                            : 0);
 #endif
     _buzzer.begin();
-    if (_node_prefs)
-    {
+    if (_node_prefs) {
         _buzzer.quiet(_node_prefs->buzzer_quiet != 0);
     }
     _buzzer_startup_pending = !_buzzer.isQuiet();
@@ -158,13 +133,11 @@ void UiTask::begin(NodePrefs *node_prefs)
 #endif
 }
 
-void UiTask::msgRead(int msgcount)
-{
+void UiTask::msgRead(int msgcount) {
     setMessageCount(msgcount);
 }
 
-void UiTask::setMessageCount(int msgcount)
-{
+void UiTask::setMessageCount(int msgcount) {
     _msg_count = msgcount;
     AppStateEvent ev{};
     ev.type = AppStateEventType::UnreadMessageCountChanged;
@@ -172,38 +145,28 @@ void UiTask::setMessageCount(int msgcount)
     app_state_notifier().notify(ev);
 }
 
-void UiTask::newMsg(uint8_t path_len, const char *from_name, const char *text, int msgcount)
-{
+void UiTask::newMsg(uint8_t path_len, const char *from_name, const char *text, int msgcount) {
     setMessageCount(msgcount);
     _preview_head = static_cast<uint8_t>((_preview_head + 1U) % kPreviewCapacity);
-    if (_preview_count < kPreviewCapacity)
-        ++_preview_count;
+    if (_preview_count < kPreviewCapacity) ++_preview_count;
     PreviewEntry &entry = _preview_entries[_preview_head];
     entry.received_ms = millis();
-    if (!from_name)
-        from_name = "";
-    if (!text)
-        text = "";
-    if (path_len == 0xFF)
-    {
+    if (!from_name) from_name = "";
+    if (!text) text = "";
+    if (path_len == 0xFF) {
         snprintf(entry.origin, sizeof(entry.origin), "(D) %s:", from_name);
-    }
-    else
-    {
+    } else {
         snprintf(entry.origin, sizeof(entry.origin), "(%u) %s:", (unsigned)path_len, from_name);
     }
     snprintf(entry.text, sizeof(entry.text), "%s", text);
-    if (_ui_host && _ui_host->isReady())
-    {
+    if (_ui_host && _ui_host->isReady()) {
         _ui_host->openPreviewOverlay(_preview_count, entry.received_ms, entry.origin, entry.text);
     }
 }
 
-void UiTask::notify(UIEventType t)
-{
+void UiTask::notify(UIEventType t) {
 #if defined(PIN_BUZZER) && PIN_BUZZER
-    switch (t)
-    {
+    switch (t) {
     case UIEventType::contactMessage:
         _buzzer.play("MsgRcv3:d=4,o=6,b=200:32e,32g,32b,16c7");
         break;
@@ -222,10 +185,8 @@ void UiTask::notify(UIEventType t)
 #endif
 }
 
-void UiTask::setHasConnection(bool connected)
-{
-    if (_connected == connected)
-        return;
+void UiTask::setHasConnection(bool connected) {
+    if (_connected == connected) return;
     AbstractUITask::setHasConnection(connected);
 
     AppStateEvent ev{};
@@ -235,32 +196,23 @@ void UiTask::setHasConnection(bool connected)
     app_state_notifier().notify(ev);
 }
 
-void UiTask::loop()
-{
+void UiTask::loop() {
 #ifdef PIN_BUZZER
-    if (_buzzer_startup_pending)
-    {
+    if (_buzzer_startup_pending) {
         _buzzer_startup_pending = false;
         _buzzer.startup();
     }
-    if (!rtttl::done())
-    {
+    if (!rtttl::done()) {
         _buzzer.loop();
-    }
-    else if (rtttl::isPlaying())
-    {
+    } else if (rtttl::isPlaying()) {
         rtttl::stop();
         noTone(PIN_BUZZER);
         digitalWrite(PIN_BUZZER, LOW);
     }
 #endif
     const uint32_t alert_now = millis();
-    if (_alert_expiry_ms != 0 && (int32_t)(alert_now - _alert_expiry_ms) >= 0)
-    {
-        UI_TASK_ALERT_LOG("expiry now=%lu expiry=%lu text=%s host=%p", (unsigned long)alert_now,
-                          (unsigned long)_alert_expiry_ms, _alert, _ui_host);
-        if (_ui_host)
-            _ui_host->closeAlertOverlay();
+    if (_alert_expiry_ms != 0 && (int32_t)(alert_now - _alert_expiry_ms) >= 0) {
+        if (_ui_host) _ui_host->closeAlertOverlay();
     }
 #if HELTEC_TOUCH_INPUT
     heltec::meshcore::dal::touch_input::poll();
@@ -270,8 +222,7 @@ void UiTask::loop()
 #endif
 }
 
-bool UiTask::isBuzzerQuiet() const
-{
+bool UiTask::isBuzzerQuiet() const {
 #ifdef PIN_BUZZER
     return _buzzer.isQuiet();
 #else
@@ -279,32 +230,25 @@ bool UiTask::isBuzzerQuiet() const
 #endif
 }
 
-void UiTask::setBuzzerEnabled(bool enabled)
-{
+void UiTask::setBuzzerEnabled(bool enabled) {
 #ifdef PIN_BUZZER
     const bool cur = !_buzzer.isQuiet();
-    if (cur == enabled)
-        return;
-    if (enabled)
-    {
+    if (cur == enabled) return;
+    if (enabled) {
 #if defined(HAS_BUZZER_VOLUME_CONTROL) && HAS_BUZZER_VOLUME_CONTROL
         uint8_t level = _node_prefs ? _node_prefs->buzzer_volume_level : 3;
-        if (level < 1 || level > 3)
-            level = 3;
+        if (level < 1 || level > 3) level = 3;
         apply_buzzer_volume_level(_buzzer, level);
 #endif
         _buzzer.quiet(false);
         notify(UIEventType::ack);
-    }
-    else
-    {
+    } else {
         _buzzer.quiet(true);
 #if defined(HAS_BUZZER_VOLUME_CONTROL) && HAS_BUZZER_VOLUME_CONTROL
         apply_buzzer_volume_level(_buzzer, 0);
 #endif
     }
-    if (_node_prefs)
-    {
+    if (_node_prefs) {
         _node_prefs->buzzer_quiet = _buzzer.isQuiet() ? 1 : 0;
         the_mesh.savePrefs();
     }
@@ -313,11 +257,9 @@ void UiTask::setBuzzerEnabled(bool enabled)
 #endif
 }
 
-uint8_t UiTask::buzzerVolumeLevel() const
-{
+uint8_t UiTask::buzzerVolumeLevel() const {
 #if defined(HAS_BUZZER_VOLUME_CONTROL) && HAS_BUZZER_VOLUME_CONTROL
-    if (!_node_prefs || _node_prefs->buzzer_quiet != 0)
-        return 0;
+    if (!_node_prefs || _node_prefs->buzzer_quiet != 0) return 0;
     const uint8_t level = _node_prefs->buzzer_volume_level;
     return (level >= 1 && level <= 3) ? level : 3;
 #else
@@ -325,20 +267,15 @@ uint8_t UiTask::buzzerVolumeLevel() const
 #endif
 }
 
-void UiTask::setBuzzerVolumeLevel(uint8_t level)
-{
+void UiTask::setBuzzerVolumeLevel(uint8_t level) {
 #if defined(HAS_BUZZER_VOLUME_CONTROL) && HAS_BUZZER_VOLUME_CONTROL
-    if (level > 3)
-        level = 3;
-    if (buzzerVolumeLevel() == level)
-        return;
+    if (level > 3) level = 3;
+    if (buzzerVolumeLevel() == level) return;
 
-    if (level == 0)
-    {
+    if (level == 0) {
         _buzzer.quiet(true);
         apply_buzzer_volume_level(_buzzer, 0);
-        if (_node_prefs)
-        {
+        if (_node_prefs) {
             _node_prefs->buzzer_quiet = 1;
             the_mesh.savePrefs();
         }
@@ -347,8 +284,7 @@ void UiTask::setBuzzerVolumeLevel(uint8_t level)
 
     apply_buzzer_volume_level(_buzzer, level);
     _buzzer.quiet(false);
-    if (_node_prefs)
-    {
+    if (_node_prefs) {
         _node_prefs->buzzer_volume_level = level;
         _node_prefs->buzzer_quiet = 0;
         the_mesh.savePrefs();
@@ -359,8 +295,7 @@ void UiTask::setBuzzerVolumeLevel(uint8_t level)
 #endif
 }
 
-bool UiTask::isLnaCanControl() const
-{
+bool UiTask::isLnaCanControl() const {
 #if defined(HAS_LNA_CONTROL) && HAS_LNA_CONTROL
     return heltec::meshcore::board::lnaCanControl();
 #else
@@ -368,8 +303,7 @@ bool UiTask::isLnaCanControl() const
 #endif
 }
 
-bool UiTask::lnaEnabled() const
-{
+bool UiTask::lnaEnabled() const {
 #if defined(HAS_LNA_CONTROL) && HAS_LNA_CONTROL
     return isLnaCanControl() && _node_prefs && _node_prefs->lna_enabled != 0;
 #else
@@ -377,17 +311,12 @@ bool UiTask::lnaEnabled() const
 #endif
 }
 
-bool UiTask::setLnaEnabled(bool enabled)
-{
+bool UiTask::setLnaEnabled(bool enabled) {
 #if defined(HAS_LNA_CONTROL) && HAS_LNA_CONTROL
-    if (!isLnaCanControl())
-        return false;
-    if (lnaEnabled() == enabled)
-        return true;
-    if (!heltec::meshcore::board::setLnaEnable(enabled))
-        return false;
-    if (_node_prefs)
-    {
+    if (!isLnaCanControl()) return false;
+    if (lnaEnabled() == enabled) return true;
+    if (!heltec::meshcore::board::setLnaEnable(enabled)) return false;
+    if (_node_prefs) {
         _node_prefs->lna_enabled = enabled ? 1 : 0;
         the_mesh.savePrefs();
     }
@@ -398,106 +327,80 @@ bool UiTask::setLnaEnabled(bool enabled)
 #endif
 }
 
-void UiTask::finishShutdownFeedback()
-{
+void UiTask::finishShutdownFeedback() {
     _shutdown_feedback_active = false;
 #ifdef PIN_STATUS_LED
     digitalWrite(PIN_STATUS_LED, 0 == LED_STATE_ON);
 #endif
 }
 
-void UiTask::startShutdownFeedback()
-{
+void UiTask::startShutdownFeedback() {
     _shutdown_feedback_active = true;
 #ifdef PIN_BUZZER
     _buzzer.shutdown();
-    if (!_buzzer.isPlaying())
-        finishShutdownFeedback();
+    if (!_buzzer.isPlaying()) finishShutdownFeedback();
 #else
     finishShutdownFeedback();
 #endif
 }
 
-bool UiTask::shutdownFeedbackDone()
-{
+bool UiTask::shutdownFeedbackDone() {
 #ifdef PIN_BUZZER
-    if (_shutdown_feedback_active && _buzzer.isPlaying())
-        return false;
+    if (_shutdown_feedback_active && _buzzer.isPlaying()) return false;
 #endif
-    if (_shutdown_feedback_active)
-        finishShutdownFeedback();
+    if (_shutdown_feedback_active) finishShutdownFeedback();
     return true;
 }
 
-void UiTask::playShutdownMelody()
-{
+void UiTask::playShutdownMelody() {
     startShutdownFeedback();
 #ifdef PIN_BUZZER
     const uint32_t started = millis();
-    while (!shutdownFeedbackDone() && (millis() - started) < 2500U)
-    {
+    while (!shutdownFeedbackDone() && (millis() - started) < 2500U) {
         _buzzer.loop();
     }
     finishShutdownFeedback();
 #endif
 }
 
-void UiTask::showAlert(const char *text, int duration_millis)
-{
-    if (!text)
-    {
+void UiTask::showAlert(const char *text, int duration_millis) {
+    if (!text) {
         _alert[0] = '\0';
-    }
-    else
-    {
+    } else {
         snprintf(_alert, sizeof(_alert), "%s", text);
     }
     const uint32_t now = millis();
     _alert_expiry_ms = (duration_millis > 0) ? (now + (uint32_t)duration_millis) : 0;
-    UI_TASK_ALERT_LOG("show text=%s duration=%d now=%lu expiry=%lu host=%p ready=%d", _alert,
-                      duration_millis, (unsigned long)now, (unsigned long)_alert_expiry_ms,
-                      _ui_host, (_ui_host && _ui_host->isReady()) ? 1 : 0);
-
-    if (_ui_host && _ui_host->isReady() && _alert[0] != '\0')
-    {
+    if (_ui_host && _ui_host->isReady() && _alert[0] != '\0') {
         _ui_host->openAlertOverlay(_alert);
     }
 }
 
-bool UiTask::isAlertActive() const
-{
+bool UiTask::isAlertActive() const {
     return _alert_expiry_ms != 0 && (int32_t)(millis() - _alert_expiry_ms) < 0 && _alert[0] != '\0';
 }
 
-void UiTask::dismissAlert()
-{
-    UI_TASK_ALERT_LOG("dismiss text=%s expiry=%lu", _alert, (unsigned long)_alert_expiry_ms);
+void UiTask::dismissAlert() {
     _alert_expiry_ms = 0;
     _alert[0] = '\0';
 }
 
-uint32_t UiTask::previewAgeSeconds() const
-{
-    if (_preview_count == 0)
-        return 0;
+uint32_t UiTask::previewAgeSeconds() const {
+    if (_preview_count == 0) return 0;
     const uint32_t age_ms = millis() - _preview_entries[_preview_head].received_ms;
     return age_ms / 1000U;
 }
 
-bool UiTask::advancePreview()
-{
-    if (_preview_count == 0)
-        return false;
+bool UiTask::advancePreview() {
+    if (_preview_count == 0) return false;
     --_preview_count;
-    if (_preview_count == 0)
-        return false;
+    if (_preview_count == 0) return false;
     _preview_head =
         static_cast<uint8_t>((_preview_head + kPreviewCapacity - 1U) % kPreviewCapacity);
     return true;
 }
 
-void UiTask::dismissPreview()
-{
+void UiTask::dismissPreview() {
     _preview_count = 0;
     _preview_head = kPreviewCapacity - 1;
     for (PreviewEntry &entry : _preview_entries)

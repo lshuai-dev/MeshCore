@@ -23,15 +23,15 @@ void SystemScreen::handleAction(SysAction action)
     UiConfirmRequest request{};
     request.action = action == SysAction::FactoryReset ? UiConfirmAction::FactoryReset
                                                        : UiConfirmAction::ClearData;
-    if (!emit(EventType::CONFIRM_OPEN, &request))
+    if (!emitEvent(EventType::ConfirmOpen, &request))
     {
         _feedback.showAlert("Unable to open confirmation", 2000);
     }
 }
 
-void SystemScreen::onUiEvent(const UiEvent &event)
+void SystemScreen::onUIEvent(const UiEvent &event)
 {
-    if (event.type != EventType::CONFIRM_ACCEPTED || !event.payload)
+    if (event.type != EventType::ConfirmAccepted || !event.payload)
         return;
     const auto action = *static_cast<const UiConfirmAction *>(event.payload);
     executeAction(action == UiConfirmAction::FactoryReset ? SysAction::FactoryReset

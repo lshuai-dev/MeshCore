@@ -365,7 +365,7 @@ def build():
         "映射层只处理人机交互，不读取或修改无线通信数据。"
     ])
     page(doc)
-    code_excerpt(doc, "14.2 导航页面配置代码", "src/heltec/ui/app/ui_app_navigation.cpp", 96, 138, [
+    code_excerpt(doc, "14.2 导航页面配置代码", "src/heltec/ui/app/app_navigation.cpp", 96, 138, [
         "该代码依据终端能力配置Home、Recent、Radio、Compass、GPS、Tracker和System页面。",
         "条件配置确保没有相应硬件能力的设备不会显示不可用页面。"
     ])
@@ -465,21 +465,21 @@ def build():
 
     # 附录按非核心模块逐页展示真实代码，使说明书总页数超过60页。
     appendix_samples = [
-        ("A.1 单色主题初始化", "src/heltec/ui/theme/ui_theme_mono_flat.cpp", 1, 48,
+        ("A.1 单色主题初始化", "src/heltec/ui/theme/theme_mono_flat.cpp", 1, 48,
          ["该段负责单色屏幕的基础主题初始化。", "主题代码只改变控件外观，不参与通信业务。"]),
-        ("A.2 单色控件样式", "src/heltec/ui/theme/ui_theme_mono_flat.cpp", 49, 102,
+        ("A.2 单色控件样式", "src/heltec/ui/theme/theme_mono_flat.cpp", 49, 102,
          ["该段设置标签、按钮和选择状态的单色显示效果。"]),
-        ("A.3 单色页面样式", "src/heltec/ui/theme/ui_theme_mono_flat.cpp", 103, 160,
+        ("A.3 单色页面样式", "src/heltec/ui/theme/theme_mono_flat.cpp", 103, 160,
          ["该段根据控件类型应用页面样式和边框规则。"]),
-        ("A.4 像素主题初始化", "src/heltec/ui/theme/ui_theme_pixel.cpp", 1, 52,
+        ("A.4 像素主题初始化", "src/heltec/ui/theme/theme_pixel.cpp", 1, 52,
          ["该段创建适用于小尺寸屏幕的像素化主题。"]),
-        ("A.5 像素主题控件处理", "src/heltec/ui/theme/ui_theme_pixel.cpp", 53, 112,
+        ("A.5 像素主题控件处理", "src/heltec/ui/theme/theme_pixel.cpp", 53, 112,
          ["该段处理按钮、标签和选中状态的视觉表现。"]),
-        ("A.6 控件主题公共入口", "src/heltec/ui/theme/ui_widget_theme.cpp", 1, 58,
+        ("A.6 控件主题公共入口", "src/heltec/ui/theme/widget_theme.cpp", 1, 58,
          ["该段是通用控件主题的入口和基础颜色配置。"]),
-        ("A.7 控件边框与背景", "src/heltec/ui/theme/ui_widget_theme.cpp", 59, 118,
+        ("A.7 控件边框与背景", "src/heltec/ui/theme/widget_theme.cpp", 59, 118,
          ["该段集中设置控件背景、边框和透明度。"]),
-        ("A.8 控件文字样式", "src/heltec/ui/theme/ui_widget_theme.cpp", 119, 178,
+        ("A.8 控件文字样式", "src/heltec/ui/theme/widget_theme.cpp", 119, 178,
          ["该段处理文本颜色、对齐和不同状态显示。"]),
         ("A.9 按钮滚轮初始化", "src/heltec/ui/widgets/button_roller.cpp", 1, 62,
          ["该段初始化按钮滚轮使用的普通和选中样式。"]),
@@ -501,9 +501,9 @@ def build():
          ["该段将已经标准化的输入事件交给当前界面处理。"]),
         ("A.18 输入处理管线", "src/heltec/ui/core/input_pipeline.cpp", 1, 66,
          ["该段组织输入读取、转换和分发的先后顺序。"]),
-        ("A.19 界面动画调度", "src/heltec/ui/core/ui_motion_scheduler.cpp", 1, 62,
+        ("A.19 界面动画调度", "src/heltec/ui/core/scheduler.cpp", 1, 62,
          ["该段负责界面动画任务的创建和调度。"]),
-        ("A.20 界面动画执行", "src/heltec/ui/core/ui_motion_scheduler.cpp", 63, 128,
+        ("A.20 界面动画执行", "src/heltec/ui/core/scheduler.cpp", 63, 128,
          ["该段处理动画状态更新和完成回调。"]),
         ("A.21 屏幕对象公共行为", "src/heltec/ui/core/abstract_screen.cpp", 1, 62,
          ["该段提供所有功能页面共用的创建和进入退出行为。"]),

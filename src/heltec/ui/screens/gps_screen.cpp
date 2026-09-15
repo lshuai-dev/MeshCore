@@ -1,9 +1,8 @@
 #include "gps_screen.hpp"
-#include "ui/app/ui_theme.hpp"
+#include "ui/app/theme.hpp"
 #include "ui/core/ht_container.hpp"
-#include "ui/core/ui_deferred_queue.hpp"
 #include "ui/core/ht_event.h"
-#include "ui/theme/ui_widget_theme.hpp"
+#include "ui/theme/widget_theme.hpp"
 
 #include <lvgl.h>
 
@@ -29,21 +28,22 @@ void format_altitude(char *buffer, size_t capacity, double altitude_m)
                 (long)(centi % 100));
 }
 
-_lv_obj_t *GPSScreen::create(_lv_obj_t *parent)
+bool GPSScreen::buildSurface()
 {
-    if (!AbstractScreen::create(parent))
-        return nullptr;
+    if (!AbstractScreen::buildSurface())
+        return false;
 
-    _row_power = ht_container_create(_root);
-    if (_row_power)
+    _lv_obj_t *const row_power = ht_container_create(_root);
+    _lv_obj_t *gps_prefix = nullptr;
+    if (row_power)
     {
-        lv_obj_set_flex_align(_row_power, LV_FLEX_ALIGN_SPACE_BETWEEN, LV_FLEX_ALIGN_CENTER,
+        lv_obj_set_flex_align(row_power, LV_FLEX_ALIGN_SPACE_BETWEEN, LV_FLEX_ALIGN_CENTER,
                               LV_FLEX_ALIGN_CENTER);
-        _lbl_gps_prefix = lv_label_create(_row_power);
-        if(_lbl_gps_prefix) lv_label_set_text_static(_lbl_gps_prefix, "GPS");
-        _sw_gps = lv_switch_create(_row_power);
-        if (_lbl_gps_prefix)
-            lv_obj_set_width(_lbl_gps_prefix, LV_SIZE_CONTENT);
+        gps_prefix = lv_label_create(row_power);
+        if(gps_prefix) lv_label_set_text_static(gps_prefix, "GPS");
+        _sw_gps = lv_switch_create(row_power);
+        if (gps_prefix)
+            lv_obj_set_width(gps_prefix, LV_SIZE_CONTENT);
         if (_sw_gps)
         {
             lv_obj_clear_flag(_sw_gps, LV_OBJ_FLAG_SCROLLABLE);
@@ -55,16 +55,17 @@ _lv_obj_t *GPSScreen::create(_lv_obj_t *parent)
     }
 
 #if defined(ENV_INCLUDE_GPS) && ENV_INCLUDE_GPS
-    _row_track = ht_container_create(_root);
-    if (_row_track)
+    _lv_obj_t *const row_track = ht_container_create(_root);
+    _lv_obj_t *track_prefix = nullptr;
+    if (row_track)
     {
-        lv_obj_set_flex_align(_row_track, LV_FLEX_ALIGN_SPACE_BETWEEN, LV_FLEX_ALIGN_CENTER,
+        lv_obj_set_flex_align(row_track, LV_FLEX_ALIGN_SPACE_BETWEEN, LV_FLEX_ALIGN_CENTER,
                               LV_FLEX_ALIGN_CENTER);
-        _lbl_track = lv_label_create(_row_track);
-        if(_lbl_track) lv_label_set_text_static(_lbl_track, "GPS Track");
-        _sw_track = lv_switch_create(_row_track);
-        if (_lbl_track)
-            lv_obj_set_width(_lbl_track, LV_SIZE_CONTENT);
+        track_prefix = lv_label_create(row_track);
+        if(track_prefix) lv_label_set_text_static(track_prefix, "GPS Track");
+        _sw_track = lv_switch_create(row_track);
+        if (track_prefix)
+            lv_obj_set_width(track_prefix, LV_SIZE_CONTENT);
         if (_sw_track)
         {
             lv_obj_clear_flag(_sw_track, LV_OBJ_FLAG_SCROLLABLE);
@@ -76,27 +77,24 @@ _lv_obj_t *GPSScreen::create(_lv_obj_t *parent)
     }
 #endif
 
-    _lv_obj_t *const row_fix = ht_container_create(_root);
-    _lbl_fix = lv_label_create(row_fix);
+    _lbl_fix = lv_label_create(_root);
+    _lbl_sat = lv_label_create(_root);
+    _lbl_latlon = lv_label_create(_root);
+    _lbl_alt = lv_label_create(_root);
+    _lbl_speed = lv_label_create(_root);
+    if (!_lbl_fix || !_lbl_sat || !_lbl_latlon || !_lbl_alt || !_lbl_speed)
+        return false;
     lv_label_set_text_static(_lbl_fix, "no fix");
-    _lv_obj_t *const row_sat = ht_container_create(_root);
-    _lbl_sat = lv_label_create(row_sat);
     lv_label_set_text_static(_lbl_sat, _sat_text);
-    _lv_obj_t *const row_latlon = ht_container_create(_root);
-    _lbl_latlon = lv_label_create(row_latlon);
     lv_label_set_text_static(_lbl_latlon, _latlon_text);
-    _lv_obj_t *const row_alt = ht_container_create(_root);
-    _lbl_alt = lv_label_create(row_alt);
     lv_label_set_text_static(_lbl_alt, _alt_text);
-    _lv_obj_t *const row_speed = ht_container_create(_root);
-    _lbl_speed = lv_label_create(row_speed);
     lv_label_set_text_static(_lbl_speed, _speed_text);
 
     _lv_obj_t *const labels[] = {
-        _lbl_gps_prefix, _lbl_fix,
+        gps_prefix, _lbl_fix,
         _lbl_sat,        _lbl_latlon,         _lbl_alt,          _lbl_speed,
 #if defined(ENV_INCLUDE_GPS) && ENV_INCLUDE_GPS
-        _lbl_track,
+        track_prefix,
 #endif
     };
     for (_lv_obj_t *label : labels)
@@ -107,33 +105,23 @@ _lv_obj_t *GPSScreen::create(_lv_obj_t *parent)
         lv_label_set_long_mode(label, LV_LABEL_LONG_CLIP);
     }
 
-    addFocusItem(_sw_gps, _row_power);
+    addFocusableObject(_sw_gps, row_power);
 #if defined(ENV_INCLUDE_GPS) && ENV_INCLUDE_GPS
-    addFocusItem(_sw_track, _row_track);
+    addFocusableObject(_sw_track, row_track);
 #endif
 
-    const struct
-    {
-        _lv_obj_t *label;
-        _lv_obj_t *row;
-    } info_rows[] = {
-        { _lbl_fix, row_fix },       { _lbl_sat, row_sat },
-        { _lbl_latlon, row_latlon }, { _lbl_alt, row_alt },
-        { _lbl_speed, row_speed },
+    _lv_obj_t *const info_labels[] = {
+        _lbl_fix, _lbl_sat, _lbl_latlon, _lbl_alt, _lbl_speed,
     };
-    for (const auto &info_row : info_rows)
+    for (_lv_obj_t *const info_label : info_labels)
     {
-        if (!info_row.label || !info_row.row)
+        if (!info_label)
             continue;
-        lv_obj_set_width(info_row.label, lv_pct(100));
-        addFocusItem(info_row.label, info_row.row);
-        // Read-only rows participate in keypad focus scrolling without consuming
-        // pointer gestures intended for the scrollable screen root.
-        lv_obj_clear_flag(info_row.label,
-                          LV_OBJ_FLAG_CLICKABLE | LV_OBJ_FLAG_CLICK_FOCUSABLE);
+        lv_obj_set_width(info_label, lv_pct(100));
+        ui_theme_apply_screen_info_label(info_label);
     }
 
-    return _root;
+    return true;
 }
 
 void GPSScreen::setSwitchState(_lv_obj_t *sw, bool on)
@@ -163,7 +151,6 @@ bool GPSScreen::ensureGpsEnabled(_lv_obj_t *dependent_switch)
 
     _biz.setGpsEnabled(true);
     gps = _biz.gpsStatus();
-    _gps = gps;
     updateGps(gps);
     if (gps.enabled)
         return true;
@@ -235,7 +222,6 @@ void GPSScreen::onGpsSwitchValueChanged(lv_event_t *e)
     {
         self->_biz.setGpsEnabled(requested_on);
         const biz::IBizFacade::GpsStatus actual = self->_biz.gpsStatus();
-        self->_gps = actual;
         self->updateGps(actual);
         self->_biz.showAlert(actual.enabled ? "gps: on"
                                             : (requested_on ? "gps unavailable" : "gps: off"),
@@ -265,8 +251,7 @@ void GPSScreen::onGpsSwitchValueChanged(lv_event_t *e)
 
 void GPSScreen::refreshSnapshot()
 {
-    _gps = _biz.gpsStatus();
-    updateGps(_gps);
+    updateGps(_biz.gpsStatus());
 }
 
 void GPSScreen::onExit()
@@ -293,7 +278,7 @@ void GPSScreen::onAppStateChanged(const AppStateEvent &event)
         refreshSnapshot();
 }
 
-void GPSScreen::onSurfaceRefresh()
+void GPSScreen::onActivated()
 {
     refreshSnapshot();
 }

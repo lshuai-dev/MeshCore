@@ -1,6 +1,6 @@
 #include "alert_overlay.hpp"
 #include "ui/core/ht_event.h"
-#include "ui/core/ui_semantic_classes.hpp"
+#include "ui/core/widget_classes.hpp"
 
 #include <lvgl.h>
 
@@ -53,10 +53,11 @@ lv_coord_t parent_height(lv_obj_t *obj)
 
 } // namespace
 
-_lv_obj_t *AlertOverlay::create(lv_obj_t *parent)
+bool AlertOverlay::buildSurface()
 {
-    if (!DialogOverlay::create(parent))
-        return nullptr;
+    if (!DialogOverlay::buildSurface())
+        return false;
+
     lv_obj_set_layout(_root, 0);
 
     lv_obj_set_size(panel(), lv_pct(92), LV_SIZE_CONTENT);
@@ -79,18 +80,18 @@ _lv_obj_t *AlertOverlay::create(lv_obj_t *parent)
                           (unsigned long)kClickGuardMs);
                 return;
             }
-            (void)self->emit(EventType::ALERT_CLOSE);
+            (void)self->emitEvent(EventType::AlertClose);
         },
         LV_EVENT_CLICKED, this);
 
-    _label = ht_semantic_label_create(&ht_overlay_feedback_label_class, contentHost());
+    _label = ht_label_create(&ht_overlay_feedback_label_class, contentHost());
     if (!_label)
-        return nullptr;
+        return false;
     lv_obj_set_width(_label, lv_pct(100));
     lv_label_set_long_mode(_label, LV_LABEL_LONG_WRAP);
     lv_label_set_text_static(_label, _text_buffer);
 
-    return _root;
+    return true;
 }
 
 void AlertOverlay::onEnter()
@@ -169,7 +170,7 @@ bool AlertOverlay::onKey(uint32_t key)
     if (key == LV_KEY_ESC)
     {
         ALERT_LOG("key esc close");
-        return emit(EventType::ALERT_CLOSE);
+        return emitEvent(EventType::AlertClose);
     }
     return false;
 }

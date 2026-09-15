@@ -1,7 +1,9 @@
 #include "radio_screen.hpp"
-#include "ui/app/ui_theme.hpp"
+#include "ui/app/theme.hpp"
 #include "ui/core/ht_container.hpp"
 #include "ui/core/ht_event.h"
+#include "ui/core/widget_classes.hpp"
+#include "ui/theme/widget_theme.hpp"
 #include <lvgl.h>
 
 namespace heltec::meshcore::ui
@@ -22,20 +24,17 @@ int round_tenths(float value)
 
 } // namespace
 
-_lv_obj_t *RadioScreen::create(_lv_obj_t *parent)
+bool RadioScreen::buildSurface()
 {
-    if (!AbstractScreen::create(parent))
-        return nullptr;
+    if (!AbstractScreen::buildSurface())
+        return false;
 
-    _lv_obj_t *const row_line1 = ht_container_create(_root);
-    _lv_obj_t *const row_line2 = ht_container_create(_root);
-    _lv_obj_t *const row_line3 = ht_container_create(_root);
-    _lv_obj_t *const row_line4 = ht_container_create(_root);
-    _lv_obj_t *const rows[] = { row_line1, row_line2, row_line3, row_line4 };
-    _line1 = lv_label_create(row_line1);
-    _line2 = lv_label_create(row_line2);
-    _line3 = lv_label_create(row_line3);
-    _line4 = lv_label_create(row_line4);
+    _line1 = lv_label_create(_root);
+    _line2 = lv_label_create(_root);
+    _line3 = lv_label_create(_root);
+    _line4 = lv_label_create(_root);
+    if (!_line1 || !_line2 || !_line3 || !_line4)
+        return false;
 
     _lv_obj_t *const labels[] = { _line1, _line2, _line3, _line4 };
     for (int i = 0; i < 4; ++i)
@@ -47,48 +46,43 @@ _lv_obj_t *RadioScreen::create(_lv_obj_t *parent)
         lv_obj_clear_flag(label, LV_OBJ_FLAG_SCROLLABLE | LV_OBJ_FLAG_SCROLL_ON_FOCUS);
         lv_label_set_long_mode(label, LV_LABEL_LONG_CLIP);
         lv_label_set_text_static(label, _line_text[i]);
+        ui_theme_apply_screen_info_label(label);
     }
 
 #if defined(HAS_LNA_CONTROL) && HAS_LNA_CONTROL
     const bool show_lna = _biz.isLnaCanControl();
     if (show_lna)
     {
-        _row_lna = ht_container_create(_root);
-        if (_row_lna)
+        _lv_obj_t *const row_lna = ht_container_create(_root);
+        if (row_lna)
         {
-            lv_obj_set_flex_align(_row_lna, LV_FLEX_ALIGN_SPACE_BETWEEN, LV_FLEX_ALIGN_CENTER,
+            lv_obj_set_flex_align(row_lna, LV_FLEX_ALIGN_SPACE_BETWEEN, LV_FLEX_ALIGN_CENTER,
                                   LV_FLEX_ALIGN_START);
-            _lbl_lna = ht_label_create_static(_row_lna, "LNA");
-            _sw_lna = lv_switch_create(_row_lna);
-            if (_lbl_lna)
+            _lv_obj_t *const label_lna = ht_label_create(&lv_label_class, row_lna, "LNA");
+            _sw_lna = lv_switch_create(row_lna);
+            if (label_lna)
             {
-                lv_obj_set_width(_lbl_lna, LV_SIZE_CONTENT);
-                lv_obj_clear_flag(_lbl_lna, LV_OBJ_FLAG_SCROLLABLE | LV_OBJ_FLAG_SCROLL_ON_FOCUS);
+                lv_obj_set_width(label_lna, LV_SIZE_CONTENT);
+                lv_obj_clear_flag(label_lna,
+                                  LV_OBJ_FLAG_SCROLLABLE | LV_OBJ_FLAG_SCROLL_ON_FOCUS);
             }
             if (_sw_lna)
             {
                 lv_obj_clear_flag(_sw_lna, LV_OBJ_FLAG_SCROLLABLE);
                 lv_obj_add_event_cb(
-                    _sw_lna, onLnaSwitchKey,
+                    _sw_lna, handleSwitchKey,
                     static_cast<lv_event_code_t>(LV_EVENT_KEY | LV_EVENT_PREPROCESS), this);
-                lv_obj_add_event_cb(_sw_lna, onLnaSwitchValueChanged, LV_EVENT_VALUE_CHANGED, this);
+                lv_obj_add_event_cb(_sw_lna, handleLNAValueChanged, LV_EVENT_VALUE_CHANGED, this);
             }
         }
     }
 #endif
 
-    for (int i = 0; i < 4; ++i)
-    {
-        if (!labels[i] || !rows[i])
-            continue;
-        addFocusItem(labels[i], rows[i]);
-    }
-
 #if defined(HAS_LNA_CONTROL) && HAS_LNA_CONTROL
-    addFocusItem(_sw_lna, _row_lna);
+    addFocusableObject(_sw_lna, _sw_lna ? lv_obj_get_parent(_sw_lna) : nullptr);
 #endif
 
-    return _root;
+    return true;
 }
 
 #if defined(HAS_LNA_CONTROL) && HAS_LNA_CONTROL
@@ -111,7 +105,7 @@ void RadioScreen::setLnaSwitchState(bool on)
     _syncing_lna = false;
 }
 
-void RadioScreen::onLnaSwitchKey(lv_event_t *e)
+void RadioScreen::handleSwitchKey(lv_event_t *e)
 {
     if (lv_event_get_code(e) != LV_EVENT_KEY)
         return;
@@ -134,7 +128,7 @@ void RadioScreen::onLnaSwitchKey(lv_event_t *e)
     }
 }
 
-void RadioScreen::onLnaSwitchValueChanged(lv_event_t *e)
+void RadioScreen::handleLNAValueChanged(lv_event_t *e)
 {
     if (lv_event_get_code(e) != LV_EVENT_VALUE_CHANGED)
         return;
@@ -213,7 +207,7 @@ void RadioScreen::onAppStateChanged(const AppStateEvent &event)
     }
 }
 
-void RadioScreen::onSurfaceRefresh()
+void RadioScreen::onActivated()
 {
     refreshSnapshot();
 }

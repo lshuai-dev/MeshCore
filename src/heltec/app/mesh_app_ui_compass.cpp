@@ -17,7 +17,7 @@ namespace heltec::meshcore::biz
 
 #if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
 
-void MeshAppUi::syncCompassCache()
+void MeshAppUi::syncCompassCache() const
 {
     CompassUi next{};
     if (compassProvider.hasHardware())

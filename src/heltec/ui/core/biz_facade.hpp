@@ -1,15 +1,15 @@
 #pragma once
-#include "ui_feedback.hpp"
+#include "feedback.hpp"
 
 #include <stddef.h>
 #include <stdint.h>
 
-namespace heltec::meshcore::ui { struct UiSendMessageTarget; }
+namespace heltec::meshcore::ui {
+struct UiSendMessageTarget;
+}
 
-namespace heltec::meshcore::biz
-{
-struct CompassUi
-{
+namespace heltec::meshcore::biz {
+struct CompassUi {
     bool has_hardware = false;
     bool heading_valid = false;
     float heading_deg = 0.f;
@@ -20,8 +20,7 @@ struct CompassUi
 };
 
 #if defined(ENV_INCLUDE_MAP) && ENV_INCLUDE_MAP
-struct MapPlotMarker
-{
+struct MapPlotMarker {
     int32_t lat_micro = 0;
     int32_t lon_micro = 0;
     uint8_t pub_key_prefix[6] = {};
@@ -29,22 +28,15 @@ struct MapPlotMarker
     bool is_self = false;
 };
 
-struct MapPlotUi
-{
-    static constexpr int kMaxMarkers = 40;
-    bool drawable = false;
-    int contact_gps_count = 0;
-    int marker_count = 0;
-    double center_lat = 0.0;
-    double center_lon = 0.0;
-    uint32_t span_w_m = 0;
-    uint32_t span_h_m = 0;
-    MapPlotMarker markers[kMaxMarkers];
+struct MapPlotUi {
+    static constexpr int kMaxMarkers = 32;
+    uint8_t online_count = 0;
+    uint8_t marker_count = 0;
+    MapPlotMarker markers[kMaxMarkers] = {};
 };
 #endif
 
-enum class FindFriendTargetFreshness : uint8_t
-{
+enum class FindFriendTargetFreshness : uint8_t {
     NotApplicable = 0,
     Unknown,
     Fresh,
@@ -52,16 +44,14 @@ enum class FindFriendTargetFreshness : uint8_t
     Stale,
 };
 
-enum class FindFriendConfidence : uint8_t
-{
+enum class FindFriendConfidence : uint8_t {
     Unavailable = 0,
     Low,
     Medium,
     High,
 };
 
-struct FindFriendUi
-{
+struct FindFriendUi {
     bool compass_hw = false;
     bool heading_valid = false;
     float heading_deg = 0.f;
@@ -96,13 +86,11 @@ struct FindFriendUi
     FindFriendConfidence confidence = FindFriendConfidence::Unavailable;
 };
 
-class IBizFacade : public ui::IFeedback
-{
+class IBizFacade : public ui::IFeedback {
   public:
     virtual ~IBizFacade() = default;
 
-    enum class ForwardingApplyResult : uint8_t
-    {
+    enum class ForwardingApplyResult : uint8_t {
         Ok,
         InvalidSelection,
         InvalidRadioParams,
@@ -112,8 +100,7 @@ class IBizFacade : public ui::IFeedback
 
     // Snapshot types returned to screens. Keep the facade as the single UI/business
     // boundary; these groups are organizational and are not separate interfaces.
-    struct RadioStatus
-    {
+    struct RadioStatus {
         float freq_mhz = 0.0f;
         float bw_khz = 0.0f;
         int cr = 0;
@@ -127,8 +114,7 @@ class IBizFacade : public ui::IFeedback
         bool forwarding_enabled = false;
     };
 
-    struct GpsStatus
-    {
+    struct GpsStatus {
         bool enabled = false;
         bool available = false;
         bool powered = false;
@@ -141,8 +127,18 @@ class IBizFacade : public ui::IFeedback
         double lat_deg = 0.0;
         double lon_deg = 0.0;
         double alt_m = 0.0;
-        /** GPS ground speed in km/h, or a negative value when unavailable. */
-        float speed_kph = -1.0f;
+        float speed_kph = 0.0f;
+    };
+
+    struct TeamStatus {
+        bool is_leader = false;
+        bool has_team = false;
+        bool join_window_open = false;
+        int member_count = 0;
+        uint16_t member_revision = 0;
+        int pair_state = 0;
+        uint16_t pairing_code = 0;
+        uint64_t pending_session = 0;
     };
 
     // Messaging data and commands.
@@ -166,28 +162,24 @@ class IBizFacade : public ui::IFeedback
     // Read-only device and screen state.
     virtual RadioStatus radioStatus() const = 0;
     virtual GpsStatus gpsStatus() const = 0;
+    virtual TeamStatus teamStatus() const = 0;
     virtual bool buzzerEnabled() const = 0;
-    virtual uint8_t buzzerVolumeLevel() const
-    {
+    virtual uint8_t buzzerVolumeLevel() const {
         return 3;
     }
-    virtual bool isLnaCanControl() const
-    {
+    virtual bool isLnaCanControl() const {
         return false;
     }
-    virtual bool lnaEnabled() const
-    {
+    virtual bool lnaEnabled() const {
         return false;
     }
     virtual bool companionLinkEnabled() const = 0;
-    virtual const char *nodeName() const = 0;
     virtual void formatNodeIdLine(char *buf, size_t buf_len) const = 0;
     virtual int messageCount() const = 0;
     virtual bool hasCompanionConnection() const = 0;
     virtual uint32_t companionPairingPin() const = 0;
 
-    struct RecentlyHeardItem
-    {
+    struct RecentlyHeardItem {
         char name[32]{};
         int32_t age_seconds = 0;
     };
@@ -196,45 +188,60 @@ class IBizFacade : public ui::IFeedback
     virtual const CompassUi &compassUi() const = 0;
     virtual FindFriendUi findFriendUi() const = 0;
 
-    virtual bool teamIsLeader() const { return false; }
-    virtual bool teamHasTeam() const { return false; }
-    virtual int teamMemberCount() const { return 0; }
-    virtual int teamOnlineCount() const { return 0; }
-    virtual int teamPairState() const { return 0; }
-    virtual uint16_t teamPairingCode() const { return 0; }
+    virtual int teamOnlineCount() const = 0;
+
     virtual bool teamPendingDetails(char *name, size_t length, uint64_t &session,
-                                    uint16_t &code) const
-    {
+                                    uint16_t &code) const {
         session = 0;
         code = 0;
-        if (name && length > 0)
-            name[0] = '\0';
+        if (name && length > 0) name[0] = '\0';
         return false;
     }
-    virtual int teamOfferCount() const { return 0; }
-    virtual bool teamOfferLabel(int index, char *label, size_t length) const
-    {
+    virtual int teamOfferCount() const {
+        return 0;
+    }
+    virtual bool teamOfferLabel(int index, char *label, size_t length) const {
         (void)index;
-        if (label && length > 0)
-            label[0] = '\0';
+        if (label && length > 0) label[0] = '\0';
         return false;
     }
-    virtual bool teamSelectOffer(int index) { (void)index; return false; }
-    virtual bool teamStartSearch() { return false; }
-    virtual bool teamPrimaryAction() { return false; }
-    virtual bool teamSetActive(bool active) { (void)active; return false; }
-    virtual bool teamSetJoining(bool open) { (void)open; return false; }
-    virtual bool teamMessageTarget(int member_index, ui::UiSendMessageTarget &target) const
-    { (void)member_index; (void)target; return false; }
+    virtual bool teamSelectOffer(int index) {
+        (void)index;
+        return false;
+    }
+    virtual bool teamStartSearch() {
+        return false;
+    }
+    virtual bool teamSetActive(bool active) {
+        (void)active;
+        return false;
+    }
+    virtual bool teamSetJoining(bool open) {
+        (void)open;
+        return false;
+    }
+    virtual bool teamMessageTarget(int member_index, ui::UiSendMessageTarget &target) const {
+        (void)member_index;
+        (void)target;
+        return false;
+    }
     virtual bool mapMessageTarget(const uint8_t *prefix, size_t length,
-                                  ui::UiSendMessageTarget &target) const
-    { (void)prefix; (void)length; (void)target; return false; }
-    virtual uint64_t teamPendingSession() const { return 0; }
-    virtual bool teamJoinWindowOpen() const { return false; }
-    virtual bool teamDecidePending(uint64_t session, bool approve)
-    { (void)session; (void)approve; return false; }
-    virtual bool teamLeave() { return false; }
-    virtual void teamCancel() {}
+                                  ui::UiSendMessageTarget &target) const {
+        (void)prefix;
+        (void)length;
+        (void)target;
+        return false;
+    }
+    virtual bool teamDecidePending(uint64_t session, bool approve) {
+        (void)session;
+        (void)approve;
+        return false;
+    }
+    virtual bool teamLeave() {
+        return false;
+    }
+    virtual void teamCancel() {
+    }
 
     // Location, compass, and find-friend state.
     virtual bool locationShareEnabled() const = 0;
@@ -242,8 +249,7 @@ class IBizFacade : public ui::IFeedback
     virtual int findFriendMode() const = 0;
     virtual void formatFindFriendWaypointInput(char *buf, size_t buf_len) const = 0;
     virtual int findFriendContactCount() const = 0;
-    struct FindFriendContactItem
-    {
+    struct FindFriendContactItem {
         int16_t contact_index = -1;
         char label[32] = {};
     };
@@ -255,54 +261,41 @@ class IBizFacade : public ui::IFeedback
 
     // Device and radio commands.
     virtual bool sendAdvert() = 0;
-    virtual bool toggleGPS() = 0;
     virtual void setGpsEnabled(bool enabled) = 0;
-    virtual void adjustTxPowerDbm(int delta_db) = 0;
-    virtual void adjustSpreadingFactor(int delta) = 0;
     virtual bool sendBroadcast(const char *text, int len) = 0;
     virtual bool sendDirectMessage(const uint8_t pub_key_prefix[6], const char *text) = 0;
     virtual bool sendGroupMessage(int channel_idx, const char *text) = 0;
     virtual void setLoRaBandPresetIndex(int preset_index) = 0;
     virtual ForwardingApplyResult setForwardingEnabled(bool enabled, int frequency_index) = 0;
-    virtual void requestHibernate() = 0;
     virtual void setBuzzerEnabled(bool enabled) = 0;
-    virtual void setBuzzerVolumeLevel(uint8_t level)
-    {
+    virtual void setBuzzerVolumeLevel(uint8_t level) {
         (void)level;
     }
-    virtual bool setLnaEnabled(bool enabled)
-    {
+    virtual bool setLnaEnabled(bool enabled) {
         (void)enabled;
         return false;
     }
     virtual void setCompanionLinkEnabled(bool enabled) = 0;
     virtual bool setFindFriendEnabled(bool enabled) = 0;
-    virtual void setGpsForegroundActive(bool active)
-    {
+    virtual void setGpsForegroundActive(bool active) {
         (void)active;
     }
-    virtual void setMapForegroundActive(bool active)
-    {
+    virtual void setMapForegroundActive(bool active) {
         (void)active;
     }
-    virtual void setFindFriendForegroundActive(bool active)
-    {
+    virtual void setFindFriendForegroundActive(bool active) {
         (void)active;
     }
-    virtual int displayAutoOffIndex() const
-    {
+    virtual int displayAutoOffIndex() const {
         return 0;
     }
-    virtual void setDisplayAutoOffIndex(int index)
-    {
+    virtual void setDisplayAutoOffIndex(int index) {
         (void)index;
     }
-    virtual int displayAutoOffOptionCount() const
-    {
+    virtual int displayAutoOffOptionCount() const {
         return 0;
     }
-    virtual const char *displayAutoOffOptionLabel(int index) const
-    {
+    virtual const char *displayAutoOffOptionLabel(int index) const {
         (void)index;
         return nullptr;
     }
@@ -310,71 +303,40 @@ class IBizFacade : public ui::IFeedback
     virtual bool setFindFriendWaypoint(double lat_deg, double lon_deg) = 0;
     virtual void setFindFriendTargetContactIndex(int index) = 0;
     /** Pick and persist the first contact with a usable stored location. */
-    virtual bool tryAutoPickFindFriendTarget()
-    {
+    virtual bool tryAutoPickFindFriendTarget() {
         return false;
     }
-    virtual void syncFindFriendContactList() = 0;
-    virtual void syncCompassCache() = 0;
-    virtual bool compassHasHardware() const
-    {
+    virtual bool compassHasHardware() const {
         return false;
     }
-    virtual void beginCompassCalibration()
-    {
+    virtual void beginCompassCalibration() {
     }
-    virtual void endCompassCalibration()
-    {
+    virtual void endCompassCalibration() {
     }
-    virtual bool compassHasStoredCalibration() const
-    {
+    virtual bool compassHasStoredCalibration() const {
         return false;
     }
-    virtual bool saveCompassCalibration()
-    {
+    virtual bool saveCompassCalibration() {
         return false;
     }
-    virtual bool restoreCompassCalibration()
-    {
+    virtual bool restoreCompassCalibration() {
         return false;
     }
 
-    virtual bool factoryReset()
-    {
+    virtual bool factoryReset() {
         return false;
     }
-    virtual bool clearUserData()
-    {
+    virtual bool clearUserData() {
         return false;
     }
 
     // GPS track storage controls.
-    virtual bool gpsTrackRecording() const
-    {
+    virtual bool gpsTrackRecording() const {
         return false;
     }
-    virtual bool setGpsTrackRecording(bool enabled)
-    {
+    virtual bool setGpsTrackRecording(bool enabled) {
         (void)enabled;
         return false;
-    }
-    virtual int gpsTrackIntervalIndex() const
-    {
-        return 0;
-    }
-    virtual bool setGpsTrackIntervalIndex(int index)
-    {
-        (void)index;
-        return true;
-    }
-    virtual int gpsTrackIntervalOptionCount() const
-    {
-        return 0;
-    }
-    virtual const char *gpsTrackIntervalOptionLabel(int index) const
-    {
-        (void)index;
-        return nullptr;
     }
 
 #if defined(ENV_INCLUDE_MAP) && ENV_INCLUDE_MAP

@@ -8,6 +8,7 @@ namespace heltec::meshcore::ui
 typedef struct
 {
     lv_obj_t obj;
+    lv_obj_t *content;
 } ht_navigator_t;
 
 extern const lv_obj_class_t ht_navigator_class;
@@ -30,7 +31,6 @@ struct UiNavigationItem
 
 lv_obj_t *ui_navigator_create_grid(lv_obj_t *parent);
 bool ui_navigator_is(lv_obj_t *obj);
-bool ui_navigator_is_grid(lv_obj_t *obj);
 lv_obj_t *ui_navigator_content(lv_obj_t *obj);
 
 } // namespace heltec::meshcore::ui

@@ -1,7 +1,6 @@
-#include "ui/app/ui_app.hpp"
-#include "ui/app/ui_behavior_profile.hpp"
+#include "ui/app/app.hpp"
+#include "ui/app/behavior_profile.hpp"
 #include "ui/core/screen_id.hpp"
-#include "ui/core/ui_deferred_queue.hpp"
 #include "ui/core/ht_event.h"
 #if defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213
 #include "heltec/drivers/display/e213_port.hpp"
@@ -41,7 +40,7 @@ void UiApp::scheduleNavTileCommit(uint8_t tile_idx)
         return;
     stopNavigationAutoCommitTimer();
     _scheduled_nav_tile = tile_idx;
-    if (!defer(
+    if (lv_async_call(
             +[](void *user_data)
             {
                 auto *app = static_cast<UiApp *>(user_data);
@@ -61,7 +60,7 @@ void UiApp::scheduleNavTileCommit(uint8_t tile_idx)
                 }
                 app->closeNavigationPane();
             },
-            this))
+            this) != LV_RES_OK)
     {
         _scheduled_nav_tile = kNoScheduledTile;
     }
@@ -117,7 +116,7 @@ void UiApp::closeNavigationPane()
 
 bool UiApp::initNavigationPane(_lv_obj_t *parent)
 {
-    if (!_navigation.create(parent))
+    if (!_navigation.init(parent, _frame_root))
         return false;
 
 #if defined(UI_NAVIGATION_GRID) && UI_NAVIGATION_GRID

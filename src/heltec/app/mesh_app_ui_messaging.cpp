@@ -2,8 +2,8 @@
 #include "MeshCore.h"
 #include "Utils.h"
 #include "mesh_app_ui.hpp"
-#include "ui/app/ui_app.hpp"
-#include "ui/core/ui_task.hpp"
+#include "ui/app/app.hpp"
+#include "ui/core/task.hpp"
 
 #include <cstdio>
 #include <cstring>

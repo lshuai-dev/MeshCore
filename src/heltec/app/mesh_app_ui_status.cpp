@@ -1,6 +1,6 @@
 #include "HeltecMesh.h"
 #include "mesh_app_ui.hpp"
-#include "ui/core/ui_task.hpp"
+#include "ui/core/task.hpp"
 
 #include <climits>
 #include <cstdint>
@@ -9,11 +9,6 @@
 
 namespace heltec::meshcore::biz
 {
-
-const char *MeshAppUi::nodeName() const
-{
-    return the_mesh.getNodeName();
-}
 
 void MeshAppUi::formatNodeIdLine(char *buf, size_t buf_len) const
 {

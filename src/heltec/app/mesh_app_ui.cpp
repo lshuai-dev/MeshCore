@@ -1,9 +1,9 @@
 #include "mesh_app_ui.hpp"
 
 #include "HeltecMesh.h"
-#include "ui/app/ui_app.hpp"
+#include "ui/app/app.hpp"
 #include "ui/core/app_state_notifier.hpp"
-#include "ui/core/ui_task.hpp"
+#include "ui/core/task.hpp"
 
 namespace heltec::meshcore::biz
 {
@@ -73,7 +73,7 @@ void MeshAppUi::showAlert(const char *text, int duration_ms)
 }
 
 #if !defined(ENV_INCLUDE_COMPASS) || !(ENV_INCLUDE_COMPASS)
-void MeshAppUi::syncCompassCache()
+void MeshAppUi::syncCompassCache() const
 {
 }
 bool MeshAppUi::compassHasHardware() const

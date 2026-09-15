@@ -2,7 +2,7 @@
 
 #include "heltec/app/HeltecMesh.h"
 #include "heltec/ui/images.h"
-#include "ui/core/ui_semantic_classes.hpp"
+#include "ui/core/widget_classes.hpp"
 #if defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213
 #include "heltec/drivers/display/e213_port.hpp"
 #endif
@@ -32,7 +32,7 @@ bool SplashOverlay::create(_lv_obj_t *parent)
     if (!parent)
         return false;
 
-    _root = ht_semantic_create(&ht_splash_overlay_class, parent);
+    _root = ht_class_create(&ht_splash_overlay_class, parent);
     if (!_root)
         return false;
     lv_obj_set_size(_root, lv_pct(100), lv_pct(100));

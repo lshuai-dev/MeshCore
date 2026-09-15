@@ -351,7 +351,7 @@ bool MeshAppUi::findFriendMemberHasGps(int index) const
 int MeshAppUi::resolveFindFriendTargetContactIndex() const
 {
     _ff_target_contact_idx = -1;
-    if (!teamHasTeam())
+    if (!teamStatus().has_team)
     {
         _ff_target_pub_key_valid = false;
         memset(_ff_target_pub_key, 0, sizeof(_ff_target_pub_key));
@@ -424,17 +424,6 @@ void MeshAppUi::setFindFriendTargetContactIndex(int index)
     notifyAppState(heltec::meshcore::ui::AppStateEventType::FindFriendChanged);
 }
 
-void MeshAppUi::syncFindFriendContactList()
-{
-    ensureFindFriendPrefsLoaded();
-    const int previous = _ff_target_contact_idx;
-    const int resolved = resolveFindFriendTargetContactIndex();
-    if (resolved != previous)
-    {
-        notifyAppState(heltec::meshcore::ui::AppStateEventType::FindFriendChanged);
-    }
-}
-
 bool MeshAppUi::tryAutoPickFindFriendTarget()
 {
     ensureFindFriendPrefsLoaded();
@@ -461,7 +450,15 @@ bool MeshAppUi::tryAutoPickFindFriendTarget()
 FindFriendUi MeshAppUi::findFriendUi() const
 {
     ensureFindFriendPrefsLoaded();
+    syncCompassCache();
     FindFriendUi u{};
+    const CompassUi &cm = _compass_ui;
+    u.compass_hw = cm.has_hardware;
+    u.compass_quality = cm.quality;
+    u.heading_valid = cm.heading_valid;
+    u.heading_deg = nav::FindFriendNavEstimator::wrapHeading360(
+        cm.heading_deg + static_cast<float>(COMPASS_HEADING_OFFSET_DEG));
+    u.declination_configured = kCompassDeclinationConfigured;
     if (!_ff_enabled)
     {
         resetFindFriendNavState();
@@ -526,11 +523,6 @@ FindFriendUi MeshAppUi::findFriendUi() const
     }
 
     u.target_valid = have_tgt;
-
-    const CompassUi &cm = _compass_ui;
-    u.compass_hw = cm.has_hardware;
-    u.compass_quality = cm.quality;
-    u.declination_configured = kCompassDeclinationConfigured;
 
     nav::FindFriendNavInput input{};
     input.now_ms = millis();

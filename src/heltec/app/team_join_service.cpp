@@ -9,18 +9,12 @@
 #if HELTEC_TEAM_FEATURE
 
 #include "app/HeltecMesh.h"
-#include "app/team_log.hpp"
 
 #include <Arduino.h>
 #include <ChaChaPoly.h>
 #include <HKDF.h>
 #include <SHA256.h>
 #include <string.h>
-#if HELTEC_TEAM_LOG && defined(ESP32)
-#include <esp_system.h>
-#include <freertos/FreeRTOS.h>
-#include <freertos/task.h>
-#endif
 
 namespace heltec::meshcore::team
 {
@@ -126,13 +120,6 @@ void TeamJoinService::begin(HeltecMesh &mesh, TeamService &team)
     _team = &team;
     _state = JoinState::Idle;
     clearAllSessions();
-    TEAM_INFO("join service begin role=%u", HELTEC_TEAM_ROLE);
-#if HELTEC_TEAM_LOG && defined(ESP32)
-    TEAM_LOG("boot reset_reason=%u heap=%lu stack_hwm=%lu",
-             static_cast<unsigned>(esp_reset_reason()),
-             static_cast<unsigned long>(ESP.getFreeHeap()),
-             static_cast<unsigned long>(uxTaskGetStackHighWaterMark(nullptr)));
-#endif
 }
 
 JoinState TeamJoinService::state() const
@@ -149,16 +136,15 @@ bool TeamJoinService::sendJoin(const uint8_t *data, size_t length, uint32_t dela
 {
     if (!_mesh || !data || length < 2 || length > MAX_GROUP_DATA_LENGTH)
     {
-        TEAM_INFO("join tx rejected bytes=%u", static_cast<unsigned int>(length));
         return false;
     }
     ChannelDetails channel{};
     if (!_mesh->getChannel(HELTEC_TEAM_JOIN_CHANNEL_INDEX, channel))
+    {
         return false;
+    }
     const bool sent = _mesh->sendGroupDataZeroHop(channel.channel, kDataTypeDev, data,
                                                   static_cast<int>(length), delay_ms);
-    TEAM_LOG("join tx subtype=%u bytes=%u delay_ms=%lu queued=%u", data[1],
-             static_cast<unsigned int>(length), static_cast<unsigned long>(delay_ms), sent);
     return sent;
 }
 
@@ -168,22 +154,25 @@ bool TeamJoinService::openJoinWindow()
     return false;
 #else
     if (!_team || !_team->hasTeam())
+    {
         return false;
-    if (_join_window_end_ms != 0)
+    }
+    if (_join_window_open)
         closeJoinWindow();
     else
         clearAllSessions();
-    _join_window_end_ms = millis() + HELTEC_TEAM_JOIN_WINDOW_SEC * 1000UL;
+    _join_window_open = true;
     _state = JoinState::Idle;
-    TEAM_INFO("join window open seconds=%u", HELTEC_TEAM_JOIN_WINDOW_SEC);
+    MESH_DEBUG_PRINTLN("[team:leader] join window opened");
     return true;
 #endif
 }
 
 void TeamJoinService::closeJoinWindow()
 {
-    _join_window_end_ms = 0;
+    _join_window_open = false;
 #if HELTEC_TEAM_ROLE == 1
+    MESH_DEBUG_PRINTLN("[team:leader] join window closed");
     for (Session &session : _sessions)
     {
         if (session.occupied && session.request_received && !session.decision_sent)
@@ -196,23 +185,15 @@ void TeamJoinService::closeJoinWindow()
 #endif
     if (_state == JoinState::PendingApproval || _state == JoinState::SendingCredentials)
         _state = JoinState::TimedOut;
-    TEAM_INFO("join window closed state=%u", static_cast<unsigned int>(_state));
 }
 
 bool TeamJoinService::joinWindowOpen() const
 {
 #if HELTEC_TEAM_ROLE == 1
-    return _join_window_end_ms != 0 && !expired(millis(), _join_window_end_ms);
+    return _join_window_open;
 #else
     return false;
 #endif
-}
-
-uint16_t TeamJoinService::joinWindowRemainingSec() const
-{
-    if (!joinWindowOpen())
-        return 0;
-    return static_cast<uint16_t>((_join_window_end_ms - millis() + 999UL) / 1000UL);
 }
 
 bool TeamJoinService::discoverTeams()
@@ -228,7 +209,6 @@ bool TeamJoinService::discoverTeams()
     _next_discover_ms = millis();
     _discover_count = 0;
     _state = JoinState::Searching;
-    TEAM_INFO("discovery started request=%08lX", static_cast<unsigned long>(_request_id));
     return true;
 #endif
 }
@@ -237,15 +217,14 @@ bool TeamJoinService::sendDiscover()
 {
     uint8_t frame[6] = { kProtocolVersion, static_cast<uint8_t>(Subtype::JoinDiscover) };
     put_u32(frame + 2, _request_id);
-    return sendJoin(frame, sizeof(frame));
+    const bool sent = sendJoin(frame, sizeof(frame));
+    return sent;
 }
 
 void TeamJoinService::poll()
 {
     const uint32_t now = millis();
 #if HELTEC_TEAM_ROLE == 1
-    if (_join_window_end_ms != 0 && expired(now, _join_window_end_ms))
-        closeJoinWindow();
     for (Session &session : _sessions)
     {
         // RX only records the request. Build/encrypt the offer after RX has unwound.
@@ -253,14 +232,7 @@ void TeamJoinService::poll()
             !expired(now, session.expires_ms) && joinWindowOpen())
         {
             session.offer_pending = false;
-#if HELTEC_TEAM_LOG && defined(ESP32)
-            TEAM_LOG("offer poll heap=%lu stack_hwm=%lu",
-                     static_cast<unsigned long>(ESP.getFreeHeap()),
-                     static_cast<unsigned long>(uxTaskGetStackHighWaterMark(nullptr)));
-#endif
-            const bool sent = sendOffer(session);
-            TEAM_LOG("offer poll complete queued=%u", sent ? 1U : 0U);
-            (void)sent;
+            (void)sendOffer(session);
         }
         if (session.occupied && expired(now, session.expires_ms))
         {
@@ -289,7 +261,8 @@ void TeamJoinService::poll()
         }
         else if (_discover_count < 3 && expired(now, _next_discover_ms))
         {
-            if (sendDiscover())
+            const bool sent = sendDiscover();
+            if (sent)
                 ++_discover_count;
             _next_discover_ms = now + 4000UL + _mesh->getRNG()->nextInt(0, 1501);
         }
@@ -305,9 +278,8 @@ void TeamJoinService::poll()
 
 void TeamJoinService::handleJoinData(const uint8_t *data, size_t length)
 {
-    TEAM_LOG("join rx subtype=%u bytes=%u", static_cast<unsigned int>(frame_subtype(data, length)),
-             static_cast<unsigned int>(length));
-    switch (frame_subtype(data, length))
+    const Subtype subtype = frame_subtype(data, length);
+    switch (subtype)
     {
     case Subtype::JoinDiscover:
         receiveDiscover(data, length);
@@ -402,12 +374,18 @@ void TeamJoinService::clearMemberEphemeral()
 void TeamJoinService::receiveDiscover(const uint8_t *data, size_t length)
 {
 #if HELTEC_TEAM_ROLE == 1
-    TEAM_LOG("discover rx begin data=%p length=%u window=%u mesh=%p team=%p",
-             static_cast<const void *>(data), static_cast<unsigned>(length),
-             joinWindowOpen() ? 1U : 0U, static_cast<void *>(_mesh),
-             static_cast<void *>(_team));
-    if (!_mesh || !_team || !data || !joinWindowOpen() || length != 6)
+    if (!_mesh || !_team || !data)
+    {
         return;
+    }
+    if (!joinWindowOpen())
+    {
+        return;
+    }
+    if (length != 6)
+    {
+        return;
+    }
     const uint32_t now = millis();
     if (_discover_rate_window_ms == 0 ||
         now - _discover_rate_window_ms >= kDiscoverRateWindowMs)
@@ -424,20 +402,13 @@ void TeamJoinService::receiveDiscover(const uint8_t *data, size_t length)
     _last_discover_rx_ms = now;
     ++_discover_rate_count;
     increment(_stats.discover_rx);
-#if HELTEC_TEAM_LOG && defined(ESP32)
-    TEAM_LOG("discover rx heap=%lu stack_hwm=%lu",
-             static_cast<unsigned long>(ESP.getFreeHeap()),
-             static_cast<unsigned long>(uxTaskGetStackHighWaterMark(nullptr)));
-#endif
     const uint32_t request_id = get_u32(data + 2);
-    TEAM_LOG("discover request=%08lX", static_cast<unsigned long>(request_id));
     Session *session = findSessionByRequest(request_id);
     if (!session)
     {
         session = allocateSession();
         if (!session)
         {
-            TEAM_INFO("discover dropped: no session");
             return;
         }
         session->request_id = request_id;
@@ -447,11 +418,11 @@ void TeamJoinService::receiveDiscover(const uint8_t *data, size_t length)
             session->session_id = 1; // Zero is the UI's no-pending-session sentinel.
         _mesh->getRNG()->random(session->leader_nonce, sizeof(session->leader_nonce));
         session->expires_ms = millis() + kSessionDurationMs;
-        TEAM_LOG("discover session allocated id=%08lX", static_cast<unsigned long>(session->session_id));
     }
     session->offer_pending = true;
-    TEAM_LOG("discover accepted request=%08lX offer deferred",
-             static_cast<unsigned long>(request_id));
+    MESH_DEBUG_PRINTLN("[team:leader] discover accepted request=%08lX session=%08lX",
+                       static_cast<unsigned long>(request_id),
+                       static_cast<unsigned long>(session->session_id));
 #else
     (void)data;
     (void)length;
@@ -465,17 +436,12 @@ bool TeamJoinService::sendOffer(Session &session)
     return false;
 #else
     if (!_mesh || !_team)
+    {
         return false;
+    }
     const TeamCredentials &credentials = _team->credentials();
-    TEAM_LOG("offer build request=%08lX session=%08lX name_len=%u",
-             static_cast<unsigned long>(session.request_id),
-             static_cast<unsigned long>(session.session_id),
-             static_cast<unsigned>(credentials.name_len));
-    TEAM_LOG("offer tx begin frame_cap=%u", 102U);
     if (credentials.name_len > kMaxNameBytes)
     {
-        TEAM_INFO("offer rejected invalid name length=%u",
-                 static_cast<unsigned>(credentials.name_len));
         return false;
     }
     uint8_t frame[102] = {};
@@ -496,7 +462,6 @@ bool TeamJoinService::sendOffer(Session &session)
     memcpy(frame + offset, credentials.name, credentials.name_len);
     offset += credentials.name_len;
     const bool sent = sendJoin(frame, offset, _mesh->getRNG()->nextInt(0, 2001));
-    TEAM_LOG("offer tx end bytes=%u sent=%u", static_cast<unsigned>(offset), sent ? 1U : 0U);
     if (sent)
         increment(_stats.offer_tx);
     return sent;
@@ -507,8 +472,16 @@ void TeamJoinService::receiveOffer(const uint8_t *data, size_t length)
 {
 #if HELTEC_TEAM_ROLE == 0
     constexpr size_t kFixed = 2 + 4 + 8 + 8 + kPublicKeySize + kNonceSize + 1;
-    if ((_state != JoinState::Searching && _state != JoinState::OffersAvailable) ||
-        length < kFixed || get_u32(data + 2) != _request_id)
+    if (_state != JoinState::Searching && _state != JoinState::OffersAvailable)
+    {
+        return;
+    }
+    if (length < kFixed)
+    {
+        return;
+    }
+    const uint32_t request_id = get_u32(data + 2);
+    if (request_id != _request_id)
     {
         return;
     }
@@ -522,11 +495,12 @@ void TeamJoinService::receiveOffer(const uint8_t *data, size_t length)
     for (uint8_t i = 0; i < _offer_count; ++i)
     {
         if (memcmp(_offers[i].leader_public_key, leader_key, kPublicKeySize) == 0)
+        {
             return;
+        }
     }
     if (_offer_count >= HELTEC_TEAM_JOIN_MAX_SESSIONS)
     {
-        TEAM_INFO("offer dropped: table full");
         return;
     }
     TeamOffer &offer = _offers[_offer_count++];
@@ -538,10 +512,6 @@ void TeamJoinService::receiveOffer(const uint8_t *data, size_t length)
     memcpy(offer.name, data + kFixed, name_len);
     offer.name[name_len] = '\0';
     _state = JoinState::OffersAvailable;
-    TEAM_INFO("offer accepted index=%u team=%08lX leader=%02X%02X%02X",
-             static_cast<unsigned int>(_offer_count - 1),
-             static_cast<unsigned long>(offer.team_id), offer.leader_public_key[0],
-             offer.leader_public_key[1], offer.leader_public_key[2]);
 #else
     (void)data;
     (void)length;
@@ -594,12 +564,10 @@ bool TeamJoinService::selectOffer(size_t index)
     {
         _state = JoinState::Error;
         clearMemberEphemeral();
-        TEAM_INFO("offer selection failed index=%u", static_cast<unsigned int>(index));
         return false;
     }
     _state = JoinState::WaitingForApproval;
     _decision_end_ms = millis() + kSessionDurationMs;
-    TEAM_INFO("request sent index=%u sas_ready=1", static_cast<unsigned int>(index));
     return true;
 #endif
 }
@@ -661,9 +629,6 @@ void TeamJoinService::receiveRequest(const uint8_t *data, size_t length)
                     session->member_nonce, decision_key, ack_key, transcript,
                     session->pairing_code))
     {
-        TEAM_INFO("request rejected: key derivation failed member=%02X%02X%02X",
-                 session->member_public_key[0], session->member_public_key[1],
-                 session->member_public_key[2]);
         clearSession(*session);
         return;
     }
@@ -675,9 +640,6 @@ void TeamJoinService::receiveRequest(const uint8_t *data, size_t length)
     session->expires_ms = millis() + kSessionDurationMs;
     _pairing_code = session->pairing_code;
     _state = JoinState::PendingApproval;
-    TEAM_INFO("request pending member=%02X%02X%02X sas_ready=1",
-             session->member_public_key[0], session->member_public_key[1],
-             session->member_public_key[2]);
 #else
     (void)data;
     (void)length;
@@ -716,15 +678,12 @@ bool TeamJoinService::approvePending(uint64_t session_id)
         return false;
     if (!sendDecision(*session, true))
     {
-        TEAM_INFO("approval failed");
         return false;
     }
     session->decision_sent = true;
     session->approved = true;
     increment(_stats.approved);
     _state = JoinState::SendingCredentials;
-    TEAM_INFO("approval sent member=%02X%02X%02X", session->member_public_key[0],
-             session->member_public_key[1], session->member_public_key[2]);
     return true;
 #else
     (void)session_id;
@@ -740,8 +699,6 @@ bool TeamJoinService::rejectPending(uint64_t session_id)
         session->decision_sent || static_cast<int32_t>(millis() - session->expires_ms) >= 0)
         return false;
     const bool sent = sendDecision(*session, false);
-    TEAM_INFO("rejection sent member=%02X%02X%02X queued=%u", session->member_public_key[0],
-             session->member_public_key[1], session->member_public_key[2], sent);
     clearSession(*session);
     _state = JoinState::Rejected;
     increment(_stats.rejected);
@@ -906,7 +863,6 @@ void TeamJoinService::receiveDecision(const uint8_t *data, size_t length)
         increment(_stats.aead_error);
         _state = JoinState::Error;
         clearMemberEphemeral();
-        TEAM_INFO("decision rejected: authentication failed");
         return;
     }
     if (plain[0] == kDecisionReject)
@@ -915,7 +871,6 @@ void TeamJoinService::receiveDecision(const uint8_t *data, size_t length)
         clearMemberEphemeral();
         _state = JoinState::Rejected;
         increment(_stats.rejected);
-        TEAM_INFO("decision received: rejected");
         return;
     }
     if (plain[0] != kDecisionApprove || cipher_len < 1 + 8 + 4 + 32 + 1 + 32)
@@ -955,14 +910,12 @@ void TeamJoinService::receiveDecision(const uint8_t *data, size_t length)
         secure_clear(&credentials, sizeof(credentials));
         _state = JoinState::Error;
         clearMemberEphemeral();
-        TEAM_INFO("decision rejected: credentials invalid");
         return;
     }
     (void)sendAck(credentials.key_version);
     secure_clear(&credentials, sizeof(credentials));
     clearMemberEphemeral();
     _state = JoinState::Joined;
-    TEAM_INFO("decision accepted: joined ack attempted; status/sync scheduled");
 #else
     (void)data;
     (void)length;
@@ -1037,15 +990,12 @@ void TeamJoinService::receiveAck(const uint8_t *data, size_t length)
     secure_clear(plain, sizeof(plain));
     if (valid)
     {
-        TEAM_LOG("ack authenticated member=%02X%02X%02X", session->member_public_key[0],
-                 session->member_public_key[1], session->member_public_key[2]);
         clearSession(*session);
         _state = JoinState::Joined;
     }
     else
     {
         increment(_stats.aead_error);
-        TEAM_INFO("ack rejected: authentication/version failed");
     }
 #else
     (void)data;
@@ -1065,7 +1015,6 @@ void TeamJoinService::cancel()
     _discover_rate_count = 0;
     clearAllSessions();
     _state = JoinState::Idle;
-    TEAM_INFO("join operation cancelled");
 }
 
 } // namespace heltec::meshcore::team

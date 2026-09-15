@@ -88,6 +88,7 @@ class TeamService
     void resetStats() { _stats = TeamStats{}; }
     void noteWrongChannel();
     uint16_t changeSequence() const { return _change_sequence; }
+    uint16_t memberRevision() const { return _member_revision; }
     void pinMember(const uint8_t public_key[kPublicKeySize]);
 
   private:
@@ -131,6 +132,7 @@ class TeamService
     bool _sent_valid_location = false;
     TeamStats _stats{};
     uint16_t _change_sequence = 0;
+    uint16_t _member_revision = 0;
     uint8_t _pinned_member_id[kSenderIdSize] = {};
     SyncSeen _sync_seen[4] = {};
 };

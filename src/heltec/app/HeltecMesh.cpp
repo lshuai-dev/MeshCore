@@ -2,7 +2,6 @@
 
 #include "app/geodesic.hpp"
 #include "app/power_mgr.hpp"
-#include "app/team_log.hpp"
 #include "config/NodePrefs.h"
 #include "ui/core/app_state_notifier.hpp"
 
@@ -1129,14 +1128,6 @@ int HeltecMesh::getRecentlyHeard(AdvertPath dest[], int max_num)
 
 void HeltecMesh::onContactPathUpdated(const ContactInfo &contact)
 {
-#if HELTEC_TEAM_FEATURE
-    if (&contact == &_team_message_peer)
-    {
-        TEAM_LOG("dm path updated peer=%02X%02X%02X", contact.id.pub_key[0],
-                 contact.id.pub_key[1], contact.id.pub_key[2]);
-        return; // Transient Team routes must not schedule a contacts Flash write.
-    }
-#endif
     out_frame[0] = PUSH_CODE_PATH_UPDATED;
     memcpy(&out_frame[1], contact.id.pub_key, PUB_KEY_SIZE);
     _serial->writeFrame(out_frame, 1 + PUB_KEY_SIZE); // NOTE: app may not be connected
@@ -1145,28 +1136,42 @@ void HeltecMesh::onContactPathUpdated(const ContactInfo &contact)
 }
 
 #if HELTEC_TEAM_FEATURE
-const uint8_t *HeltecMesh::extraPeerKey(int index) const
+bool HeltecMesh::syncTeamMemberContact(const uint8_t *public_key, const char *name,
+                                       size_t name_len)
 {
-    const auto *member = teamService().memberSlot(static_cast<size_t>(index));
-    return member ? member->public_key : nullptr;
+    if (!public_key)
+        return false;
+    ContactInfo *contact = lookupContactByPubKey(public_key, PUB_KEY_SIZE);
+    bool changed = false;
+    if (!contact)
+    {
+        ContactInfo candidate{};
+        memcpy(candidate.id.pub_key, public_key, PUB_KEY_SIZE);
+        candidate.type = ADV_TYPE_CHAT;
+        candidate.out_path_len = OUT_PATH_UNKNOWN;
+        contact = allocateContactSlot(false);
+        if (!contact)
+        {
+            return false;
+        }
+        *contact = candidate;
+        changed = true;
+    }
+    const size_t bounded_len = name_len < sizeof(contact->name) - 1U ? name_len :
+                               sizeof(contact->name) - 1U;
+    if (name && strncmp(contact->name, name, bounded_len) != 0)
+    {
+        memset(contact->name, 0, sizeof(contact->name));
+        memcpy(contact->name, name, bounded_len);
+        changed = true;
+    }
+    if (changed)
+    {
+        dirty_contacts_expiry = futureMillis(LAZY_CONTACTS_WRITE_DELAY);
+    }
+    return true;
 }
 
-ContactInfo *HeltecMesh::extraPeerContact(int index)
-{
-    const auto *member = teamService().memberSlot(static_cast<size_t>(index));
-    if (!member)
-        return nullptr;
-    // One scratch peer, shared by TX and RX; ACKs retain keys, never its address.
-    if (memcmp(_team_message_peer.id.pub_key, member->public_key, PUB_KEY_SIZE) != 0)
-    {
-        _team_message_peer = ContactInfo{};
-        memcpy(_team_message_peer.id.pub_key, member->public_key, PUB_KEY_SIZE);
-        _team_message_peer.out_path_len = OUT_PATH_UNKNOWN;
-    }
-    snprintf(_team_message_peer.name, sizeof(_team_message_peer.name), "%.*s",
-             member->name_len, member->name);
-    return &_team_message_peer;
-}
 #endif
 
 ContactInfo *HeltecMesh::lookupMessagePeer(const uint8_t *key, size_t key_len)
@@ -1176,14 +1181,6 @@ ContactInfo *HeltecMesh::lookupMessagePeer(const uint8_t *key, size_t key_len)
     ContactInfo *contact = lookupContactByPubKey(key, key_len);
     if (contact)
         return contact;
-#if HELTEC_TEAM_FEATURE
-    for (int index = 0; index < extraPeerCount(); ++index)
-    {
-        const uint8_t *peer_key = extraPeerKey(index);
-        if (peer_key && memcmp(peer_key, key, key_len) == 0)
-            return extraPeerContact(index);
-    }
-#endif
     return nullptr;
 }
 
@@ -1194,9 +1191,6 @@ void HeltecMesh::trackExpectedAck(uint32_t expected_ack, ContactInfo *contact)
     expected_ack_table[next_ack_idx].msg_sent = _ms->getMillis();
     expected_ack_table[next_ack_idx].ack = expected_ack;
     memcpy(expected_ack_table[next_ack_idx].public_key, contact->id.pub_key, PUB_KEY_SIZE);
-    TEAM_LOG("dm queued peer=%02X%02X%02X ack=%08lX", contact->id.pub_key[0],
-             contact->id.pub_key[1], contact->id.pub_key[2],
-             static_cast<unsigned long>(expected_ack));
     _pending_ack_index = static_cast<int8_t>(next_ack_idx);
     next_ack_idx = (next_ack_idx + 1) % EXPECTED_ACK_TABLE_SIZE;
 }
@@ -1217,8 +1211,6 @@ ContactInfo *HeltecMesh::processAck(const uint8_t *data)
 
             // NOTE: the same ACK can be received multiple times!
             expected_ack_table[i].ack = 0; // clear expected hash, now that we have received ACK
-            TEAM_LOG("dm ack peer=%02X%02X%02X", expected_ack_table[i].public_key[0],
-                     expected_ack_table[i].public_key[1], expected_ack_table[i].public_key[2]);
             if (_pending_ack_index == i)
                 _pending_ack_index = -1;
             return lookupMessagePeer(expected_ack_table[i].public_key, PUB_KEY_SIZE);
@@ -1334,8 +1326,6 @@ void HeltecMesh::sendFloodScoped(const mesh::GroupChannel &channel, mesh::Packet
 void HeltecMesh::onMessageRecv(const ContactInfo &from, mesh::Packet *pkt,
                                uint32_t sender_timestamp, const char *text)
 {
-    TEAM_LOG("dm rx peer=%02X%02X%02X", from.id.pub_key[0], from.id.pub_key[1],
-             from.id.pub_key[2]);
     markConnectionActive(from); // in case this is from a server, and we have a connection
     queueMessage(from, TXT_TYPE_PLAIN, pkt, sender_timestamp, nullptr, 0, text);
 }
@@ -1353,12 +1343,7 @@ void HeltecMesh::onSignedMessageRecv(const ContactInfo &from, mesh::Packet *pkt,
 {
     markConnectionActive(from);
     // from.sync_since change needs to be persisted
-#if HELTEC_TEAM_FEATURE
-    if (&from != &_team_message_peer)
-#endif
-    {
-        dirty_contacts_expiry = futureMillis(LAZY_CONTACTS_WRITE_DELAY);
-    }
+    dirty_contacts_expiry = futureMillis(LAZY_CONTACTS_WRITE_DELAY);
     queueMessage(from, TXT_TYPE_SIGNED_PLAIN, pkt, sender_timestamp, sender_prefix, 4, text);
 }
 
@@ -1735,12 +1720,7 @@ void HeltecMesh::onSendTimeout()
     if (contact && contact->out_path_len != OUT_PATH_UNKNOWN)
     {
         contact->out_path_len = OUT_PATH_UNKNOWN;
-#if HELTEC_TEAM_FEATURE
-        if (contact != &_team_message_peer)
-#endif
-        {
-            dirty_contacts_expiry = futureMillis(LAZY_CONTACTS_WRITE_DELAY);
-        }
+        dirty_contacts_expiry = futureMillis(LAZY_CONTACTS_WRITE_DELAY);
     }
     _pending_ack_index = -1;
 }

@@ -2,7 +2,7 @@
 #include "config/LoRaBandPresets.h"
 #include "config/NodePrefs.h"
 #include "mesh_app_ui.hpp"
-#include "ui/app/ui_app.hpp"
+#include "ui/app/app.hpp"
 
 #include <Arduino.h>
 #include <target.h>

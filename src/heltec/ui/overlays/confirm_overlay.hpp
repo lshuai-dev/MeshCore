@@ -24,14 +24,14 @@ class ConfirmOverlay final : public DialogOverlay
     }
 
     void setRequest(UiConfirmAction action);
+    void onEnter() override;
     UiConfirmAction action() const { return _action; }
     uint64_t teamSession() const { return _team_session; }
 
   protected:
-    _lv_obj_t *create(_lv_obj_t *parent) override;
+    bool buildSurface() override;
 
   private:
-    _lv_obj_t *focusTarget() const override;
     bool onKey(uint32_t key) override;
     void onBackdropPressed() override;
 
@@ -43,6 +43,7 @@ class ConfirmOverlay final : public DialogOverlay
     UiConfirmAction _action = UiConfirmAction::FactoryReset;
     char _body_text[80] = {};
     uint64_t _team_session = 0;
+    uint32_t _entered_ms = 0;
 };
 
 } // namespace heltec::meshcore::ui

@@ -1,7 +1,7 @@
 #if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
 #include "compass_dial_widget.hpp"
-#include "ui/app/ui_theme.hpp"
-#include "ui/theme/ui_widget_theme.hpp"
+#include "ui/app/theme.hpp"
+#include "ui/theme/widget_theme.hpp"
 
 namespace heltec::meshcore::ui
 {
@@ -32,8 +32,8 @@ void on_ring_draw(lv_event_t *e)
     const lv_coord_t cx = dial->side / 2;
     const lv_coord_t ax = (lv_coord_t)(area.x1 + cx);
     const lv_coord_t ay = (lv_coord_t)(area.y1 + cx);
-    const float hdg = (float)dial->ring_heading_tenths / 10.f;
-    compass_draw_dial_ring(draw_ctx, ax, ay, dial->side, hdg, ui_color_fg_on_dark());
+    compass_draw_dial_ring(draw_ctx, ax, ay, dial->side, dial->ring_heading_tenths,
+                           ui_color_fg_on_dark());
 }
 
 void on_needle_draw(lv_event_t *e)
@@ -57,7 +57,8 @@ void on_needle_draw(lv_event_t *e)
         if (dial->friend_direction_valid)
         {
             const lv_coord_t needle_r = (lv_coord_t)(dial->side / 2 - 4);
-            compass_draw_friend_needle(draw_ctx, ax, ay, needle_r, dial->friend_turn_deg,
+            compass_draw_friend_needle(draw_ctx, ax, ay, needle_r,
+                                       dial->friend_turn_tenths,
                                        dial->friend_gps_fix, dial->friend_on_target);
         }
         if (dial->friend_near_target)
@@ -92,7 +93,7 @@ bool CompassDialWidget::create(lv_obj_t *parent_row)
     if (!parent_row)
         return false;
 
-    center_col = ht_semantic_create(&ht_compass_dial_center_class, parent_row);
+    center_col = lv_obj_create(parent_row);
     if (!center_col)
         return false;
     lv_obj_set_height(center_col, lv_pct(100));
@@ -102,25 +103,23 @@ bool CompassDialWidget::create(lv_obj_t *parent_row)
                           LV_FLEX_ALIGN_CENTER);
     lv_obj_clear_flag(center_col, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_add_flag(center_col, LV_OBJ_FLAG_OVERFLOW_VISIBLE);
+    ui_theme_apply_compass_plain(center_col);
 
-    hub = ht_semantic_create(&ht_compass_dial_hub_class, center_col);
+    hub = lv_obj_create(center_col);
     if (!hub)
         return false;
     lv_obj_clear_flag(hub, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_add_flag(hub, LV_OBJ_FLAG_OVERFLOW_VISIBLE);
+    ui_theme_apply_compass_hub(hub);
 
-    ring = lv_obj_create(hub);
-    if (!ring)
-        return false;
-    lv_obj_clear_flag(ring, LV_OBJ_FLAG_SCROLLABLE);
-    lv_obj_add_flag(ring, LV_OBJ_FLAG_OVERFLOW_VISIBLE);
-    lv_obj_add_event_cb(ring, on_ring_draw, LV_EVENT_DRAW_MAIN, this);
+    lv_obj_add_event_cb(hub, on_ring_draw, LV_EVENT_DRAW_MAIN, this);
 
-    needle = ht_semantic_create(&ht_compass_dial_needle_class, hub);
+    needle = lv_obj_create(hub);
     if (!needle)
         return false;
     lv_obj_clear_flag(needle, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_add_flag(needle, LV_OBJ_FLAG_OVERFLOW_VISIBLE);
+    ui_theme_apply_compass_needle(needle);
     lv_obj_add_event_cb(needle, on_needle_draw, LV_EVENT_DRAW_MAIN, this);
     lv_obj_move_foreground(needle);
 
@@ -128,15 +127,56 @@ bool CompassDialWidget::create(lv_obj_t *parent_row)
     return true;
 }
 
+void CompassDialWidget::setRingHeading(int16_t heading_tenths)
+{
+    heading_tenths = dial_heading_tenths(heading_tenths);
+    if (ring_heading_tenths == heading_tenths)
+        return;
+    ring_heading_tenths = heading_tenths;
+    invalidateRing();
+}
+
+void CompassDialWidget::setVisible(bool visible)
+{
+    const bool currently_visible = !dialHidden();
+    if (currently_visible == visible)
+        return;
+
+    setDialHidden(!visible);
+    setLayersVisible(visible);
+    invalidateRing();
+    invalidateNeedle();
+}
+
+void CompassDialWidget::setHeadingNeedle(int16_t heading_tenths)
+{
+    heading_tenths = dial_heading_tenths(heading_tenths);
+    if (needle_heading_tenths == heading_tenths)
+        return;
+    needle_heading_tenths = heading_tenths;
+    invalidateNeedle();
+}
+
+void CompassDialWidget::setFriendNeedle(int16_t turn_tenths, bool gps_fix, bool direction_valid,
+                                        bool on_target, bool near_target)
+{
+    turn_tenths = dial_heading_tenths(turn_tenths);
+    if (friend_turn_tenths == turn_tenths && friend_gps_fix == gps_fix &&
+        friend_direction_valid == direction_valid && friend_on_target == on_target &&
+        friend_near_target == near_target)
+        return;
+    friend_turn_tenths = turn_tenths;
+    friend_gps_fix = gps_fix;
+    friend_direction_valid = direction_valid;
+    friend_on_target = on_target;
+    friend_near_target = near_target;
+    invalidateNeedle();
+}
+
 void CompassDialWidget::layoutLayers()
 {
     if (side < min_side)
         return;
-    if (ring)
-    {
-        lv_obj_set_size(ring, side, side);
-        lv_obj_center(ring);
-    }
     if (needle)
     {
         lv_obj_set_size(needle, side, side);
@@ -147,7 +187,7 @@ void CompassDialWidget::layoutLayers()
 
 void CompassDialWidget::layoutSize()
 {
-    if (!center_col || !hub || !ring || (flags & kLayoutBusy))
+    if (!center_col || !hub || !needle || (flags & kLayoutBusy))
         return;
     flags |= kLayoutBusy;
 
@@ -178,13 +218,6 @@ void CompassDialWidget::layoutSize()
 
 void CompassDialWidget::setLayersVisible(bool visible)
 {
-    if (ring)
-    {
-        if (visible)
-            lv_obj_clear_flag(ring, LV_OBJ_FLAG_HIDDEN);
-        else
-            lv_obj_add_flag(ring, LV_OBJ_FLAG_HIDDEN);
-    }
     if (needle)
     {
         if (visible)
@@ -196,8 +229,8 @@ void CompassDialWidget::setLayersVisible(bool visible)
 
 void CompassDialWidget::invalidateRing()
 {
-    if (ring)
-        lv_obj_invalidate(ring);
+    if (hub)
+        lv_obj_invalidate(hub);
 }
 
 void CompassDialWidget::invalidateNeedle()

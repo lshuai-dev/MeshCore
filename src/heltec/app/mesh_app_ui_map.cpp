@@ -5,8 +5,7 @@
 #include "HeltecMesh.h"
 #include "map_geo.hpp"
 
-#include <helpers/ContactInfo.h>
-#include <math.h>
+#include <Arduino.h>
 #include <string.h>
 
 namespace heltec::meshcore::biz
@@ -14,275 +13,63 @@ namespace heltec::meshcore::biz
 namespace
 {
 
-using GpsStatus = IBizFacade::GpsStatus;
-
-struct RawPoint
+bool teamLocationUsable(const heltec::meshcore::team::TeamMember &member, uint32_t now_ms)
 {
-    double lat_deg;
-    double lon_deg;
-    char glyph;
-    bool is_self;
-    uint8_t pub_key_prefix[6] = {};
-};
+    if (!member.location_valid ||
+        !geo::has_valid_gps_micro(member.latitude_e6, member.longitude_e6))
+    {
+        return false;
+    }
 
-bool valid_geo_deg(double lat, double lon)
-{
-    return isfinite(lat) && isfinite(lon) && lat >= -90.0 && lat <= 90.0 && lon >= -180.0 &&
-           lon <= 180.0 && (lat != 0.0 || lon != 0.0);
+    constexpr uint32_t kTimeoutMs = HELTEC_TEAM_MEMBER_TIMEOUT_SEC * 1000UL;
+    const uint32_t received_age_ms = now_ms - member.last_seen_ms;
+    if (received_age_ms > kTimeoutMs)
+    {
+        return false;
+    }
+    const uint32_t remaining_ms = kTimeoutMs - received_age_ms;
+    return static_cast<uint32_t>(member.fix_age_sec) <= remaining_ms / 1000UL;
 }
 
-bool usable_gps(const GpsStatus &gps)
+void buildTeamMapPlotUi(MapPlotUi &out)
 {
-    return gps.fix_valid && valid_geo_deg(gps.lat_deg, gps.lon_deg);
-}
-
-void compute_map_center(const RawPoint *pts, int count, int self_idx, double &center_lat,
-                        double &center_lon)
-{
-    if (count <= 0)
-    {
-        center_lat = 0.0;
-        center_lon = 0.0;
-        return;
-    }
-
-    if (self_idx >= 0)
-    {
-        center_lat = pts[self_idx].lat_deg;
-        center_lon = pts[self_idx].lon_deg;
-    }
-    else
-    {
-        uint32_t position_count = 0;
-        double x_avg = 0.0;
-        double y_avg = 0.0;
-        double z_avg = 0.0;
-        for (int i = 0; i < count; ++i)
-        {
-            const double lat_rad = pts[i].lat_deg * geo::kDeg2Rad;
-            const double lon_rad = pts[i].lon_deg * geo::kDeg2Rad;
-            const double x = cos(lat_rad) * cos(lon_rad);
-            const double y = cos(lat_rad) * sin(lon_rad);
-            const double z = sin(lat_rad);
-            x_avg += x;
-            y_avg += y;
-            z_avg += z;
-            position_count++;
-        }
-        if (position_count == 0)
-        {
-            center_lat = pts[0].lat_deg;
-            center_lon = pts[0].lon_deg;
-            return;
-        }
-        x_avg /= (double)position_count;
-        y_avg /= (double)position_count;
-        z_avg /= (double)position_count;
-        center_lon = atan2(y_avg, x_avg) * geo::kRad2Deg;
-        const double hypotenuse = sqrt(x_avg * x_avg + y_avg * y_avg);
-        center_lat = atan2(z_avg, hypotenuse) * geo::kRad2Deg;
-    }
-
-    double northernmost = center_lat;
-    double southernmost = center_lat;
-    double easternmost = center_lon;
-    double westernmost = center_lon;
-
-    for (int i = 0; i < count; ++i)
-    {
-        const double lat_node = pts[i].lat_deg;
-        northernmost = fmax(northernmost, lat_node);
-        southernmost = fmin(southernmost, lat_node);
-
-        const double lng_node = pts[i].lon_deg;
-        const double deg_eastward = fmod(((lng_node - center_lon) + 360.0), 360.0);
-        const double deg_westward = fabs(fmod(((lng_node - center_lon) - 360.0), 360.0));
-        if (deg_eastward < deg_westward)
-            easternmost = fmax(easternmost, center_lon + deg_eastward);
-        else
-            westernmost = fmin(westernmost, center_lon - deg_westward);
-    }
-
-    center_lat = (northernmost + southernmost) / 2.0;
-    center_lon = (westernmost + easternmost) / 2.0;
-    center_lon = fmod(center_lon + 540.0, 360.0) - 180.0;
-}
-
-uint32_t fnv1a_u32(uint32_t h, uint32_t v)
-{
-    return (h ^ v) * 16777619u;
-}
-
-uint32_t mapPlotInputFingerprint(const GpsStatus &gps)
-{
-    uint32_t h = 2166136261u;
-    const bool gps_usable = usable_gps(gps);
-    h = fnv1a_u32(h, gps_usable ? 1u : 0u);
-    if (gps_usable)
-    {
-        const int32_t gps_lat_micro = (int32_t)llround(gps.lat_deg * 1000000.0);
-        const int32_t gps_lon_micro = (int32_t)llround(gps.lon_deg * 1000000.0);
-        h = fnv1a_u32(h, (uint32_t)gps_lat_micro);
-        h = fnv1a_u32(h, (uint32_t)gps_lon_micro);
-    }
-
-    const int contact_total = the_mesh.getNumContacts();
-    h = fnv1a_u32(h, (uint32_t)contact_total);
-    for (int i = 0; i < contact_total; ++i)
-    {
-        ContactInfo c{};
-        if (!the_mesh.getContactByIdx((uint32_t)i, c))
-            continue;
-        for (size_t j = 0; j < 6; ++j)
-            h = fnv1a_u32(h, c.id.pub_key[j]);
-        for (size_t j = 0; j < sizeof(c.name); ++j)
-        {
-            h = fnv1a_u32(h, static_cast<uint8_t>(c.name[j]));
-        }
-        h = fnv1a_u32(h, (uint32_t)c.gps_lat);
-        h = fnv1a_u32(h, (uint32_t)c.gps_lon);
-    }
-#if HELTEC_TEAM_FEATURE
-    const size_t team_count = the_mesh.teamService().memberCount();
-    h = fnv1a_u32(h, static_cast<uint32_t>(team_count));
-    for (size_t i = 0; i < team_count; ++i)
-    {
-        heltec::meshcore::team::TeamMember member{};
-        if (the_mesh.teamService().memberAt(i, member))
-        {
-            for (size_t j = 0; j < 6; ++j)
-                h = fnv1a_u32(h, member.public_key[j]);
-            h = fnv1a_u32(h, static_cast<uint8_t>(member.name[0]));
-            h = fnv1a_u32(h, static_cast<uint32_t>(member.latitude_e6));
-            h = fnv1a_u32(h, static_cast<uint32_t>(member.longitude_e6));
-            h = fnv1a_u32(h, member.location_valid ? 1U : 0U);
-        }
-    }
-#endif
-    return h;
-}
-
-void buildMapPlotUi(const GpsStatus &gps, MapPlotUi &out)
-{
-    // Fill the existing cache directly; do not put another marker array on the stack.
+    out.online_count = 0;
     out.marker_count = 0;
-    out.center_lat = 0.0;
-    out.center_lon = 0.0;
-    RawPoint raw[MapPlotUi::kMaxMarkers] = {};
-    int raw_count = 0;
-    int self_idx = -1;
-
-    const bool gps_usable = usable_gps(gps);
-    if (gps_usable && raw_count < MapPlotUi::kMaxMarkers)
-    {
-        RawPoint &p = raw[raw_count++];
-        p.lat_deg = gps.lat_deg;
-        p.lon_deg = gps.lon_deg;
-        p.glyph = 'M';
-        p.is_self = true;
-        self_idx = raw_count - 1;
-    }
-
-    const int contact_total = the_mesh.getNumContacts();
-    int contact_gps_total = 0;
-    for (int i = 0; i < contact_total; ++i)
-    {
-        ContactInfo c{};
-        if (!the_mesh.getContactByIdx((uint32_t)i, c))
-            continue;
-        if (!geo::has_valid_gps_micro(c.gps_lat, c.gps_lon))
-            continue;
-
-        const double lat_deg = geo::microdeg_to_deg(c.gps_lat);
-        const double lon_deg = geo::microdeg_to_deg(c.gps_lon);
-        if (!valid_geo_deg(lat_deg, lon_deg))
-            continue;
-        ++contact_gps_total;
-        if (raw_count >= MapPlotUi::kMaxMarkers)
-            continue;
-
-        RawPoint &p = raw[raw_count++];
-        p.lat_deg = lat_deg;
-        p.lon_deg = lon_deg;
-        p.glyph = c.name[0] ? c.name[0] : '?';
-        p.is_self = false;
-        memcpy(p.pub_key_prefix, c.id.pub_key, sizeof(p.pub_key_prefix));
-    }
-
 #if HELTEC_TEAM_FEATURE
-    const size_t team_count = the_mesh.teamService().memberCount();
-    for (size_t i = 0; i < team_count; ++i)
+    const uint32_t now_ms = millis();
+    const auto &team = the_mesh.teamService();
+    for (size_t slot = 0; slot < HELTEC_TEAM_MAX_MEMBERS &&
+                          out.marker_count < MapPlotUi::kMaxMarkers; ++slot)
     {
-        heltec::meshcore::team::TeamMember member{};
-        if (!the_mesh.teamService().memberAt(i, member) || !member.location_valid ||
-            !geo::has_valid_gps_micro(member.latitude_e6, member.longitude_e6) ||
-            the_mesh.lookupContactByPubKey(member.public_key, PUB_KEY_SIZE) != nullptr)
+        const heltec::meshcore::team::TeamMember *const member = team.memberSlot(slot);
+        if (!member)
         {
             continue;
         }
-        ++contact_gps_total;
-        if (raw_count >= MapPlotUi::kMaxMarkers)
+        if (now_ms - member->last_seen_ms <= HELTEC_TEAM_MEMBER_TIMEOUT_SEC * 1000UL)
+        {
+            ++out.online_count;
+        }
+        if (!teamLocationUsable(*member, now_ms))
+        {
             continue;
-        RawPoint &point = raw[raw_count++];
-        point.lat_deg = geo::microdeg_to_deg(member.latitude_e6);
-        point.lon_deg = geo::microdeg_to_deg(member.longitude_e6);
-        point.glyph = member.name[0] ? member.name[0] : 'T';
-        point.is_self = false;
-        memcpy(point.pub_key_prefix, member.public_key, sizeof(point.pub_key_prefix));
+        }
+
+        MapPlotMarker &marker = out.markers[out.marker_count++];
+        marker.lat_micro = member->latitude_e6;
+        marker.lon_micro = member->longitude_e6;
+        marker.glyph = member->name[0] ? member->name[0] : 'T';
+        marker.is_self = false;
+        memcpy(marker.pub_key_prefix, member->public_key, sizeof(marker.pub_key_prefix));
     }
 #endif
-
-    out.contact_gps_count = contact_gps_total;
-    out.drawable = true;
-
-    if (raw_count > 0)
-    {
-        compute_map_center(raw, raw_count, self_idx, out.center_lat, out.center_lon);
-    }
-    else if (gps_usable)
-    {
-        out.center_lat = gps.lat_deg;
-        out.center_lon = gps.lon_deg;
-    }
-
-    uint32_t width_m = 50;
-    uint32_t height_m = 50;
-    for (int i = 0; i < raw_count && out.marker_count < MapPlotUi::kMaxMarkers; ++i)
-    {
-        MapPlotMarker &m = out.markers[out.marker_count++];
-        m.lat_micro = (int32_t)llround(raw[i].lat_deg * 1000000.0);
-        m.lon_micro = (int32_t)llround(raw[i].lon_deg * 1000000.0);
-        m.glyph = raw[i].glyph;
-        m.is_self = raw[i].is_self;
-        memcpy(m.pub_key_prefix, raw[i].pub_key_prefix, sizeof(m.pub_key_prefix));
-        if (raw_count > 1)
-        {
-            float east_m = 0.f;
-            float north_m = 0.f;
-            geo::offset_from_center(out.center_lat, out.center_lon, raw[i].lat_deg, raw[i].lon_deg,
-                                    east_m, north_m);
-            width_m = (uint32_t)fmax((double)width_m, fabs((double)east_m) * 2.0);
-            height_m = (uint32_t)fmax((double)height_m, fabs((double)north_m) * 2.0);
-        }
-    }
-    out.span_w_m = (uint32_t)((double)width_m * 1.1);
-    out.span_h_m = (uint32_t)((double)height_m * 1.1);
-
 }
 
 } // namespace
 
 const MapPlotUi &MeshAppUi::mapPlotUi() const
 {
-    const IBizFacade::GpsStatus gps = gpsStatus();
-    const uint32_t fp = mapPlotInputFingerprint(gps);
-    if (_map_plot_cache_valid && fp == _map_plot_fp)
-    {
-        return _map_plot_cache;
-    }
-    buildMapPlotUi(gps, _map_plot_cache);
-    _map_plot_fp = fp;
-    _map_plot_cache_valid = true;
+    buildTeamMapPlotUi(_map_plot_cache);
     return _map_plot_cache;
 }
 

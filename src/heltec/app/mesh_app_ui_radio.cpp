@@ -52,37 +52,6 @@ void MeshAppUi::pollRadioStatus()
     notifyAppState(heltec::meshcore::ui::AppStateEventType::RadioChanged);
 }
 
-void MeshAppUi::adjustTxPowerDbm(int delta_db)
-{
-    NodePrefs *p = the_mesh.getNodePrefs();
-    if (!p)
-        return;
-    int next = (int)p->tx_power_dbm + delta_db;
-    if (next > MAX_LORA_TX_POWER)
-        next = MAX_LORA_TX_POWER;
-    if (next < -9)
-        next = -9;
-    p->tx_power_dbm = next;
-    radio_set_tx_power(p->tx_power_dbm);
-    the_mesh.savePrefs();
-    notifyRadioChanged();
-}
-
-void MeshAppUi::adjustSpreadingFactor(int delta)
-{
-    NodePrefs *p = the_mesh.getNodePrefs();
-    if (!p)
-        return;
-    int next = (int)p->sf + delta;
-    if (next > 12)
-        next = 12;
-    if (next < 7)
-        next = 7;
-    p->sf = next;
-    the_mesh.savePrefs();
-    notifyRadioChanged();
-}
-
 IBizFacade::RadioStatus MeshAppUi::radioStatus() const
 {
     RadioStatus s;

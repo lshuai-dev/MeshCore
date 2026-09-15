@@ -1,60 +1,40 @@
 #include "input_adapter.hpp"
-
 #include <lvgl.h>
 
 #ifndef MOMENTARY_BUTTON_MAX
 #define MOMENTARY_BUTTON_MAX 2
 #endif
 
-namespace heltec::meshcore::ui
-{
-namespace
-{
+namespace heltec::meshcore::ui {
+namespace {
 
-AdaptedInput dualKeyButton(uint8_t slot, ButtonGesture gesture)
-{
+AdaptedInput dualKeyButton(uint8_t slot, ButtonGesture gesture) {
     AdaptedInput out;
-    if (gesture == ButtonGesture::Click)
-    {
+    if (gesture == ButtonGesture::Click) {
         out.lv_key = (slot == 0) ? LV_KEY_PREV : LV_KEY_NEXT;
-    }
-    else if (gesture == ButtonGesture::Double)
-    {
-        if (slot == 0)
-        {
+    } else if (gesture == ButtonGesture::Double) {
+        if (slot == 0) {
             out.command = InputCommand::CloseTopLayer;
             out.lv_key = LV_KEY_ESC;
-        }
-        else
-        {
+        } else {
             out.command = InputCommand::OpenAction;
         }
-    }
-    else if (gesture == ButtonGesture::Long)
-    {
+    } else if (gesture == ButtonGesture::Long) {
         out.lv_key = LV_KEY_ENTER;
     }
     return out;
 }
 
-AdaptedInput singleKeyButton(ButtonGesture gesture)
-{
+AdaptedInput singleKeyButton(ButtonGesture gesture) {
     AdaptedInput out;
-    if (gesture == ButtonGesture::Click)
-    {
+    if (gesture == ButtonGesture::Click) {
         out.lv_key = LV_KEY_NEXT;
-    }
-    else if (gesture == ButtonGesture::Double)
-    {
+    } else if (gesture == ButtonGesture::Double) {
         out.command = InputCommand::CloseTopLayer;
         out.lv_key = LV_KEY_ESC;
-    }
-    else if (gesture == ButtonGesture::Triple)
-    {
+    } else if (gesture == ButtonGesture::Triple) {
         out.command = InputCommand::OpenAction;
-    }
-    else if (gesture == ButtonGesture::Long)
-    {
+    } else if (gesture == ButtonGesture::Long) {
         out.lv_key = LV_KEY_ENTER;
     }
     return out;
@@ -62,16 +42,13 @@ AdaptedInput singleKeyButton(ButtonGesture gesture)
 
 } // namespace
 
-const InputAdapter &InputAdapter::active()
-{
+const InputAdapter &InputAdapter::active() {
     static InputAdapter adapter;
     return adapter;
 }
 
-AdaptedInput InputAdapter::adapt(const InputEvent &event) const
-{
-    switch (event.source)
-    {
+AdaptedInput InputAdapter::adapt(const InputEvent &event) const {
+    switch (event.source) {
     case InputSource::Button:
         return adaptButton(event);
     case InputSource::Keyboard:
@@ -81,8 +58,7 @@ AdaptedInput InputAdapter::adapt(const InputEvent &event) const
     }
 }
 
-AdaptedInput InputAdapter::adaptButton(const InputEvent &event) const
-{
+AdaptedInput InputAdapter::adaptButton(const InputEvent &event) const {
     const uint8_t slot = event.button.slot;
     const ButtonGesture gesture = event.button.gesture;
 
@@ -101,14 +77,11 @@ AdaptedInput InputAdapter::adaptButton(const InputEvent &event) const
 #endif
 }
 
-AdaptedInput InputAdapter::adaptKeyboard(const InputEvent &event) const
-{
+AdaptedInput InputAdapter::adaptKeyboard(const InputEvent &event) const {
     AdaptedInput out;
-    if (!event.keyboard.pressed)
-        return out;
+    if (!event.keyboard.pressed) return out;
     out.lv_key = event.keyboard.code;
-    if (out.lv_key == LV_KEY_ESC)
-        out.command = InputCommand::CloseTopLayer;
+    if (out.lv_key == LV_KEY_ESC) out.command = InputCommand::CloseTopLayer;
     return out;
 }
 

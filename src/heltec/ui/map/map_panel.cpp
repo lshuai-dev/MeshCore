@@ -3,10 +3,10 @@
 #include "map_panel.hpp"
 
 #include "map_sd.hpp"
-#include "ui/app/ui_theme.hpp"
+#include "ui/app/theme.hpp"
 #include "ui/core/biz_facade.hpp"
-#include "ui/core/ui_semantic_classes.hpp"
-#include "ui/theme/ui_widget_theme.hpp"
+#include "ui/core/widget_classes.hpp"
+#include "ui/theme/widget_theme.hpp"
 
 #include <Arduino.h>
 #include <stdio.h>
@@ -73,7 +73,7 @@ int32_t wrapped_tile_delta(uint32_t tile, uint32_t start, uint32_t world_tiles)
 
 lv_obj_t *make_pin(lv_obj_t *parent, const char *text, lv_color_t color)
 {
-    lv_obj_t *o = ht_semantic_create(&ht_map_marker_class, parent);
+    lv_obj_t *o = ht_class_create(&ht_map_marker_class, parent);
     if (!o)
         return nullptr;
     lv_obj_set_size(o, 14, 14);
@@ -191,7 +191,7 @@ bool MapPanel::createTileSlot(int idx)
     if (t.root)
         return true;
 
-    t.root = ht_semantic_create(&ht_map_tile_class, _tile_layer);
+    t.root = ht_class_create(&ht_map_tile_class, _tile_layer);
     if (!t.root)
         return false;
     lv_obj_set_size(t.root, map::kTileSizePx, map::kTileSizePx);
@@ -255,7 +255,7 @@ bool MapPanel::ensureMarkerSlot(int idx)
     if (m.root)
         return true;
 
-    m.root = ht_semantic_create(&ht_map_marker_class, _marker_layer);
+    m.root = ht_class_create(&ht_map_marker_class, _marker_layer);
     if (!m.root)
         return false;
     lv_obj_set_size(m.root, 14, 14);
@@ -313,9 +313,9 @@ void MapPanel::attach(_lv_obj_t *viewport)
     _markers_built = 0;
     _tile_build_failed = false;
     _marker_build_failed = false;
-    _tile_layer = ht_semantic_create(&ht_map_layer_class, _viewport);
-    _range_layer = ht_semantic_create(&ht_map_layer_class, _viewport);
-    _marker_layer = ht_semantic_create(&ht_map_layer_class, _viewport);
+    _tile_layer = ht_class_create(&ht_map_layer_class, _viewport);
+    _range_layer = ht_class_create(&ht_map_layer_class, _viewport);
+    _marker_layer = ht_class_create(&ht_map_layer_class, _viewport);
     if (!_tile_layer || !_range_layer || !_marker_layer)
     {
         if (_tile_layer)
@@ -989,33 +989,6 @@ void MapPanel::set_markers(const heltec::meshcore::biz::MapPlotMarker *markers, 
         _marker_data[i].is_self = markers[i].is_self;
     }
     markDirty(DirtyMarkers);
-}
-
-bool MapPanel::markerAt(lv_coord_t x, lv_coord_t y, uint8_t *prefix, size_t length) const
-{
-    if (!prefix || length != 6 || !_viewport)
-        return false;
-    lv_area_t viewport{};
-    lv_obj_get_content_coords(_viewport, &viewport);
-    if (x < viewport.x1 || x > viewport.x2 || y < viewport.y1 || y > viewport.y2)
-        return false;
-    for (int i = kMaxMarkers - 1; i >= 0; --i)
-    {
-        const MarkerSlot &marker = _markers[i];
-        if (!marker.active || !marker.root || marker.data_index < 0 ||
-            marker.data_index >= _marker_count ||
-            lv_obj_has_flag(marker.root, LV_OBJ_FLAG_HIDDEN))
-            continue;
-        lv_area_t area{};
-        lv_obj_get_coords(marker.root, &area);
-        if (x >= area.x1 - 4 && x <= area.x2 + 4 &&
-            y >= area.y1 - 4 && y <= area.y2 + 4)
-        {
-            memcpy(prefix, _marker_data[marker.data_index].pub_key_prefix, length);
-            return true;
-        }
-    }
-    return false;
 }
 
 void MapPanel::zoom_in()

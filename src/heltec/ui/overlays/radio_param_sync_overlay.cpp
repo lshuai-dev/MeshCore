@@ -3,10 +3,10 @@
 #include "config/LoRaBandPresets.h"
 #include "heltec/ui/core/biz_facade.hpp"
 #include "ui/core/ht_selector_view.hpp"
-#include "ui/core/ui_semantic_classes.hpp"
+#include "ui/core/widget_classes.hpp"
 #include "ui/core/operation_hints.hpp"
 #include "ui/core/ht_event.h"
-#include "ui/theme/ui_widget_theme.hpp"
+#include "ui/theme/widget_theme.hpp"
 #if defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213
 #include "heltec/drivers/display/e213_port.hpp"
 #endif
@@ -16,9 +16,9 @@
 namespace heltec::meshcore::ui
 {
 
-_lv_obj_t *RadioParamSyncOverlay::createRoot(_lv_obj_t *parent)
+RadioParamSyncOverlay::RadioParamSyncOverlay(biz::IBizFacade &biz)
+    : FramedOverlay(biz, ht_radio_sync_overlay_class)
 {
-    return ht_semantic_create(&ht_radio_sync_overlay_class, parent);
 }
 
 namespace
@@ -36,17 +36,18 @@ static int wrapIndex(int idx, int count)
 
 } // namespace
 
-_lv_obj_t *RadioParamSyncOverlay::create(lv_obj_t *parent)
+bool RadioParamSyncOverlay::buildSurface()
 {
-    if (!FramedOverlay::create(parent))
-        return nullptr;
+    if (!FramedOverlay::buildSurface())
+        return false;
 
-    setHeaderText("Radio param preset");
-    setFooterText(operation_hint::kRadioPreset);
 
-    _list = ht_semantic_create(&ht_radio_sync_list_class, contentHost());
+    setTitle("Radio param preset");
+    setToolTip(operation_hint::kRadioPreset);
+
+    _list = ht_class_create(&ht_radio_sync_list_class, _content);
     if (!_list)
-        return nullptr;
+        return false;
     lv_obj_set_width(_list, lv_pct(100));
     lv_obj_set_flex_grow(_list, 1);
     lv_obj_set_flex_flow(_list, LV_FLEX_FLOW_COLUMN);
@@ -62,7 +63,7 @@ _lv_obj_t *RadioParamSyncOverlay::create(lv_obj_t *parent)
 #endif
     _roller = lv_roller_create(_list);
     if (!_roller)
-        return nullptr;
+        return false;
     lv_obj_set_width(_roller, lv_pct(100));
     lv_obj_add_event_cb(
         _roller,
@@ -98,7 +99,7 @@ _lv_obj_t *RadioParamSyncOverlay::create(lv_obj_t *parent)
     {
         lv_obj_t *row = lv_label_create(_list);
         if (!row)
-            return nullptr;
+            return false;
         lv_obj_set_width(row, lv_pct(100));
         lv_label_set_long_mode(row, LV_LABEL_LONG_DOT);
     }
@@ -122,12 +123,7 @@ _lv_obj_t *RadioParamSyncOverlay::create(lv_obj_t *parent)
 
     _select = 0;
     configureListLayout();
-    return _root;
-}
-
-_lv_obj_t *RadioParamSyncOverlay::focusTarget() const
-{
-    return _root;
+    return true;
 }
 
 #if defined(HELTEC_V4_R8_TFT)
@@ -159,7 +155,7 @@ bool RadioParamSyncOverlay::onKey(uint32_t key)
     }
     if (key == LV_KEY_ESC)
     {
-        emit(EventType::RADIO_SYNC_CLOSE);
+        emitEvent(EventType::RadioSyncClose);
         return true;
     }
     return false;
@@ -374,7 +370,7 @@ void RadioParamSyncOverlay::applySelection()
 #endif
     _biz.setLoRaBandPresetIndex((int)_select);
     _biz.showAlert("LoRa band set", 800);
-    emit(EventType::RADIO_SYNC_CLOSE);
+    emitEvent(EventType::RadioSyncClose);
 }
 
 } // namespace heltec::meshcore::ui

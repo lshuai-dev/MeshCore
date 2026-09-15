@@ -1,9 +1,8 @@
 #include "system_screen.hpp"
-#include "ui/app/ui_theme.hpp"
+#include "ui/app/theme.hpp"
 #include "ui/core/ht_container.hpp"
-#include "ui/core/ui_deferred_queue.hpp"
-#include "ui/core/ui_semantic_classes.hpp"
-#include "ui/theme/ui_widget_theme.hpp"
+#include "ui/core/widget_classes.hpp"
+#include "ui/theme/widget_theme.hpp"
 #if defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213
 #include "heltec/drivers/display/e213_port.hpp"
 #endif
@@ -287,7 +286,7 @@ void SystemScreen::realignDropdownList(_lv_obj_t *dropdown)
         lv_obj_set_width(list, width);
     lv_obj_set_scrollbar_mode(list, LV_SCROLLBAR_MODE_OFF);
     ui_theme_match_dropdown_list_padding(dropdown, list);
-    _lv_obj_t *const viewport = tile();
+    _lv_obj_t *const viewport = lv_obj_get_parent(_root);
     ui_dropdown_fit_list_to_viewport(dropdown, viewport ? viewport : _root, _root);
 #else
     (void)dropdown;
@@ -308,7 +307,7 @@ void SystemScreen::onWidgetKeyPreprocess(lv_event_t *e)
 #if LV_USE_DROPDOWN != 0
     if (self->_open_dropdown == target && cycle_open_dropdown(target, key))
     {
-        if (!defer(realignDropdownListAsync, target))
+        if (lv_async_call(realignDropdownListAsync, target) != LV_RES_OK)
         {
             self->realignDropdownList(target);
         }
@@ -422,10 +421,9 @@ _lv_obj_t *SystemScreen::addBuzzerVolumeRow(_lv_obj_t *scroll)
     if(title) lv_label_set_text(title, "Volume");
     configure_system_label(title, lv_pct(100));
 
-    _lv_obj_t* controls = lv_obj_class_create_obj(&ht_volume_controls_class, row);
+    _lv_obj_t *controls = ht_class_create(&ht_volume_controls_class, row);
     if (!controls)
         return row;
-    lv_obj_class_init_obj(controls);
     lv_obj_set_size(controls, lv_pct(100), 26);
     lv_obj_set_flex_flow(controls, LV_FLEX_FLOW_ROW);
     lv_obj_set_flex_align(controls, LV_FLEX_ALIGN_SPACE_BETWEEN, LV_FLEX_ALIGN_CENTER,
@@ -433,27 +431,7 @@ _lv_obj_t *SystemScreen::addBuzzerVolumeRow(_lv_obj_t *scroll)
     lv_obj_clear_flag(controls, LV_OBJ_FLAG_SCROLLABLE | LV_OBJ_FLAG_CLICKABLE |
                                LV_OBJ_FLAG_CLICK_FOCUSABLE | LV_OBJ_FLAG_SCROLL_ON_FOCUS);
 
-    const auto add_button = [this, controls](const char *text, _lv_obj_t **out)
-    {
-        _lv_obj_t* btn = lv_obj_class_create_obj(&ht_volume_button_class, controls);
-        if (!btn)
-            return;
-        lv_obj_class_init_obj(btn);
-        lv_obj_set_size(btn, 26, 24);
-#if defined(HELTEC_V4_R8_TFT)
-        lv_obj_set_ext_click_area(btn, 5);
-#endif
-        _lv_obj_t *label = lv_label_create(btn);
-        if (label) {
-            lv_label_set_text(label, text);
-            lv_obj_center(label);
-        }
-        bindWidget(btn);
-        lv_obj_add_event_cb(btn, onBuzzerVolumeButtonClicked, LV_EVENT_CLICKED, this);
-        *out = btn;
-    };
-
-    add_button("-", &_btnBuzzerVolumeDown);
+    addBuzzerVolumeButton(controls, "-", &_btnBuzzerVolumeDown);
 
 #if LV_USE_SLIDER != 0
     _sliderBuzzerVolume = lv_slider_create(controls);
@@ -467,8 +445,31 @@ _lv_obj_t *SystemScreen::addBuzzerVolumeRow(_lv_obj_t *scroll)
     }
 #endif
 
-    add_button("+", &_btnBuzzerVolumeUp);
+    addBuzzerVolumeButton(controls, "+", &_btnBuzzerVolumeUp);
     return row;
+}
+
+void SystemScreen::addBuzzerVolumeButton(_lv_obj_t *parent, const char *text,
+                                         _lv_obj_t **out_button)
+{
+    if (!parent || !out_button)
+        return;
+    _lv_obj_t *const button = ht_btn_create(&ht_volume_button_class, parent);
+    if (!button)
+        return;
+    lv_obj_set_size(button, 26, 24);
+#if defined(HELTEC_V4_R8_TFT)
+    lv_obj_set_ext_click_area(button, 5);
+#endif
+    _lv_obj_t *const label = lv_label_create(button);
+    if (label)
+    {
+        lv_label_set_text(label, text ? text : "");
+        lv_obj_center(label);
+    }
+    bindWidget(button);
+    lv_obj_add_event_cb(button, onBuzzerVolumeButtonClicked, LV_EVENT_CLICKED, this);
+    *out_button = button;
 }
 
 #endif

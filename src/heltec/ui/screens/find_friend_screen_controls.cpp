@@ -2,11 +2,10 @@
 
 #include "find_friend_screen.hpp"
 #include "app/team_join_service.hpp"
-#include "ui/app/ui_theme.hpp"
+#include "ui/app/theme.hpp"
 #include "ui/core/ht_container.hpp"
-#include "ui/core/ui_deferred_queue.hpp"
 #include "ui/core/ht_event.h"
-#include "ui/theme/ui_widget_theme.hpp"
+#include "ui/theme/widget_theme.hpp"
 #include <lvgl.h>
 #include <string.h>
 
@@ -46,6 +45,12 @@ bool hidden_in_tree(const _lv_obj_t *obj)
             return true;
     }
     return false;
+}
+
+bool focus_object_available(const _lv_obj_t *obj)
+{
+    return obj && lv_obj_is_valid(obj) && !hidden_in_tree(obj) &&
+           !lv_obj_has_state(obj, LV_STATE_DISABLED);
 }
 
 uint32_t options_hash(const char *text)
@@ -186,22 +191,11 @@ void FindFriendScreen::createControls()
     // Follow the anchor when focus scrolling or a drag moves the column.
     if (_right_column)
     {
-        lv_obj_add_event_cb(
-            _right_column,
-            +[](lv_event_t *event)
-            {
-                auto *self = static_cast<FindFriendScreen *>(lv_event_get_user_data(event));
-                if (self && self->_open_dropdown)
-                {
-                    if (!defer(realignDropdownListAsync, self->_open_dropdown))
-                        self->realignDropdownList(self->_open_dropdown);
-                }
-            },
-            LV_EVENT_SCROLL, this);
+        lv_obj_add_event_cb(_right_column, onRightColumnScrolled, LV_EVENT_SCROLL, this);
     }
     addDropdownRow(_choice_mode, "mode", "friend\nwaypoint\nnone");
 #if HELTEC_TEAM_FEATURE
-    if (_biz.teamIsLeader())
+    if (_biz.teamStatus().is_leader)
     {
         _row_team = addActionRow("> create team", Action::Team);
     }
@@ -209,8 +203,7 @@ void FindFriendScreen::createControls()
 #endif
     addDropdownRow(_choice_friend, "member", "(none)");
 #if HELTEC_TEAM_FEATURE
-    _row_group_message = addActionRow("> message team", Action::TeamGroupMessage);
-    _row_direct_message = addActionRow("> message friend", Action::TeamDirectMessage);
+    _row_team_message = addActionRow("> Team message", Action::TeamMessage);
 #endif
     addActionRow("> use current gps", Action::WaypointGps);
     addActionRow("> enter lat,lon", Action::WaypointManual);
@@ -219,30 +212,21 @@ void FindFriendScreen::createControls()
 void FindFriendScreen::configureFocusItems()
 {
     /* Keep keypad/encoder traversal identical to the visual row order. */
-    addFocusItem(_choice_mode.dropdown, _choice_mode.row);
-    addFocusItem(_row_team);
-    addFocusItem(_choice_team.dropdown, _choice_team.row);
-    addFocusItem(_choice_friend.dropdown, _choice_friend.row);
-    addFocusItem(_row_group_message);
-    addFocusItem(_row_direct_message);
-    addFocusItem(_row_wp_gps);
-    addFocusItem(_row_wp_manual);
-    if (_lbl_info)
-    {
-        addFocusItem(_lbl_info, nullptr, false);
-        // The read-only row takes part in keypad focus scrolling without intercepting
-        // touch gestures intended to scroll the right column.
-        lv_obj_clear_flag(_lbl_info, LV_OBJ_FLAG_CLICKABLE | LV_OBJ_FLAG_CLICK_FOCUSABLE);
-    }
-
+    addFocusableObject(_choice_mode.dropdown, _choice_mode.row);
+    addFocusableObject(_row_team);
+    addFocusableObject(_choice_team.dropdown, _choice_team.row);
+    addFocusableObject(_choice_friend.dropdown, _choice_friend.row);
+    addFocusableObject(_row_team_message);
+    addFocusableObject(_row_wp_gps);
+    addFocusableObject(_row_wp_manual);
     // Match System Screen's deterministic focus scrolling. Pointer focus must
     // not snap the column after a drag or tap; keypad/encoder traversal owns it.
     _lv_obj_t *const focus_controls[] = {
         _row_team, _choice_team.dropdown,
         _choice_mode.dropdown,
         _choice_friend.dropdown,
-        _row_group_message, _row_direct_message,
-        _row_wp_gps, _row_wp_manual,        _lbl_info,
+        _row_team_message,
+        _row_wp_gps, _row_wp_manual,
     };
     for (_lv_obj_t *control : focus_controls)
     {
@@ -253,23 +237,32 @@ void FindFriendScreen::configureFocusItems()
     lv_obj_set_user_data(_root, this);
     if (group())
     {
-        lv_group_set_focus_cb(
-            group(),
-            +[](lv_group_t *focus_group)
-            {
-                _lv_obj_t *const focused = lv_group_get_focused(focus_group);
-                if (!focused)
-                    return;
-                for (_lv_obj_t *obj = focused; obj; obj = lv_obj_get_parent(obj))
-                {
-                    if (!lv_obj_get_user_data(obj))
-                        continue;
-                    auto *const self = static_cast<FindFriendScreen *>(lv_obj_get_user_data(obj));
-                    if (self)
-                        self->applyGroupFocus(focused);
-                    return;
-                }
-            });
+        lv_group_set_focus_cb(group(), onGroupFocusChanged);
+    }
+}
+
+void FindFriendScreen::onRightColumnScrolled(lv_event_t *event)
+{
+    auto *const self = static_cast<FindFriendScreen *>(lv_event_get_user_data(event));
+    if (!self || !self->_open_dropdown)
+        return;
+    if (lv_async_call(realignDropdownListAsync, self->_open_dropdown) != LV_RES_OK)
+        self->realignDropdownList(self->_open_dropdown);
+}
+
+void FindFriendScreen::onGroupFocusChanged(lv_group_t *group)
+{
+    _lv_obj_t *const focused = lv_group_get_focused(group);
+    if (!focused)
+        return;
+    for (_lv_obj_t *object = focused; object; object = lv_obj_get_parent(object))
+    {
+        auto *const self = static_cast<FindFriendScreen *>(lv_obj_get_user_data(object));
+        if (self && self->root() == object)
+        {
+            self->applyGroupFocus(focused);
+            return;
+        }
     }
 }
 
@@ -359,6 +352,7 @@ void FindFriendScreen::setDropdownIndex(_lv_obj_t *dropdown, uint16_t index, boo
 void FindFriendScreen::syncControls(bool force_friend_options)
 {
     const bool enabled = _biz.findFriendEnabled();
+    const biz::IBizFacade::TeamStatus team = _biz.teamStatus();
     if (_open_dropdown != _choice_mode.dropdown)
     {
         const uint16_t mode = enabled ? static_cast<uint16_t>(_biz.findFriendMode()) : 2U;
@@ -366,13 +360,12 @@ void FindFriendScreen::syncControls(bool force_friend_options)
     }
     if (enabled && _biz.findFriendMode() == 0 && _open_dropdown != _choice_friend.dropdown)
     {
-        _biz.syncFindFriendContactList();
         syncFriendDropdown(force_friend_options);
     }
     if (_choice_team.dropdown && _open_dropdown != _choice_team.dropdown)
     {
         char options[sizeof(_team_options)] = {};
-        const auto state = static_cast<JoinState>(_biz.teamPairState());
+        const auto state = static_cast<JoinState>(team.pair_state);
         const char *hint = state == JoinState::Searching ? "searching..." : "select team";
         switch (state)
         {
@@ -383,7 +376,7 @@ void FindFriendScreen::syncControls(bool force_friend_options)
         default: break;
         }
         size_t used = static_cast<size_t>(lv_snprintf(options, sizeof(options), "%s", hint));
-        const int count = _biz.teamHasTeam() ? 0 : _biz.teamOfferCount();
+        const int count = team.has_team ? 0 : _biz.teamOfferCount();
         for (int index = 0; index < count && index < 4; ++index)
         {
             char label[32] = {};
@@ -399,16 +392,16 @@ void FindFriendScreen::syncControls(bool force_friend_options)
             }
             used += static_cast<size_t>(written);
         }
-        if (_biz.teamHasTeam())
+        if (team.has_team)
         {
             UiSendMessageTarget target{};
             if (_biz.teamMessageTarget(-1, target))
             {
-                lv_snprintf(options, sizeof(options), "%s", target.label);
+                lv_snprintf(options, sizeof(options), "%s\nleave team", target.label);
             }
             else
             {
-                lv_snprintf(options, sizeof(options), "team active");
+                lv_snprintf(options, sizeof(options), "team active\nleave team");
             }
         }
         else
@@ -421,29 +414,46 @@ void FindFriendScreen::syncControls(bool force_friend_options)
             lv_dropdown_set_options_static(_choice_team.dropdown, _team_options);
             setDropdownIndex(_choice_team.dropdown, 0, true);
         }
+        if (_focus_team_when_offer_available && count > 0)
+        {
+            _focus_team_when_offer_available = false;
+            if (lv_async_call(focusTeamDeferred, this) != LV_RES_OK)
+            {
+                focusTeamDeferred(this);
+            }
+        }
     }
     updateConditionalVisibility();
+    if (_focus_member_when_team_active && team.has_team)
+    {
+        _focus_member_when_team_active = false;
+        if (lv_async_call(focusMemberDeferred, this) != LV_RES_OK)
+        {
+            focusMemberDeferred(this);
+        }
+    }
 }
 
 void FindFriendScreen::updateConditionalVisibility()
 {
     const bool enabled = _biz.findFriendEnabled();
     const bool friend_mode = _biz.findFriendMode() == 0;
-    const auto state = static_cast<JoinState>(_biz.teamPairState());
+    const biz::IBizFacade::TeamStatus team = _biz.teamStatus();
+    const auto state = static_cast<JoinState>(team.pair_state);
     const bool team_mode = enabled && friend_mode;
-    const bool has_team = _biz.teamHasTeam();
+    const bool has_team = team.has_team;
     set_hidden(_row_team, !team_mode);
     if (_row_team && lv_obj_get_child(_row_team, 0))
     {
         const char *text = !has_team ? "> create team" :
-            (_biz.teamJoinWindowOpen() ? "> close joining" : "> open joining");
+            (team.join_window_open ? "> close joining" : "> open joining");
         _lv_obj_t *label = lv_obj_get_child(_row_team, 0);
         if (strcmp(lv_label_get_text(label), text) != 0)
         {
             lv_label_set_text_static(label, text);
         }
     }
-    set_hidden(_choice_team.row, !enabled || (!has_team && (!friend_mode || _biz.teamIsLeader())));
+    set_hidden(_choice_team.row, !enabled || (!has_team && (!friend_mode || team.is_leader)));
     if (_choice_team.label)
     {
         const char *label = !friend_mode && has_team ? "team sharing" : "team";
@@ -454,7 +464,7 @@ void FindFriendScreen::updateConditionalVisibility()
     }
     if (_choice_team.dropdown)
     {
-        if (has_team || !friend_mode || state == JoinState::WaitingForApproval)
+        if (!friend_mode)
         {
             lv_obj_add_state(_choice_team.dropdown, LV_STATE_DISABLED);
         }
@@ -465,36 +475,71 @@ void FindFriendScreen::updateConditionalVisibility()
     }
     set_hidden(_choice_mode.row, false);
     set_hidden(_choice_friend.row, !team_mode || !has_team);
-    set_hidden(_row_group_message, !team_mode || !_biz.teamHasTeam());
-    set_hidden(_row_direct_message, !team_mode || !_biz.teamHasTeam());
-    const bool can_message = _biz.teamHasTeam();
-    if (_row_group_message)
+    set_hidden(_row_team_message, !team_mode || !has_team);
+    if (_row_team_message)
     {
-        if (can_message)
-            lv_obj_clear_state(_row_group_message, LV_STATE_DISABLED);
+        if (has_team)
+            lv_obj_clear_state(_row_team_message, LV_STATE_DISABLED);
         else
-            lv_obj_add_state(_row_group_message, LV_STATE_DISABLED);
-    }
-    if (_row_direct_message)
-    {
-        if (can_message && _biz.findFriendTargetContactIndex() >= 0)
-            lv_obj_clear_state(_row_direct_message, LV_STATE_DISABLED);
-        else
-            lv_obj_add_state(_row_direct_message, LV_STATE_DISABLED);
+            lv_obj_add_state(_row_team_message, LV_STATE_DISABLED);
     }
     set_hidden(_row_wp_gps, !enabled || friend_mode);
     set_hidden(_row_wp_manual, !enabled || friend_mode);
 
-    if (_open_dropdown && !focusObjectAvailable(_open_dropdown))
+    syncFocusGroupMembership();
+
+    if (_open_dropdown && !focus_object_available(_open_dropdown))
         closeOpenDropdown();
     if (group())
     {
         _lv_obj_t *const focused = lv_group_get_focused(group());
-        if (focused && !focusObjectAvailable(focused) && _choice_mode.dropdown)
+        if (focused && !focus_object_available(focused) && _choice_mode.dropdown)
         {
             lv_group_focus_obj(_choice_mode.dropdown);
             scrollFocusedIntoView(_choice_mode.dropdown);
         }
+    }
+}
+
+void FindFriendScreen::syncFocusGroupMembership()
+{
+    if (!group())
+        return;
+
+    _lv_obj_t *const controls[] = {
+        _choice_mode.dropdown,
+        _row_team,
+        _choice_team.dropdown,
+        _choice_friend.dropdown,
+        _row_team_message,
+        _row_wp_gps,
+        _row_wp_manual,
+    };
+    uint16_t mask = 0;
+    for (size_t index = 0; index < sizeof(controls) / sizeof(controls[0]); ++index)
+    {
+        if (focus_object_available(controls[index]))
+        {
+            mask |= static_cast<uint16_t>(1U << index);
+        }
+    }
+    if (mask == _focus_membership_mask)
+        return;
+
+    _lv_obj_t *const previous = lv_group_get_focused(group());
+    _focus_membership_mask = mask;
+    lv_group_set_editing(group(), false);
+    lv_group_remove_all_objs(group());
+    for (size_t index = 0; index < sizeof(controls) / sizeof(controls[0]); ++index)
+    {
+        if ((mask & static_cast<uint16_t>(1U << index)) != 0U)
+        {
+            lv_group_add_obj(group(), controls[index]);
+        }
+    }
+    if (focus_object_available(previous) && lv_obj_get_group(previous) == group())
+    {
+        lv_group_focus_obj(previous);
     }
 }
 
@@ -506,15 +551,21 @@ void FindFriendScreen::onDropdownValueChanged(lv_event_t *e)
     if (!self || self->_syncing_dropdown)
         return;
     _lv_obj_t *const dropdown = lv_event_get_target(e);
+    if (lv_dropdown_is_open(dropdown))
+    {
+        lv_dropdown_close(dropdown);
+    }
 
     if (dropdown == self->_choice_mode.dropdown)
     {
-        (void)defer_cancel(focusTeamDeferred, self);
+        (void)lv_async_call_cancel(focusTeamDeferred, self);
         const int mode = static_cast<int>(lv_dropdown_get_selected(dropdown));
         if (mode == 2)
         {
+            self->_focus_team_when_offer_available = false;
+            self->_focus_member_when_team_active = false;
             self->_biz.teamCancel();
-            if (self->_biz.teamHasTeam() && !self->_biz.teamLeave())
+            if (self->_biz.teamStatus().has_team && !self->_biz.teamLeave())
             {
                 self->syncControls(true);
                 self->_biz.showAlert("Leave team failed", 2000);
@@ -538,7 +589,8 @@ void FindFriendScreen::onDropdownValueChanged(lv_event_t *e)
         {
             self->syncFriendDropdown(true);
 #if HELTEC_TEAM_FEATURE
-            if (!self->_biz.teamIsLeader() && !self->_biz.teamHasTeam())
+            const biz::IBizFacade::TeamStatus team = self->_biz.teamStatus();
+            if (!team.is_leader && !team.has_team)
             {
                 self->startTeamSearch();
                 return;
@@ -548,10 +600,12 @@ void FindFriendScreen::onDropdownValueChanged(lv_event_t *e)
         else
         {
             /* Pairing has no purpose in waypoint mode and must not run invisibly. */
+            self->_focus_team_when_offer_available = false;
+            self->_focus_member_when_team_active = false;
             self->_biz.teamCancel();
         }
         self->updateConditionalVisibility();
-        if (mode == 0 && self->_biz.teamHasTeam() &&
+        if (mode == 0 && self->_biz.teamStatus().has_team &&
             !self->_biz.locationShareEnabled())
         {
             self->_biz.showAlert("Find friend; location share is OFF", 2500);
@@ -571,9 +625,47 @@ void FindFriendScreen::onDropdownValueChanged(lv_event_t *e)
     else if (dropdown == self->_choice_team.dropdown)
     {
         const int selected = static_cast<int>(lv_dropdown_get_selected(dropdown));
-        if (!self->_biz.findFriendEnabled() || self->_biz.findFriendMode() != 0 ||
-            self->_biz.teamHasTeam() ||
-            static_cast<JoinState>(self->_biz.teamPairState()) == JoinState::WaitingForApproval)
+        const biz::IBizFacade::TeamStatus team = self->_biz.teamStatus();
+        if (!self->_biz.findFriendEnabled() || self->_biz.findFriendMode() != 0)
+        {
+            return;
+        }
+        if (team.has_team)
+        {
+            if (selected != 1)
+            {
+                self->setDropdownIndex(dropdown, 0, true);
+                return;
+            }
+
+            self->_focus_team_when_offer_available = false;
+            self->_focus_member_when_team_active = false;
+            self->_biz.teamCancel();
+            if (!self->_biz.teamLeave())
+            {
+                self->setDropdownIndex(dropdown, 0, true);
+                self->_biz.showAlert("Leave team failed", 2000);
+                return;
+            }
+
+            if (self->_open_dropdown == dropdown)
+            {
+                self->_open_dropdown = nullptr;
+            }
+            lv_obj_clear_state(dropdown, LV_STATE_EDITED);
+            if (self->group())
+            {
+                lv_group_set_editing(self->group(), false);
+            }
+            self->_biz.setFindFriendTargetContactIndex(-1);
+            self->_friend_window_start = 0;
+            self->syncFriendDropdown(true);
+            self->syncControls(true);
+            self->_biz.showAlert("Left team", 2000);
+            return;
+        }
+        if (
+            static_cast<JoinState>(self->_biz.teamStatus().pair_state) == JoinState::WaitingForApproval)
         {
             return;
         }
@@ -589,29 +681,34 @@ void FindFriendScreen::onDropdownValueChanged(lv_event_t *e)
         if (selected < 0)
             return;
         const bool ok = self->_biz.teamSelectOffer(selected - 1);
+        self->_focus_member_when_team_active = ok;
         char status[32] = {};
         if (ok)
             lv_snprintf(status, sizeof(status), "Confirm %04u",
-                        static_cast<unsigned>(self->_biz.teamPairingCode()));
+                        static_cast<unsigned>(self->_biz.teamStatus().pairing_code));
         self->_biz.showAlert(ok ? status : "Join request failed", 3000);
         self->setDropdownIndex(dropdown, 0, true);
         self->updateConditionalVisibility();
+        if (ok && self->group() && lv_obj_get_group(dropdown) == self->group())
+        {
+            lv_group_focus_obj(dropdown);
+            self->scrollFocusedIntoView(dropdown);
+        }
     }
 }
 
 void FindFriendScreen::startTeamSearch()
 {
     closeOpenDropdown();
+    _focus_team_when_offer_available = true;
+    _focus_member_when_team_active = false;
     const bool started = _biz.teamStartSearch();
     syncControls(true);
     if (!started)
     {
+        _focus_team_when_offer_available = false;
         _biz.showAlert("Team search failed", 2000);
         return;
-    }
-    if (!defer(focusTeamDeferred, this))
-    {
-        focusTeamDeferred(this);
     }
 }
 
@@ -619,13 +716,33 @@ void FindFriendScreen::focusTeamDeferred(void *user_data)
 {
     auto *self = static_cast<FindFriendScreen *>(user_data);
     if (!self || !self->_biz.findFriendEnabled() || self->_biz.findFriendMode() != 0 ||
-        self->_biz.teamHasTeam() || !self->_choice_team.dropdown)
+        self->_biz.teamStatus().has_team || !self->_choice_team.dropdown)
     {
         return;
     }
-    if (self->restoreFocus(self->_choice_team.dropdown, self->_choice_mode.dropdown))
+    lv_obj_t *const target = focus_object_available(self->_choice_team.dropdown)
+                                 ? self->_choice_team.dropdown
+                                 : self->_choice_mode.dropdown;
+    if (focus_object_available(target) && lv_obj_get_group(target) == self->group())
     {
+        lv_group_focus_obj(target);
         self->scrollFocusedIntoView(self->_choice_team.dropdown);
+    }
+}
+
+void FindFriendScreen::focusMemberDeferred(void *user_data)
+{
+    auto *self = static_cast<FindFriendScreen *>(user_data);
+    if (!self || !self->_biz.findFriendEnabled() || self->_biz.findFriendMode() != 0 ||
+        !self->_biz.teamStatus().has_team || !self->_choice_friend.dropdown)
+    {
+        return;
+    }
+    lv_obj_t *const target = self->_choice_friend.dropdown;
+    if (focus_object_available(target) && lv_obj_get_group(target) == self->group())
+    {
+        lv_group_focus_obj(target);
+        self->scrollFocusedIntoView(target);
     }
 }
 
@@ -656,7 +773,7 @@ void FindFriendScreen::onDropdownStateEvent(lv_event_t *e)
         lv_obj_add_state(dropdown, LV_STATE_EDITED);
         if (self->group())
             lv_group_set_editing(self->group(), true);
-        if (!defer(realignDropdownListAsync, dropdown))
+        if (lv_async_call(realignDropdownListAsync, dropdown) != LV_RES_OK)
         {
             self->realignDropdownList(dropdown);
         }
@@ -674,8 +791,25 @@ void FindFriendScreen::onDropdownStateEvent(lv_event_t *e)
 void FindFriendScreen::onDropdownReleasedPre(lv_event_t *e)
 {
     auto *self = static_cast<FindFriendScreen *>(lv_event_get_user_data(e));
-    if (self)
-        self->realignDropdownList(lv_event_get_target(e));
+    if (!self)
+        return;
+    _lv_obj_t *const dropdown = lv_event_get_target(e);
+    if (self->_suppress_released_dropdown == dropdown)
+    {
+        self->_suppress_released_dropdown = nullptr;
+        lv_event_stop_processing(e);
+        lv_event_stop_bubbling(e);
+        return;
+    }
+    if (dropdown == self->_choice_team.dropdown &&
+        static_cast<JoinState>(self->_biz.teamStatus().pair_state) ==
+            JoinState::WaitingForApproval)
+    {
+        lv_event_stop_processing(e);
+        lv_event_stop_bubbling(e);
+        return;
+    }
+    self->realignDropdownList(dropdown);
 }
 
 void FindFriendScreen::syncFriendDropdown(bool force)
@@ -711,6 +845,9 @@ void FindFriendScreen::syncFriendDropdown(bool force)
         start = 0;
     if (start > max_start)
         start = max_start;
+    if (!force && _friend_mesh_map_count_applied >= 0 && start == _friend_window_start &&
+        selected_rank == _friend_selected_rank && total == _friend_total)
+        return;
     loadFriendDropdownWindow(start, selected_rank, force);
 }
 
@@ -889,7 +1026,7 @@ void FindFriendScreen::realignDropdownList(_lv_obj_t *dropdown)
         lv_obj_set_width(list, width);
     lv_obj_set_scrollbar_mode(list, LV_SCROLLBAR_MODE_OFF);
     ui_theme_match_dropdown_list_padding(dropdown, list);
-    _lv_obj_t *const viewport = tile();
+    _lv_obj_t *const viewport = lv_obj_get_parent(_root);
     // Position from the anchor's current screen coordinates; do not scroll an
     // unrelated parent while fitting the popup (which can move the anchor again).
     ui_dropdown_fit_list_to_viewport(dropdown, viewport ? viewport : _root, nullptr);
@@ -907,6 +1044,18 @@ void FindFriendScreen::onControlKeyPreprocess(lv_event_t *e)
     const bool is_dropdown = target == self->_choice_mode.dropdown ||
                              target == self->_choice_friend.dropdown ||
                              target == self->_choice_team.dropdown;
+    if (is_dropdown)
+    {
+    }
+
+    if (target == self->_choice_team.dropdown && key == LV_KEY_ENTER &&
+        static_cast<JoinState>(self->_biz.teamStatus().pair_state) ==
+            JoinState::WaitingForApproval)
+    {
+        lv_event_stop_processing(e);
+        lv_event_stop_bubbling(e);
+        return;
+    }
 
     /* Recover the open-list state if keyboard input precedes the READY handler. */
     if (is_dropdown && lv_dropdown_is_open(target) && self->_open_dropdown != target)
@@ -932,7 +1081,7 @@ void FindFriendScreen::onControlKeyPreprocess(lv_event_t *e)
             direction = -1;
         if (direction != 0 && self->moveFriendDropdownSelection(direction))
         {
-            if (!defer(realignDropdownListAsync, target))
+            if (lv_async_call(realignDropdownListAsync, target) != LV_RES_OK)
                 self->realignDropdownList(target);
             lv_event_stop_processing(e);
             lv_event_stop_bubbling(e);
@@ -942,7 +1091,7 @@ void FindFriendScreen::onControlKeyPreprocess(lv_event_t *e)
 
     if (self->_open_dropdown == target && cycle_dropdown(target, key))
     {
-        if (!defer(realignDropdownListAsync, target))
+        if (lv_async_call(realignDropdownListAsync, target) != LV_RES_OK)
             self->realignDropdownList(target);
         lv_event_stop_processing(e);
         lv_event_stop_bubbling(e);
@@ -957,6 +1106,11 @@ void FindFriendScreen::onControlKeyPreprocess(lv_event_t *e)
             changed = self->friendMeshIndexForSelection() != self->_friend_open_original_mesh_idx;
         }
         self->_open_dropdown = nullptr;
+#if defined(HELTEC_T1)
+        /* T1 long-press emits KEY followed by RELEASED. Without suppressing that
+           release, LVGL closes here and immediately reopens the dropdown. */
+        self->_suppress_released_dropdown = target;
+#endif
         lv_dropdown_close(target);
         lv_obj_clear_state(target, LV_STATE_EDITED);
         if (self->group())
@@ -1006,30 +1160,29 @@ void FindFriendScreen::onControlKeyPreprocess(lv_event_t *e)
 
 void FindFriendScreen::handleAction(Action action, _lv_obj_t *source)
 {
-    if (action == Action::TeamGroupMessage || action == Action::TeamDirectMessage)
+    if (action == Action::TeamMessage)
     {
         UiSendMessageTarget target{};
-        const int member = action == Action::TeamGroupMessage ? -1 :
-                           _biz.findFriendTargetContactIndex();
-        // -1 denotes Group, not an unselected personal recipient.
-        if ((action == Action::TeamDirectMessage && member < 0) ||
-            !_biz.teamMessageTarget(member, target))
+        const int member = _biz.findFriendTargetContactIndex();
+        /* A selected member defaults to Personal; -1 defaults to the Team group. */
+        if (!_biz.teamMessageTarget(member, target))
         {
             _biz.showAlert("No Team recipient", 2000);
             return;
         }
-        (void)emit(EventType::SEND_MESSAGE_OPEN, &target);
+        (void)emitEvent(EventType::SendMessageOpen, &target);
         return;
     }
     if (action == Action::Team)
     {
-        if (!_biz.teamIsLeader())
+        if (!_biz.teamStatus().is_leader)
         {
             startTeamSearch();
             return;
         }
-        const bool ok = !_biz.teamHasTeam() ? _biz.teamSetActive(true) :
-                       _biz.teamSetJoining(!_biz.teamJoinWindowOpen());
+        const biz::IBizFacade::TeamStatus team = _biz.teamStatus();
+        const bool ok = !team.has_team ? _biz.teamSetActive(true) :
+                       _biz.teamSetJoining(!team.join_window_open);
         syncControls(true);
         if (!ok)
         {
@@ -1055,7 +1208,7 @@ void FindFriendScreen::handleAction(Action action, _lv_obj_t *source)
     if (action == Action::WaypointManual)
     {
         _waypoint_keyboard_return_focus = source;
-        emit(EventType::WAYPOINT_KEYBOARD_OPEN);
+        emitEvent(EventType::WaypointKeyboardOpen);
     }
 }
 
@@ -1070,10 +1223,8 @@ void FindFriendScreen::onActionClicked(lv_event_t *e)
     Action action = Action::None;
     if (target == self->_row_team)
         action = Action::Team;
-    if (target == self->_row_group_message)
-        action = Action::TeamGroupMessage;
-    if (target == self->_row_direct_message)
-        action = Action::TeamDirectMessage;
+    if (target == self->_row_team_message)
+        action = Action::TeamMessage;
     if (target == self->_row_wp_gps)
         action = Action::WaypointGps;
     if (target == self->_row_wp_manual)

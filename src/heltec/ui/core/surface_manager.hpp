@@ -8,6 +8,7 @@ namespace heltec::meshcore::ui
 {
 
 class UiSurface;
+struct AppStateEvent;
 
 class SurfaceManager
 {
@@ -25,10 +26,12 @@ class SurfaceManager
     bool isVisible(const UiSurface *surface) const;
 
     bool dispatchToActive(EventType type, const void *payload = nullptr);
+    void dispatchAppStateToActive(const AppStateEvent &event);
     void reconcile();
 
   private:
     static bool isAvailable(const UiSurface *surface);
+    static bool isFocusEligible(const _lv_obj_t *object);
     void enter(UiSurface *surface);
     void exit(UiSurface *surface);
     void bindInput(UiSurface *surface);

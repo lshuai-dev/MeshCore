@@ -73,7 +73,6 @@ class TeamJoinService
     bool openJoinWindow();
     void closeJoinWindow();
     bool joinWindowOpen() const;
-    uint16_t joinWindowRemainingSec() const;
 
     bool discoverTeams();
     size_t offerCount() const;
@@ -134,7 +133,7 @@ class TeamJoinService
     HeltecMesh *_mesh = nullptr;
     TeamService *_team = nullptr;
     JoinState _state = JoinState::Idle;
-    uint32_t _join_window_end_ms = 0;
+    bool _join_window_open = false;
     uint32_t _search_end_ms = 0;
     uint32_t _decision_end_ms = 0;
     uint32_t _next_discover_ms = 0;

@@ -9,7 +9,6 @@
 #if HELTEC_TEAM_FEATURE
 
 #include "app/HeltecMesh.h"
-#include "app/team_log.hpp"
 #include "config/DataStore.h"
 
 #include <Arduino.h>
@@ -67,13 +66,11 @@ void TeamService::begin(HeltecMesh &mesh, DataStore &store)
                           sizeof(_status_sequence));
     mesh.getRNG()->random(reinterpret_cast<uint8_t *>(&_sync_sequence), sizeof(_sync_sequence));
     // Migration only: never read old credentials, even if their deletion fails.
-    if (!store.deleteTeamPrefs())
-        TEAM_INFO("legacy Team preferences cleanup failed; ignored");
+    (void)store.deleteTeamPrefs();
     installSystemChannels();
     scheduleInitialFrames();
     _startup_sync_attempts = 0;
     _startup_sync_ms = enabled() ? millis() + mesh.getRNG()->nextInt(5000, 15001) : 0;
-    TEAM_INFO("service begin role=%u volatile=1 has_team=0", HELTEC_TEAM_ROLE);
 }
 
 bool TeamService::hasTeam() const
@@ -104,8 +101,6 @@ void TeamService::installSystemChannels()
     _mesh->setChannel(HELTEC_TEAM_JOIN_CHANNEL_INDEX, join);
     ChannelDetails installed_join{};
     (void)_mesh->getChannel(HELTEC_TEAM_JOIN_CHANNEL_INDEX, installed_join);
-    TEAM_LOG("channel install join_index=%u hash=%02X", HELTEC_TEAM_JOIN_CHANNEL_INDEX,
-             installed_join.channel.hash[0]);
 
     if (hasTeam())
     {
@@ -116,9 +111,6 @@ void TeamService::installSystemChannels()
         _mesh->setChannel(HELTEC_TEAM_CHANNEL_INDEX, team);
         ChannelDetails installed_team{};
         (void)_mesh->getChannel(HELTEC_TEAM_CHANNEL_INDEX, installed_team);
-        TEAM_LOG("channel install team_index=%u hash=%02X team=%08lX",
-                 HELTEC_TEAM_CHANNEL_INDEX, installed_team.channel.hash[0],
-                 static_cast<unsigned long>(_credentials.team_id));
     }
     else
     {
@@ -140,7 +132,6 @@ bool TeamService::createTeam(const char *name)
 #else
     if (!_mesh || !name)
     {
-        TEAM_INFO("create rejected: service/name unavailable");
         return false;
     }
     size_t name_len = strnlen(name, kMaxNameBytes);
@@ -149,7 +140,6 @@ bool TeamService::createTeam(const char *name)
         --name_len;
     if (name_len == 0)
     {
-        TEAM_INFO("create rejected: invalid name");
         return false;
     }
 
@@ -163,8 +153,6 @@ bool TeamService::createTeam(const char *name)
     memcpy(next.name, name, name_len);
     memcpy(next.leader_public_key, _mesh->self_id.pub_key, sizeof(next.leader_public_key));
     const bool installed = installTeam(next);
-    TEAM_INFO("create result=%u team=%08lX", installed,
-             static_cast<unsigned long>(next.team_id));
     return installed;
 #endif
 }
@@ -178,7 +166,6 @@ bool TeamService::installTeam(const TeamCredentials &credentials)
         credentials.name_len == 0 || credentials.name_len > kMaxNameBytes ||
         !valid_utf8(reinterpret_cast<const uint8_t *>(credentials.name), credentials.name_len))
     {
-        TEAM_INFO("install rejected: invalid credentials");
         return false;
     }
 
@@ -190,9 +177,6 @@ bool TeamService::installTeam(const TeamCredentials &credentials)
     _last_sync_request_tx_ms = 0;
     installSystemChannels();
     scheduleInitialFrames();
-    TEAM_INFO("install ok team=%08lX key_version=%lu name_len=%u",
-             static_cast<unsigned long>(credentials.team_id),
-             static_cast<unsigned long>(credentials.key_version), credentials.name_len);
     return true;
 }
 
@@ -205,7 +189,6 @@ bool TeamService::leaveTeam()
     _last_sync_request_tx_ms = 0;
     clearMembers();
     clearTeamChannel();
-    TEAM_INFO("leave ok");
     return true;
 }
 
@@ -225,7 +208,6 @@ bool TeamService::setEnabled(bool enabled)
     {
         scheduleInitialFrames();
     }
-    TEAM_LOG("enable=%u ok", enabled);
     return true;
 }
 
@@ -238,9 +220,6 @@ void TeamService::scheduleInitialFrames()
     // Publish our identity before requesting the other members; all TX stays in poll().
     _startup_sync_ms = _next_status_ms + 1000UL;
     _startup_sync_attempts = 0;
-    TEAM_LOG("status scheduled period_s=%u idle_s=%u gps_on=%u",
-             HELTEC_TEAM_LOCATION_PERIOD_SEC, HELTEC_TEAM_LOCATION_IDLE_PERIOD_SEC,
-             _mesh->getNodePrefs()->gps_enabled != 0);
 }
 
 CommonHeader TeamService::makeHeader(uint8_t flags, uint16_t sequence) const
@@ -259,14 +238,11 @@ bool TeamService::sendFrame(const uint8_t *data, size_t length)
     ChannelDetails channel{};
     if (!_mesh->getChannel(HELTEC_TEAM_CHANNEL_INDEX, channel))
     {
-        TEAM_INFO("tx failed subtype=%u: team channel unavailable", data ? data[1] : 0);
         return false;
     }
     const bool sent = _mesh->sendGroupData(channel.channel, nullptr, OUT_PATH_UNKNOWN,
                                            kDataTypeDev, data, static_cast<int>(length));
     increment(sent ? _stats.tx_queued : _stats.tx_dropped);
-    TEAM_LOG("tx subtype=%u bytes=%u queued=%u", data ? data[1] : 0,
-             static_cast<unsigned int>(length), sent);
     return sent;
 }
 
@@ -315,13 +291,8 @@ bool TeamService::sendStatus(bool force_update)
     size_t length = 0;
     if (!encode_status(frame, data, sizeof(data), length) || !sendFrame(data, length))
     {
-        TEAM_INFO("status queue_failed seq=%u sync=%u", frame.header.sequence, force_update);
         return false;
     }
-    TEAM_LOG("status queued seq=%u sync=%u valid=%u age=%u bytes=%u lat=%ld lon=%ld",
-             frame.header.sequence, force_update, valid, frame.fix_age_sec,
-             static_cast<unsigned int>(length), static_cast<long>(frame.latitude_e6),
-             static_cast<long>(frame.longitude_e6));
     ++_status_sequence;
     _sent_valid_location = valid;
     _last_status_sent_ms = now;
@@ -344,7 +315,6 @@ void TeamService::poll()
         {
             _next_status_ms = now + HELTEC_TEAM_LOCATION_PERIOD_SEC * 1000UL;
         }
-        TEAM_LOG("sync status response queued=%u attempt=%u", sent, _sync_status_attempts);
     }
     else if (_pending_status_ms == 0 && deadline_passed(now, _next_status_ms))
     {
@@ -356,8 +326,6 @@ void TeamService::poll()
         _startup_sync_ms = 0;
         const bool sent = requestSync();
         ++_startup_sync_attempts;
-        TEAM_LOG("startup member sync queued=%u attempt=%u", sent,
-                 _startup_sync_attempts);
         if (!sent && _startup_sync_attempts < 3)
             _startup_sync_ms = now + 5000UL;
     }
@@ -409,7 +377,6 @@ void TeamService::receiveStatus(const uint8_t *data, size_t length)
         !any_nonzero(frame.public_key, sizeof(frame.public_key)))
     {
         increment(_stats.rx_decode_error);
-        TEAM_LOG("rx status decode_error bytes=%u", static_cast<unsigned int>(length));
         return;
     }
     if (memcmp(frame.public_key, _mesh->self_id.pub_key, kPublicKeySize) == 0)
@@ -428,8 +395,13 @@ void TeamService::receiveStatus(const uint8_t *data, size_t length)
         !sequence_is_newer(frame.header.sequence, member->sequence))
     {
         increment(_stats.rx_duplicate_or_old);
-        TEAM_LOG("rx status old seq=%u current=%u", frame.header.sequence, member->sequence);
         return;
+    }
+    bool member_changed = member == nullptr;
+    if (member && (member->role != frame.header.role || member->name_len != frame.name_len ||
+                   memcmp(member->name, frame.name, frame.name_len) != 0))
+    {
+        member_changed = true;
     }
     if (!member)
     {
@@ -450,12 +422,13 @@ void TeamService::receiveStatus(const uint8_t *data, size_t length)
     member->longitude_e6 = frame.longitude_e6;
     member->fix_age_sec = frame.fix_age_sec;
     member->last_seen_ms = millis();
+    if (member_changed)
+    {
+        ++_member_revision;
+    }
+    (void)_mesh->syncTeamMemberContact(frame.public_key, frame.name, frame.name_len);
     ++_change_sequence;
     increment(_stats.rx_status);
-    TEAM_LOG("rx status id=%02X%02X%02X seq=%u role=%u valid=%u age=%u members=%u",
-             frame.public_key[0], frame.public_key[1], frame.public_key[2],
-             frame.header.sequence, frame.header.role, member->location_valid,
-             frame.fix_age_sec, static_cast<unsigned int>(memberCount()));
 }
 
 void TeamService::receiveSyncRequest(const uint8_t *data, size_t length)
@@ -464,7 +437,6 @@ void TeamService::receiveSyncRequest(const uint8_t *data, size_t length)
     if (decode_sync_request(data, length, frame) != DecodeResult::Ok)
     {
         increment(_stats.rx_decode_error);
-        TEAM_LOG("rx sync decode_error bytes=%u", static_cast<unsigned int>(length));
         return;
     }
     if (memcmp(frame.header.sender_id, _mesh->self_id.pub_key, kSenderIdSize) == 0)
@@ -477,9 +449,6 @@ void TeamService::receiveSyncRequest(const uint8_t *data, size_t length)
             memcmp(seen.sender_id, frame.header.sender_id, kSenderIdSize) == 0)
         {
             increment(_stats.rx_duplicate_or_old);
-            TEAM_LOG("rx sync duplicate id=%02X%02X%02X request=%04X",
-                     frame.header.sender_id[0], frame.header.sender_id[1],
-                     frame.header.sender_id[2], frame.request_id);
             return;
         }
         if (seen.seen_ms == 0 ||
@@ -489,8 +458,6 @@ void TeamService::receiveSyncRequest(const uint8_t *data, size_t length)
     if (_last_sync_request_rx_ms != 0 && now - _last_sync_request_rx_ms < 5000UL)
     {
         increment(_stats.sync_rate_limited);
-        TEAM_LOG("rx sync rate_limited id=%02X%02X%02X", frame.header.sender_id[0],
-                 frame.header.sender_id[1], frame.header.sender_id[2]);
         return;
     }
     _last_sync_request_rx_ms = now;
@@ -517,21 +484,14 @@ void TeamService::receiveSyncRequest(const uint8_t *data, size_t length)
         }
     }
     increment(_stats.rx_sync_request);
-    TEAM_LOG("rx sync id=%02X%02X%02X window=%u status_ms=%lu",
-             frame.header.sender_id[0], frame.header.sender_id[1], frame.header.sender_id[2],
-             frame.response_window_sec, static_cast<unsigned long>(delay_ms));
 }
 
 void TeamService::handleTeamData(const uint8_t *data, size_t length)
 {
     if (!enabled() || !data)
     {
-        TEAM_LOG("team rx ignored enabled=%u data=%u bytes=%u", enabled(), data != nullptr,
-                 static_cast<unsigned int>(length));
         return;
     }
-    TEAM_LOG("team rx subtype=%u bytes=%u", static_cast<unsigned int>(frame_subtype(data, length)),
-             static_cast<unsigned int>(length));
     switch (frame_subtype(data, length))
     {
     case Subtype::Status:
@@ -548,22 +508,18 @@ void TeamService::handleTeamData(const uint8_t *data, size_t length)
 void TeamService::noteWrongChannel()
 {
     increment(_stats.rx_wrong_channel);
-    TEAM_INFO("rx rejected: wrong channel");
 }
 
 bool TeamService::requestSync()
 {
     if (!enabled())
     {
-        TEAM_INFO("sync request rejected: team disabled");
         return false;
     }
     const uint32_t now = millis();
     if (_sync_request_tx_seen && now - _last_sync_request_tx_ms < 60000UL)
     {
         increment(_stats.sync_rate_limited);
-        TEAM_INFO("sync request rejected: tx cooldown remaining_ms=%lu",
-                 static_cast<unsigned long>(60000UL - (now - _last_sync_request_tx_ms)));
         return false;
     }
     SyncRequestFrame frame{};
@@ -574,11 +530,11 @@ bool TeamService::requestSync()
     uint8_t data[32] = {};
     size_t length = 0;
     if (!encode_sync_request(frame, data, sizeof(data), length) || !sendFrame(data, length))
+    {
         return false;
+    }
     _last_sync_request_tx_ms = now;
     _sync_request_tx_seen = true;
-    TEAM_LOG("sync request seq=%u request=%08lX", frame.header.sequence,
-             static_cast<unsigned long>(frame.request_id));
     ++_sync_sequence;
     return true;
 }
@@ -635,6 +591,7 @@ void TeamService::clearMembers()
     memset(_sync_seen, 0, sizeof(_sync_seen));
     memset(_pinned_member_id, 0, sizeof(_pinned_member_id));
     _last_sync_request_rx_ms = 0;
+    ++_member_revision;
     ++_change_sequence;
 }
 

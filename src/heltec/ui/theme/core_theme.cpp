@@ -1,11 +1,11 @@
-#include "ui/app/ui_theme.hpp"
+#include "ui/app/theme.hpp"
 
 #if LV_USE_THEME_MONO && HELTEC_UI_DISPLAY_MONO
-#include "ui/theme/ui_theme_mono_flat.hpp"
+#include "ui/theme/theme_mono_flat.hpp"
 #endif
 
 #if !HELTEC_UI_DISPLAY_MONO
-#include "ui/theme/ui_theme_pixel.hpp"
+#include "ui/theme/theme_pixel.hpp"
 #endif
 
 namespace heltec::meshcore::ui

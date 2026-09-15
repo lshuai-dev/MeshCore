@@ -2,8 +2,8 @@
 #include "MeshCore.h"
 #include "config/DataStore.h"
 #include "mesh_app_ui.hpp"
-#include "ui/app/ui_app.hpp"
-#include "ui/core/ui_task.hpp"
+#include "ui/app/app.hpp"
+#include "ui/core/task.hpp"
 
 #include <Arduino.h>
 
@@ -36,7 +36,7 @@ bool MeshAppUi::factoryReset()
 
     heltec::meshcore::ui::ui_task().disableSerial();
 #if HELTEC_TEAM_FEATURE
-    the_mesh.teamJoinService().cancel();
+    the_mesh.teamJoinService().closeJoinWindow();
     if (the_mesh.teamService().hasTeam() && !the_mesh.teamService().leaveTeam())
         return false;
 #endif
@@ -50,6 +50,7 @@ bool MeshAppUi::factoryReset()
 bool MeshAppUi::clearUserData()
 {
 #if HELTEC_TEAM_FEATURE
+    the_mesh.teamJoinService().closeJoinWindow();
     if (the_mesh.teamService().hasTeam() && !the_mesh.teamService().leaveTeam())
         return false;
 #endif

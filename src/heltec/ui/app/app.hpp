@@ -1,26 +1,21 @@
 #pragma once
 
 #include "app/power_mgr.hpp"
-#include "ui/app/ui_theme.hpp"
-#include "ui/core/app_state_ui_dispatcher.hpp"
+#include "ui/app/theme.hpp"
+#include "ui/core/app_state_dispatcher.hpp"
 #include "ui/core/biz_facade.hpp"
-#include "ui/core/input_host.hpp"
-#include "ui/core/ui_capabilities.hpp"
-#include "ui/core/surface_manager.hpp"
+#include "ui/core/capabilities.hpp"
+#include "ui/core/host.hpp"
 #include "ui/core/ht_event.h"
-#include "ui/core/ui_host.hpp"
-#include "ui/core/ui_surface.hpp"
+#include "ui/core/input_host.hpp"
+#include "ui/core/surface.hpp"
+#include "ui/core/surface_manager.hpp"
 #include "ui/widgets/top_pane.hpp"
-
-#include <lvgl.h>
-#include <stdint.h>
-
 #if defined(UI_NAVIGATION_GRID) && UI_NAVIGATION_GRID
 #include "ui/navigation/navigation_pane.hpp"
 #else
 #include "ui/navigation/radial_navigator.hpp"
 #endif
-
 #include "heltec/ui/images.h"
 #include "ui/screens/home_screen.hpp"
 #include "ui/screens/radio_screen.hpp"
@@ -55,21 +50,18 @@
 #include "ui/overlays/calibration_overlay.hpp"
 #endif
 
-namespace heltec::meshcore::ui
-{
+namespace heltec::meshcore::ui {
 
 class AbstractScreen;
 
-class UiApp final : public IUiHost, public InputHost
-{
+class UiApp final : public IUiHost, public InputHost {
   public:
     UiApp(biz::IBizFacade &biz, heltec::meshcore::power::PowerMgr &power);
     static UiApp &instance();
 
     void init();
     void tick();
-    bool isReady() const override
-    {
+    bool isReady() const override {
         return _inited;
     }
 
@@ -110,8 +102,7 @@ class UiApp final : public IUiHost, public InputHost
     void onBacklightTurnedOn() override;
     void reconcileInput() override;
     void ensureTileKeypadFocus() override;
-    lv_obj_t *frameRoot() const override
-    {
+    lv_obj_t *frameRoot() const override {
         return _frame_root;
     }
 
@@ -161,8 +152,7 @@ class UiApp final : public IUiHost, public InputHost
     static void nativeTouchGestureEvent(lv_event_t *e);
     void handleNativeTouchGesture(lv_event_t *e);
 
-    enum class DeferredTouchAction : uint8_t
-    {
+    enum class DeferredTouchAction : uint8_t {
         None = 0,
         OpenNavigation,
         CloseNavigation,

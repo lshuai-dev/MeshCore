@@ -1,69 +1,46 @@
 #include "abstract_overlay.hpp"
-#include "ui_semantic_classes.hpp"
 
-namespace heltec::meshcore::ui
-{
+#include "widget_classes.hpp"
 
-_lv_obj_t *AbstractOverlay::createRoot(_lv_obj_t *parent)
-{
-    return ht_semantic_create(&ht_overlay_root_class, parent);
+namespace heltec::meshcore::ui {
+
+AbstractOverlay::AbstractOverlay(biz::IBizFacade &biz)
+    : AbstractOverlay(biz, ht_overlay_root_class) {
 }
 
-_lv_obj_t *AbstractOverlay::create(_lv_obj_t *parent)
-{
-    if (!parent)
-        return nullptr;
-    if (_root)
-        return _root;
-    if (!UiSurface::create(parent))
-        return nullptr;
+AbstractOverlay::AbstractOverlay(biz::IBizFacade &biz, const lv_obj_class_t &root_class)
+    : UiSurface(biz, root_class) {
+}
 
+bool AbstractOverlay::buildSurface() {
     lv_obj_set_size(_root, lv_pct(100), lv_pct(100));
     lv_obj_set_flex_flow(_root, LV_FLEX_FLOW_COLUMN);
     lv_obj_set_flex_align(_root, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
     lv_obj_clear_flag(_root, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_add_flag(_root, LV_OBJ_FLAG_HIDDEN);
-    return _root;
+    return true;
 }
 
-_lv_obj_t *AbstractOverlay::focusedObject() const
-{
-    if (_lv_obj_t *target = focusTarget())
-        return target;
-    return UiSurface::focusedObject();
+void AbstractOverlay::onEnter() {
+    if (_lv_obj_t *target = focusTarget()) setFocusObject(target);
 }
 
-void AbstractOverlay::onEnter()
-{
-    UiSurface::onEnter();
-    if (_lv_obj_t *target = focusTarget())
-        setFocusObject(target);
-}
-
-void AbstractOverlay::setFocusObject(_lv_obj_t *obj)
-{
-    if (!_focus_group || !obj)
-        return;
+void AbstractOverlay::setFocusObject(_lv_obj_t *object) {
+    if (!focusGroup() || !object || !lv_obj_is_valid(object)) return;
+    lv_group_set_editing(focusGroup(), false);
     // Reopening a single-target overlay does not require reallocating its group node.
-    if (lv_obj_get_group(obj) == _focus_group && lv_group_get_obj_count(_focus_group) == 1)
-    {
-        _default_focus = obj;
-        lv_group_focus_obj(obj);
+    if (lv_obj_get_group(object) == focusGroup() && lv_group_get_obj_count(focusGroup()) == 1) {
+        lv_group_focus_obj(object);
         return;
     }
-    clearFocusObjects();
-    addFocusObject(obj);
+    lv_group_remove_all_objs(focusGroup());
+    lv_obj_add_flag(object, LV_OBJ_FLAG_CLICKABLE | LV_OBJ_FLAG_EVENT_BUBBLE);
+    lv_obj_add_flag(object, LV_OBJ_FLAG_SCROLL_ON_FOCUS);
+    lv_group_add_obj(focusGroup(), object);
 }
 
-_lv_obj_t *AbstractOverlay::focusTarget() const
-{
+_lv_obj_t *AbstractOverlay::focusTarget() const {
     return _root;
-}
-
-bool AbstractOverlay::onKey(uint32_t key)
-{
-    (void)key;
-    return false;
 }
 
 } // namespace heltec::meshcore::ui

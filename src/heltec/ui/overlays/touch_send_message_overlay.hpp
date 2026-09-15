@@ -23,24 +23,17 @@ struct UiSendMessageTarget;
 class SendMessageOverlay : public FramedOverlay
 {
   public:
-    explicit SendMessageOverlay(biz::IBizFacade &biz) : FramedOverlay(biz)
-    {
-    }
+    explicit SendMessageOverlay(biz::IBizFacade &biz);
     void submitCustomMessage(const char *text);
     void prepareTarget(const UiSendMessageTarget *target);
 
-    lv_obj_t *focusedObject() const override
-    {
-        return _focus_group ? lv_group_get_focused(_focus_group) : _root;
-    }
     void onEnter() override;
     void onExit() override;
 
   protected:
-    _lv_obj_t *create(_lv_obj_t *parent) override;
+    bool buildSurface() override;
 
   private:
-    _lv_obj_t *createRoot(_lv_obj_t *parent) override;
     bool onKey(uint32_t key) override;
     void syncOverlayGroup();
 

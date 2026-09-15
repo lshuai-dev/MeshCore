@@ -14,9 +14,7 @@ namespace heltec::meshcore::ui
 class RadioParamSyncOverlay : public FramedOverlay
 {
   public:
-    explicit RadioParamSyncOverlay(biz::IBizFacade &biz) : FramedOverlay(biz)
-    {
-    }
+    explicit RadioParamSyncOverlay(biz::IBizFacade &biz);
 
     void onEnter() override;
     void onExit() override;
@@ -27,11 +25,9 @@ class RadioParamSyncOverlay : public FramedOverlay
 #endif
 
   protected:
-    _lv_obj_t *create(_lv_obj_t *parent) override;
+    bool buildSurface() override;
 
   private:
-    _lv_obj_t *createRoot(_lv_obj_t *parent) override;
-    _lv_obj_t *focusTarget() const override;
     bool onKey(uint32_t key) override;
     void syncFromPrefs();
     void configureListLayout();

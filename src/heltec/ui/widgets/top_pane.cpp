@@ -1,5 +1,5 @@
 #include "top_pane.hpp"
-#include "ui/app/ui_theme.hpp"
+#include "ui/app/theme.hpp"
 #include <lvgl.h>
 
 namespace heltec::meshcore::ui
@@ -115,7 +115,7 @@ bool TopPane::create(_lv_obj_t *parent)
     if (!parent)
         return false;
 
-    _root = ht_semantic_create(&ht_top_pane_class, parent);
+    _root = ht_class_create(&ht_top_pane_class, parent);
     if (!_root)
         return false;
     lv_obj_set_width(_root, lv_pct(100));
@@ -166,7 +166,7 @@ bool TopPane::create(_lv_obj_t *parent)
     _touch_slot = center_slot;
 #endif
 
-    _lv_obj_t *right_slot = ht_semantic_create(&ht_top_pane_right_slot_class, _root);
+    _lv_obj_t *right_slot = ht_class_create(&ht_top_pane_right_slot_class, _root);
     if (!right_slot)
     {
         lv_obj_del(_root);
@@ -197,7 +197,7 @@ bool TopPane::create(_lv_obj_t *parent)
     lv_obj_add_event_cb(_bat_cont, onBatteryDraw, LV_EVENT_DRAW_MAIN, this);
 #else
     lv_obj_t *bat_outline =
-        ht_semantic_create(&ht_top_pane_battery_outline_class, _bat_cont);
+        ht_class_create(&ht_top_pane_battery_outline_class, _bat_cont);
     if (!bat_outline)
     {
         lv_obj_del(_root);
@@ -219,7 +219,7 @@ bool TopPane::create(_lv_obj_t *parent)
     lv_obj_align(_bat_fill, LV_ALIGN_LEFT_MID, 0, 0);
     lv_obj_add_flag(_bat_fill, LV_OBJ_FLAG_FLOATING);
     lv_obj_clear_flag(_bat_fill, LV_OBJ_FLAG_SCROLLABLE);
-    lv_obj_t *bat_cap = ht_semantic_create(&ht_top_pane_battery_cap_class, _bat_cont);
+    lv_obj_t *bat_cap = ht_class_create(&ht_top_pane_battery_cap_class, _bat_cont);
     if (!bat_cap)
     {
         lv_obj_del(_root);

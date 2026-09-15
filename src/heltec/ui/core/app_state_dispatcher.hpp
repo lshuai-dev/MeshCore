@@ -1,20 +1,10 @@
 #pragma once
-
 #include "app_state_event.hpp"
-
-#include <stdint.h>
-
 struct _lv_timer_t;
-
-namespace heltec::meshcore::ui
-{
-
+namespace heltec::meshcore::ui {
 class SurfaceManager;
-
 class AppStateNotifier;
-
-class AppStateUiDispatcher final
-{
+class AppStateUiDispatcher final {
   public:
     using GlobalHandler = void (*)(void *user_data, const AppStateEvent &event);
 
@@ -24,8 +14,7 @@ class AppStateUiDispatcher final
     /** Allocate the single dispatch timer during UI startup. */
     bool createTimer();
     void onAppStateChanged(const AppStateEvent &event);
-    bool hasPending() const
-    {
+    bool hasPending() const {
         return _pending_mask != 0;
     }
 

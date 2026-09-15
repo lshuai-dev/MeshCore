@@ -22,7 +22,7 @@
 #if defined(HELTEC_MESH_UI) && HELTEC_MESH_UI && HELTEC_LICENSE_BOOT_GATE
 #include "heltec/drivers/display/display_port.hpp"
 #include "heltec/drivers/input/momentary_button.hpp"
-#include "ui/core/ui_semantic_classes.hpp"
+#include "ui/core/widget_classes.hpp"
 
 #include <lvgl.h>
 #endif
@@ -652,7 +652,7 @@ static void heltecLicenseShowUnauthorizedUi(const char *display_id)
 
     using namespace heltec::meshcore::ui;
 
-    s_gate_root = ht_semantic_create(&ht_license_gate_class, lv_layer_top());
+    s_gate_root = ht_class_create(&ht_license_gate_class, lv_layer_top());
     if (!s_gate_root)
         return;
 
@@ -664,7 +664,7 @@ static void heltecLicenseShowUnauthorizedUi(const char *display_id)
         lv_label_set_text(s_gate_title, "Not Authorized");
     }
 
-    s_gate_chip = ht_semantic_label_create(&ht_license_gate_chip_class, s_gate_root);
+    s_gate_chip = ht_label_create(&ht_license_gate_chip_class, s_gate_root);
     if (s_gate_chip)
     {
         lv_label_set_text(s_gate_chip, display_id ? display_id : "ID:");

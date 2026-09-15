@@ -1,28 +1,18 @@
 #pragma once
-
-#include "ui_surface.hpp"
-
+#include "surface.hpp"
 struct _lv_obj_t;
-
-namespace heltec::meshcore::ui
-{
-
-class AbstractOverlay : public UiSurface
-{
+namespace heltec::meshcore::ui {
+class AbstractOverlay : public UiSurface {
   public:
-    explicit AbstractOverlay(biz::IBizFacade &biz) : UiSurface(biz)
-    {
-    }
-
-    _lv_obj_t *focusedObject() const override;
     void onEnter() override;
 
   protected:
-    _lv_obj_t *create(_lv_obj_t *parent) override;
-    _lv_obj_t *createRoot(_lv_obj_t *parent) override;
-    void setFocusObject(_lv_obj_t *obj);
+    explicit AbstractOverlay(biz::IBizFacade &biz);
+    AbstractOverlay(biz::IBizFacade &biz, const lv_obj_class_t &root_class);
+
+    bool buildSurface() override;
+    void setFocusObject(_lv_obj_t *object);
     virtual _lv_obj_t *focusTarget() const;
-    bool onKey(uint32_t key) override;
 };
 
 } // namespace heltec::meshcore::ui

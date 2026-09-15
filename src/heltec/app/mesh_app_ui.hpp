@@ -29,7 +29,6 @@ class MeshAppUi final : public IBizFacade
     bool sendAdvert() override;
     // Called by the non-UI application shell; UI surfaces use UiEvent instead.
     void requestRadioParamPresetPicker();
-    bool toggleGPS() override;
     void setGpsEnabled(bool enabled) override;
     bool buzzerEnabled() const override;
     void setBuzzerEnabled(bool enabled) override;
@@ -38,8 +37,6 @@ class MeshAppUi final : public IBizFacade
     bool isLnaCanControl() const override;
     bool lnaEnabled() const override;
     bool setLnaEnabled(bool enabled) override;
-    void adjustTxPowerDbm(int delta_db) override;
-    void adjustSpreadingFactor(int delta) override;
     bool sendBroadcast(const char *text, int len) override;
     bool sendDirectMessage(const uint8_t pub_key_prefix[6], const char *text) override;
     bool sendGroupMessage(int channel_idx, const char *text) override;
@@ -61,15 +58,14 @@ class MeshAppUi final : public IBizFacade
     int currentForwardingFrequencyIndex() const override;
     ForwardingApplyResult setForwardingEnabled(bool enabled, int frequency_index) override;
 
-    void requestHibernate() override;
-
     RadioStatus radioStatus() const override;
     GpsStatus gpsStatus() const override;
+    TeamStatus teamStatus() const override;
+    int teamOnlineCount() const override;
 
     bool companionLinkEnabled() const override;
     void setCompanionLinkEnabled(bool enabled) override;
 
-    const char *nodeName() const override;
     void formatNodeIdLine(char *buf, size_t buf_len) const override;
     int messageCount() const override;
     bool hasCompanionConnection() const override;
@@ -79,29 +75,21 @@ class MeshAppUi final : public IBizFacade
 
     const CompassUi &compassUi() const override
     {
+        syncCompassCache();
         return _compass_ui;
     }
     FindFriendUi findFriendUi() const override;
-    bool teamIsLeader() const override;
-    bool teamHasTeam() const override;
-    int teamMemberCount() const override;
-    int teamOnlineCount() const override;
-    int teamPairState() const override;
-    uint16_t teamPairingCode() const override;
     bool teamPendingDetails(char *name, size_t length, uint64_t &session,
                             uint16_t &code) const override;
     int teamOfferCount() const override;
     bool teamOfferLabel(int index, char *label, size_t length) const override;
     bool teamSelectOffer(int index) override;
     bool teamStartSearch() override;
-    bool teamPrimaryAction() override;
     bool teamSetActive(bool active) override;
     bool teamSetJoining(bool open) override;
     bool teamMessageTarget(int member_index, ui::UiSendMessageTarget &target) const override;
     bool mapMessageTarget(const uint8_t *prefix, size_t length,
                           ui::UiSendMessageTarget &target) const override;
-    uint64_t teamPendingSession() const override;
-    bool teamJoinWindowOpen() const override;
     bool teamDecidePending(uint64_t session, bool approve) override;
     bool teamLeave() override;
     void teamCancel() override;
@@ -129,8 +117,6 @@ class MeshAppUi final : public IBizFacade
     int findFriendTargetContactIndex() const override;
     void setFindFriendTargetContactIndex(int index) override;
     bool tryAutoPickFindFriendTarget() override;
-    void syncFindFriendContactList() override;
-    void syncCompassCache() override;
     bool compassHasHardware() const override;
     void beginCompassCalibration() override;
     void endCompassCalibration() override;
@@ -143,10 +129,6 @@ class MeshAppUi final : public IBizFacade
 
     bool gpsTrackRecording() const override;
     bool setGpsTrackRecording(bool enabled) override;
-    int gpsTrackIntervalIndex() const override;
-    bool setGpsTrackIntervalIndex(int index) override;
-    int gpsTrackIntervalOptionCount() const override;
-    const char *gpsTrackIntervalOptionLabel(int index) const override;
 
 #if defined(ENV_INCLUDE_MAP) && ENV_INCLUDE_MAP
     const MapPlotUi &mapPlotUi() const override;
@@ -163,6 +145,7 @@ class MeshAppUi final : public IBizFacade
     void notifyGpsChanged();
     void pollGpsTrack();
     void pollRadioStatus();
+    void syncCompassCache() const;
     void ensureFindFriendPrefsLoaded() const;
     void setFfWaypointCache(double lat_deg, double lon_deg);
     void resetFindFriendNavState() const;
@@ -173,7 +156,7 @@ class MeshAppUi final : public IBizFacade
     int resolveFindFriendTargetContactIndex() const;
     bool setFindFriendTargetKeyFromIndex(int index) const;
 
-    CompassUi _compass_ui{};
+    mutable CompassUi _compass_ui{};
     mutable bool _ff_prefs_loaded = false;
     mutable int _ff_target_contact_idx = -1;
     mutable bool _ff_target_pub_key_valid = false;
@@ -203,8 +186,6 @@ class MeshAppUi final : public IBizFacade
 
 #if defined(ENV_INCLUDE_MAP) && ENV_INCLUDE_MAP
     mutable MapPlotUi _map_plot_cache{};
-    mutable uint32_t _map_plot_fp = 0;
-    mutable bool _map_plot_cache_valid = false;
 #endif
 };
 

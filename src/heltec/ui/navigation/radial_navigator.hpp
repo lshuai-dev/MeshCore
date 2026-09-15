@@ -1,8 +1,8 @@
 #pragma once
 #include "heltec/ui/core/biz_facade.hpp"
 #include "heltec/ui/core/screen_id.hpp"
-#include "heltec/ui/core/ui_surface.hpp"
-#include "ui/navigation/ui_navigator.hpp"
+#include "heltec/ui/core/surface.hpp"
+#include "ui/navigation/grid_navigator.hpp"
 
 #include <lvgl.h>
 
@@ -11,12 +11,9 @@ namespace heltec::meshcore::ui
 class RadialNavigator : public UiSurface
 {
   public:
-    explicit RadialNavigator(biz::IBizFacade &biz) : UiSurface(biz)
-    {
-    }
+    explicit RadialNavigator(biz::IBizFacade &biz);
     ~RadialNavigator();
 
-    _lv_obj_t *create(_lv_obj_t *parent) override;
     void configure(const UiNavigationItem *items, uint8_t count);
     void setIcon(uint8_t screen_index, const lv_img_dsc_t *image);
     void setSelectedIndex(uint8_t screen_index, bool preview = false);
@@ -43,7 +40,7 @@ class RadialNavigator : public UiSurface
     void onExit() override;
 
   private:
-    _lv_obj_t *createRoot(_lv_obj_t *parent) override;
+    bool buildSurface() override;
     bool onKey(uint32_t lv_key) override;
     _lv_obj_t *itemHost() const;
     _lv_obj_t *findCellById(uint8_t id) const;

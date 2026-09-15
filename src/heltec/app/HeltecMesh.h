@@ -151,6 +151,8 @@ class HeltecMesh : public BaseChatMesh, public DataStoreHost
         return _store;
     }
 #if HELTEC_TEAM_FEATURE
+    /** Synchronize Team identity data into the regular contact table. */
+    bool syncTeamMemberContact(const uint8_t *public_key, const char *name, size_t name_len);
     heltec::meshcore::team::TeamService &teamService()
     {
         return _team_service;
@@ -171,6 +173,16 @@ class HeltecMesh : public BaseChatMesh, public DataStoreHost
     void reloadContactsFromStore();
     /** Same effect as app sending CMD_REMOVE_CONTACT for every entry, then persisting. */
     bool clearAllContacts();
+
+    /** Read a persistent contact by index, excluding anonymous request slots. */
+    bool getContactByIdx(uint32_t idx, ContactInfo &contact)
+    {
+        if (idx >= static_cast<uint32_t>(getNumContacts()))
+        {
+            return false;
+        }
+        return BaseChatMesh::getContactByIdx(MAX_ANON_CONTACTS + idx, contact);
+    }
 
     void loop();
     void handleCmdFrame(size_t len);
@@ -226,9 +238,6 @@ class HeltecMesh : public BaseChatMesh, public DataStoreHost
 
   protected:
 #if HELTEC_TEAM_FEATURE
-    int extraPeerCount() const override { return HELTEC_TEAM_MAX_MEMBERS; }
-    const uint8_t *extraPeerKey(int index) const override;
-    ContactInfo *extraPeerContact(int index) override;
 #endif
     float getAirtimeBudgetFactor() const override;
     int getInterferenceThreshold() const override;
@@ -449,9 +458,6 @@ class HeltecMesh : public BaseChatMesh, public DataStoreHost
     AckTableEntry expected_ack_table[EXPECTED_ACK_TABLE_SIZE]; // circular table
     int next_ack_idx;
     int8_t _pending_ack_index = -1;
-#if HELTEC_TEAM_FEATURE
-    ContactInfo _team_message_peer{};
-#endif
 
 #define ADVERT_PATH_TABLE_SIZE 16
     AdvertPath advert_paths[ADVERT_PATH_TABLE_SIZE]; // circular table

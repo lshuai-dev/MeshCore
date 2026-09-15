@@ -1,8 +1,8 @@
-#include "ui/app/ui_theme.hpp"
-#include "ui/core/ui_semantic_classes.hpp"
+#include "ui/app/theme.hpp"
+#include "ui/core/widget_classes.hpp"
 #include "ui/screens/compass_dial_widget.hpp"
-#include "ui/theme/ui_widget_theme.hpp"
-#include "ui/theme/ui_theme_internal.hpp"
+#include "ui/theme/widget_theme.hpp"
+#include "ui/theme/theme_internal.hpp"
 #include "ui/widgets/button_roller.hpp"
 
 namespace heltec::meshcore::ui
@@ -409,8 +409,6 @@ static lv_style_t s_compass_plain_overlay_style;
 static lv_style_t s_compass_hub_style;
 static lv_style_t s_compass_needle_style;
 static lv_style_t s_compass_label_style;
-static lv_style_t s_compass_q_success_style;
-static lv_style_t s_compass_q_error_style;
 static bool s_compass_styles_ready = false;
 
 void init_compass_styles()
@@ -441,12 +439,6 @@ void init_compass_styles()
     lv_style_init(&s_compass_label_style);
     lv_style_set_text_color(&s_compass_label_style, ui_color_fg());
     lv_style_set_text_align(&s_compass_label_style, LV_TEXT_ALIGN_LEFT);
-
-    lv_style_init(&s_compass_q_success_style);
-    lv_style_set_text_color(&s_compass_q_success_style, ui_color_success());
-
-    lv_style_init(&s_compass_q_error_style);
-    lv_style_set_text_color(&s_compass_q_error_style, ui_color_error());
 
     s_compass_styles_ready = true;
 }
@@ -752,56 +744,37 @@ void ui_theme_set_compass_dial_row_layout(_lv_obj_t *obj, lv_coord_t pad_right)
     lv_obj_set_style_pad_column(obj, 0, LV_PART_MAIN);
 }
 
-bool ui_compass_widget_apply_theme(_lv_obj_t *obj)
+void ui_theme_apply_compass_plain(_lv_obj_t *obj)
 {
     if (!obj)
-        return false;
+        return;
     init_compass_styles();
+    style_compass_plain_overlay(obj);
+}
 
-    if (lv_obj_check_type(obj, &ht_compass_info_column_class) ||
-        lv_obj_check_type(obj, &ht_compass_dial_center_class))
-    {
-        style_compass_plain_overlay(obj);
-        return true;
-    }
-    if (lv_obj_check_type(obj, &ht_compass_dial_hub_class))
-    {
-        lv_obj_add_style(obj, &s_compass_hub_style, LV_PART_MAIN);
-        return true;
-    }
-    if (lv_obj_check_type(obj, &ht_compass_dial_needle_class))
-    {
-        style_compass_plain_overlay(obj);
-        lv_obj_add_style(obj, &s_compass_needle_style, LV_PART_MAIN);
-        return true;
-    }
-    if (lv_obj_check_type(obj, &ht_compass_q_label_class))
-    {
-        lv_obj_add_style(obj, &s_compass_label_style, LV_PART_MAIN);
-        lv_obj_add_style(obj, &s_compass_q_success_style, LV_PART_MAIN | LV_STATE_USER_1);
-        lv_obj_add_style(obj, &s_compass_q_error_style, LV_PART_MAIN | LV_STATE_USER_2);
-        return true;
-    }
+void ui_theme_apply_compass_hub(_lv_obj_t *obj)
+{
+    if (!obj)
+        return;
+    init_compass_styles();
+    lv_obj_add_style(obj, &s_compass_hub_style, LV_PART_MAIN);
+}
 
-    _lv_obj_t *const parent = lv_obj_get_parent(obj);
-    if (parent && lv_obj_check_type(parent, &ht_compass_info_column_class))
-    {
-        if (lv_obj_check_type(obj, &lv_label_class))
-        {
-            lv_obj_add_style(obj, &s_compass_label_style, LV_PART_MAIN);
-        }
-        else
-        {
-            style_compass_plain_overlay(obj);
-        }
-        return true;
-    }
-    if (parent && lv_obj_check_type(parent, &ht_compass_dial_hub_class))
-    {
-        style_compass_plain_overlay(obj);
-        return true;
-    }
-    return false;
+void ui_theme_apply_compass_needle(_lv_obj_t *obj)
+{
+    if (!obj)
+        return;
+    init_compass_styles();
+    style_compass_plain_overlay(obj);
+    lv_obj_add_style(obj, &s_compass_needle_style, LV_PART_MAIN);
+}
+
+void ui_theme_apply_compass_label(_lv_obj_t *label)
+{
+    if (!label)
+        return;
+    init_compass_styles();
+    lv_obj_add_style(label, &s_compass_label_style, LV_PART_MAIN);
 }
 #else
 void ui_theme_set_compass_info_layout(_lv_obj_t *obj, lv_coord_t pad_left, lv_coord_t pad_row)
@@ -817,10 +790,24 @@ void ui_theme_set_compass_dial_row_layout(_lv_obj_t *obj, lv_coord_t pad_right)
     (void)pad_right;
 }
 
-bool ui_compass_widget_apply_theme(_lv_obj_t *obj)
+void ui_theme_apply_compass_plain(_lv_obj_t *obj)
 {
     (void)obj;
-    return false;
+}
+
+void ui_theme_apply_compass_hub(_lv_obj_t *obj)
+{
+    (void)obj;
+}
+
+void ui_theme_apply_compass_needle(_lv_obj_t *obj)
+{
+    (void)obj;
+}
+
+void ui_theme_apply_compass_label(_lv_obj_t *label)
+{
+    (void)label;
 }
 #endif
 

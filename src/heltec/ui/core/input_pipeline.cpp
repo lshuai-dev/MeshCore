@@ -7,7 +7,7 @@
 #include "input_adapter.hpp"
 #include "input_dispatcher.hpp"
 #include "input_host.hpp"
-#include "ui/app/ui_app.hpp"
+#include "ui/app/app.hpp"
 
 #include <Arduino.h>
 

@@ -4,8 +4,8 @@
 
 #include "heltec/ui/map/geo_point.hpp"
 #include "heltec/ui/map/map_sd.hpp"
-#include "ui/app/ui_theme.hpp"
-#include "ui/core/ui_semantic_classes.hpp"
+#include "ui/app/theme.hpp"
+#include "ui/core/widget_classes.hpp"
 #include "ui/core/ht_event.h"
 
 #include <Arduino.h>
@@ -49,9 +49,15 @@ constexpr uint8_t kStartupApplySd = 5;
 constexpr int kTilesPerPoll = 3;
 constexpr int kMarkersPerPoll = 4;
 constexpr uint32_t kPoolPrewarmIntervalMs = 10;
+constexpr uint32_t kTeamRefreshPeriodMs = 60000UL;
 
+#if defined(HELTEC_V4_R8_TFT)
+constexpr lv_coord_t kMapToolBtnW = 38;
+constexpr lv_coord_t kMapToolBtnH = 38;
+#else
 constexpr lv_coord_t kMapToolBtnW = 38;
 constexpr lv_coord_t kMapToolBtnH = 30;
+#endif
 constexpr lv_coord_t kMapToolbarPad = 3;
 constexpr lv_coord_t kMapToolbarGap = 3;
 
@@ -103,9 +109,9 @@ const lv_obj_class_t ht_tracker_screen_root_class = {
     sizeof(lv_obj_t),
 };
 
-_lv_obj_t *TrackerScreen::createRoot(_lv_obj_t *parent)
+TrackerScreen::TrackerScreen(biz::IBizFacade &biz, const char *title, const lv_img_dsc_t *icon)
+    : AbstractScreen(biz, title, icon, ht_tracker_screen_root_class)
 {
-    return detail::create_object(&ht_tracker_screen_root_class, parent);
 }
 
 namespace
@@ -139,8 +145,13 @@ bool TrackerScreen::hitMapToolbar(lv_coord_t x, lv_coord_t y) const
 {
     if (!_toolbar)
         return false;
-    const _lv_obj_t *buttons[] = { _btn_zoom_out, _btn_zoom_in, _btn_gps, _btn_team,
-                                 _btn_group_message };
+    const _lv_obj_t *buttons[] = {
+        _btn_zoom_out, _btn_zoom_in, _btn_gps, _btn_team,
+#if !defined(HELTEC_V4_R8_TFT)
+        _dd_member_message,
+#endif
+        _btn_group_message,
+    };
     for (const _lv_obj_t *button : buttons)
     {
         if (!button || lv_obj_has_flag(button, LV_OBJ_FLAG_HIDDEN))
@@ -160,7 +171,7 @@ void TrackerScreen::on_map_gesture(lv_event_t *e)
         return;
     const lv_event_code_t code = lv_event_get_code(e);
     if (LV_EVENT_PRESSED != code && LV_EVENT_PRESSING != code && LV_EVENT_RELEASED != code &&
-        LV_EVENT_PRESS_LOST != code && LV_EVENT_LONG_PRESSED != code)
+        LV_EVENT_PRESS_LOST != code)
     {
         return;
     }
@@ -182,25 +193,11 @@ void TrackerScreen::on_map_gesture(lv_event_t *e)
 
     if (code == LV_EVENT_PRESSED)
     {
-        self->_pressed_marker_valid = self->_panel.markerAt(
-            p.x, p.y, self->_pressed_marker, sizeof(self->_pressed_marker));
         self->_pan_origin = p;
         self->_pan_applied_x = 0;
         self->_pan_applied_y = 0;
         self->_pan_active = true;
         self->_pan_moved = false;
-    }
-    else if (code == LV_EVENT_LONG_PRESSED && self->_pan_active &&
-             !self->_pan_moved && !on_toolbar && self->_pressed_marker_valid)
-    {
-        UiSendMessageTarget target{};
-        self->_pressed_marker_valid = false;
-        self->_pan_active = false;
-        if (self->_biz.mapMessageTarget(self->_pressed_marker,
-                                       sizeof(self->_pressed_marker), target))
-            (void)self->emit(EventType::SEND_MESSAGE_OPEN, &target);
-        else
-            self->_biz.showAlert("Member unavailable", 2000);
     }
     else if (code == LV_EVENT_PRESSING && self->_pan_active)
     {
@@ -300,20 +297,21 @@ void TrackerScreen::update_status_line()
         (int32_t)(_panel.center_lon() * 100.0f + (_panel.center_lon() >= 0.f ? 0.5f : -0.5f));
     const int32_t lat_abs = lat_centi < 0 ? -lat_centi : lat_centi;
     const int32_t lon_abs = lon_centi < 0 ? -lon_centi : lon_centi;
-    lv_snprintf(_status_text, sizeof(_status_text),
-                "z%u %s | %s%ld.%02ld,%s%ld.%02ld gps:%d vis:%d/%d team:%d/%d",
+    char next_status[sizeof(_status_text)] = {};
+    lv_snprintf(next_status, sizeof(next_status),
+                "z%u %s | %s%ld.%02ld,%s%ld.%02ld loc:%d vis:%d/%d team:%d/%d",
                 (unsigned)_panel.zoom(),
                 sd_tag, lat_centi < 0 ? "-" : "", (long)(lat_abs / 100), (long)(lat_abs % 100),
                 lon_centi < 0 ? "-" : "", (long)(lon_abs / 100), (long)(lon_abs % 100),
-                _contact_gps_count, _panel.visibleMarkerCount(), _contact_gps_count,
-                _biz.teamOnlineCount(), _biz.teamMemberCount());
-    lv_label_set_text_static(_lbl_status, _status_text);
-}
-
-void TrackerScreen::update_status_line(const biz::MapPlotUi &plot)
-{
-    _contact_gps_count = plot.contact_gps_count;
-    update_status_line();
+                _team_location_count, _panel.visibleMarkerCount(), _team_location_count,
+                _team_online_count,
+                _team_member_count_cached >= 0 ? _team_member_count_cached : 0);
+    if (strcmp(_status_text, next_status) != 0)
+    {
+        strncpy(_status_text, next_status, sizeof(_status_text) - 1U);
+        _status_text[sizeof(_status_text) - 1U] = '\0';
+        lv_label_set_text_static(_lbl_status, _status_text);
+    }
 }
 
 void TrackerScreen::bindPanGestures(_lv_obj_t *obj)
@@ -325,7 +323,6 @@ void TrackerScreen::bindPanGestures(_lv_obj_t *obj)
     lv_obj_add_event_cb(obj, on_map_gesture, LV_EVENT_PRESSING, this);
     lv_obj_add_event_cb(obj, on_map_gesture, LV_EVENT_RELEASED, this);
     lv_obj_add_event_cb(obj, on_map_gesture, LV_EVENT_PRESS_LOST, this);
-    lv_obj_add_event_cb(obj, on_map_gesture, LV_EVENT_LONG_PRESSED, this);
 }
 
 void TrackerScreen::ensure_panel_attached()
@@ -354,13 +351,14 @@ void TrackerScreen::ensure_panel_attached()
 #endif
 }
 
-void TrackerScreen::refresh_from_biz()
+void TrackerScreen::refreshMap(bool refresh_sd_tiles)
 {
     if (!_panel_attached)
         ensure_panel_attached();
     if (!_panel_attached)
         return;
-    _panel.refreshSdTiles();
+    if (refresh_sd_tiles)
+        _panel.refreshSdTiles();
     const biz::MapPlotUi &plot = _biz.mapPlotUi();
     biz::IBizFacade::GpsStatus gps = _biz.gpsStatus();
     const bool gps_usable = usable_gps(gps);
@@ -371,36 +369,16 @@ void TrackerScreen::refresh_from_biz()
         _auto_center_on_first_fix = false;
     }
     _panel.set_markers(plot.markers, plot.marker_count);
+    _team_location_count = plot.marker_count;
+    _team_online_count = plot.online_count;
     _panel.refreshOverlays();
     if (_panel.tilesLoadPending())
     {
         requestMapWork(kMapWorkTiles, nextMapWorkDelayMs());
     }
+    syncTeamTools();
     syncMapToolbarVisibility();
-    update_status_line(plot);
-}
-
-void TrackerScreen::refresh_markers_only()
-{
-    if (!_panel_attached)
-        return;
-    biz::IBizFacade::GpsStatus gps = _biz.gpsStatus();
-    const bool gps_usable = usable_gps(gps);
-    const biz::MapPlotUi &plot = _biz.mapPlotUi();
-    _panel.set_gps((float)gps.lat_deg, (float)gps.lon_deg, gps_usable);
-    if (gps_usable && _auto_center_on_first_fix && !_user_panned)
-    {
-        _panel.centerOnLocation((float)gps.lat_deg, (float)gps.lon_deg);
-        _auto_center_on_first_fix = false;
-    }
-    _panel.set_markers(plot.markers, plot.marker_count);
-    _panel.refreshOverlays();
-    if (_panel.tilesLoadPending())
-    {
-        requestMapWork(kMapWorkTiles, nextMapWorkDelayMs());
-    }
-    syncMapToolbarVisibility();
-    update_status_line(plot);
+    update_status_line();
 }
 
 void TrackerScreen::center_map_on_current_gps()
@@ -418,17 +396,48 @@ void TrackerScreen::center_map_on_current_gps()
     _panel.centerOnLocation((float)gps.lat_deg, (float)gps.lon_deg);
     _user_panned = false;
     _auto_center_on_first_fix = false;
-    refresh_from_biz();
+    refreshMap(true);
     raiseMapToolbar();
 }
 
 
 void TrackerScreen::syncTeamTools()
 {
-    const bool active = _biz.teamHasTeam();
+    const biz::IBizFacade::TeamStatus team = _biz.teamStatus();
+    const bool active = team.has_team;
+    const bool joining = team.join_window_open;
+    if (active && !_team_refresh_enabled)
+    {
+        _team_refresh_enabled = true;
+        _next_team_refresh_ms = millis() + kTeamRefreshPeriodMs;
+    }
+    else if (!active)
+    {
+        _team_refresh_enabled = false;
+        _next_team_refresh_ms = 0;
+    }
+    if (_team_state_valid && active == _team_active_cached && joining == _team_joining_cached &&
+        team.member_count == _team_member_count_cached &&
+        team.member_revision == _team_member_revision_cached)
+        return;
+    _team_state_valid = true;
+    _team_active_cached = active;
+    _team_joining_cached = joining;
+#if !defined(HELTEC_V4_R8_TFT)
+    if (team.member_count != _team_member_count_cached ||
+        team.member_revision != _team_member_revision_cached)
+        rebuildTeamMemberOptions(team.member_count);
+#endif
+    _team_member_count_cached = team.member_count;
+    _team_member_revision_cached = team.member_revision;
+#if defined(HELTEC_V4_R8_TFT)
     _lv_obj_t *const buttons[] = { _btn_team, _btn_group_message };
     const bool allowed[] = { true, active };
-    for (unsigned i = 0; i < 2; ++i)
+#else
+    _lv_obj_t *const buttons[] = { _btn_team, _dd_member_message, _btn_group_message };
+    const bool allowed[] = { true, active && team.member_count > 0, active };
+#endif
+    for (unsigned i = 0; i < sizeof(buttons) / sizeof(buttons[0]); ++i)
     {
         if (!buttons[i])
             continue;
@@ -439,12 +448,67 @@ void TrackerScreen::syncTeamTools()
     }
     if (_btn_team && lv_obj_get_child(_btn_team, 0))
     {
-        const char *label = !active ? "Off" : _biz.teamJoinWindowOpen() ? "Join" : "Team";
+        const char *label = !active ? "Off" : team.join_window_open ? "Close" : "Open";
         _lv_obj_t *child = lv_obj_get_child(_btn_team, 0);
         if (strcmp(lv_label_get_text(child), label) != 0)
             lv_label_set_text_static(child, label);
     }
 }
+
+#if !defined(HELTEC_V4_R8_TFT)
+void TrackerScreen::rebuildTeamMemberOptions(int member_count)
+{
+    if (!_dd_member_message)
+        return;
+
+    size_t used = static_cast<size_t>(snprintf(_team_member_options,
+                                               sizeof(_team_member_options), "Select"));
+    _team_member_option_count = 0;
+    memset(_team_member_prefixes, 0, sizeof(_team_member_prefixes));
+    for (int index = 0; index < member_count && used < sizeof(_team_member_options); ++index)
+    {
+        UiSendMessageTarget target{};
+        if (!_biz.teamMessageTarget(index, target))
+            continue;
+        const int written = snprintf(_team_member_options + used,
+                                     sizeof(_team_member_options) - used, "\n%s", target.label);
+        if (written < 0 || static_cast<size_t>(written) >= sizeof(_team_member_options) - used)
+            break;
+        used += static_cast<size_t>(written);
+        memcpy(_team_member_prefixes[_team_member_option_count], target.pub_key_prefix,
+               sizeof(target.pub_key_prefix));
+        ++_team_member_option_count;
+    }
+    lv_dropdown_set_options(_dd_member_message, _team_member_options);
+    lv_dropdown_set_selected(_dd_member_message, 0);
+    lv_dropdown_set_text(_dd_member_message, "DM");
+}
+
+void TrackerScreen::onTeamMemberSelected(lv_event_t *event)
+{
+    auto *const self = static_cast<TrackerScreen *>(lv_event_get_user_data(event));
+    _lv_obj_t *const dropdown = lv_event_get_target(event);
+    if (!self || dropdown != self->_dd_member_message)
+        return;
+
+    const uint16_t selected = lv_dropdown_get_selected(dropdown);
+    lv_dropdown_close(dropdown);
+    if (selected == 0U)
+        return;
+
+    const uint16_t target_index = selected - 1U;
+    UiSendMessageTarget target{};
+    if (target_index < self->_team_member_option_count &&
+        self->_biz.mapMessageTarget(self->_team_member_prefixes[target_index],
+                                    sizeof(self->_team_member_prefixes[target_index]), target))
+        (void)self->emitEvent(EventType::SendMessageOpen, &target);
+    else
+        self->_biz.showAlert("Member unavailable", 2000);
+
+    lv_dropdown_set_selected(dropdown, 0);
+    lv_dropdown_set_text(dropdown, "DM");
+}
+#endif
 
 void TrackerScreen::onTeamToolClicked(lv_event_t *event)
 {
@@ -457,37 +521,42 @@ void TrackerScreen::onTeamToolClicked(lv_event_t *event)
     {
         if (code == LV_EVENT_LONG_PRESSED)
         {
-            if (!self->_biz.teamSetActive(!self->_biz.teamHasTeam()))
+            if (!self->_biz.teamSetActive(!self->_biz.teamStatus().has_team))
             {
                 self->_biz.showAlert("Team toggle failed", 2000);
             }
             else
             {
-                self->_biz.showAlert(self->_biz.teamHasTeam() ? "Team ON" : "Team OFF", 2000);
+                self->_biz.showAlert(self->_biz.teamStatus().has_team ? "Team ON" : "Team OFF", 2000);
             }
+            lv_event_stop_bubbling(event);
+            lv_event_stop_processing(event);
         }
         else if (code == LV_EVENT_SHORT_CLICKED)
         {
-            if (!self->_biz.teamHasTeam())
+            const biz::IBizFacade::TeamStatus team = self->_biz.teamStatus();
+            if (!team.has_team)
             {
-                self->_biz.showAlert("Hold to start Team", 2000);
+                self->_biz.showAlert("Hold: turn Team ON", 2000);
             }
-            else if (!self->_biz.teamSetJoining(!self->_biz.teamJoinWindowOpen()))
+            else if (!self->_biz.teamSetJoining(!team.join_window_open))
             {
-                self->_biz.showAlert("Joining unavailable", 2000);
+                self->_biz.showAlert("Join window unavailable", 2000);
             }
             else
             {
-                self->_biz.showAlert(self->_biz.teamJoinWindowOpen() ?
-                                     "Team joining OPEN" : "Team joining CLOSED", 2000);
+                self->_biz.showAlert(self->_biz.teamStatus().join_window_open ?
+                                     "Join window OPEN" : "Join window CLOSED", 2000);
             }
+            lv_event_stop_bubbling(event);
+            lv_event_stop_processing(event);
         }
     }
     else if (button == self->_btn_group_message && code == LV_EVENT_SHORT_CLICKED)
     {
         UiSendMessageTarget target{};
         if (self->_biz.teamMessageTarget(-1, target))
-            (void)self->emit(EventType::SEND_MESSAGE_OPEN, &target);
+            (void)self->emitEvent(EventType::SendMessageOpen, &target);
         else
             self->_biz.showAlert("No Team recipient", 2000);
     }
@@ -496,7 +565,6 @@ void TrackerScreen::onTeamToolClicked(lv_event_t *event)
 
 void TrackerScreen::syncMapToolbarVisibility()
 {
-    syncTeamTools();
     if (!_btn_gps)
         return;
     biz::IBizFacade::GpsStatus gps = _biz.gpsStatus();
@@ -508,15 +576,28 @@ void TrackerScreen::syncMapToolbarVisibility()
     if (gps_usable)
     {
         lv_obj_clear_flag(_btn_gps, LV_OBJ_FLAG_HIDDEN);
+        if (!_toolbar_busy && !_map_unavailable)
+            lv_obj_clear_state(_btn_gps, LV_STATE_DISABLED);
     }
     else
     {
+#if defined(HELTEC_V4_R8_TFT)
+        lv_obj_clear_flag(_btn_gps, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_add_state(_btn_gps, LV_STATE_DISABLED);
+#else
         lv_obj_add_flag(_btn_gps, LV_OBJ_FLAG_HIDDEN);
+#endif
     }
     if (_toolbar)
     {
-        const int visible_buttons = (gps_usable ? 3 : 2) + (_btn_team ? 1 : 0) +
+#if defined(HELTEC_V4_R8_TFT)
+        const int visible_buttons = 3 + (_btn_team ? 1 : 0) +
                                     (_btn_group_message ? 1 : 0);
+#else
+        const int visible_buttons = (gps_usable ? 3 : 2) + (_btn_team ? 1 : 0) +
+                                    (_dd_member_message ? 1 : 0) +
+                                    (_btn_group_message ? 1 : 0);
+#endif
         lv_obj_set_width(_toolbar, map_toolbar_width(visible_buttons));
     }
     raiseMapToolbar();
@@ -526,8 +607,13 @@ void TrackerScreen::raiseMapToolbar()
 {
     if (!_toolbar || !_map_viewport)
         return;
-    const _lv_obj_t *const buttons[] = { _btn_zoom_out, _btn_zoom_in, _btn_gps,
-        _btn_team, _btn_group_message };
+    const _lv_obj_t *const buttons[] = {
+        _btn_zoom_out, _btn_zoom_in, _btn_gps, _btn_team,
+#if !defined(HELTEC_V4_R8_TFT)
+        _dd_member_message,
+#endif
+        _btn_group_message,
+    };
     int count = 0;
     for (const _lv_obj_t *button : buttons)
     {
@@ -538,7 +624,11 @@ void TrackerScreen::raiseMapToolbar()
     const lv_coord_t desired = map_toolbar_width(count);
     if (available > 0)
         lv_obj_set_width(_toolbar, desired < available ? desired : available);
+#if defined(HELTEC_V4_R8_TFT)
+    lv_obj_align(_toolbar, LV_ALIGN_BOTTOM_MID, 0, -4);
+#else
     lv_obj_align(_toolbar, LV_ALIGN_BOTTOM_RIGHT, -4, -4);
+#endif
     lv_obj_move_foreground(_toolbar);
     lv_obj_clear_flag(_toolbar, LV_OBJ_FLAG_HIDDEN);
 }
@@ -551,7 +641,7 @@ void TrackerScreen::setMapToolbarBusy(bool busy)
     {
         if (!btn)
             continue;
-        if (busy || _map_unavailable)
+        if (busy || _map_unavailable || (btn == _btn_gps && _toolbar_gps_usable == 0))
         {
             lv_obj_add_state(btn, LV_STATE_DISABLED);
         }
@@ -561,7 +651,7 @@ void TrackerScreen::setMapToolbarBusy(bool busy)
         }
         if (_lv_obj_t *lb = lv_obj_get_child(btn, 0))
         {
-            if (busy || _map_unavailable)
+            if (busy || _map_unavailable || (btn == _btn_gps && _toolbar_gps_usable == 0))
             {
                 lv_obj_add_state(lb, LV_STATE_DISABLED);
             }
@@ -575,7 +665,6 @@ void TrackerScreen::setMapToolbarBusy(bool busy)
 
 void TrackerScreen::syncMapToolbarBusy()
 {
-    syncTeamTools();
     if (!_toolbar_busy || !_panel_attached)
         return;
     if (!_panel.tilesLoadPending())
@@ -622,6 +711,53 @@ void TrackerScreen::runMapToolAction(void (*action)(TrackerScreen &self))
         requestMapWork(kMapWorkTiles);
 }
 
+void TrackerScreen::onMapViewportSizeChanged(lv_event_t *event)
+{
+    auto *const self = static_cast<TrackerScreen *>(lv_event_get_user_data(event));
+    if (self)
+        self->raiseMapToolbar();
+}
+
+void TrackerScreen::onZoomOutClicked(lv_event_t *event)
+{
+    auto *const self = static_cast<TrackerScreen *>(lv_event_get_user_data(event));
+    if (self)
+        self->runMapToolAction(zoomOutMap);
+}
+
+void TrackerScreen::onZoomInClicked(lv_event_t *event)
+{
+    auto *const self = static_cast<TrackerScreen *>(lv_event_get_user_data(event));
+    if (self)
+        self->runMapToolAction(zoomInMap);
+}
+
+void TrackerScreen::onGpsClicked(lv_event_t *event)
+{
+    auto *const self = static_cast<TrackerScreen *>(lv_event_get_user_data(event));
+    if (self)
+        self->runMapToolAction(centerMapOnGps);
+}
+
+void TrackerScreen::zoomOutMap(TrackerScreen &screen)
+{
+    screen._panel.zoom_out();
+    screen._panel.refreshOverlays();
+    screen.update_status_line();
+}
+
+void TrackerScreen::zoomInMap(TrackerScreen &screen)
+{
+    screen._panel.zoom_in();
+    screen._panel.refreshOverlays();
+    screen.update_status_line();
+}
+
+void TrackerScreen::centerMapOnGps(TrackerScreen &screen)
+{
+    screen.center_map_on_current_gps();
+}
+
 void TrackerScreen::onEnter()
 {
     AbstractScreen::onEnter();
@@ -642,6 +778,8 @@ void TrackerScreen::onEnter()
     _pan_applied_y = 0;
     _last_pan_ms = 0;
     _last_tile_work_ms = 0;
+    _team_refresh_enabled = _biz.teamStatus().has_team;
+    _next_team_refresh_ms = _team_refresh_enabled ? millis() + kTeamRefreshPeriodMs : 0;
     ensure_panel_attached();
     setMapToolbarBusy(true);
     raiseMapToolbar();
@@ -680,6 +818,8 @@ void TrackerScreen::onExit()
     _pan_applied_x = 0;
     _pan_applied_y = 0;
     _auto_center_on_first_fix = false;
+    _team_refresh_enabled = false;
+    _next_team_refresh_ms = 0;
     setMapToolbarBusy(false);
     if (_toolbar)
         lv_obj_add_flag(_toolbar, LV_OBJ_FLAG_HIDDEN);
@@ -843,9 +983,11 @@ bool TrackerScreen::processStartupWork()
         if (!gps_usable && !_panel.hasSavedCenter())
         {
             const biz::MapPlotUi &plot = _biz.mapPlotUi();
-            if (plot.drawable && plot.marker_count > 0)
+            if (plot.marker_count > 0)
             {
-                _panel.centerOnLocation((float)plot.center_lat, (float)plot.center_lon, false);
+                _panel.centerOnLocation(static_cast<float>(plot.markers[0].lat_micro) * 1.0e-6f,
+                                        static_cast<float>(plot.markers[0].lon_micro) * 1.0e-6f,
+                                        false);
             }
         }
         _panel.syncViewportLayout();
@@ -884,6 +1026,7 @@ bool TrackerScreen::processStartupWork()
         _panel.syncViewportLayout();
         _map_unavailable = false;
         setMapToolbarBusy(false);
+        syncTeamTools();
         syncMapToolbarVisibility();
         _startup_phase = kStartupNone;
         _map_work = static_cast<uint8_t>((_map_work & ~kMapWorkStartup) | kMapWorkRefresh);
@@ -932,12 +1075,20 @@ void TrackerScreen::processMapWork()
     if (_map_work & kMapWorkRefresh)
     {
         _map_work = static_cast<uint8_t>(_map_work & ~kMapWorkRefresh);
-        refresh();
+        refreshMap(false);
         if (_panel.tilesLoadPending())
         {
             _last_tile_work_ms = millis();
             _map_work = static_cast<uint8_t>(_map_work | kMapWorkTiles);
         }
+        return;
+    }
+
+    if (_team_refresh_enabled &&
+        static_cast<int32_t>(millis() - _next_team_refresh_ms) >= 0)
+    {
+        _next_team_refresh_ms = millis() + kTeamRefreshPeriodMs;
+        refreshMap(false);
         return;
     }
 
@@ -964,18 +1115,9 @@ void TrackerScreen::processMapWork()
     }
 }
 
-void TrackerScreen::refresh()
-{
-    if (!_panel_attached)
-        ensure_panel_attached();
-    if (!_panel_attached)
-        return;
-    refresh_markers_only();
-}
-
 bool TrackerScreen::hasMapWork() const
 {
-    return _pool_prewarm_pending || _map_work != kMapWorkNone ||
+    return _pool_prewarm_pending || _map_work != kMapWorkNone || _team_refresh_enabled ||
            (_panel_attached && _panel.tilesLoadPending());
 }
 
@@ -994,6 +1136,8 @@ uint32_t TrackerScreen::nextMapWorkDelayMs() const
             remaining_wait_ms(now_ms, _last_tile_work_ms, MAP_UI_TILE_LOAD_INTERVAL_MS);
         return pan_wait_ms > load_wait_ms ? pan_wait_ms : load_wait_ms;
     }
+    if (_team_refresh_enabled)
+        return ms_until(millis(), _next_team_refresh_ms);
     return 0;
 }
 
@@ -1010,20 +1154,20 @@ void TrackerScreen::onAppStateChanged(const AppStateEvent &event)
     }
 }
 
-void TrackerScreen::onSurfaceRefresh()
+void TrackerScreen::onActivated()
 {
     syncTeamTools();
     requestMapWork(kMapWorkRefresh);
 }
 
-_lv_obj_t *TrackerScreen::create(_lv_obj_t *parent)
+bool TrackerScreen::buildSurface()
 {
-    if (!AbstractScreen::create(parent))
-        return nullptr;
+    if (!AbstractScreen::buildSurface())
+        return false;
     lv_obj_set_flex_flow(_root, LV_FLEX_FLOW_COLUMN);
     lv_obj_clear_flag(_root, LV_OBJ_FLAG_SCROLLABLE);
 
-    _lbl_status = ht_semantic_label_create(&ht_map_status_label_class, _root, "Map");
+    _lbl_status = ht_label_create(&ht_map_status_label_class, _root, "Map");
     if (_lbl_status)
     {
         lv_label_set_text_static(_lbl_status, _status_text);
@@ -1031,44 +1175,55 @@ _lv_obj_t *TrackerScreen::create(_lv_obj_t *parent)
         lv_label_set_long_mode(_lbl_status, LV_LABEL_LONG_CLIP);
     }
 
-    _map_viewport = ht_semantic_create(&ht_map_viewport_class, _root);
+    _map_viewport = ht_class_create(&ht_map_viewport_class, _root);
     if (_map_viewport)
     {
         lv_obj_set_width(_map_viewport, lv_pct(100));
         lv_obj_set_flex_grow(_map_viewport, 1);
         lv_obj_clear_flag(_map_viewport, LV_OBJ_FLAG_SCROLLABLE);
-        _toolbar = ht_semantic_create(&ht_map_toolbar_class, _map_viewport);
+        _toolbar = ht_class_create(&ht_map_toolbar_class, _map_viewport);
         if (_toolbar)
         {
-            const int tool_count = _biz.teamIsLeader() ? 5 : 4;
+#if defined(HELTEC_V4_R8_TFT)
+            const int tool_count = 5;
+#else
+            const int tool_count = _biz.teamStatus().is_leader ? 6 : 4;
+#endif
             lv_obj_set_size(_toolbar, map_toolbar_width(tool_count),
                             kMapToolbarPad * 2 + kMapToolBtnH);
+#if defined(HELTEC_V4_R8_TFT)
+            lv_obj_align(_toolbar, LV_ALIGN_BOTTOM_MID, 0, -4);
+#else
             lv_obj_align(_toolbar, LV_ALIGN_BOTTOM_RIGHT, -4, -4);
-            lv_obj_set_flex_flow(_toolbar, LV_FLEX_FLOW_ROW_WRAP);
+#endif
+#if defined(HELTEC_V4_R8_TFT)
+    lv_obj_set_flex_flow(_toolbar, LV_FLEX_FLOW_ROW);
+#else
+    lv_obj_set_flex_flow(_toolbar, LV_FLEX_FLOW_ROW_WRAP);
+#endif
             lv_obj_set_height(_toolbar, LV_SIZE_CONTENT);
+#if defined(HELTEC_V4_R8_TFT)
+            lv_obj_set_flex_align(_toolbar, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER,
+                                  LV_FLEX_ALIGN_CENTER);
+#else
             lv_obj_set_flex_align(_toolbar, LV_FLEX_ALIGN_END, LV_FLEX_ALIGN_CENTER,
                                   LV_FLEX_ALIGN_CENTER);
+#endif
             lv_obj_clear_flag(_toolbar, LV_OBJ_FLAG_SCROLLABLE);
             lv_obj_add_flag(_toolbar, LV_OBJ_FLAG_FLOATING | LV_OBJ_FLAG_OVERFLOW_VISIBLE);
             lv_obj_move_foreground(_toolbar);
-            lv_obj_add_event_cb(
-                _map_viewport,
-                [](lv_event_t *e)
-                {
-                    if (LV_EVENT_SIZE_CHANGED != lv_event_get_code(e))
-                        return;
-                    auto *self = static_cast<TrackerScreen *>(lv_event_get_user_data(e));
-                    if (self)
-                        self->raiseMapToolbar();
-                },
-                LV_EVENT_SIZE_CHANGED, this);
+            lv_obj_add_event_cb(_map_viewport, onMapViewportSizeChanged,
+                                LV_EVENT_SIZE_CHANGED, this);
 
             _btn_zoom_out = lv_btn_create(_toolbar);
             _btn_zoom_in = lv_btn_create(_toolbar);
             _btn_gps = lv_btn_create(_toolbar);
-            if (_biz.teamIsLeader())
+            if (_biz.teamStatus().is_leader)
             {
                 _btn_team = lv_btn_create(_toolbar);
+#if !defined(HELTEC_V4_R8_TFT)
+                _dd_member_message = lv_dropdown_create(_toolbar);
+#endif
             }
 #if HELTEC_TEAM_FEATURE
             _btn_group_message = lv_btn_create(_toolbar);
@@ -1077,7 +1232,11 @@ _lv_obj_t *TrackerScreen::create(_lv_obj_t *parent)
                 _btn_zoom_out,
                 _btn_zoom_in,
                 _btn_gps,
-                _btn_team, _btn_group_message,
+                _btn_team,
+#if !defined(HELTEC_V4_R8_TFT)
+                _dd_member_message,
+#endif
+                _btn_group_message,
             };
             for (_lv_obj_t *button : buttons)
             {
@@ -1086,66 +1245,56 @@ _lv_obj_t *TrackerScreen::create(_lv_obj_t *parent)
                 lv_obj_set_size(button, kMapToolBtnW, kMapToolBtnH);
                 lv_obj_add_flag(button, LV_OBJ_FLAG_CLICKABLE);
             }
+#if !defined(HELTEC_V4_R8_TFT)
+            if (_dd_member_message)
+            {
+                lv_dropdown_set_options_static(_dd_member_message, "Select");
+                lv_dropdown_set_text(_dd_member_message, "DM");
+                lv_dropdown_set_symbol(_dd_member_message, nullptr);
+                lv_dropdown_set_dir(_dd_member_message, LV_DIR_TOP);
+                lv_obj_set_style_radius(_dd_member_message, 3, LV_PART_MAIN);
+                lv_obj_set_style_border_width(_dd_member_message, 1, LV_PART_MAIN);
+                lv_obj_set_style_border_color(_dd_member_message, ui_color_accent(),
+                                              LV_PART_MAIN);
+                lv_obj_set_style_border_opa(_dd_member_message, LV_OPA_COVER, LV_PART_MAIN);
+                lv_obj_set_style_border_side(_dd_member_message, LV_BORDER_SIDE_FULL,
+                                             LV_PART_MAIN);
+                lv_obj_set_style_bg_opa(_dd_member_message, LV_OPA_TRANSP, LV_PART_MAIN);
+                lv_obj_set_style_text_color(_dd_member_message, ui_color_accent(), LV_PART_MAIN);
+                lv_obj_set_style_text_align(_dd_member_message, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
+                lv_obj_set_style_pad_all(_dd_member_message, 0, LV_PART_MAIN);
+                lv_obj_set_style_opa(_dd_member_message, LV_OPA_40, LV_STATE_DISABLED);
+                lv_obj_add_event_cb(_dd_member_message, onTeamMemberSelected,
+                                    LV_EVENT_VALUE_CHANGED, this);
+                addFocusableObject(_dd_member_message, nullptr, false);
+            }
+#endif
             if (_btn_zoom_out)
             {
                 (void)add_tool_btn_label(_btn_zoom_out, "-");
-                lv_obj_add_event_cb(
-                    _btn_zoom_out,
-                    +[](lv_event_t *e)
-                    {
-                        auto *self = static_cast<TrackerScreen *>(lv_event_get_user_data(e));
-                        if (!self)
-                            return;
-                        self->runMapToolAction(+[](TrackerScreen &scr)
-                                               {
-                                                   scr._panel.zoom_out();
-                                                   scr._panel.refreshOverlays();
-                                                   scr.update_status_line();
-                                               });
-                    },
-                    LV_EVENT_CLICKED, this);
-                addFocusItem(_btn_zoom_out, nullptr, false);
+                lv_obj_add_event_cb(_btn_zoom_out, onZoomOutClicked, LV_EVENT_CLICKED, this);
+                addFocusableObject(_btn_zoom_out, nullptr, false);
             }
             if (_btn_zoom_in)
             {
                 (void)add_tool_btn_label(_btn_zoom_in, "+");
-                lv_obj_add_event_cb(
-                    _btn_zoom_in,
-                    +[](lv_event_t *e)
-                    {
-                        auto *self = static_cast<TrackerScreen *>(lv_event_get_user_data(e));
-                        if (!self)
-                            return;
-                        self->runMapToolAction(+[](TrackerScreen &scr)
-                                               {
-                                                   scr._panel.zoom_in();
-                                                   scr._panel.refreshOverlays();
-                                                   scr.update_status_line();
-                                               });
-                    },
-                    LV_EVENT_CLICKED, this);
-                addFocusItem(_btn_zoom_in, nullptr, false);
+                lv_obj_add_event_cb(_btn_zoom_in, onZoomInClicked, LV_EVENT_CLICKED, this);
+                addFocusableObject(_btn_zoom_in, nullptr, false);
             }
             if (_btn_gps)
             {
                 (void)add_tool_btn_label(_btn_gps, "G");
-                lv_obj_add_event_cb(
-                    _btn_gps,
-                    +[](lv_event_t *e)
-                    {
-                        auto *self = static_cast<TrackerScreen *>(lv_event_get_user_data(e));
-                        if (!self)
-                            return;
-                        self->runMapToolAction(+[](TrackerScreen &scr)
-                                               { scr.center_map_on_current_gps(); });
-                    },
-                    LV_EVENT_CLICKED, this);
-                addFocusItem(_btn_gps, nullptr, false);
+                lv_obj_add_event_cb(_btn_gps, onGpsClicked, LV_EVENT_CLICKED, this);
+                addFocusableObject(_btn_gps, nullptr, false);
             }
             _lv_obj_t *const team_buttons[] = {
                 _btn_team, _btn_group_message
             };
+#if defined(HELTEC_V4_R8_TFT)
+            const char *const labels[] = { "Team", "Msg" };
+#else
             const char *const labels[] = { "Team", "All" };
+#endif
             for (unsigned i = 0; i < 2; ++i)
             {
                 if (!team_buttons[i])
@@ -1156,8 +1305,9 @@ _lv_obj_t *TrackerScreen::create(_lv_obj_t *parent)
                 if (team_buttons[i] == _btn_team)
                     lv_obj_add_event_cb(team_buttons[i], onTeamToolClicked,
                                         LV_EVENT_LONG_PRESSED, this);
-                addFocusItem(team_buttons[i], nullptr, false);
+                addFocusableObject(team_buttons[i], nullptr, false);
             }
+            syncTeamTools();
             syncMapToolbarVisibility();
             raiseMapToolbar();
         }
@@ -1176,7 +1326,7 @@ _lv_obj_t *TrackerScreen::create(_lv_obj_t *parent)
         setMapUnavailable();
     }
 
-    return _root;
+    return true;
 }
 
 } // namespace heltec::meshcore::ui

@@ -25,16 +25,16 @@ class IBizFacade;
 namespace heltec::meshcore::ui
 {
 
+struct UiSendMessageTarget;
+
 class QuickPingOverlay final : public AbstractOverlay
 {
   public:
-    explicit QuickPingOverlay(biz::IBizFacade &biz) : AbstractOverlay(biz)
-    {
-    }
+    explicit QuickPingOverlay(biz::IBizFacade &biz);
+    void prepareTarget(const UiSendMessageTarget *target);
 
     void onEnter() override;
     void onExit() override;
-    _lv_obj_t *focusedObject() const override;
     bool hitVisibleKeyboard(int16_t x, int16_t y) const;
     bool hitVerticalSwipeControl(int16_t x, int16_t y) const;
     bool hitSwipeDismissRegion(int16_t x, int16_t y) const;
@@ -42,8 +42,7 @@ class QuickPingOverlay final : public AbstractOverlay
     bool requestCloseAnimation();
 
   protected:
-    _lv_obj_t *create(_lv_obj_t *parent) override;
-    _lv_obj_t *createRoot(_lv_obj_t *parent) override;
+    bool buildSurface() override;
     bool onKey(uint32_t key) override;
 
   private:
@@ -80,6 +79,7 @@ class QuickPingOverlay final : public AbstractOverlay
     void applyState(bool keep_focus = true);
     void restoreModeFocus(_lv_obj_t *preferred = nullptr);
     void syncLists();
+    void applyPendingTarget();
     void loadContactWindow(int start);
     void moveContactSelection(int delta);
     void recenterContactWindow(int global_index, int direction);
@@ -169,6 +169,10 @@ class QuickPingOverlay final : public AbstractOverlay
     bool _close_animating = false;
     bool _close_animation_ready = false;
     bool _repeat_pending = false;
+    bool _pending_target_valid = false;
+    bool _pending_target_direct = false;
+    uint8_t _pending_target_key[6] = {};
+    int _pending_target_channel = -1;
     uint16_t _repeat_index = 0;
     _lv_obj_t *_repeat_dropdown = nullptr;
 

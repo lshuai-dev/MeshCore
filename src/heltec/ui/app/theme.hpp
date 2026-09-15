@@ -1,6 +1,6 @@
 #pragma once
 
-#include "ui_theme_profile.hpp"
+#include "theme_profile.hpp"
 
 #include <lvgl.h>
 #include <stdint.h>

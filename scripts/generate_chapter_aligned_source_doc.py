@@ -19,26 +19,26 @@ CJK_PATTERN = re.compile(r"([\u3400-\u4dbf\u4e00-\u9fff\u3000-\u303f\uff00-\uffe
 
 # 章节顺序与《软件说明书》完全一致。quota 包含章节、文件和功能注释行。
 CHAPTERS = [
-    (1, "项目概述", 80, ["src/heltec/ui/app/ui_app.hpp"]),
+    (1, "项目概述", 80, ["src/heltec/ui/app/app.hpp"]),
     (2, "项目组成与开发环境", 120, ["src/heltec/ui/app/ui_app_ids.hpp", "src/heltec/ui/core/screen_id.hpp", "src/heltec/ui/core/ht_event.h", "src/heltec/ui/core/ht_event.cpp"]),
     (3, "支持的终端与固件形态", 120, ["src/heltec/drivers/display/display_port.cpp", "src/heltec/drivers/display/display_port.hpp", "src/heltec/ui/core/board_features.cpp", "variants/heltec_e213/HeltecE213Board.cpp"]),
-    (4, "软件总体设计", 180, ["src/heltec/ui/core/ui_surface.cpp", "src/heltec/ui/core/ui_surface.hpp", "src/heltec/ui/core/surface_manager.hpp", "src/heltec/ui/core/surface_manager.cpp"]),
+    (4, "软件总体设计", 180, ["src/heltec/ui/core/surface.cpp", "src/heltec/ui/core/surface.hpp", "src/heltec/ui/core/surface_manager.hpp", "src/heltec/ui/core/surface_manager.cpp"]),
     (5, "启动与主界面", 170, ["src/heltec/ui/overlays/splash_overlay.cpp", "src/heltec/ui/screens/home_screen.cpp", "src/heltec/ui/screens/home_screen.hpp"]),
     (6, "消息通信功能", 220, ["src/heltec/ui/overlays/send_message_model.hpp", "src/heltec/ui/overlays/send_message_model.cpp", "src/heltec/ui/overlays/send_message_overlay.cpp"]),
     (7, "最近消息与节点信息", 180, ["src/heltec/ui/screens/recent_screen.hpp", "src/heltec/ui/screens/recent_screen.cpp"]),
     (8, "无线状态与参数管理", 150, ["src/heltec/ui/screens/radio_screen.hpp", "src/heltec/ui/screens/radio_screen.cpp", "src/heltec/app/mesh_app_ui_radio.cpp"]),
     (9, "GPS定位与位置共享", 200, ["src/heltec/ui/screens/gps_screen.hpp", "src/heltec/ui/screens/gps_screen.cpp"]),
     (10, "GPS轨迹与动态功耗管理", 120, ["src/heltec/ui/core/backlight_policy.hpp", "src/heltec/ui/core/backlight_policy.cpp", "src/heltec/ui/screens/tracker_screen.hpp", "src/heltec/ui/screens/tracker_screen.cpp"]),
-    (11, "指南针与查找朋友", 160, ["src/heltec/ui/screens/compass_ui_common.hpp", "src/heltec/ui/screens/compass_screen.hpp", "src/heltec/ui/screens/compass_screen.cpp", "src/heltec/ui/screens/find_friend_screen.hpp", "src/heltec/ui/screens/find_friend_screen_controls.cpp"]),
+    (11, "指南针与查找朋友", 160, ["src/heltec/ui/screens/compass_common.hpp", "src/heltec/ui/screens/compass_screen.hpp", "src/heltec/ui/screens/compass_screen.cpp", "src/heltec/ui/screens/find_friend_screen.hpp", "src/heltec/ui/screens/find_friend_screen_controls.cpp"]),
     (12, "地图与跟踪页面", 140, ["src/heltec/ui/map/map_panel_ids.hpp", "src/heltec/ui/map/map_panel.hpp", "src/heltec/ui/map/map_panel.cpp"]),
     (13, "系统设置与转发模式", 200, ["src/heltec/ui/screens/system_screen.hpp", "src/heltec/ui/screens/system_screen_rows.cpp", "src/heltec/ui/overlays/repeat_mode_overlay.hpp", "src/heltec/ui/overlays/repeat_mode_overlay.cpp"]),
     (14, "输入、导航与显示适配", 220, ["src/heltec/ui/core/input_types.hpp", "src/heltec/ui/core/input_adapter.cpp", "src/heltec/ui/core/input_dispatcher.cpp", "src/heltec/ui/core/input_pipeline.cpp", "src/heltec/ui/core/focus_key_mapper.cpp", "src/heltec/drivers/input/key_input.cpp", "src/heltec/drivers/input/momentary_button.cpp"]),
     (15, "连接方式与外部应用协同", 120, ["src/heltec/app/mesh_app_ui_link.cpp", "src/heltec/ui/widgets/top_pane.hpp", "src/heltec/ui/widgets/top_pane.cpp"]),
     (16, "数据保存与恢复", 140, ["src/heltec/ui/screens/system_screen_actions.cpp", "src/heltec/ui/core/ui_deferred_queue.hpp", "src/heltec/ui/core/ui_deferred_queue.cpp"]),
-    (17, "当前版本功能变更", 120, ["src/heltec/ui/app/ui_app_navigation.cpp", "src/heltec/ui/theme/ui_theme_metrics.hpp", "src/heltec/ui/theme/ui_theme_metrics.cpp"]),
+    (17, "当前版本功能变更", 120, ["src/heltec/ui/app/app_navigation.cpp", "src/heltec/ui/theme/ui_theme_metrics.hpp", "src/heltec/ui/theme/ui_theme_metrics.cpp"]),
     (18, "编译、烧录与验收", 150, ["src/heltec/drivers/display/ssd1306_port.cpp", "src/heltec/drivers/display/st7735_port.cpp", "src/heltec/drivers/display/st7789_port.cpp"]),
-    (19, "常见问题", 120, ["src/heltec/ui/overlays/alert_overlay.hpp", "src/heltec/ui/overlays/alert_overlay.cpp", "src/heltec/ui/core/ui_feedback.hpp", "src/heltec/ui/core/operation_hints.hpp"]),
-    (20, "软件功能总结", 90, ["src/heltec/ui/theme/ui_theme_mono_flat.cpp", "src/heltec/ui/theme/ui_theme_pixel.cpp", "src/heltec/ui/theme/ui_widget_theme.hpp"]),
+    (19, "常见问题", 120, ["src/heltec/ui/overlays/alert_overlay.hpp", "src/heltec/ui/overlays/alert_overlay.cpp", "src/heltec/ui/core/feedback.hpp", "src/heltec/ui/core/operation_hints.hpp"]),
+    (20, "软件功能总结", 90, ["src/heltec/ui/theme/theme_mono_flat.cpp", "src/heltec/ui/theme/theme_pixel.cpp", "src/heltec/ui/theme/widget_theme.hpp"]),
 ]
 
 FORBIDDEN_PATH_PARTS = (

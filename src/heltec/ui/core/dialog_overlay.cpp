@@ -1,5 +1,5 @@
 #include "dialog_overlay.hpp"
-#include "ui_semantic_classes.hpp"
+#include "widget_classes.hpp"
 
 #include <lvgl.h>
 
@@ -27,26 +27,16 @@ void apply_variant_state(lv_obj_t *object, DialogOverlay::Variant variant)
 } // namespace
 
 DialogOverlay::DialogOverlay(biz::IBizFacade &biz, Options options)
-    : AbstractOverlay(biz), _options(options)
+    : AbstractOverlay(biz, ht_dialog_overlay_class), _options(options)
 {
 }
 
-_lv_obj_t *DialogOverlay::createRoot(_lv_obj_t *parent)
+bool DialogOverlay::buildSurface()
 {
-    lv_obj_t *const obj = lv_obj_class_create_obj(&ht_dialog_overlay_class, parent);
-    if (!obj) {
-        return nullptr;
+    if (!AbstractOverlay::buildSurface())
+    {
+        return false;
     }
-
-    lv_obj_class_init_obj(obj);
-
-    return obj;
-}
-
-_lv_obj_t *DialogOverlay::create(_lv_obj_t *parent)
-{
-    if (!AbstractOverlay::create(parent)) return nullptr;
-    if (_panel) return _root;
 
     apply_variant_state(_root, _options.variant);
     lv_obj_set_layout(_root, 0);
@@ -56,22 +46,10 @@ _lv_obj_t *DialogOverlay::create(_lv_obj_t *parent)
         lv_obj_add_event_cb(_root, backdropEventCb, LV_EVENT_CLICKED, this);
     }
 
-    auto create_object = [](const lv_obj_class_t * class_p, lv_obj_t * parent) -> lv_obj_t * {
-        lv_obj_t *const obj = lv_obj_class_create_obj(class_p, parent);
-        if (!obj) {
-            return nullptr;
-        }
-
-        lv_obj_class_init_obj(obj);
-
-        return obj;
-    };
-    
-
-    _panel = create_object(&ht_dialog_panel_class, _root);
+    _panel = ht_class_create(&ht_dialog_panel_class, _root);
     if (!_panel)
     {
-        return nullptr;
+        return false;
     }
     apply_variant_state(_panel, _options.variant);
     lv_obj_set_flex_flow(_panel, LV_FLEX_FLOW_COLUMN);
@@ -81,19 +59,19 @@ _lv_obj_t *DialogOverlay::create(_lv_obj_t *parent)
 
     if (_options.has_title)
     {
-        _title = create_object(&ht_dialog_title_class, _panel);
+        _title = ht_class_create(&lv_label_class, _panel);
         if (!_title)
         {
-            return nullptr;
+            return false;
         }
         lv_obj_set_width(_title, lv_pct(100));
         lv_label_set_long_mode(_title, LV_LABEL_LONG_CLIP);
     }
 
-    _content = create_object(&ht_dialog_content_class, _panel);
+    _content = ht_class_create(&ht_dialog_content_class, _panel);
     if (!_content)
     {
-        return nullptr;
+        return false;
     }
     apply_variant_state(_content, _options.variant);
     lv_obj_set_width(_content, lv_pct(100));
@@ -104,16 +82,16 @@ _lv_obj_t *DialogOverlay::create(_lv_obj_t *parent)
 
     if (_options.has_actions)
     {
-        _actions = create_object(&ht_dialog_actions_class, _panel);
+        _actions = ht_class_create(&ht_dialog_actions_class, _panel);
         if (!_actions)
         {
-            return nullptr;
+            return false;
         }
         apply_variant_state(_actions, _options.variant);
         lv_obj_set_width(_actions, lv_pct(100));
         lv_obj_clear_flag(_actions, LV_OBJ_FLAG_SCROLLABLE | LV_OBJ_FLAG_CLICKABLE);
     }
-    return _root;
+    return true;
 }
 
 _lv_obj_t *DialogOverlay::panel() const
@@ -131,11 +109,12 @@ _lv_obj_t *DialogOverlay::actionsHost() const
     return _actions;
 }
 
-void DialogOverlay::setDialogTitle(const char *text)
+void DialogOverlay::setTitle(const char *text)
 {
     if (_title)
     {
-        lv_label_set_text(_title, text ? text : "");
+        /* Dialog titles are owned by the overlay or supplied as static text. */
+        lv_label_set_text_static(_title, text ? text : "");
     }
 }
 

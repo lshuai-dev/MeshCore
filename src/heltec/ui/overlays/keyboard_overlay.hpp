@@ -15,9 +15,7 @@ namespace heltec::meshcore::ui
 class KeyboardOverlay : public AbstractOverlay
 {
   public:
-    explicit KeyboardOverlay(biz::IBizFacade &biz) : AbstractOverlay(biz)
-    {
-    }
+    explicit KeyboardOverlay(biz::IBizFacade &biz);
 
     bool prepareMessageInput(const char *title);
     bool prepareWaypointInput();
@@ -30,10 +28,9 @@ class KeyboardOverlay : public AbstractOverlay
     void onExit() override;
 
   protected:
-    _lv_obj_t *create(_lv_obj_t *parent) override;
+    bool buildSurface() override;
 
   private:
-    _lv_obj_t *createRoot(_lv_obj_t *parent) override;
     _lv_obj_t *focusTarget() const override
     {
         return _keyboard;

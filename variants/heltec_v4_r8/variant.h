@@ -170,6 +170,7 @@
 #define HELTEC_MAP_TOUCH_PAN 1
 #define MAP_UI_PAN_START_PX 6
 #define MAP_UI_PNG_LOADS_PER_TICK 1
+#define MAP_UI_SD_SPI_MAX_HZ 40000000U
 #define ENV_SKIP_GPS_DETECT 1
 #define SDFAT_FILE_TYPE 3
 #define HELTEC_SD_BUS_PRECONFIGURED 1
@@ -220,10 +221,10 @@
 #endif
 
 #ifndef PIN_TFT_SCL
-#define PIN_TFT_SCL               PIN_BOARD_SCL
+#define PIN_TFT_SCL               PIN_SPI1_SCK
 #endif
 #ifndef PIN_TFT_SDA
-#define PIN_TFT_SDA               PIN_BOARD_SDA
+#define PIN_TFT_SDA               PIN_SPI1_MOSI
 #endif
 #ifndef PIN_TFT_MISO
 #define PIN_TFT_MISO              PIN_SPI1_MISO

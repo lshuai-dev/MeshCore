@@ -24,11 +24,11 @@ class CalibrationOverlay : public DialogOverlay
     void onExit() override;
 
   protected:
-    _lv_obj_t *create(_lv_obj_t *parent) override;
+    bool buildSurface() override;
 
   private:
     void onAppStateChanged(const AppStateEvent &event) override;
-    void onSurfaceRefresh() override;
+    void onActivated() override;
     enum class Phase : uint8_t
     {
         Idle,

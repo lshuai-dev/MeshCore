@@ -14,17 +14,8 @@
 #define HELTEC_TEAM_ROLE 0
 #endif
 
-/* 0: off; 1: lifecycle/errors; 2: verbose frames/location. */
-#ifndef HELTEC_TEAM_LOG
-#define HELTEC_TEAM_LOG 0
-#endif
-
 #ifndef HELTEC_TEAM_MAX_MEMBERS
 #define HELTEC_TEAM_MAX_MEMBERS 32
-#endif
-
-#ifndef HELTEC_TEAM_JOIN_WINDOW_SEC
-#define HELTEC_TEAM_JOIN_WINDOW_SEC 120
 #endif
 
 #ifndef HELTEC_TEAM_JOIN_CONFIRM_SEC
@@ -53,6 +44,10 @@
 
 #ifndef HELTEC_TEAM_PRESENCE_PERIOD_SEC
 #define HELTEC_TEAM_PRESENCE_PERIOD_SEC 900
+#endif
+
+#ifndef HELTEC_TEAM_MEMBER_TIMEOUT_SEC
+#define HELTEC_TEAM_MEMBER_TIMEOUT_SEC 1200UL
 #endif
 
 #if HELTEC_TEAM_ROLE != 0 && HELTEC_TEAM_ROLE != 1

@@ -1,36 +1,20 @@
 #pragma once
-
 #include "abstract_overlay.hpp"
 
-namespace heltec::meshcore::ui
-{
-class FramedOverlay : public AbstractOverlay
-{
+namespace heltec::meshcore::ui {
+class FramedOverlay : public AbstractOverlay {
   public:
-    struct Options
-    {
-        Options(bool header = true, bool footer = true)
-            : has_header(header), has_footer(footer)
-        {
-        }
-
-        bool has_header = true;
-        bool has_footer = true;
-    };
+    void setTitle(const char *text);
+    void setToolTip(const char *text);
 
   protected:
-    explicit FramedOverlay(biz::IBizFacade &biz);
-    FramedOverlay(biz::IBizFacade &biz, Options options);
+    FramedOverlay(biz::IBizFacade &biz, const lv_obj_class_t &root_class);
 
-    _lv_obj_t *create(_lv_obj_t *parent) override;
-    _lv_obj_t *contentHost() const;
-    _lv_obj_t *header() const;
-    _lv_obj_t *footer() const;
-    void setHeaderText(const char *text);
-    void setFooterText(const char *text);
+    bool buildSurface() override;
+    virtual bool buildHeader();
+    virtual bool buildContent();
+    virtual bool buildFooter();
 
-  private:
-    const Options _options;
     _lv_obj_t *_header = nullptr;
     _lv_obj_t *_content = nullptr;
     _lv_obj_t *_footer = nullptr;

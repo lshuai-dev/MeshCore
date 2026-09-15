@@ -14,69 +14,45 @@
 namespace heltec::meshcore::biz
 {
 
-bool MeshAppUi::teamIsLeader() const
+IBizFacade::TeamStatus MeshAppUi::teamStatus() const
 {
+    TeamStatus status{};
 #if HELTEC_TEAM_FEATURE
-    return HELTEC_TEAM_ROLE == 1;
+    status.is_leader = HELTEC_TEAM_ROLE == 1;
+    status.has_team = the_mesh.teamService().hasTeam();
+    status.member_count = static_cast<int>(the_mesh.teamService().memberCount());
+    status.member_revision = the_mesh.teamService().memberRevision();
+    status.pair_state = static_cast<int>(the_mesh.teamJoinService().state());
+    status.join_window_open = the_mesh.teamJoinService().joinWindowOpen();
+#if HELTEC_TEAM_ROLE == 1
+    heltec::meshcore::team::PendingJoin pending{};
+    if (the_mesh.teamJoinService().pendingJoin(pending))
+    {
+        status.pairing_code = pending.pairing_code;
+        status.pending_session = pending.session_id;
+    }
 #else
-    return false;
+    status.pairing_code = the_mesh.teamJoinService().pairingCode();
 #endif
-}
-
-bool MeshAppUi::teamHasTeam() const
-{
-#if HELTEC_TEAM_FEATURE
-    return the_mesh.teamService().hasTeam();
-#else
-    return false;
 #endif
-}
-
-int MeshAppUi::teamMemberCount() const
-{
-#if HELTEC_TEAM_FEATURE
-    return static_cast<int>(the_mesh.teamService().memberCount());
-#else
-    return 0;
-#endif
+    return status;
 }
 
 int MeshAppUi::teamOnlineCount() const
 {
 #if HELTEC_TEAM_FEATURE
     int online = 0;
-    const size_t count = the_mesh.teamService().memberCount();
-    for (size_t index = 0; index < count; ++index)
+    const uint32_t now_ms = millis();
+    const auto &team = the_mesh.teamService();
+    for (size_t slot = 0; slot < HELTEC_TEAM_MAX_MEMBERS; ++slot)
     {
-        heltec::meshcore::team::TeamMember member{};
-        if (the_mesh.teamService().memberAt(index, member) &&
-            millis() - member.last_seen_ms <= 20UL * 60UL * 1000UL)
+        const heltec::meshcore::team::TeamMember *const member = team.memberSlot(slot);
+        if (member && now_ms - member->last_seen_ms <= HELTEC_TEAM_MEMBER_TIMEOUT_SEC * 1000UL)
         {
             ++online;
         }
     }
     return online;
-#else
-    return 0;
-#endif
-}
-
-int MeshAppUi::teamPairState() const
-{
-#if HELTEC_TEAM_FEATURE
-    return static_cast<int>(the_mesh.teamJoinService().state());
-#else
-    return 0;
-#endif
-}
-
-uint16_t MeshAppUi::teamPairingCode() const
-{
-#if HELTEC_TEAM_FEATURE && HELTEC_TEAM_ROLE == 1
-    heltec::meshcore::team::PendingJoin pending{};
-    return the_mesh.teamJoinService().pendingJoin(pending) ? pending.pairing_code : 0;
-#elif HELTEC_TEAM_FEATURE
-    return the_mesh.teamJoinService().pairingCode();
 #else
     return 0;
 #endif
@@ -141,29 +117,6 @@ bool MeshAppUi::teamSelectOffer(int index)
 #endif
 }
 
-bool MeshAppUi::teamPrimaryAction()
-{
-#if !HELTEC_TEAM_FEATURE
-    return false;
-#elif HELTEC_TEAM_ROLE == 1
-    auto &team = the_mesh.teamService();
-    auto &join = the_mesh.teamJoinService();
-    if (!team.hasTeam())
-    {
-        char name[heltec::meshcore::team::kMaxNameBytes + 1] = {};
-        snprintf(name, sizeof(name), "%s", nodeName());
-        if (!team.createTeam(name))
-            return false;
-    }
-    return join.joinWindowOpen() || join.openJoinWindow();
-#else
-    auto &join = the_mesh.teamJoinService();
-    if (join.offerCount() > 0)
-        return join.selectOffer(0);
-    return join.discoverTeams();
-#endif
-}
-
 bool MeshAppUi::teamStartSearch()
 {
 #if HELTEC_TEAM_FEATURE && HELTEC_TEAM_ROLE == 0
@@ -179,7 +132,7 @@ bool MeshAppUi::teamSetActive(bool active)
     if (!active)
         return teamLeave();
     auto &team = the_mesh.teamService();
-    return team.hasTeam() ? team.setEnabled(true) : team.createTeam(nodeName());
+    return team.hasTeam() ? team.setEnabled(true) : team.createTeam(the_mesh.getNodeName());
 #else
     (void)active;
     return false;
@@ -235,6 +188,19 @@ bool MeshAppUi::mapMessageTarget(const uint8_t *prefix, size_t length,
     target = ui::UiSendMessageTarget{};
     if (!prefix || length != sizeof(target.pub_key_prefix))
         return false;
+#if HELTEC_TEAM_FEATURE
+    const auto &team = the_mesh.teamService();
+    for (size_t slot = 0; slot < HELTEC_TEAM_MAX_MEMBERS; ++slot)
+    {
+        const heltec::meshcore::team::TeamMember *const member = team.memberSlot(slot);
+        if (!member || memcmp(member->public_key, prefix, length) != 0)
+            continue;
+        target.kind = ui::UiMessageTargetKind::Direct;
+        memcpy(target.pub_key_prefix, member->public_key, sizeof(target.pub_key_prefix));
+        snprintf(target.label, sizeof(target.label), "%.*s", member->name_len, member->name);
+        return true;
+    }
+#endif
     // Resolve identity rather than a mutable visible-list ordinal.
     const ContactInfo *peer = the_mesh.lookupMessagePeer(prefix, length);
     if (!peer)
@@ -243,25 +209,6 @@ bool MeshAppUi::mapMessageTarget(const uint8_t *prefix, size_t length,
     snprintf(target.label, sizeof(target.label), "%.*s",
              static_cast<int>(sizeof(peer->name)), peer->name);
     return true;
-}
-
-uint64_t MeshAppUi::teamPendingSession() const
-{
-#if HELTEC_TEAM_FEATURE && HELTEC_TEAM_ROLE == 1
-    heltec::meshcore::team::PendingJoin pending{};
-    return the_mesh.teamJoinService().pendingJoin(pending) ? pending.session_id : 0;
-#else
-    return 0;
-#endif
-}
-
-bool MeshAppUi::teamJoinWindowOpen() const
-{
-#if HELTEC_TEAM_FEATURE
-    return the_mesh.teamJoinService().joinWindowOpen();
-#else
-    return false;
-#endif
 }
 
 bool MeshAppUi::teamDecidePending(uint64_t session, bool approve)
@@ -279,7 +226,7 @@ bool MeshAppUi::teamDecidePending(uint64_t session, bool approve)
 bool MeshAppUi::teamLeave()
 {
 #if HELTEC_TEAM_FEATURE
-    the_mesh.teamJoinService().cancel();
+    the_mesh.teamJoinService().closeJoinWindow();
     return the_mesh.teamService().leaveTeam();
 #else
     return false;

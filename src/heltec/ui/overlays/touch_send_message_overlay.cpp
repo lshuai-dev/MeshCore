@@ -4,11 +4,11 @@
 
 #include "heltec/ui/core/biz_facade.hpp"
 #include "keyboard_overlay.hpp"
+#include "ui/app/theme.hpp"
 #include "ui/core/ht_container.hpp"
 #include "ui/core/operation_hints.hpp"
-#include "ui/core/ui_deferred_queue.hpp"
 #include "ui/core/ht_event.h"
-#include "ui/core/ui_semantic_classes.hpp"
+#include "ui/core/widget_classes.hpp"
 
 #include <cstdio>
 #include <cstring>
@@ -17,9 +17,9 @@
 namespace heltec::meshcore::ui
 {
 
-_lv_obj_t *SendMessageOverlay::createRoot(_lv_obj_t *parent)
+SendMessageOverlay::SendMessageOverlay(biz::IBizFacade &biz)
+    : FramedOverlay(biz, ht_send_message_touch_overlay_class)
 {
-    return ht_semantic_create(&ht_send_message_touch_overlay_class, parent);
 }
 
 namespace
@@ -51,7 +51,7 @@ void fitToDisplay(_lv_obj_t *obj)
 
 void SendMessageOverlay::syncOverlayGroup()
 {
-    if (!_list || !_focus_group)
+    if (!_list || !focusGroup())
         return;
     const bool empty = rowCount() <= 0;
     if (_empty_focus)
@@ -59,7 +59,8 @@ void SendMessageOverlay::syncOverlayGroup()
         if (empty)
         {
             lv_obj_clear_flag(_empty_focus, LV_OBJ_FLAG_HIDDEN);
-            (void)restoreFocus(_empty_focus, nullptr);
+            if (lv_obj_get_group(_empty_focus) == focusGroup())
+                lv_group_focus_obj(_empty_focus);
         }
         else
         {
@@ -98,19 +99,20 @@ bool SendMessageOverlay::onKey(uint32_t key)
     return false;
 }
 
-_lv_obj_t *SendMessageOverlay::create(lv_obj_t *parent)
+bool SendMessageOverlay::buildSurface()
 {
-    if (!FramedOverlay::create(parent))
-        return nullptr;
+    if (!FramedOverlay::buildSurface())
+        return false;
+
 
     fitToDisplay(_root);
     lv_obj_add_flag(_root, LV_OBJ_FLAG_CLICKABLE);
-    setHeaderText("send message");
-    setFooterText(operation_hint::kMessageSelect);
+    setTitle("send message");
+    setToolTip(operation_hint::kMessageSelect);
 
-    _list_mid = ht_semantic_create(&ht_send_message_list_class, contentHost());
+    _list_mid = ht_class_create(&ht_send_message_list_class, _content);
     if (!_list_mid)
-        return nullptr;
+        return false;
     lv_obj_set_width(_list_mid, lv_pct(100));
     lv_obj_set_flex_grow(_list_mid, 1);
     lv_obj_set_flex_flow(_list_mid, LV_FLEX_FLOW_COLUMN);
@@ -119,9 +121,9 @@ _lv_obj_t *SendMessageOverlay::create(lv_obj_t *parent)
     lv_obj_clear_flag(_list_mid, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_add_flag(_list_mid, LV_OBJ_FLAG_CLICKABLE);
 
-    _list = ht_semantic_create(&ht_send_message_touch_list_class, _list_mid);
+    _list = ht_class_create(&ht_send_message_touch_list_class, _list_mid);
     if (!_list)
-        return nullptr;
+        return false;
     lv_obj_set_width(_list, lv_pct(100));
     lv_obj_set_flex_grow(_list, 1);
     lv_obj_set_flex_flow(_list, LV_FLEX_FLOW_COLUMN);
@@ -131,22 +133,22 @@ _lv_obj_t *SendMessageOverlay::create(lv_obj_t *parent)
     for (uint8_t i = 0; i < kMaxListItems; ++i)
     {
         if (!createTouchRow(i, ""))
-            return nullptr;
+            return false;
         lv_obj_add_flag(_row_objs[i], LV_OBJ_FLAG_HIDDEN);
     }
 
-    _empty_focus = ht_obj_create(_list);
+    _empty_focus = ht_class_create(&lv_obj_class, _list);
     if (!_empty_focus)
-        return nullptr;
+        return false;
     lv_obj_set_size(_empty_focus, 1, 1);
     lv_obj_add_flag(_empty_focus, LV_OBJ_FLAG_HIDDEN);
     _syncing_focus = true;
     for (int i = 0; i < kMaxListItems; ++i)
-        addFocusObject(_row_objs[i]);
-    addFocusObject(_empty_focus);
+        lv_group_add_obj(focusGroup(), _row_objs[i]);
+    lv_group_add_obj(focusGroup(), _empty_focus);
     _syncing_focus = false;
     setTarget(_model.target());
-    return _root;
+    return true;
 }
 
 void SendMessageOverlay::syncContacts()
@@ -238,12 +240,24 @@ _lv_obj_t *SendMessageOverlay::createTouchRow(uint8_t index, const char *text)
     lv_obj_set_scrollbar_mode(row, LV_SCROLLBAR_MODE_OFF);
     lv_obj_add_flag(row, LV_OBJ_FLAG_CLICKABLE);
 
-    lv_obj_t *label = ht_label_create(row, text ? text : "");
+    lv_obj_t *label = ht_label_create(&lv_label_class, row, text ? text : "");
     if (!label)
         return nullptr;
     lv_obj_set_width(label, lv_pct(100));
     lv_obj_set_flex_grow(label, 1);
     lv_label_set_long_mode(label, LV_LABEL_LONG_DOT);
+    lv_obj_set_style_text_color(label, ui_color_overlay_fg(), LV_PART_MAIN);
+    static const lv_state_t active_states[] = {
+        LV_STATE_FOCUSED,
+        LV_STATE_FOCUS_KEY,
+        LV_STATE_CHECKED,
+        LV_STATE_PRESSED,
+        LV_STATE_FOCUSED | LV_STATE_FOCUS_KEY,
+    };
+    for (const lv_state_t state : active_states)
+    {
+        lv_obj_set_style_text_color(label, ui_color_highlight_fg(), LV_PART_MAIN | state);
+    }
 
     lv_obj_add_event_cb(
         row,
@@ -317,10 +331,12 @@ void SendMessageOverlay::syncSelectionVisual()
             ht_container_set_focused(row, false);
         }
     }
-    if (_focus_group && selected < kMaxListItems && _row_objs[selected])
+    if (focusGroup() && selected < kMaxListItems && _row_objs[selected])
     {
         _syncing_focus = true;
-        (void)restoreFocus(_row_objs[selected], _empty_focus, false);
+        lv_obj_t *const target = _row_objs[selected] ? _row_objs[selected] : _empty_focus;
+        if (target && lv_obj_get_group(target) == focusGroup())
+            lv_group_focus_obj(target);
         _syncing_focus = false;
     }
 }
@@ -329,8 +345,8 @@ void SendMessageOverlay::renderTouchList()
 {
     if (!_list)
         return;
-    if (_focus_group)
-        lv_group_set_editing(_focus_group, false);
+    if (focusGroup())
+        lv_group_set_editing(focusGroup(), false);
     clearTouchList();
 
     const int count = rowCount();
@@ -370,8 +386,8 @@ void SendMessageOverlay::renderRows()
     {
         title = (_model.listKind() == 1) ? "group" : "personal";
     }
-    setHeaderText(title);
-    setFooterText(footer_text);
+    setTitle(title);
+    setToolTip(footer_text);
 
     renderTouchList();
 }
@@ -388,7 +404,7 @@ void SendMessageOverlay::sendMessageText(const char *text, bool alert_on_direct_
     memcpy(pub_key_prefix, target.pub_key_prefix, 6);
 
     // Close before alert/send so the result overlay becomes the top surface.
-    emit(EventType::SEND_MESSAGE_CLOSE);
+    emitEvent(EventType::SendMessageClose);
 
     bool ok = false;
     if (kind == TargetKind::Personal)
@@ -416,7 +432,7 @@ void SendMessageOverlay::scheduleSendResultAlert(bool ok)
     if (_send_alert_scheduled)
         return;
     _send_alert_scheduled = true;
-    if (!defer(showSendResultAlertAsync, this))
+    if (lv_async_call(showSendResultAlertAsync, this) != LV_RES_OK)
     {
         _send_alert_scheduled = false;
         _biz.showAlert(ok ? "Queued" : "Failed", 1600);
@@ -442,7 +458,7 @@ void SendMessageOverlay::openCustomKeyboard()
     const Target &target = _model.target();
     UiMessageKeyboardRequest req;
     req.title = target.label;
-    (void)emit(EventType::MESSAGE_KEYBOARD_OPEN, &req);
+    (void)emitEvent(EventType::MessageKeyboardOpen, &req);
 }
 
 void SendMessageOverlay::handleBack()
@@ -462,7 +478,7 @@ void SendMessageOverlay::handleBack()
         renderRows();
         return;
     }
-    emit(EventType::SEND_MESSAGE_CLOSE);
+    emitEvent(EventType::SendMessageClose);
 }
 
 void SendMessageOverlay::applySelection()

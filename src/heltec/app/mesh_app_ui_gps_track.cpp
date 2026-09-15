@@ -109,28 +109,6 @@ bool MeshAppUi::setGpsTrackRecording(bool enabled)
 #endif
 }
 
-int MeshAppUi::gpsTrackIntervalIndex() const
-{
-    return 0;
-}
-
-bool MeshAppUi::setGpsTrackIntervalIndex(int index)
-{
-    (void)index;
-    return false;
-}
-
-int MeshAppUi::gpsTrackIntervalOptionCount() const
-{
-    return 0;
-}
-
-const char *MeshAppUi::gpsTrackIntervalOptionLabel(int index) const
-{
-    (void)index;
-    return nullptr;
-}
-
 void MeshAppUi::pollGpsTrack()
 {
 #if defined(ENV_INCLUDE_GPS) && ENV_INCLUDE_GPS

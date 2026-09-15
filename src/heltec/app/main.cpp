@@ -5,7 +5,7 @@
 #include "config/NodePrefs.h"
 #include "heltec/drivers/display/display_port.hpp"
 #include "lvgl.h"
-#include "ui/app/ui_app.hpp"
+#include "ui/app/app.hpp"
 #include "ui/core/app_state_notifier.hpp"
 
 #include <Arduino.h> // needed for PlatformIO
@@ -102,7 +102,7 @@ ArduinoSerialInterface serial_interface;
 #error "need to define a serial interface"
 #endif
 
-#include "ui/core/ui_task.hpp"
+#include "ui/core/task.hpp"
 static heltec::meshcore::ui::UiTask s_ui_task(&board, &serial_interface);
 namespace heltec::meshcore::ui
 {

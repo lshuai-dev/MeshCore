@@ -1,88 +1,42 @@
-/**
- * @file abstract_screen.hpp
- * @brief 全屏 Screen 基类。
- */
 #pragma once
-
-#include "screen_id.hpp"
-#include "ui_surface.hpp"
-
-#include <lvgl.h>
-#include <stdint.h>
-
+#include "surface.hpp"
 struct _lv_obj_t;
-
-namespace heltec::meshcore::biz
-{
+namespace heltec::meshcore::biz {
 class IBizFacade;
 }
 
-namespace heltec::meshcore::ui
-{
-
-class AbstractScreen : public UiSurface
-{
+namespace heltec::meshcore::ui {
+class AbstractScreen : public UiSurface {
   public:
-    enum class FocusMode : uint8_t
-    {
-        Idle,
-        Active,
-    };
-
-    AbstractScreen(biz::IBizFacade &biz, const char *title, const lv_img_dsc_t *icon,
-                   bool root_scroll_focus = true);
+    AbstractScreen(biz::IBizFacade &biz, const char *title, const lv_img_dsc_t *icon);
+    AbstractScreen(biz::IBizFacade &biz, const char *title, const lv_img_dsc_t *icon,const lv_obj_class_t &root_class);
     virtual ~AbstractScreen() = default;
 
-    virtual const char *title() const;
-    virtual const lv_img_dsc_t *icon() const;
-    virtual eScreenId screenId() const = 0;
-    lv_group_t *group() const override;
-    _lv_obj_t *tile() const;
+    const char *title() const;
+    const lv_img_dsc_t *icon() const;
     void onEnter() override;
     void onExit() override;
-    _lv_obj_t *focusedObject() const override;
 
   protected:
-    _lv_obj_t *create(_lv_obj_t *parent) override;
-    _lv_obj_t *createRoot(_lv_obj_t *parent) override;
+    bool buildSurface() override;
     bool onKey(uint32_t key) override;
-    void addFocusItem(_lv_obj_t *object, _lv_obj_t *frame = nullptr,
-                      bool propagate_focus = true);
-
-    struct FocusItem
-    {
-        _lv_obj_t *object;
-        _lv_obj_t *frame;
-    };
-    // Called by the derived constructor after its fixed array has been initialized.
-    void setFocusStorage(FocusItem *items, uint8_t capacity)
-    {
-        _focus_items = items;
-        _focus_capacity = capacity;
-    }
+    void addFocusableObject(_lv_obj_t *object, _lv_obj_t *frame = nullptr, bool propagate_focus = true);
 
   private:
-
-    bool isAvailableFocusItem(const _lv_obj_t *obj) const;
-    _lv_obj_t *firstAvailableFocusItem() const;
-    bool hasFocusItem(const _lv_obj_t *object) const;
-    void bindFocusVisual(_lv_obj_t *object, _lv_obj_t *frame, bool propagate_focus);
-    void bindFramePointerFocus(_lv_obj_t *object, _lv_obj_t *frame);
-    void activateFocusMode(FocusMode mode, _lv_obj_t *focus);
-    static void activateFocusModeDeferred(void *user_data);
-    static void onFocusItemChanged(lv_event_t *e);
-    static void onFramePressed(lv_event_t *e);
+    void focusRoot();
+    void focusControls();
+    static lv_obj_tree_walk_res_t addFocusObjectFromTree(_lv_obj_t *object, void *user_data);
+    static void deferredActivateControls(void *user_data);
+    static void deferredActivateRoot(void *user_data);
+    static void handleRootEvent(lv_event_t *event);
+    static void handleFocusChangedEvent(lv_event_t *event);
+    static void handleFramePressedEvent(lv_event_t *event);
+#if defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213
+    static void e213FocusEvent(lv_event_t *event);
+#endif
 
     const char *_title;
     const lv_img_dsc_t *_icon;
-    bool _root_scroll_focus;
-    lv_group_t *_idle_group = nullptr;
-    lv_group_t *_active_group = nullptr;
-    FocusMode _focus_mode = FocusMode::Idle;
-    FocusItem *_focus_items = nullptr;
-    uint8_t _focus_capacity = 0;
-    uint8_t _focus_item_count = 0;
-    bool _focus_activation_pending = false;
 };
 
 } // namespace heltec::meshcore::ui

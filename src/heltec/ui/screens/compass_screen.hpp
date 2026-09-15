@@ -23,18 +23,14 @@ class CompassScreen : public AbstractScreen
 
     void onEnter() override;
     void onExit() override;
-    eScreenId screenId() const override
-    {
-        return eScreenId::Compass;
-    }
     void skipAutoCalibrationOnce();
 
   protected:
-    _lv_obj_t *create(_lv_obj_t *parent) override;
+    bool buildSurface() override;
 
   private:
     void onAppStateChanged(const AppStateEvent &event) override;
-    void onSurfaceRefresh() override;
+    void onActivated() override;
     void refresh_ui(const biz::CompassUi &c);
     void refresh();
     void showUnavailable(const biz::CompassUi &c, const char *hdg_text);
@@ -44,16 +40,13 @@ class CompassScreen : public AbstractScreen
 
     CompassDialWidget _dial;
     lv_obj_t *_lbl_hdg = nullptr;
-    lv_obj_t *_lbl_q_row = nullptr;
-    lv_obj_t *_lbl_q_prefix = nullptr;
-    lv_obj_t *_lbl_q_val = nullptr;
-    lv_obj_t *_lbl_mag[3] = { nullptr, nullptr, nullptr };
+    lv_obj_t *_lbl_q = nullptr;
+    lv_obj_t *_lbl_mag = nullptr;
     char _hdg_text[20] = "HDG:--";
-    char _q_text[8] = "--";
-    char _mag_text[3][20] = { "X:--", "Y:--", "Z:--" };
+    char _q_text[24] = "Q:--";
+    char _mag_text[56] = "X:--\nY:--\nZ:--";
     int16_t _heading_dial_track_tenths = -10000;
     int16_t _heading_label_tenths = -10000;
-    float _last_heading_deg = 0.f;
     int16_t _last_mag_centi[3] = { 10000, 10000, 10000 };
     int8_t _last_quality = -1;
     uint8_t _state_flags = 0;

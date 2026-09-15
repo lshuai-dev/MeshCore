@@ -1,16 +1,16 @@
-#include "ui/theme/ui_widget_theme.hpp"
-#include "ui/theme/ui_theme_internal.hpp"
-#include "ui/app/ui_theme.hpp"
+#include "ui/theme/widget_theme.hpp"
+#include "ui/theme/theme_internal.hpp"
+#include "ui/app/theme.hpp"
 #include "ui/core/abstract_overlay.hpp"
 #include "ui/core/dialog_overlay.hpp"
 #include "ui/core/framed_overlay.hpp"
 #include "ui/core/ht_container.hpp"
 #include "ui/core/ht_scroll_view.hpp"
 #include "ui/core/screen_id.hpp"
-#include "ui/core/ui_semantic_classes.hpp"
-#include "ui/core/ui_capabilities.hpp"
+#include "ui/core/widget_classes.hpp"
+#include "ui/core/capabilities.hpp"
 #include "ui/menus/context_menu.hpp"
-#include "ui/navigation/ui_navigator.hpp"
+#include "ui/navigation/grid_navigator.hpp"
 #include "ui/overlays/alert_overlay.hpp"
 #include "ui/overlays/calibration_overlay.hpp"
 #include "ui/overlays/confirm_overlay.hpp"
@@ -130,6 +130,7 @@ static lv_style_t s_repeat_item_label_style;
 static lv_style_t s_repeat_item_label_selected_style;
 static bool s_repeat_styles_ready = false;
 
+#if UI_INCLUDE_KEYBOARD_OVERLAY
 static lv_style_t s_keyboard_textarea_style;
 static lv_style_t s_keyboard_waypoint_textarea_style;
 static lv_style_t s_keyboard_root_layout_style;
@@ -141,6 +142,7 @@ static lv_style_t s_keyboard_items_base_style;
 static lv_style_t s_keyboard_waypoint_items_style;
 static lv_style_t s_keyboard_items_selected_style;
 static bool s_keyboard_child_styles_ready = false;
+#endif
 
 static lv_style_t s_overlay_label_all_states_style;
 static lv_style_t s_alert_box_style;
@@ -150,7 +152,9 @@ static bool s_overlay_feedback_styles_ready = false;
 static lv_style_t s_surface_root_common_style;
 static lv_style_t s_screen_root_layout_style;
 static lv_style_t s_container_layout_style;
+#if defined(ENV_INCLUDE_MAP) && ENV_INCLUDE_MAP
 static lv_style_t s_tracker_root_layout_style;
+#endif
 static lv_style_t s_preview_root_layout_style;
 static lv_style_t s_splash_root_layout_style;
 static lv_style_t s_plain_container_style;
@@ -254,6 +258,7 @@ static bool s_quick_ping_styles_ready = false;
 #endif
 static lv_style_t s_accent_text_style;
 static lv_style_t s_settings_row_layout_style;
+static lv_style_t s_screen_info_label_layout_style;
 static lv_style_t s_container_focus_style;
 static lv_style_t s_find_friend_dial_layout_style;
 static lv_style_t s_screen_dropdown_list_layout_style;
@@ -897,9 +902,11 @@ static void init_common_widget_styles()
     lv_style_init(&s_container_layout_style);
     lv_style_set_pad_all(&s_container_layout_style, 1);
 
+#if defined(ENV_INCLUDE_MAP) && ENV_INCLUDE_MAP
     lv_style_init(&s_tracker_root_layout_style);
     lv_style_set_pad_top(&s_tracker_root_layout_style, 1);
     lv_style_set_pad_row(&s_tracker_root_layout_style, 2);
+#endif
 
     lv_style_init(&s_preview_root_layout_style);
     lv_style_set_pad_all(&s_preview_root_layout_style, 4);
@@ -1471,6 +1478,12 @@ static void init_screen_system_styles()
     lv_style_set_pad_ver(&s_settings_row_layout_style,
                          ui_layout_metrics().row_padding_vertical);
 
+    lv_style_init(&s_screen_info_label_layout_style);
+    lv_style_set_pad_hor(&s_screen_info_label_layout_style,
+                         ui_layout_metrics().row_padding_horizontal);
+    lv_style_set_pad_ver(&s_screen_info_label_layout_style,
+                         ui_layout_metrics().row_padding_vertical);
+
     lv_style_init(&s_container_focus_style);
 #if HELTEC_UI_INPUT_TOUCH
     lv_style_set_bg_color(&s_container_focus_style, ui_color_accent());
@@ -1925,26 +1938,6 @@ static bool apply_screen_class_theme(_lv_obj_t *obj)
     if (!obj || !is_screen_tree_object(obj))
     {
         return false;
-    }
-
-    if (lv_obj_check_type(obj, &ht_screen_trailing_label_class))
-    {
-        style_screen_label(obj, LV_TEXT_ALIGN_RIGHT);
-        return true;
-    }
-
-    if (lv_obj_check_type(obj, &ht_screen_centered_label_class))
-    {
-        style_screen_label(obj, LV_TEXT_ALIGN_CENTER);
-        return true;
-    }
-
-    if (lv_obj_check_type(obj, &ht_find_friend_dial_host_class))
-    {
-        style_plain_container(obj);
-        init_screen_system_styles();
-        lv_obj_add_style(obj, &s_find_friend_dial_layout_style, LV_PART_MAIN);
-        return true;
     }
 
 #if defined(HAS_BUZZER_VOLUME_CONTROL) && HAS_BUZZER_VOLUME_CONTROL && LV_USE_SLIDER
@@ -3430,6 +3423,25 @@ void ui_navigator_apply_footer_cell_theme(_lv_obj_t *cell)
 #endif
 }
 
+void ui_theme_apply_screen_info_label(_lv_obj_t *label)
+{
+    if (!label)
+        return;
+
+    init_screen_system_styles();
+    lv_obj_add_style(label, &s_screen_info_label_layout_style, LV_PART_MAIN);
+}
+
+void ui_theme_apply_find_friend_dial_host(_lv_obj_t *obj)
+{
+    if (!obj)
+        return;
+
+    style_plain_container(obj);
+    init_screen_system_styles();
+    lv_obj_add_style(obj, &s_find_friend_dial_layout_style, LV_PART_MAIN);
+}
+
 bool ui_widget_theme_apply(_lv_obj_t *obj)
 {
     if (!obj)
@@ -3458,7 +3470,6 @@ bool ui_widget_theme_apply(_lv_obj_t *obj)
                                 apply_navigation_ring_theme(obj) ||
                                 ui_license_gate_apply_theme(obj) ||
                                 ui_button_roller_apply_theme(obj) ||
-                                ui_compass_widget_apply_theme(obj) ||
                                 ui_map_widget_apply_theme(obj);
     return screen_applied || dropdown_applied || custom_applied;
 }

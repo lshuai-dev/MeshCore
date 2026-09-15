@@ -95,15 +95,6 @@ void MeshAppUi::notifyGpsChanged()
     heltec::meshcore::ui::app_state_notifier().notify(event);
 }
 
-bool MeshAppUi::toggleGPS()
-{
-    NodePrefs *p = the_mesh.getNodePrefs();
-    if (!p)
-        return false;
-    setGpsEnabled(!gpsStatus().enabled);
-    return gpsStatus().enabled;
-}
-
 void MeshAppUi::setGpsEnabled(bool enabled)
 {
     NodePrefs *p = the_mesh.getNodePrefs();

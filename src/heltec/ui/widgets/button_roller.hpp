@@ -1,5 +1,5 @@
 #pragma once
-#include "ui/core/ui_semantic_classes.hpp"
+#include "ui/core/widget_classes.hpp"
 
 #include <lvgl.h>
 #include <stdint.h>
@@ -21,6 +21,7 @@ class ButtonRoller
     {
         return _count;
     }
+    void setInputEnabled(bool enabled);
     void resetFocus(bool focus_first_item = true);
     bool focusItem(uint8_t index, bool checked = true);
 
@@ -33,6 +34,7 @@ class ButtonRoller
     lv_group_t *_group = nullptr;
     lv_obj_t *_items[kMaxItems]{};
     uint8_t _count = 0;
+    bool _input_enabled = true;
     lv_coord_t _last_vp_h = 0;
     uint8_t _last_layout_focus = 0xFF;
 };

@@ -1,4 +1,4 @@
-#include "ui/app/ui_behavior_profile.hpp"
+#include "ui/app/behavior_profile.hpp"
 
 namespace heltec::meshcore::ui
 {

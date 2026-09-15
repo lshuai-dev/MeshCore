@@ -1,6 +1,6 @@
-#include "ui/app/ui_app.hpp"
+#include "ui/app/app.hpp"
 #include "ui/core/ht_event.h"
-#include "ui/core/ui_task.hpp"
+#include "ui/core/task.hpp"
 #if defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213
 #include "heltec/drivers/display/e213_port.hpp"
 #endif
@@ -55,12 +55,12 @@ void cm_send_advert(biz::IBizFacade &app, _lv_obj_t *)
 }
 void cm_open_send_message(biz::IBizFacade &, _lv_obj_t *target)
 {
-    (void)ht_event_send(target, EventType::SEND_MESSAGE_OPEN);
+    (void)ht_event_send(target, EventType::SendMessageOpen);
 }
 #if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
 void cm_calibrate_compass(biz::IBizFacade &, _lv_obj_t *target)
 {
-    (void)ht_event_send(target, EventType::CALIBRATION_OPEN);
+    (void)ht_event_send(target, EventType::CalibrationOpen);
 }
 #endif
 } // namespace
@@ -69,31 +69,31 @@ bool UiApp::initOverlay()
 {
     if (!_layerOverlay)
         return false;
-    if (!_previewOvl.init(_layerOverlay))
+    if (!_previewOvl.init(_layerOverlay, _frame_root))
         return false;
-    if (!_alertOvl.init(_layerOverlay))
+    if (!_alertOvl.init(_layerOverlay, _frame_root))
         return false;
-    if (!_confirmOvl.init(_layerOverlay))
+    if (!_confirmOvl.init(_layerOverlay, _frame_root))
         return false;
-    if (!_radioParamSyncOvl.init(_layerOverlay))
+    if (!_radioParamSyncOvl.init(_layerOverlay, _frame_root))
         return false;
-    if (!_repeatModeOvl.init(_layerOverlay))
+    if (!_repeatModeOvl.init(_layerOverlay, _frame_root))
         return false;
 #if UI_INCLUDE_KEYBOARD_OVERLAY
-    if (!_keyboardOvl.init(_layerOverlay))
+    if (!_keyboardOvl.init(_layerOverlay, _frame_root))
         return false;
 #endif
-    if (!_sendMessageOvl.init(_layerOverlay))
+    if (!_sendMessageOvl.init(_layerOverlay, _frame_root))
         return false;
 #if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
-    if (!_calibrationOvl.init(_layerOverlay))
+    if (!_calibrationOvl.init(_layerOverlay, _frame_root))
         return false;
 #endif
 #if defined(HELTEC_V4_R8_TFT) && defined(HELTEC_HAS_TOUCH) && HELTEC_HAS_TOUCH
-    if (!_quickPingOverlay.init(_layerOverlay))
+    if (!_quickPingOverlay.init(_layerOverlay, _frame_root))
         return false;
 #else
-    if (!_contextMenu.init(_layerOverlay))
+    if (!_contextMenu.init(_layerOverlay, _frame_root))
         return false;
     ensureContextMenusRegistered();
     if (!_context_menus_registered || !_contextMenu.canOpen())
@@ -267,7 +267,7 @@ void UiApp::closeKeyboardOverlay()
     (void)_surfaces.show(&_keyboardOvl, false);
     if (waypoint)
     {
-        _surfaces.dispatchToActive(EventType::WAYPOINT_KEYBOARD_CLOSED);
+        _surfaces.dispatchToActive(EventType::WaypointKeyboardClosed);
     }
 #endif
 }
@@ -276,7 +276,6 @@ void UiApp::closeKeyboardOverlay()
 
 bool UiApp::registerRadioContextMenu()
 {
-    _ctxRadioMenu.setEventTarget(_frame_root);
     (void)_ctxRadioMenu.addCommandHandler("send message", cm_open_send_message);
     (void)_ctxRadioMenu.addCommandHandler("send advert", cm_send_advert);
     return _contextMenu.registerMenu("QuickPing", _scrRadio.icon(), _ctxRadioMenu);
@@ -285,7 +284,6 @@ bool UiApp::registerRadioContextMenu()
 bool UiApp::registerCompassContextMenu()
 {
 #if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
-    _ctxCompassMenu.setEventTarget(_frame_root);
     (void)_ctxCompassMenu.addCommandHandler("calibrate", cm_calibrate_compass);
     return _contextMenu.registerMenu(_scrCompass.title(), _scrCompass.icon(), _ctxCompassMenu);
 #else
@@ -311,7 +309,7 @@ bool UiApp::openContextMenu()
 {
     if (!_inited || !_frame_root || _surfaces.isVisible(&_contextMenu))
         return false;
-    return ht_event_send(_frame_root, EventType::CONTEXT_OPEN);
+    return ht_event_send(_frame_root, EventType::ContextOpen);
 }
 
 void UiApp::closeContextMenu()

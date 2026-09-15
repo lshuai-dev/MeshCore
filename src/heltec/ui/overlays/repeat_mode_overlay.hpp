@@ -13,9 +13,7 @@ namespace heltec::meshcore::ui
 class RepeatModeOverlay : public FramedOverlay
 {
   public:
-    explicit RepeatModeOverlay(biz::IBizFacade &biz) : FramedOverlay(biz)
-    {
-    }
+    explicit RepeatModeOverlay(biz::IBizFacade &biz);
 
     void onEnter() override;
 #if defined(HELTEC_V4_R8_TFT)
@@ -23,12 +21,11 @@ class RepeatModeOverlay : public FramedOverlay
 #endif
 
   protected:
-    _lv_obj_t *create(_lv_obj_t *parent) override;
+    bool buildSurface() override;
 
   private:
     static constexpr uint8_t kMaxFrequencyItems = 3;
 
-    _lv_obj_t *createRoot(_lv_obj_t *parent) override;
     _lv_obj_t *focusTarget() const override;
     bool onKey(uint32_t key) override;
 

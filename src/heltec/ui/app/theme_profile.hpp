@@ -1,5 +1,5 @@
 /**
- * @file    ui_theme_profile.hpp
+ * @file    theme_profile.hpp
  * @brief   Compile-time display and input profile for the UI theme.
  */
 #ifndef HELTEC_UI_APP_UI_THEME_PROFILE_HPP

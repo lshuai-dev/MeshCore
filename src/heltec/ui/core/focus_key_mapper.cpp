@@ -2,7 +2,7 @@
 
 #include "ht_selector_view.hpp"
 #include "ht_scroll_view.hpp"
-#include "ui/navigation/ui_navigator.hpp"
+#include "ui/navigation/grid_navigator.hpp"
 
 #include <lvgl.h>
 

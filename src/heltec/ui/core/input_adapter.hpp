@@ -2,11 +2,9 @@
 
 #include "input_types.hpp"
 
-namespace heltec::meshcore::ui
-{
+namespace heltec::meshcore::ui {
 
-class InputAdapter
-{
+class InputAdapter {
   public:
     static const InputAdapter &active();
 

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "compass_needle.hpp"
-#include "ui/core/ui_semantic_classes.hpp"
+#include "ui/core/widget_classes.hpp"
 
 #include <lvgl.h>
 
@@ -25,14 +25,13 @@ struct CompassDialWidget
 {
     lv_obj_t *center_col = nullptr;
     lv_obj_t *hub = nullptr;
-    lv_obj_t *ring = nullptr;
     lv_obj_t *needle = nullptr;
     lv_coord_t side = 0;
     uint8_t flags = 0;
 
     int16_t ring_heading_tenths = 0;
     int16_t needle_heading_tenths = 0;
-    float friend_turn_deg = 0.f;
+    int16_t friend_turn_tenths = 0;
     bool friend_gps_fix = false;
     bool friend_on_target = false;
     bool friend_direction_valid = false;
@@ -46,6 +45,11 @@ struct CompassDialWidget
     static constexpr uint8_t kDialHidden = 0x08;
 
     bool create(lv_obj_t *parent_row);
+    void setVisible(bool visible);
+    void setRingHeading(int16_t heading_tenths);
+    void setHeadingNeedle(int16_t heading_tenths);
+    void setFriendNeedle(int16_t turn_tenths, bool gps_fix, bool direction_valid,
+                         bool on_target, bool near_target);
     void layoutSize();
     void layoutLayers();
     void setLayersVisible(bool visible);

@@ -27,7 +27,7 @@ class MapPanel
 {
   public:
     static constexpr int kMaxTiles = 12;
-    static constexpr int kMaxMarkers = 40;
+    static constexpr int kMaxMarkers = 32;
 
     void attach(_lv_obj_t *viewport);
     bool attached() const
@@ -67,7 +67,6 @@ class MapPanel
     void set_markers(const heltec::meshcore::biz::MapPlotMarker *markers, int count);
 
     /** Hit-test screen coordinates and copy the rendered recipient identity. */
-    bool markerAt(lv_coord_t x, lv_coord_t y, uint8_t *prefix, size_t length) const;
     void zoom_in();
     void zoom_out();
     void pan_pixels(int16_t dx, int16_t dy);

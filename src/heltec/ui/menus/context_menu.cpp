@@ -1,13 +1,13 @@
 #include "context_menu.hpp"
 
-#include "heltec/ui/app/ui_theme.hpp"
+#include "heltec/ui/app/theme.hpp"
 #include "heltec/ui/core/abstract_menu.hpp"
 #include "heltec/ui/images.h"
-#include "ui/app/ui_behavior_profile.hpp"
+#include "ui/app/behavior_profile.hpp"
 #include "ui/core/ht_event.h"
-#include "ui/core/ui_semantic_classes.hpp"
-#include "ui/core/ui_motion_scheduler.hpp"
-#include "ui/theme/ui_widget_theme.hpp"
+#include "ui/core/widget_classes.hpp"
+#include "ui/core/scheduler.hpp"
+#include "ui/theme/widget_theme.hpp"
 
 #include <lvgl.h>
 
@@ -16,9 +16,9 @@
 namespace heltec::meshcore::ui
 {
 
-_lv_obj_t *ContextMenu::createRoot(_lv_obj_t *parent)
+ContextMenu::ContextMenu(biz::IBizFacade &biz)
+    : UiSurface(biz, ht_context_menu_class)
 {
-    return ht_semantic_create(&ht_context_menu_class, parent);
 }
 
 namespace
@@ -86,33 +86,7 @@ bool ContextMenu::isEmpty() const
 
 bool ContextMenu::canOpen() const
 {
-    return _root && _menu && _header_icon_row && _focus_group && !isEmpty();
-}
-
-lv_group_t *ContextMenu::group() const
-{
-    if (_in_leaf && _leaf_menu && _leaf_menu->group())
-        return _leaf_menu->group();
-    return _focus_group;
-}
-
-lv_obj_t *ContextMenu::focusedObject() const
-{
-    if (_in_leaf && _leaf_menu)
-    {
-        if (lv_obj_t *foc = _leaf_menu->focusedObject())
-            return foc;
-        if (lv_group_t *g = _leaf_menu->group())
-            return lv_group_get_focused(g);
-        return nullptr;
-    }
-    if (!_header_icon_row)
-        return nullptr;
-    const uint32_t n = lv_obj_get_child_cnt(_header_icon_row);
-    if (n == 0)
-        return nullptr;
-    const uint32_t idx = (_active_menu < n) ? _active_menu : 0;
-    return lv_obj_get_child(_header_icon_row, idx);
+    return _root && _menu && _header_icon_row && focusGroup() && !isEmpty();
 }
 
 void ContextMenu::updateIconSelection()
@@ -171,12 +145,36 @@ void ContextMenu::selectPane(uint8_t index)
 
 void ContextMenu::enterMenuLeaf(AbstractMenu *menu)
 {
-    if (_registering_panes || !menu || !menu->group())
+    if (_registering_panes || !menu)
         return;
     _in_leaf = true;
     _leaf_menu = menu;
+    setHeaderInputEnabled(false);
     menu->resetInputState(true);
-    emit(EventType::REBIND_INPUT);
+}
+
+void ContextMenu::setHeaderInputEnabled(bool enabled)
+{
+    if (!_header_icon_row || !focusGroup())
+        return;
+
+    const bool was_registering = _registering_panes;
+    _registering_panes = true;
+    if (!enabled)
+        lv_group_focus_obj(nullptr);
+
+    const uint32_t count = lv_obj_get_child_cnt(_header_icon_row);
+    for (uint32_t i = 0; i < count; ++i)
+    {
+        lv_obj_t *const button = lv_obj_get_child(_header_icon_row, i);
+        if (!button)
+            continue;
+        if (enabled)
+            lv_group_add_obj(focusGroup(), button);
+        else
+            lv_group_remove_obj(button);
+    }
+    _registering_panes = was_registering;
 }
 
 bool ContextMenu::activatePaneButton(lv_obj_t *btn, bool enter_leaf)
@@ -224,7 +222,10 @@ void ContextMenu::leaveMenuLeaf()
     _in_leaf = false;
     _leaf_menu = nullptr;
     selectPane(_active_menu);
-    emit(EventType::REBIND_INPUT);
+    setHeaderInputEnabled(true);
+    lv_obj_t *const button = lv_obj_get_child(_header_icon_row, _active_menu);
+    if (button)
+        lv_group_focus_obj(button);
 }
 
 void ContextMenu::onEnter()
@@ -234,6 +235,9 @@ void ContextMenu::onEnter()
     ui_motion_cancel(_root);
     leaveMenuLeaf();
     selectPane(0);
+    lv_obj_t *const button = lv_obj_get_child(_header_icon_row, _active_menu);
+    if (button)
+        lv_group_focus_obj(button);
     lv_menu_clear_history(_menu);
     const FrameGeometry geom = layoutFrame(_root);
     const uint16_t anim_ms = contextPageAnimMs(_root);
@@ -263,44 +267,21 @@ void ContextMenu::onExit()
         ui_motion_cancel(_root);
 }
 
-_lv_obj_t *ContextMenu::create(_lv_obj_t *parent)
+bool ContextMenu::buildSurface()
 {
-    if (!parent)
-        return nullptr;
-    if (_root)
-        return _root;
-    if (!UiSurface::create(parent))
-        return nullptr;
-
     lv_obj_add_flag(_root, LV_OBJ_FLAG_HIDDEN);
     lv_obj_clear_flag(_root, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_set_flex_flow(_root, LV_FLEX_FLOW_COLUMN);
 
     _menu = lv_menu_create(_root);
     if (!_menu)
-        return nullptr;
+        return false;
     lv_obj_set_size(_menu, lv_pct(100), lv_pct(100));
     lv_obj_set_flex_grow(_menu, 1);
     lv_obj_clear_flag(_menu, LV_OBJ_FLAG_SCROLLABLE);
-    lv_obj_add_event_cb(
-        _menu,
-        [](lv_event_t *e)
-        {
-            const UiEvent *event = ht_event_get(e);
-            if (!event || event->type != EventType::REBIND_INPUT)
-                return;
-            auto *self = static_cast<ContextMenu *>(lv_event_get_user_data(e));
-            if (!self)
-                return;
-            self->emit(EventType::REBIND_INPUT);
-            lv_event_stop_bubbling(e);
-            lv_event_stop_processing(e);
-        },
-        HT_EVENT_USER, this);
-
     lv_obj_t *mh = lv_menu_get_main_header(_menu);
     if (!mh)
-        return nullptr;
+        return false;
     lv_obj_set_size(mh, lv_pct(100), LV_SIZE_CONTENT);
     lv_obj_set_flex_flow(mh, LV_FLEX_FLOW_COLUMN);
     lv_obj_set_flex_align(mh, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
@@ -318,12 +299,12 @@ _lv_obj_t *ContextMenu::create(_lv_obj_t *parent)
         }
     }
     if (!back_btn || !title_lbl)
-        return nullptr;
+        return false;
 
     lv_obj_clear_flag(mh, LV_OBJ_FLAG_HIDDEN);
-    _header_icon_row = ht_semantic_create(&ht_context_menu_icon_row_class, mh);
+    _header_icon_row = ht_class_create(&ht_context_menu_icon_row_class, mh);
     if (!_header_icon_row)
-        return nullptr;
+        return false;
     lv_obj_set_flex_flow(_header_icon_row, LV_FLEX_FLOW_ROW);
     lv_obj_set_flex_align(_header_icon_row, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER,
                           LV_FLEX_ALIGN_CENTER);
@@ -332,7 +313,7 @@ _lv_obj_t *ContextMenu::create(_lv_obj_t *parent)
 
     lv_obj_t *nav_row = lv_obj_create(mh);
     if (!nav_row)
-        return nullptr;
+        return false;
     lv_obj_set_size(nav_row, lv_pct(100), LV_SIZE_CONTENT);
     lv_obj_set_flex_flow(nav_row, LV_FLEX_FLOW_ROW);
     lv_obj_set_flex_align(nav_row, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
@@ -349,23 +330,23 @@ _lv_obj_t *ContextMenu::create(_lv_obj_t *parent)
     lv_obj_move_to_index(nav_row, 1);
     ui_theme_apply_context_menu_title(title_lbl);
 
-    lv_group_set_wrap(_focus_group, true);
-    lv_group_set_editing(_focus_group, false);
-    return _root;
+    lv_group_set_wrap(focusGroup(), true);
+    lv_group_set_editing(focusGroup(), false);
+    return true;
 }
 
 void ContextMenu::beginRegister()
 {
     _registering_panes = true;
-    if (_focus_group)
-        lv_group_focus_freeze(_focus_group, true);
+    if (focusGroup())
+        lv_group_focus_freeze(focusGroup(), true);
 }
 
 void ContextMenu::endRegister()
 {
     _registering_panes = false;
-    if (_focus_group)
-        lv_group_focus_freeze(_focus_group, false);
+    if (focusGroup())
+        lv_group_focus_freeze(focusGroup(), false);
 }
 
 bool ContextMenu::registerMenu(const char *title, const lv_img_dsc_t *icon, AbstractMenu &menu)
@@ -374,8 +355,9 @@ bool ContextMenu::registerMenu(const char *title, const lv_img_dsc_t *icon, Abst
         return false;
     if (lv_obj_get_child_cnt(_header_icon_row) >= kMaxPanes)
         return false;
-    if (!menu.create(_menu, title))
+    if (!menu.create(_menu, focusGroup(), title, eventTarget()))
         return false;
+    menu.resetInputState(false);
 
     if (menu.root())
         lv_obj_add_event_cb(menu.root(), &ContextMenu::on_menu_leaf_esc, LV_EVENT_KEY, this);
@@ -383,7 +365,7 @@ bool ContextMenu::registerMenu(const char *title, const lv_img_dsc_t *icon, Abst
         lv_obj_add_event_cb(page, &ContextMenu::on_menu_leaf_esc, LV_EVENT_KEY, this);
 
     lv_obj_t *btn =
-        ht_semantic_button_create(&ht_context_menu_icon_button_class, _header_icon_row, &menu);
+        ht_btn_create(&ht_context_menu_icon_button_class, _header_icon_row, &menu);
     if (!btn)
         return false;
 
@@ -426,7 +408,7 @@ bool ContextMenu::registerMenu(const char *title, const lv_img_dsc_t *icon, Abst
 
             if (lv_event_get_key(e) != LV_KEY_ESC)
                 return;
-            ctx_menu->emit(EventType::CONTEXT_CLOSE);
+            ctx_menu->emitEvent(EventType::ContextClose);
             lv_event_stop_bubbling(e);
             lv_event_stop_processing(e);
         },
@@ -455,7 +437,7 @@ bool ContextMenu::registerMenu(const char *title, const lv_img_dsc_t *icon, Abst
         lv_obj_set_height(_header_icon_row, _icon_row_height);
     }
 
-    addFocusObject(btn);
+    lv_group_add_obj(focusGroup(), btn);
     return true;
 }
 

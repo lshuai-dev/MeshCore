@@ -2,27 +2,19 @@
 
 #include <lvgl.h>
 
-namespace heltec::meshcore::ui
-{
+namespace heltec::meshcore::ui {
 extern const lv_obj_class_t ht_dialog_overlay_class;
 extern const lv_obj_class_t ht_dialog_panel_class;
-extern const lv_obj_class_t ht_dialog_title_class;
 extern const lv_obj_class_t ht_dialog_content_class;
 extern const lv_obj_class_t ht_dialog_actions_class;
 
-extern const lv_obj_class_t ht_framed_overlay_header_class;
 extern const lv_obj_class_t ht_framed_overlay_content_class;
-extern const lv_obj_class_t ht_framed_overlay_footer_class;
 
-extern const lv_obj_class_t ht_screen_trailing_label_class;
-extern const lv_obj_class_t ht_screen_centered_label_class;
-extern const lv_obj_class_t ht_find_friend_dial_host_class;
 extern const lv_obj_class_t ht_volume_controls_class;
 extern const lv_obj_class_t ht_volume_button_class;
 
 #if LV_USE_KEYBOARD
 extern const lv_obj_class_t ht_keyboard_overlay_class;
-extern const lv_obj_class_t ht_keyboard_hint_class;
 extern const lv_obj_class_t ht_keyboard_editor_class;
 extern const lv_obj_class_t ht_keyboard_matrix_class;
 #endif
@@ -33,12 +25,6 @@ extern const lv_obj_class_t ht_top_pane_battery_outline_class;
 extern const lv_obj_class_t ht_top_pane_battery_cap_class;
 
 extern const lv_obj_class_t ht_button_roller_class;
-
-extern const lv_obj_class_t ht_compass_info_column_class;
-extern const lv_obj_class_t ht_compass_q_label_class;
-extern const lv_obj_class_t ht_compass_dial_center_class;
-extern const lv_obj_class_t ht_compass_dial_hub_class;
-extern const lv_obj_class_t ht_compass_dial_needle_class;
 
 extern const lv_obj_class_t ht_license_gate_class;
 extern const lv_obj_class_t ht_license_gate_chip_class;
@@ -74,7 +60,6 @@ extern const lv_obj_class_t ht_overlay_root_class;
 extern const lv_obj_class_t ht_overlay_bar_class;
 extern const lv_obj_class_t ht_overlay_feedback_label_class;
 extern const lv_obj_class_t ht_confirm_text_class;
-extern const lv_obj_class_t ht_confirm_key_hint_class;
 extern const lv_obj_class_t ht_confirm_button_class;
 
 extern const lv_obj_class_t ht_preview_overlay_class;
@@ -99,11 +84,22 @@ extern const lv_obj_class_t ht_send_message_list_class;
 extern const lv_obj_class_t ht_send_message_touch_list_class;
 extern const lv_obj_class_t ht_splash_overlay_class;
 
-lv_obj_t *ht_semantic_create(const lv_obj_class_t *class_p, lv_obj_t *parent,
-                             void *user_data = nullptr);
-lv_obj_t *ht_semantic_label_create(const lv_obj_class_t *class_p, lv_obj_t *parent,
-                                   const char *text = nullptr, void *user_data = nullptr);
-lv_obj_t *ht_semantic_button_create(const lv_obj_class_t *class_p, lv_obj_t *parent,
-                                    void *user_data = nullptr);
+lv_obj_t *ht_class_create(const lv_obj_class_t *class_p, lv_obj_t *parent, void *user_data = nullptr);
+lv_obj_t *ht_label_create(const lv_obj_class_t *class_p, lv_obj_t *parent, const char *text = nullptr, void *user_data = nullptr);
+lv_obj_t *ht_btn_create(const lv_obj_class_t *class_p, lv_obj_t *parent, void *user_data = nullptr);
+
+inline lv_obj_t *ht_obj_create(lv_obj_t *parent) {
+    return ht_class_create(&lv_obj_class, parent);
+}
+
+inline lv_obj_t *ht_label_create(lv_obj_t *parent, const char *text = nullptr) {
+    return ht_label_create(&lv_label_class, parent, text);
+}
+
+inline lv_obj_t *ht_label_create_static(lv_obj_t *parent, const char *text) {
+    lv_obj_t *const label = lv_label_create(parent);
+    if (label) lv_label_set_text_static(label, text);
+    return label;
+}
 
 } // namespace heltec::meshcore::ui

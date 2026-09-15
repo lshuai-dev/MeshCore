@@ -1,334 +1,220 @@
 #include "abstract_screen.hpp"
-#include "ui/core/ui_deferred_queue.hpp"
-#include "ui/core/ht_event.h"
 #include "ui/core/ht_container.hpp"
+#include "ui/core/ht_event.h"
 #include "ui/core/ht_scroll_view.hpp"
 #if defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213
 #include "heltec/drivers/display/e213_port.hpp"
 #endif
 
-namespace heltec::meshcore::ui
-{
+namespace heltec::meshcore::ui {
+namespace {
+
+constexpr lv_obj_flag_t kFocusItemFlag = LV_OBJ_FLAG_USER_1;
+
+bool focus_object_available(const lv_obj_t *object) {
+    if (!object || !lv_obj_is_valid(object) || lv_obj_has_state(object, LV_STATE_DISABLED)) {
+        return false;
+    }
+    for (const lv_obj_t *parent = object; parent; parent = lv_obj_get_parent(parent)) {
+        if (lv_obj_has_flag(parent, LV_OBJ_FLAG_HIDDEN)) {
+            return false;
+        }
+    }
+    return true;
+}
+
+} // namespace
+
+AbstractScreen::AbstractScreen(biz::IBizFacade &biz, const char *title, const lv_img_dsc_t *icon)
+    : AbstractScreen(biz, title, icon, ht_scroll_view_class) {
+}
 
 AbstractScreen::AbstractScreen(biz::IBizFacade &biz, const char *title, const lv_img_dsc_t *icon,
-                               bool root_scroll_focus)
-    : UiSurface(biz), _title(title), _icon(icon), _root_scroll_focus(root_scroll_focus)
-{
+                               const lv_obj_class_t &root_class)
+    : UiSurface(biz, root_class), _title(title), _icon(icon) {
 }
 
-_lv_obj_t *AbstractScreen::createRoot(_lv_obj_t *parent)
-{
-    return _root_scroll_focus ? ht_scroll_view_create(parent) : lv_obj_create(parent);
-}
-
-_lv_obj_t *AbstractScreen::create(_lv_obj_t *parent)
-{
-    if (!UiSurface::create(parent))
-        return nullptr;
+bool AbstractScreen::buildSurface() {
     lv_obj_set_size(_root, lv_pct(100), lv_pct(100));
     lv_obj_set_flex_flow(_root, LV_FLEX_FLOW_COLUMN);
     lv_obj_set_flex_align(_root, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_START);
-    if (_focus_group)
-    {
-        lv_group_set_wrap(_focus_group, true);
-        lv_obj_set_user_data(_root, this);
-    }
+    lv_obj_set_user_data(_root, this);
 
-    _idle_group = lv_group_create();
-    if (!_idle_group)
-    {
-        lv_group_del(_focus_group);
-        _focus_group = nullptr;
-        lv_obj_del(_root);
-        _root = nullptr;
-        return nullptr;
-    }
-    lv_group_set_wrap(_idle_group, false);
-    lv_group_set_editing(_idle_group, false);
-    lv_group_add_obj(_idle_group, _root);
-    lv_obj_add_flag(_root, LV_OBJ_FLAG_CLICK_FOCUSABLE | LV_OBJ_FLAG_EVENT_BUBBLE);
-    _active_group = _idle_group;
-    _focus_mode = FocusMode::Idle;
-    return _root;
+    lv_obj_add_flag(_root,
+                    LV_OBJ_FLAG_CLICKABLE | LV_OBJ_FLAG_CLICK_FOCUSABLE | LV_OBJ_FLAG_EVENT_BUBBLE);
+    lv_obj_add_event_cb(_root, handleRootEvent, LV_EVENT_CLICKED, this);
+    focusRoot();
+    return true;
 }
 
-const char *AbstractScreen::title() const
-{
+const char *AbstractScreen::title() const {
     return _title;
 }
 
-const lv_img_dsc_t *AbstractScreen::icon() const
-{
+const lv_img_dsc_t *AbstractScreen::icon() const {
     return _icon;
 }
 
-_lv_obj_t *AbstractScreen::tile() const
-{
-    return _root ? lv_obj_get_parent(_root) : nullptr;
-}
-
-void AbstractScreen::onEnter()
-{
-    UiSurface::onEnter();
-    (void)defer_cancel(activateFocusModeDeferred, this);
-    _focus_activation_pending = false;
-    if (!_focus_group || !_idle_group || !_root)
-        return;
-    lv_group_set_editing(_idle_group, false);
-    lv_group_set_editing(_focus_group, false);
+void AbstractScreen::onEnter() {
+    (void)lv_async_call_cancel(deferredActivateControls, this);
+    (void)lv_async_call_cancel(deferredActivateRoot, this);
+    if (!focusGroup() || !_root) return;
     lv_obj_scroll_to_y(_root, 0, LV_ANIM_OFF);
-    activateFocusMode(FocusMode::Idle, _root);
+    focusRoot();
 }
 
-void AbstractScreen::onExit()
-{
-    (void)defer_cancel(activateFocusModeDeferred, this);
-    _focus_activation_pending = false;
-    if (_focus_group)
-    {
-        lv_group_set_editing(_focus_group, false);
-    }
-    if (_idle_group && _root)
-    {
-        activateFocusMode(FocusMode::Idle, _root);
+void AbstractScreen::onExit() {
+    (void)lv_async_call_cancel(deferredActivateControls, this);
+    (void)lv_async_call_cancel(deferredActivateRoot, this);
+    if (focusGroup()) {
+        lv_group_set_editing(focusGroup(), false);
     }
     // Tile screens stay visible when focus moves to nav pane / overlay; only overlays hide on exit.
 }
 
-_lv_obj_t *AbstractScreen::focusedObject() const
-{
-    if (_active_group)
-    {
-        _lv_obj_t *const focused = lv_group_get_focused(_active_group);
-        if (_focus_mode == FocusMode::Idle && focused == _root)
-        {
-            return focused;
-        }
-        if (_focus_mode == FocusMode::Active && isAvailableFocusItem(focused))
-        {
-            return focused;
-        }
-    }
-    return _focus_mode == FocusMode::Idle ? _root : firstAvailableFocusItem();
-}
-
-lv_group_t *AbstractScreen::group() const
-{
-    return _active_group;
-}
-
-void AbstractScreen::activateFocusMode(FocusMode mode, _lv_obj_t *focus)
-{
-    if (!_focus_group || !_idle_group || !_root || !focus)
-    {
+void AbstractScreen::focusRoot() {
+    if (!focusGroup() || !_root || !lv_obj_is_valid(_root)) {
         return;
     }
-
-    if (mode == FocusMode::Idle)
-    {
-        lv_obj_t *const previous = _active_group ? lv_group_get_focused(_active_group) : nullptr;
-        if (previous && previous != focus && lv_obj_is_valid(previous))
-        {
-            lv_obj_clear_state(previous, LV_STATE_FOCUSED | LV_STATE_FOCUS_KEY);
-            lv_obj_invalidate(previous);
-        }
-        for (uint8_t index = 0; index < _focus_item_count; ++index)
-        {
-            _lv_obj_t *const object = _focus_items[index].object;
-            _lv_obj_t *const frame = _focus_items[index].frame;
-            if (object && lv_obj_is_valid(object))
-            {
-                lv_obj_clear_state(object, LV_STATE_FOCUSED | LV_STATE_FOCUS_KEY);
-                lv_obj_invalidate(object);
-            }
-            if (frame && lv_obj_check_type(frame, &ht_container_class))
-            {
-                ht_container_set_focused(frame, false);
-            }
-        }
-    }
-
-    _focus_mode = mode;
-    _active_group = mode == FocusMode::Idle ? _idle_group : _focus_group;
-    lv_group_focus_obj(focus);
-    if (mode == FocusMode::Active)
-    {
-        lv_obj_clear_state(_root, LV_STATE_FOCUSED | LV_STATE_FOCUS_KEY);
-    }
-    (void)emit(EventType::REBIND_INPUT);
+    lv_group_set_editing(focusGroup(), false);
+    lv_group_remove_all_objs(focusGroup());
+    lv_group_add_obj(focusGroup(), _root);
 }
 
-void AbstractScreen::activateFocusModeDeferred(void *user_data)
-{
+void AbstractScreen::focusControls() {
+    if (!focusGroup()) {
+        return;
+    }
+    lv_group_set_editing(focusGroup(), false);
+    lv_group_remove_all_objs(focusGroup());
+    lv_obj_tree_walk(_root, addFocusObjectFromTree, focusGroup());
+    if (!lv_group_get_focused(focusGroup()) && _root && lv_obj_is_valid(_root)) {
+        lv_group_add_obj(focusGroup(), _root);
+    }
+}
+
+lv_obj_tree_walk_res_t AbstractScreen::addFocusObjectFromTree(_lv_obj_t *object, void *user_data) {
+    auto *const group = static_cast<lv_group_t *>(user_data);
+    if (!object || !group) {
+        return LV_OBJ_TREE_WALK_END;
+    }
+    if (lv_obj_has_flag(object, LV_OBJ_FLAG_HIDDEN)) {
+        return LV_OBJ_TREE_WALK_SKIP_CHILDREN;
+    }
+    if (lv_obj_has_flag(object, kFocusItemFlag) && focus_object_available(object)) {
+        lv_group_add_obj(group, object);
+    }
+    return LV_OBJ_TREE_WALK_NEXT;
+}
+
+void AbstractScreen::deferredActivateControls(void *user_data) {
     auto *const screen = static_cast<AbstractScreen *>(user_data);
-    if (!screen)
-    {
+    if (!screen || !screen->focusGroup() ||
+        lv_group_get_focused(screen->focusGroup()) != screen->_root) {
         return;
     }
-    screen->_focus_activation_pending = false;
-    if (screen->_focus_mode != FocusMode::Idle)
-    {
+    screen->focusControls();
+}
+
+void AbstractScreen::deferredActivateRoot(void *user_data) {
+    auto *const screen = static_cast<AbstractScreen *>(user_data);
+    if (!screen || !screen->focusGroup() ||
+        lv_group_get_focused(screen->focusGroup()) == screen->_root) {
         return;
     }
-    _lv_obj_t *const first = screen->firstAvailableFocusItem();
-    if (first)
-    {
-        screen->activateFocusMode(FocusMode::Active, first);
+    screen->focusRoot();
+}
+
+void AbstractScreen::handleRootEvent(lv_event_t *event) {
+    auto *const screen = static_cast<AbstractScreen *>(lv_event_get_user_data(event));
+    if (!screen || !screen->focusGroup() || lv_event_get_target(event) != screen->_root ||
+        lv_group_get_focused(screen->focusGroup()) != screen->_root) {
+        return;
     }
+    (void)lv_async_call(deferredActivateControls, screen);
 }
 
-bool AbstractScreen::hasFocusItem(const _lv_obj_t *object) const
-{
-    for (uint8_t i = 0; i < _focus_item_count; ++i)
-    {
-        if (_focus_items[i].object == object)
-            return true;
-    }
-    return false;
-}
-
-void AbstractScreen::bindFocusVisual(_lv_obj_t *object, _lv_obj_t *frame, bool propagate_focus)
-{
-    _lv_obj_t *const focus_frame = frame ? frame : object;
-    if (propagate_focus)
-    {
-        lv_obj_clear_flag(focus_frame, LV_OBJ_FLAG_CLICK_FOCUSABLE);
-        lv_obj_add_event_cb(object, onFocusItemChanged, LV_EVENT_FOCUSED, focus_frame);
-        lv_obj_add_event_cb(object, onFocusItemChanged, LV_EVENT_DEFOCUSED, focus_frame);
-    }
-}
-
-void AbstractScreen::bindFramePointerFocus(_lv_obj_t *object, _lv_obj_t *frame)
-{
-    if (frame == object)
-        return;
-
-    lv_obj_clear_flag(frame, LV_OBJ_FLAG_CLICK_FOCUSABLE);
-    lv_obj_add_event_cb(
-        frame,
-        onFramePressed,
-        static_cast<lv_event_code_t>(LV_EVENT_PRESSED | LV_EVENT_PREPROCESS), object);
-}
-
-void AbstractScreen::onFramePressed(lv_event_t *e)
-{
-    if (lv_event_get_code(e) != LV_EVENT_PRESSED)
-        return;
-
-    _lv_obj_t *const control = static_cast<_lv_obj_t *>(lv_event_get_user_data(e));
-    if (!control || !lv_obj_is_valid(control) || lv_obj_has_state(control, LV_STATE_DISABLED) ||
-        lv_obj_has_flag(control, LV_OBJ_FLAG_HIDDEN))
-        return;
-
-    if (lv_group_t *const group = lv_obj_get_group(control))
-        lv_group_focus_obj(control);
-}
-
-void AbstractScreen::addFocusItem(_lv_obj_t *object, _lv_obj_t *frame, bool propagate_focus)
-{
-    if (!object || !_focus_group || hasFocusItem(object))
-        return;
-    LV_ASSERT_MSG(_focus_items && _focus_item_count < _focus_capacity,
-                  "Screen focus capacity exhausted");
-    if (!_focus_items || _focus_item_count >= _focus_capacity)
-        return;
-
-    _lv_obj_t *const focus_frame = frame ? frame : object;
-    bindFocusVisual(object, focus_frame, propagate_focus);
-    bindFramePointerFocus(object, focus_frame);
-    addFocusObject(object);
-    lv_obj_add_flag(object, LV_OBJ_FLAG_CLICK_FOCUSABLE);
-#if defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213
-    lv_obj_add_event_cb(
-        object,
-        [](lv_event_t *event)
-        {
-            if (lv_event_get_code(event) == LV_EVENT_FOCUSED)
-            {
-                heltec::meshcore::dal::e213::requestSelectionRefresh("screen-selection");
-            }
-        },
-        LV_EVENT_FOCUSED, nullptr);
-#endif
-    _focus_items[_focus_item_count++] = { object, focus_frame };
-}
-
-bool AbstractScreen::isAvailableFocusItem(const _lv_obj_t *obj) const
-{
-    return focusObjectAvailable(obj) && lv_obj_get_group(obj) == _focus_group;
-}
-
-_lv_obj_t *AbstractScreen::firstAvailableFocusItem() const
-{
-    for (uint8_t i = 0; i < _focus_item_count; ++i)
-    {
-        if (isAvailableFocusItem(_focus_items[i].object))
-            return _focus_items[i].object;
-    }
-    return nullptr;
-}
-
-void AbstractScreen::onFocusItemChanged(lv_event_t *e)
-{
-    const lv_event_code_t code = lv_event_get_code(e);
-    if (code != LV_EVENT_FOCUSED && code != LV_EVENT_DEFOCUSED)
-        return;
-    _lv_obj_t *const frame = static_cast<_lv_obj_t *>(lv_event_get_user_data(e));
-    _lv_obj_t *const object = lv_event_get_target(e);
-    if (!frame || !object)
-        return;
-
-    if (code == LV_EVENT_FOCUSED)
-    {
-        if (lv_obj_check_type(frame, &ht_container_class))
-        {
-            ht_container_set_focused(frame, true);
-        }
-    }
-    else
-    {
-        if (lv_obj_check_type(frame, &ht_container_class))
-        {
-            ht_container_set_focused(frame, false);
-        }
+void AbstractScreen::handleFocusChangedEvent(lv_event_t *event) {
+    const lv_event_code_t code = lv_event_get_code(event);
+    _lv_obj_t *const frame = static_cast<_lv_obj_t *>(lv_event_get_user_data(event));
+    if (!frame) return;
+    if (lv_obj_check_type(frame, &ht_container_class)) {
+        ht_container_set_focused(frame, code == LV_EVENT_FOCUSED);
     }
     lv_obj_invalidate(frame);
 }
 
-bool AbstractScreen::onKey(uint32_t key)
-{
-    if (_focus_mode == FocusMode::Active && _active_group)
-    {
-        if (key == LV_KEY_DOWN || key == LV_KEY_RIGHT || key == LV_KEY_NEXT)
-        {
-            lv_group_set_wrap(_active_group, true);
-            lv_group_focus_next(_active_group);
+void AbstractScreen::handleFramePressedEvent(lv_event_t *event) {
+    if (lv_event_get_code(event) != LV_EVENT_PRESSED) return;
+    _lv_obj_t *const control = static_cast<_lv_obj_t *>(lv_event_get_user_data(event));
+    if (!focus_object_available(control)) return;
+    if (lv_group_t *const group = lv_obj_get_group(control)) {
+        lv_group_focus_obj(control);
+    }
+}
+
+#if defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213
+void AbstractScreen::e213FocusEvent(lv_event_t *event) {
+    if (lv_event_get_code(event) == LV_EVENT_FOCUSED) {
+        heltec::meshcore::dal::e213::requestSelectionRefresh("screen-selection");
+    }
+}
+#endif
+
+void AbstractScreen::addFocusableObject(_lv_obj_t *object, _lv_obj_t *frame, bool propagate_focus) {
+    if (!object || lv_obj_has_flag(object, kFocusItemFlag)) return;
+
+    _lv_obj_t *const focus_frame = frame ? frame : object;
+    if (propagate_focus) {
+        lv_obj_clear_flag(focus_frame, LV_OBJ_FLAG_CLICK_FOCUSABLE);
+        lv_obj_add_event_cb(object, handleFocusChangedEvent, LV_EVENT_FOCUSED, focus_frame);
+        lv_obj_add_event_cb(object, handleFocusChangedEvent, LV_EVENT_DEFOCUSED, focus_frame);
+    }
+    if (focus_frame != object) {
+        lv_obj_clear_flag(focus_frame, LV_OBJ_FLAG_CLICK_FOCUSABLE);
+        lv_obj_add_event_cb(focus_frame, handleFramePressedEvent,
+                            static_cast<lv_event_code_t>(LV_EVENT_PRESSED | LV_EVENT_PREPROCESS),
+                            object);
+    }
+    lv_obj_add_flag(object, LV_OBJ_FLAG_CLICKABLE | LV_OBJ_FLAG_EVENT_BUBBLE);
+    lv_obj_add_flag(object, LV_OBJ_FLAG_SCROLL_ON_FOCUS);
+    lv_obj_add_event_cb(object, lv_event_stop_bubbling,
+                        static_cast<lv_event_code_t>(LV_EVENT_FOCUSED | LV_EVENT_PREPROCESS),
+                        object);
+    lv_obj_add_event_cb(object, lv_event_stop_bubbling,
+                        static_cast<lv_event_code_t>(LV_EVENT_DEFOCUSED | LV_EVENT_PREPROCESS),
+                        object);
+    for (lv_obj_t *parent = lv_obj_get_parent(object); parent && parent != _root;
+         parent = lv_obj_get_parent(parent)) {
+        lv_obj_add_flag(parent, LV_OBJ_FLAG_EVENT_BUBBLE);
+    }
+    lv_obj_add_flag(object, LV_OBJ_FLAG_CLICK_FOCUSABLE);
+    lv_obj_add_flag(object, kFocusItemFlag);
+#if defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213
+    lv_obj_add_event_cb(object, e213FocusEvent, LV_EVENT_FOCUSED, nullptr);
+#endif
+}
+
+bool AbstractScreen::onKey(uint32_t key) {
+    lv_group_t *const active_group = focusGroup();
+    if (active_group && lv_group_get_focused(active_group) != _root) {
+        if (key == LV_KEY_DOWN || key == LV_KEY_RIGHT || key == LV_KEY_NEXT) {
+            lv_group_set_wrap(active_group, true);
+            lv_group_focus_next(active_group);
             return true;
         }
-        if (key == LV_KEY_UP || key == LV_KEY_LEFT || key == LV_KEY_PREV)
-        {
-            lv_group_set_wrap(_active_group, true);
-            lv_group_focus_prev(_active_group);
+        if (key == LV_KEY_UP || key == LV_KEY_LEFT || key == LV_KEY_PREV) {
+            lv_group_set_wrap(active_group, true);
+            lv_group_focus_prev(active_group);
             return true;
         }
     }
-    if (key == LV_KEY_ESC)
-    {
-        if (_focus_mode == FocusMode::Active)
-        {
-            activateFocusMode(FocusMode::Idle, _root);
+    if (key == LV_KEY_ESC) {
+        if (active_group && lv_group_get_focused(active_group) != _root) {
+            (void)lv_async_call(deferredActivateRoot, this);
             return true;
         }
-        return emit(EventType::NAV_OPEN);
-    }
-    if (key == LV_KEY_ENTER && _focus_mode == FocusMode::Idle)
-    {
-        _lv_obj_t *const first = firstAvailableFocusItem();
-        if (first && !_focus_activation_pending)
-        {
-            _focus_activation_pending = defer(activateFocusModeDeferred, this);
-        }
-        return true;
+        return emitEvent(EventType::NavOpen);
     }
     return false;
 }

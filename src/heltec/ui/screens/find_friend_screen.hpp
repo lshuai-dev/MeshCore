@@ -1,63 +1,49 @@
 #pragma once
-
 #include "../core/abstract_screen.hpp"
 #include "../core/app_state_event.hpp"
 #include "compass_dial_widget.hpp"
 
-namespace heltec::meshcore::biz
-{
+namespace heltec::meshcore::biz {
 class IBizFacade;
 struct FindFriendUi;
 } // namespace heltec::meshcore::biz
 
-namespace heltec::meshcore::ui
-{
+namespace heltec::meshcore::ui {
 
-class FindFriendScreen : public AbstractScreen
-{
+class FindFriendScreen : public AbstractScreen {
   public:
     FindFriendScreen(biz::IBizFacade &biz, const char *title, const lv_img_dsc_t *icon)
-        : AbstractScreen(biz, title, icon)
-    {
-        setFocusStorage(_screen_focus, kFocusCapacity);
+        : AbstractScreen(biz, title, icon) {
     }
     void onEnter() override;
     void onExit() override;
-    eScreenId screenId() const override
-    {
-        return eScreenId::FindFriend;
-    }
 
   protected:
-    _lv_obj_t *create(_lv_obj_t *parent) override;
+    bool buildSurface() override;
 
   private:
-    static constexpr uint8_t kFocusCapacity = 9;
-    FocusItem _screen_focus[kFocusCapacity]{};
-
-    struct ChoiceRow
-    {
+    struct ChoiceRow {
         _lv_obj_t *row = nullptr;
         _lv_obj_t *label = nullptr;
         _lv_obj_t *dropdown = nullptr;
     };
 
-    enum class Action : uint8_t
-    {
+    enum class Action : uint8_t {
         None,
         Team,
-        TeamGroupMessage,
-        TeamDirectMessage,
+        TeamMessage,
         WaypointGps,
         WaypointManual
     };
 
-    void onUiEvent(const UiEvent &event) override;
+    void onUIEvent(const UiEvent &event) override;
     void onAppStateChanged(const AppStateEvent &event) override;
-    void onSurfaceRefresh() override;
+    void onActivated() override;
     void render(const biz::FindFriendUi &u);
     void refresh();
+    void refreshNavigation();
     void showInfoOnly(const char *info);
+    void showHeadingOnly(const biz::FindFriendUi &ui, const char *info);
     void setInfoText(const char *info);
     void setStatusText(const char *status);
     void runDeferredEnterActions();
@@ -66,12 +52,14 @@ class FindFriendScreen : public AbstractScreen
     void createControls();
     void startTeamSearch();
     static void focusTeamDeferred(void *user_data);
+    static void focusMemberDeferred(void *user_data);
     void configureFocusItems();
     _lv_obj_t *addDropdownRow(ChoiceRow &choice, const char *title, const char *options);
     _lv_obj_t *addActionRow(const char *title, Action action);
     void bindControl(_lv_obj_t *control);
     void syncControls(bool force_friend_options = false);
     void updateConditionalVisibility();
+    void syncFocusGroupMembership();
     void setDropdownIndex(_lv_obj_t *dropdown, uint16_t index, bool force = false);
     void syncFriendDropdown(bool force = false);
     void loadFriendDropdownWindow(int start, int selected_rank, bool force);
@@ -89,6 +77,8 @@ class FindFriendScreen : public AbstractScreen
     static void onDropdownReleasedPre(lv_event_t *e);
     static void onControlKeyPreprocess(lv_event_t *e);
     static void onActionClicked(lv_event_t *e);
+    static void onRightColumnScrolled(lv_event_t *event);
+    static void onGroupFocusChanged(lv_group_t *group);
     static void realignDropdownListAsync(void *user_data);
 
     CompassDialWidget _dial;
@@ -102,9 +92,9 @@ class FindFriendScreen : public AbstractScreen
     _lv_obj_t *_row_wp_gps = nullptr;
     _lv_obj_t *_row_wp_manual = nullptr;
     _lv_obj_t *_row_team = nullptr;
-    _lv_obj_t *_row_group_message = nullptr;
-    _lv_obj_t *_row_direct_message = nullptr;
+    _lv_obj_t *_row_team_message = nullptr;
     _lv_obj_t *_open_dropdown = nullptr;
+    _lv_obj_t *_suppress_released_dropdown = nullptr;
     _lv_obj_t *_waypoint_keyboard_return_focus = nullptr;
     uint16_t _open_dropdown_original_index = 0;
     int _friend_open_original_mesh_idx = -1;
@@ -117,12 +107,15 @@ class FindFriendScreen : public AbstractScreen
     char _friend_options[7 + kFriendWindowSize * 32] = {};
     char _team_options[164] = {};
     int16_t _ring_heading_tenths = 0;
-    float _turn_show_deg = 0.f;
+    int16_t _turn_show_tenths = 0;
     bool _gps_fix = false;
     bool _on_target = false;
     bool _direction_valid = false;
     bool _near_target = false;
     bool _defer_cycle_target = false;
+    bool _focus_team_when_offer_available = false;
+    bool _focus_member_when_team_active = false;
+    uint16_t _focus_membership_mask = 0xFFFFU;
     int16_t _friend_mesh_map[kFriendWindowSize] = {};
     uint32_t _friend_options_hash = 0;
     int _friend_mesh_map_count = 0;

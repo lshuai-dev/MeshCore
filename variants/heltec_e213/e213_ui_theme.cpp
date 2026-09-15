@@ -1,7 +1,7 @@
-#include "e213_ui_theme.hpp"
+#include "e213_theme.hpp"
 
-#include "ui/app/ui_theme.hpp"
-#include "ui/theme/ui_theme_mono_flat.hpp"
+#include "ui/app/theme.hpp"
+#include "ui/theme/theme_mono_flat.hpp"
 
 namespace heltec::meshcore::ui
 {

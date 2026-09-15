@@ -1,11 +1,11 @@
 #include "button_roller.hpp"
 
 #include "MeshCore.h"
-#include "ui/app/ui_behavior_profile.hpp"
-#include "ui/app/ui_theme.hpp"
-#include "ui/core/ui_semantic_classes.hpp"
-#include "ui/core/ui_motion_scheduler.hpp"
-#include "ui/theme/ui_widget_theme.hpp"
+#include "ui/app/behavior_profile.hpp"
+#include "ui/app/theme.hpp"
+#include "ui/core/widget_classes.hpp"
+#include "ui/core/scheduler.hpp"
+#include "ui/theme/widget_theme.hpp"
 
 namespace heltec::meshcore::ui
 {
@@ -214,7 +214,7 @@ bool ButtonRoller::create(lv_obj_t *parent, lv_group_t *group,
         return true;
 
     _group = group;
-    _root = ht_semantic_create(root_class ? root_class : &ht_button_roller_class, parent);
+    _root = ht_class_create(root_class ? root_class : &ht_button_roller_class, parent);
     if (!_root)
         return false;
     lv_obj_set_size(_root, lv_pct(100), lv_pct(100));
@@ -263,8 +263,27 @@ void ButtonRoller::resetFocus(bool focus_first_item)
     }
     else
     {
-        lv_group_focus_obj(nullptr);
+        lv_obj_t *const focused = lv_group_get_focused(_group);
+        if (focused && lv_obj_get_parent(focused) == _root)
+            lv_group_focus_obj(nullptr);
         layoutItems(0, LV_ANIM_OFF, false);
+    }
+}
+
+void ButtonRoller::setInputEnabled(bool enabled)
+{
+    if (!_group || _input_enabled == enabled)
+        return;
+
+    _input_enabled = enabled;
+    for (uint8_t i = 0; i < _count; ++i)
+    {
+        if (!_items[i])
+            continue;
+        if (enabled)
+            lv_group_add_obj(_group, _items[i]);
+        else
+            lv_group_remove_obj(_items[i]);
     }
 }
 

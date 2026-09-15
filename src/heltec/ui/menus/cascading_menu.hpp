@@ -26,9 +26,8 @@ class CascadingMenu final : public AbstractMenu
     {
         return _roller.root();
     }
-    lv_group_t *group() const override;
-    _lv_obj_t *focusedObject() const override;
-    bool create(lv_obj_t *menu, const char *parent_title) override;
+    bool create(lv_obj_t *menu, lv_group_t *group, const char *parent_title,
+                lv_obj_t *event_target = nullptr) override;
     void resetInputState(bool focus_first_item = true) override;
     bool addCommandHandler(const char *label, MenuHandlerFn action);
     bool addMenu(const char *label, AbstractMenu &submenu);
@@ -54,6 +53,7 @@ class CascadingMenu final : public AbstractMenu
 
     lv_obj_t *_menu_host = nullptr;
     lv_obj_t *_page = nullptr;
+    lv_group_t *_focus_group = nullptr;
     AbstractMenu *_active_child = nullptr;
     ButtonRoller _roller;
     uint8_t _focused_index = 0;

@@ -31,12 +31,11 @@ class DialogOverlay : public AbstractOverlay
   protected:
     DialogOverlay(biz::IBizFacade &biz, Options options);
 
-    _lv_obj_t *create(_lv_obj_t *parent) override;
-    _lv_obj_t *createRoot(_lv_obj_t *parent) override;
+    bool buildSurface() override;
     _lv_obj_t *panel() const;
     _lv_obj_t *contentHost() const;
     _lv_obj_t *actionsHost() const;
-    void setDialogTitle(const char *text);
+    void setTitle(const char *text);
     virtual void onBackdropPressed();
 
   private:

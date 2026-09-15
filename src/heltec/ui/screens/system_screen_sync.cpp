@@ -1,6 +1,5 @@
 #include "system_screen.hpp"
-#include "ui/app/ui_theme.hpp"
-#include "ui/core/ui_deferred_queue.hpp"
+#include "ui/app/theme.hpp"
 #if defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213
 #include "heltec/drivers/display/e213_port.hpp"
 #endif
@@ -84,7 +83,7 @@ void SystemScreen::onSwitchValueChanged(lv_event_t *e)
                 self->_feedback.showAlert("No forwarding frequency", 2000);
                 return;
             }
-            if (!self->emit(EventType::REPEAT_MODE_OPEN))
+            if (!self->emitEvent(EventType::RepeatModeOpen))
             {
                 self->_feedback.showAlert("Unable to open frequency picker", 2000);
             }
@@ -118,11 +117,9 @@ SystemScreen::ChoiceRow *SystemScreen::dropdownChoice(_lv_obj_t *dd)
 {
     if (!dd)
         return nullptr;
-    const auto matches = [dd](const ChoiceRow &choice)
-    { return dd == choice.dropdown || dd == choice.row; };
-    if (matches(_choice_region))
+    if (dd == _choice_region.dropdown || dd == _choice_region.row)
         return &_choice_region;
-    if (matches(_choice_screen_off))
+    if (dd == _choice_screen_off.dropdown || dd == _choice_screen_off.row)
         return &_choice_screen_off;
     return nullptr;
 }
@@ -174,7 +171,7 @@ void SystemScreen::onDropdownStateEvent(lv_event_t *e)
         if (self->group())
             lv_group_set_editing(self->group(), true);
         self->syncDropdownLayout(dropdown);
-        if (!defer(realignDropdownListAsync, dropdown))
+        if (lv_async_call(realignDropdownListAsync, dropdown) != LV_RES_OK)
         {
             self->realignDropdownList(dropdown);
         }
@@ -312,7 +309,7 @@ void SystemScreen::onAppStateChanged(const AppStateEvent &event)
     }
 }
 
-void SystemScreen::onSurfaceRefresh()
+void SystemScreen::onActivated()
 {
     syncSwitchesFromApp(_biz);
     syncDropdownsFromApp(_biz);

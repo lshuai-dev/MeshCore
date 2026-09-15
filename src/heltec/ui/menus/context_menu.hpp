@@ -2,7 +2,7 @@
 
 #if !defined(HELTEC_V4_R8_TFT) || !defined(HELTEC_HAS_TOUCH) || !HELTEC_HAS_TOUCH
 
-#include "heltec/ui/core/ui_surface.hpp"
+#include "heltec/ui/core/surface.hpp"
 
 namespace heltec::meshcore::biz
 {
@@ -17,9 +17,7 @@ class AbstractMenu;
 class ContextMenu : public UiSurface
 {
   public:
-    explicit ContextMenu(biz::IBizFacade &biz) : UiSurface(biz)
-    {
-    }
+    explicit ContextMenu(biz::IBizFacade &biz);
 
     void beginRegister();
     void endRegister();
@@ -28,20 +26,16 @@ class ContextMenu : public UiSurface
     bool canOpen() const;
     void leaveMenuLeaf();
 
-    lv_group_t *group() const override;
-    lv_obj_t *focusedObject() const override;
-
     void onEnter() override;
     void onExit() override;
 
   protected:
-    _lv_obj_t *create(_lv_obj_t *parent) override;
+    bool buildSurface() override;
 
   private:
-    _lv_obj_t *createRoot(_lv_obj_t *parent) override;
-
     void selectPane(uint8_t index);
     void enterMenuLeaf(AbstractMenu *menu);
+    void setHeaderInputEnabled(bool enabled);
     bool activatePaneButton(_lv_obj_t *btn, bool enter_leaf);
     void updateIconSelection();
     void handleLeafEsc();
