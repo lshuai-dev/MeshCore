@@ -743,7 +743,9 @@ static void init_keyboard_child_styles()
 
     init_overlay_center_label_style();
     lv_disp_t *const disp = lv_disp_get_default();
-    const bool compact = disp && lv_disp_get_ver_res(disp) <= 80;
+    const lv_coord_t vertical_resolution = disp ? lv_disp_get_ver_res(disp) : 0;
+    const bool compact = vertical_resolution > 0 && vertical_resolution <= 80;
+    const bool short_display = vertical_resolution > 80 && vertical_resolution <= 160;
     const lv_font_t *waypoint_font =
 #if defined(LV_FONT_MONTSERRAT_12) && LV_FONT_MONTSERRAT_12
         &lv_font_montserrat_12;
@@ -795,8 +797,13 @@ static void init_keyboard_child_styles()
     lv_style_set_flex_grow(&s_keyboard_textarea_style, 1);
 
     lv_style_init(&s_keyboard_waypoint_textarea_style);
-    lv_style_set_height(&s_keyboard_waypoint_textarea_style, compact ? 16 : 18);
-    lv_style_set_min_height(&s_keyboard_waypoint_textarea_style, compact ? 16 : 18);
+    const lv_coord_t waypoint_editor_height = compact ? 16 : (short_display ? 20 : 32);
+    lv_style_set_height(&s_keyboard_waypoint_textarea_style,
+                        waypoint_editor_height);
+    lv_style_set_min_height(&s_keyboard_waypoint_textarea_style,
+                            waypoint_editor_height);
+    lv_style_set_max_height(&s_keyboard_waypoint_textarea_style,
+                            waypoint_editor_height);
     lv_style_set_flex_grow(&s_keyboard_waypoint_textarea_style, 0);
 
     lv_style_init(&s_keyboard_main_style);
@@ -818,8 +825,9 @@ static void init_keyboard_child_styles()
     lv_style_init(&s_keyboard_waypoint_main_style);
     lv_style_set_flex_grow(&s_keyboard_waypoint_main_style, 0);
     lv_style_set_width(&s_keyboard_waypoint_main_style, lv_pct(100));
-    lv_style_set_height(&s_keyboard_waypoint_main_style, compact ? 36 : 40);
-    lv_style_set_min_height(&s_keyboard_waypoint_main_style, compact ? 36 : 40);
+    const lv_coord_t waypoint_keyboard_height = compact ? 40 : (short_display ? 60 : 132);
+    lv_style_set_height(&s_keyboard_waypoint_main_style, waypoint_keyboard_height);
+    lv_style_set_min_height(&s_keyboard_waypoint_main_style, waypoint_keyboard_height);
 
     lv_style_init(&s_keyboard_items_base_style);
     lv_style_set_pad_all(&s_keyboard_items_base_style, compact ? 0 : 1);

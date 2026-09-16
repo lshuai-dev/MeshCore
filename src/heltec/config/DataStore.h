@@ -113,6 +113,8 @@ class DataStore
     bool removeFile(const char *filename);
     bool removeFile(FILESYSTEM *fs, const char *filename);
     bool clearLegacyMessageFiles();
+    size_t readSmallConfig(const char *filename, void *destination, size_t capacity);
+    bool writeSmallConfig(const char *filename, const void *data, size_t length);
     uint32_t getStorageUsedKb() const;
     uint32_t getStorageTotalKb() const;
 

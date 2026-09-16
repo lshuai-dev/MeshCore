@@ -52,8 +52,17 @@ struct UiConfirmRequest {
     UiConfirmAction action = UiConfirmAction::FactoryReset;
 };
 
+enum class UiMessageKeyboardPurpose : uint8_t {
+    SendCustom,
+    EditPreset,
+};
+
 struct UiMessageKeyboardRequest {
     const char *title = nullptr;
+    const char *initial_text = nullptr;
+    UiMessageKeyboardPurpose purpose = UiMessageKeyboardPurpose::SendCustom;
+    uint8_t preset_index = 0;
+    uint8_t max_bytes = 80;
 };
 
 enum class UiMessageTargetKind : uint8_t {
@@ -70,6 +79,8 @@ struct UiSendMessageTarget {
 
 struct UiMessageKeyboardSubmit {
     const char *text = nullptr;
+    UiMessageKeyboardPurpose purpose = UiMessageKeyboardPurpose::SendCustom;
+    uint8_t preset_index = 0;
 };
 
 struct UiWaypointKeyboardSubmit {

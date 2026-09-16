@@ -211,15 +211,21 @@ int SendMessageModel::rowCount() const
     return 0;
 }
 
-const char *SendMessageModel::rowLabel(int index) const
+const char *SendMessageModel::rowLabel(const biz::IBizFacade &biz, int index) const
 {
-    static const char *const main_labels[] = { "hi", "bye", "yes", "no", "ok", "custom..." };
     static const char *const category_labels[] = { "broadcast", "group", "personal" };
     switch (_page)
     {
     case Page::Main:
         if (index >= 0 && index < _row_count)
-            return index == 0 ? _target_row : main_labels[index - 1];
+        {
+            if (index == 0)
+                return _target_row;
+            if (index >= 1 && index <= biz.messagePresetCount())
+                return biz.messagePresetAt(index - 1);
+            if (index == kMainRowCount - 1)
+                return "custom...";
+        }
         break;
     case Page::TargetCategory:
         if (index >= 0 && index < _cat_count)

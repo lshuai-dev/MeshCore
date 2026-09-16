@@ -32,7 +32,6 @@ class FindFriendScreen : public AbstractScreen {
         None,
         Team,
         TeamMessage,
-        WaypointGps,
         WaypointManual
     };
 
@@ -89,7 +88,6 @@ class FindFriendScreen : public AbstractScreen {
     ChoiceRow _choice_mode;
     ChoiceRow _choice_team;
     ChoiceRow _choice_friend;
-    _lv_obj_t *_row_wp_gps = nullptr;
     _lv_obj_t *_row_wp_manual = nullptr;
     _lv_obj_t *_row_team = nullptr;
     _lv_obj_t *_row_team_message = nullptr;

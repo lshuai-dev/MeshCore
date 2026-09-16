@@ -65,10 +65,6 @@ namespace
 {
 
 constexpr const char *kTargetOptions = "group\nbroadcast\npersonal\nadvert";
-constexpr const char *kMessageOptions = "hi\nbye\nyes\nno\nok";
-constexpr const char *kMessagePresets[] = {
-    "hi", "bye", "yes", "no", "ok",
-};
 constexpr lv_coord_t kPaneInset = 3;
 constexpr lv_coord_t kPaneWidth = 234;
 constexpr lv_coord_t kPaneHeight = 314;
@@ -389,6 +385,7 @@ QuickPingOverlay::QuickPingOverlay(biz::IBizFacade &biz)
 
 void QuickPingOverlay::prepareTarget(const UiSendMessageTarget *target)
 {
+    _preset_edit_active = false;
     _pending_target_valid = target != nullptr;
     if (!target)
         return;
@@ -396,6 +393,17 @@ void QuickPingOverlay::prepareTarget(const UiSendMessageTarget *target)
     _pending_target_direct = target->kind == UiMessageTargetKind::Direct;
     _pending_target_channel = target->channel_idx;
     memcpy(_pending_target_key, target->pub_key_prefix, sizeof(_pending_target_key));
+}
+
+bool QuickPingOverlay::preparePresetEdit(uint8_t index, const char *text)
+{
+    if (index >= _biz.messagePresetCount() || !text || !_ta_message)
+        return false;
+    _pending_target_valid = false;
+    _preset_edit_active = true;
+    _preset_edit_index = index;
+    lv_textarea_set_text(_ta_message, text);
+    return true;
 }
 
 bool QuickPingOverlay::buildSurface()
@@ -487,9 +495,16 @@ void QuickPingOverlay::onEnter()
     _close_animation_ready = false;
     closeDropdowns();
     syncLists();
+    rebuildMessagePresetOptions();
     applyPendingTarget();
     syncDropdownOptions();
     applyState(false);
+    if (_preset_edit_active)
+    {
+        _message_submit_handled = false;
+        setKeyboardVisible(true);
+        restoreModeFocus(_keyboard);
+    }
     lv_obj_update_layout(_root);
     updateMessageTextPresentation(false);
     startOpenAnimation();
@@ -512,6 +527,7 @@ void QuickPingOverlay::onExit()
     _close_animation_ready = false;
     _keyboard_open_pending = false;
     _message_submit_handled = false;
+    _preset_edit_active = false;
     closeDropdowns();
     setKeyboardVisible(false);
     AbstractOverlay::onExit();
@@ -773,7 +789,7 @@ _lv_obj_t *QuickPingOverlay::createMessageRow(_lv_obj_t *parent)
         lv_obj_align(_dd_message, LV_ALIGN_TOP_LEFT, kIconDropdownControlX + kMessageInputWidth,
                      kDropdownControlY);
         ui_theme_center_dropdown_value(_dd_message);
-        lv_dropdown_set_options_static(_dd_message, kMessageOptions);
+        lv_dropdown_set_options_static(_dd_message, "-");
         lv_dropdown_set_text(_dd_message, LV_SYMBOL_DOWN);
         lv_dropdown_set_symbol(_dd_message, nullptr);
         lv_dropdown_set_dir(_dd_message, LV_DIR_BOTTOM);
@@ -1126,10 +1142,21 @@ void QuickPingOverlay::syncDropdownOptions()
     }
     if (_dd_message)
     {
-        lv_dropdown_set_options_static(_dd_message, kMessageOptions);
+        lv_dropdown_set_options_static(_dd_message, _message_preset_options);
         lv_dropdown_set_selected(_dd_message, _message_index);
     }
     _syncing_dropdowns = was_syncing;
+}
+
+void QuickPingOverlay::rebuildMessagePresetOptions()
+{
+    _message_preset_options[0] = '\0';
+    const int count = _biz.messagePresetCount();
+    for (int index = 0; index < count && index < kMessagePresetCount; ++index)
+    {
+        (void)appendOption(_message_preset_options, sizeof(_message_preset_options),
+                           _biz.messagePresetAt(index));
+    }
 }
 
 void QuickPingOverlay::syncRecipientDropdown()
@@ -1305,8 +1332,9 @@ void QuickPingOverlay::updateKeyboardCounter()
                            ? lv_textarea_get_text(_keyboard_editor)
                            : "";
     const size_t length = text ? strlen(text) : 0;
+    const unsigned limit = _preset_edit_active ? kMaxPresetLength : kMaxMessageLength;
     lv_snprintf(_keyboard_count_text, sizeof(_keyboard_count_text), "%u/%u",
-                static_cast<unsigned>(length), static_cast<unsigned>(kMaxMessageLength));
+                static_cast<unsigned>(length), limit);
     lv_label_set_text_static(_keyboard_counter, _keyboard_count_text);
 }
 
@@ -1336,6 +1364,8 @@ void QuickPingOverlay::setKeyboardVisible(bool visible)
             lv_obj_update_layout(_root);
         if (_keyboard_editor && lv_obj_is_valid(_keyboard_editor))
         {
+            lv_textarea_set_max_length(_keyboard_editor,
+                                       _preset_edit_active ? kMaxPresetLength : kMaxMessageLength);
             lv_textarea_set_text(_keyboard_editor,
                                  _ta_message ? lv_textarea_get_text(_ta_message) : "");
             lv_textarea_set_cursor_pos(_keyboard_editor, LV_TEXTAREA_CURSOR_LAST);
@@ -1357,6 +1387,7 @@ void QuickPingOverlay::setKeyboardVisible(bool visible)
         if (_keyboard_editor && lv_obj_is_valid(_keyboard_editor))
         {
             lv_obj_clear_state(_keyboard_editor, LV_STATE_FOCUSED);
+            lv_textarea_set_max_length(_keyboard_editor, kMaxMessageLength);
         }
         if (_title_bar && lv_obj_is_valid(_title_bar))
         {
@@ -1559,9 +1590,9 @@ void QuickPingOverlay::handleMessageSelectionChanged()
             return;
         }
         if (_ta_message)
-            lv_textarea_set_text(_ta_message, kMessagePresets[_message_index]);
+            lv_textarea_set_text(_ta_message, _biz.messagePresetAt(_message_index));
         updateMessageTextPresentation(false);
-        sendMessageText(kMessagePresets[_message_index]);
+        sendMessageText(_biz.messagePresetAt(_message_index));
     }
     applyState(true);
 }
@@ -1597,6 +1628,40 @@ void QuickPingOverlay::submitMessageFromTextarea()
 {
     if (_message_submit_handled)
         return;
+    if (_preset_edit_active)
+    {
+        const char *const text = _keyboard_editor ? lv_textarea_get_text(_keyboard_editor) : nullptr;
+        const size_t length = text ? strlen(text) : 0;
+        if (length == 0)
+        {
+            _biz.showAlert("Preset cannot be empty", 1200);
+            return;
+        }
+        if (length > kMaxPresetLength)
+        {
+            _biz.showAlert("Preset too long", 1200);
+            return;
+        }
+        using Result = biz::IBizFacade::PresetUpdateResult;
+        const Result result = _biz.updateMessagePreset(_preset_edit_index, text);
+        if (result != Result::Updated && result != Result::Unchanged)
+        {
+            _biz.showAlert(result == Result::InvalidText ? "Invalid preset text" :
+                                                             "Invalid preset",
+                           1200);
+            return;
+        }
+        if (!_biz.commitMessagePresets())
+        {
+            _biz.showAlert("Preset save failed", 1600);
+            return;
+        }
+        _message_submit_handled = true;
+        _preset_edit_active = false;
+        _biz.showAlert(result == Result::Updated ? "Preset saved" : "Preset unchanged", 1000);
+        (void)emitEvent(EventType::QuickPingClose);
+        return;
+    }
     syncKeyboardEditorToMessage();
     if (!_ta_message)
     {
@@ -1984,8 +2049,16 @@ void QuickPingOverlay::onKeyboardEvent(lv_event_t *e)
     }
     else if (code == LV_EVENT_CANCEL)
     {
-        self->setKeyboardVisible(false);
-        self->restoreModeFocus(self->_ta_message);
+        if (self->_preset_edit_active)
+        {
+            self->_preset_edit_active = false;
+            (void)self->emitEvent(EventType::QuickPingClose);
+        }
+        else
+        {
+            self->setKeyboardVisible(false);
+            self->restoreModeFocus(self->_ta_message);
+        }
     }
     if (code == LV_EVENT_READY || code == LV_EVENT_CANCEL)
     {
@@ -2036,8 +2109,16 @@ void QuickPingOverlay::onKeyboardValuePre(lv_event_t *e)
     }
     else if (strcmp(text, LV_SYMBOL_CLOSE) == 0)
     {
-        self->setKeyboardVisible(false);
-        self->restoreModeFocus(self->_ta_message);
+        if (self->_preset_edit_active)
+        {
+            self->_preset_edit_active = false;
+            (void)self->emitEvent(EventType::QuickPingClose);
+        }
+        else
+        {
+            self->setKeyboardVisible(false);
+            self->restoreModeFocus(self->_ta_message);
+        }
         lv_event_stop_processing(e);
     }
     if (strcmp(text, "ABC") == 0 || strcmp(text, "abc") == 0 || strcmp(text, "123") == 0 ||

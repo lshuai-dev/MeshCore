@@ -32,6 +32,7 @@ class QuickPingOverlay final : public AbstractOverlay
   public:
     explicit QuickPingOverlay(biz::IBizFacade &biz);
     void prepareTarget(const UiSendMessageTarget *target);
+    bool preparePresetEdit(uint8_t index, const char *text);
 
     void onEnter() override;
     void onExit() override;
@@ -71,6 +72,7 @@ class QuickPingOverlay final : public AbstractOverlay
     static constexpr int kContactWindowStep = 5;
     static constexpr int kMessagePresetCount = 5;
     static constexpr uint32_t kMaxMessageLength = 120;
+    static constexpr uint8_t kMaxPresetLength = 31;
 
     _lv_obj_t *createDropdownRow(_lv_obj_t *parent, const char *label_text,
                                  const lv_img_dsc_t *icon, _lv_obj_t **out_dropdown);
@@ -79,6 +81,7 @@ class QuickPingOverlay final : public AbstractOverlay
     void applyState(bool keep_focus = true);
     void restoreModeFocus(_lv_obj_t *preferred = nullptr);
     void syncLists();
+    void rebuildMessagePresetOptions();
     void applyPendingTarget();
     void loadContactWindow(int start);
     void moveContactSelection(int delta);
@@ -166,6 +169,8 @@ class QuickPingOverlay final : public AbstractOverlay
     // (for example VALUE_CHANGED followed by READY). Keep one successful
     // submission per keyboard session so the same message is not queued twice.
     bool _message_submit_handled = false;
+    bool _preset_edit_active = false;
+    uint8_t _preset_edit_index = 0;
     bool _close_animating = false;
     bool _close_animation_ready = false;
     bool _repeat_pending = false;
@@ -177,6 +182,7 @@ class QuickPingOverlay final : public AbstractOverlay
     _lv_obj_t *_repeat_dropdown = nullptr;
 
     char _recipient_options[384] = {};
+    char _message_preset_options[kMessagePresetCount * 32] = {};
     char _message_text[kMaxMessageLength + 1] = {};
     char _keyboard_count_text[8] = {};
 };

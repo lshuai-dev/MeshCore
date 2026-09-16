@@ -64,7 +64,7 @@ class SendMessageModel
     int wrapIndex(int index) const;
 
     int rowCount() const;
-    const char *rowLabel(int index) const;
+    const char *rowLabel(const biz::IBizFacade &biz, int index) const;
 
     const Target &target() const
     {

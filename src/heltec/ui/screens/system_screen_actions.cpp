@@ -31,7 +31,34 @@ void SystemScreen::handleAction(SysAction action)
 
 void SystemScreen::onUIEvent(const UiEvent &event)
 {
-    if (event.type != EventType::ConfirmAccepted || !event.payload)
+    if (!event.payload)
+        return;
+    if (event.type == EventType::MessageKeyboardSubmit)
+    {
+        const auto *const submit = static_cast<const UiMessageKeyboardSubmit *>(event.payload);
+        if (submit->purpose != UiMessageKeyboardPurpose::EditPreset || !submit->text)
+            return;
+        using Result = biz::IBizFacade::PresetUpdateResult;
+        const Result result = _biz.updateMessagePreset(submit->preset_index, submit->text);
+        if (result == Result::Updated || result == Result::Unchanged)
+        {
+            if (!_biz.commitMessagePresets())
+            {
+                _feedback.showAlert("Preset save failed", 1600);
+                return;
+            }
+            _feedback.showAlert(result == Result::Updated ? "Preset saved" : "Preset unchanged",
+                                1000);
+            return;
+        }
+        const char *message = result == Result::Empty       ? "Preset cannot be empty" :
+                              result == Result::TooLong     ? "Preset too long" :
+                              result == Result::InvalidText ? "Invalid preset text" :
+                                                              "Invalid preset";
+        _feedback.showAlert(message, 1600);
+        return;
+    }
+    if (event.type != EventType::ConfirmAccepted)
         return;
     const auto action = *static_cast<const UiConfirmAction *>(event.payload);
     executeAction(action == UiConfirmAction::FactoryReset ? SysAction::FactoryReset

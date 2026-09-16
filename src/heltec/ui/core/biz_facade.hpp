@@ -88,6 +88,16 @@ struct FindFriendUi {
 
 class IBizFacade : public ui::IFeedback {
   public:
+    enum class PresetUpdateResult : uint8_t
+    {
+        Updated,
+        Unchanged,
+        Empty,
+        TooLong,
+        InvalidText,
+        InvalidIndex,
+    };
+
     virtual ~IBizFacade() = default;
 
     enum class ForwardingApplyResult : uint8_t {
@@ -149,6 +159,10 @@ class IBizFacade : public ui::IFeedback {
     virtual int sendMessageGroupCount() const = 0;
     virtual bool sendMessageGroupAt(int index, int *channel_idx, char *label,
                                     size_t label_len) const = 0;
+    virtual int messagePresetCount() const = 0;
+    virtual const char *messagePresetAt(int index) const = 0;
+    virtual PresetUpdateResult updateMessagePreset(int index, const char *text) = 0;
+    virtual bool commitMessagePresets() = 0;
     virtual int currentLoRaBandPresetIndex() const = 0;
     virtual int currentExactLoRaBandPresetIndex() const = 0;
     virtual int loRaBandPresetCount() const = 0;

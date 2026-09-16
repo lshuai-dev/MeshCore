@@ -538,14 +538,37 @@ void UiApp::handleFrameEvent(lv_event_t *e) {
         closeSendMessageOverlay();
         break;
     case EventType::MessageKeyboardOpen: {
+#if defined(HELTEC_V4_R8_TFT) && defined(HELTEC_HAS_TOUCH) && HELTEC_HAS_TOUCH
+        auto *preset_req = static_cast<const UiMessageKeyboardRequest *>(event->payload);
+        if (preset_req && preset_req->purpose == UiMessageKeyboardPurpose::EditPreset &&
+            activeScreen() == &_scrSystem &&
+            _quickPingOverlay.preparePresetEdit(preset_req->preset_index,
+                                                preset_req->initial_text)) {
+            if (lv_async_call(
+                    +[](void *user_data) {
+                        auto *app = static_cast<UiApp *>(user_data);
+                        if (app && app->activeScreen() == &app->_scrSystem)
+                            (void)app->openActionPane();
+                    },
+                    this) != LV_RES_OK) {
+                (void)openActionPane();
+            }
+            break;
+        }
+#endif
 #if UI_INCLUDE_KEYBOARD_OVERLAY
         auto *req = static_cast<const UiMessageKeyboardRequest *>(event->payload);
-        if (!req || !_surfaces.isActive(&_sendMessageOvl)) break;
-        if (!_keyboardOvl.prepareMessageInput(req->title ? req->title : "broadcast")) break;
+        const bool message_active = _surfaces.isActive(&_sendMessageOvl);
+        const bool preset_active = activeScreen() == &_scrSystem;
+        if (!req || (!message_active && !preset_active)) break;
+        if (!_keyboardOvl.prepareMessageInput(*req)) break;
         (void)lv_async_call(
             +[](void *user_data) {
                 auto *app = static_cast<UiApp *>(user_data);
-                if (!app || !app->_surfaces.isActive(&app->_sendMessageOvl)) return;
+                if (!app) return;
+                const bool message_active = app->_surfaces.isActive(&app->_sendMessageOvl);
+                const bool preset_active = app->activeScreen() == &app->_scrSystem;
+                if (!message_active && !preset_active) return;
                 app->presentMessageKeyboard();
             },
             this);
@@ -558,7 +581,9 @@ void UiApp::handleFrameEvent(lv_event_t *e) {
     case EventType::MessageKeyboardSubmit: {
         auto *submit = static_cast<const UiMessageKeyboardSubmit *>(event->payload);
         if (submit && submit->text) {
-            if (_surfaces.isVisible(&_sendMessageOvl)) {
+            if (submit->purpose == UiMessageKeyboardPurpose::EditPreset) {
+                _surfaces.dispatchToActive(EventType::MessageKeyboardSubmit, submit);
+            } else if (_surfaces.isVisible(&_sendMessageOvl)) {
                 _sendMessageOvl.submitCustomMessage(submit->text);
             }
         }

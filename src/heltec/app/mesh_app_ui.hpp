@@ -2,6 +2,7 @@
 #include "app/find_friend_nav_estimator.hpp"
 #include "app/power_mgr.hpp"
 #include "app/team_config.hpp"
+#include "config/message_preset_store.hpp"
 #include "ui/core/app_state_event.hpp"
 #include "ui/core/biz_facade.hpp"
 
@@ -46,6 +47,10 @@ class MeshAppUi final : public IBizFacade
     int sendMessageGroupCount() const override;
     bool sendMessageGroupAt(int index, int *channel_idx, char *label,
                             size_t label_len) const override;
+    int messagePresetCount() const override;
+    const char *messagePresetAt(int index) const override;
+    PresetUpdateResult updateMessagePreset(int index, const char *text) override;
+    bool commitMessagePresets() override;
     void setLoRaBandPresetIndex(int preset_index) override;
     int currentLoRaBandPresetIndex() const override;
     int currentExactLoRaBandPresetIndex() const override;
@@ -138,6 +143,7 @@ class MeshAppUi final : public IBizFacade
 
   private:
     heltec::meshcore::power::PowerMgr &_power;
+    mutable MessagePresetStore _message_presets{};
     static void notifyAppState(heltec::meshcore::ui::AppStateEventType type);
     static void notifyCompanionChanged();
     void notifyRadioChanged();

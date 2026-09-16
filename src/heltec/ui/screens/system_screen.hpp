@@ -2,6 +2,7 @@
 
 #include "../core/abstract_screen.hpp"
 #include "../core/app_state_event.hpp"
+#include "../core/capabilities.hpp"
 #include "../core/feedback.hpp"
 
 namespace heltec::meshcore::biz {
@@ -62,6 +63,7 @@ class SystemScreen : public AbstractScreen {
     void syncSwitchesFromApp(const biz::IBizFacade &app);
     void syncControlsFromApp(const biz::IBizFacade &app);
     void refreshControls();
+    void openMessagePresetEditor(uint8_t index);
     uint16_t regionDropdownIndex(const biz::IBizFacade &app) const;
 
     void setDropdownIndex(_lv_obj_t *dd, uint16_t index, bool fire_changed, bool force = false);
@@ -88,6 +90,7 @@ class SystemScreen : public AbstractScreen {
 #endif
     ChoiceRow _choice_region;
     ChoiceRow _choice_screen_off;
+    ChoiceRow _choice_message_preset;
     _lv_obj_t *_row_factory_reset = nullptr;
     _lv_obj_t *_row_clear_data = nullptr;
 

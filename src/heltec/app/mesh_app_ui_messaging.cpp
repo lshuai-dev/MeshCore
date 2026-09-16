@@ -297,6 +297,34 @@ bool MeshAppUi::sendMessageGroupAt(int index, int *channel_idx, char *label, siz
 #endif
 }
 
+int MeshAppUi::messagePresetCount() const
+{
+    return MessagePresetStore::kCount;
+}
+
+const char *MeshAppUi::messagePresetAt(int index) const
+{
+    DataStore *const store = the_mesh.getDataStore();
+    if (store)
+        _message_presets.ensureLoaded(*store);
+    return _message_presets.at(index);
+}
+
+IBizFacade::PresetUpdateResult MeshAppUi::updateMessagePreset(int index, const char *text)
+{
+    DataStore *const store = the_mesh.getDataStore();
+    if (store)
+        _message_presets.ensureLoaded(*store);
+    const MessagePresetStore::UpdateResult result = _message_presets.update(index, text);
+    return static_cast<PresetUpdateResult>(result);
+}
+
+bool MeshAppUi::commitMessagePresets()
+{
+    DataStore *const store = the_mesh.getDataStore();
+    return store && _message_presets.commit(*store);
+}
+
 bool MeshAppUi::sendDirectMessage(const uint8_t pub_key_prefix[6], const char *text)
 {
     if (!pub_key_prefix || !text || text[0] == '\0')

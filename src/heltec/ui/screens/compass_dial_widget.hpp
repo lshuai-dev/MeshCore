@@ -36,6 +36,7 @@ struct CompassDialWidget
     bool friend_on_target = false;
     bool friend_direction_valid = false;
     bool friend_near_target = false;
+    bool center_marker_visible = false;
     CompassDialNeedleKind needle_kind = CompassDialNeedleKind::BicolorHeading;
 
     lv_coord_t min_side = 16;
@@ -50,6 +51,7 @@ struct CompassDialWidget
     void setHeadingNeedle(int16_t heading_tenths);
     void setFriendNeedle(int16_t turn_tenths, bool gps_fix, bool direction_valid,
                          bool on_target, bool near_target);
+    void setCenterMarkerVisible(bool visible);
     void layoutSize();
     void layoutLayers();
     void setLayersVisible(bool visible);

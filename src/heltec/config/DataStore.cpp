@@ -861,6 +861,44 @@ bool DataStore::removeFile(FILESYSTEM *fs, const char *filename)
     return fs->remove(filename);
 }
 
+size_t DataStore::readSmallConfig(const char *filename, void *destination, size_t capacity)
+{
+    if (!filename || !destination || capacity == 0)
+        return 0;
+    File file = openRead(filename);
+    if (!file && _fsExtra)
+        file = openRead(_fsExtra, filename);
+    if (!file)
+        return 0;
+    const size_t read = file.read(reinterpret_cast<uint8_t *>(destination), capacity);
+    const bool oversized = file.available() > 0;
+    file.close();
+    return oversized ? 0 : read;
+}
+
+bool DataStore::writeSmallConfig(const char *filename, const void *data, size_t length)
+{
+    if (!filename || !data || length == 0)
+        return false;
+    File file = openWrite(_fs, filename);
+    bool secondary = false;
+    if (!file && _fsExtra)
+    {
+        file = openWrite(_fsExtra, filename);
+        secondary = static_cast<bool>(file);
+    }
+    if (!file)
+        return false;
+    const size_t written = file.write(reinterpret_cast<const uint8_t *>(data), length);
+    file.close();
+    if (written != length)
+        return false;
+    FILESYSTEM *const stale = secondary ? _fs : _fsExtra;
+    if (stale && stale->exists(filename))
+        stale->remove(filename);
+    return true;
+}
+
 bool DataStore::clearLegacyMessageFiles()
 {
     FILESYSTEM *fs = _getContactsChannelsFS();

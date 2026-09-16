@@ -169,8 +169,6 @@ _lv_obj_t *FindFriendScreen::addActionRow(const char *title, Action action)
     lv_obj_set_style_opa(row, LV_OPA_40, LV_STATE_DISABLED);
     bindControl(row);
     lv_obj_add_event_cb(row, onActionClicked, LV_EVENT_CLICKED, this);
-    if (action == Action::WaypointGps)
-        _row_wp_gps = row;
     if (action == Action::WaypointManual)
         _row_wp_manual = row;
     return row;
@@ -205,8 +203,7 @@ void FindFriendScreen::createControls()
 #if HELTEC_TEAM_FEATURE
     _row_team_message = addActionRow("> Team message", Action::TeamMessage);
 #endif
-    addActionRow("> use current gps", Action::WaypointGps);
-    addActionRow("> enter lat,lon", Action::WaypointManual);
+    addActionRow("> set waypoint coordinates", Action::WaypointManual);
 }
 
 void FindFriendScreen::configureFocusItems()
@@ -217,7 +214,6 @@ void FindFriendScreen::configureFocusItems()
     addFocusableObject(_choice_team.dropdown, _choice_team.row);
     addFocusableObject(_choice_friend.dropdown, _choice_friend.row);
     addFocusableObject(_row_team_message);
-    addFocusableObject(_row_wp_gps);
     addFocusableObject(_row_wp_manual);
     // Match System Screen's deterministic focus scrolling. Pointer focus must
     // not snap the column after a drag or tap; keypad/encoder traversal owns it.
@@ -226,7 +222,7 @@ void FindFriendScreen::configureFocusItems()
         _choice_mode.dropdown,
         _choice_friend.dropdown,
         _row_team_message,
-        _row_wp_gps, _row_wp_manual,
+        _row_wp_manual,
     };
     for (_lv_obj_t *control : focus_controls)
     {
@@ -483,7 +479,6 @@ void FindFriendScreen::updateConditionalVisibility()
         else
             lv_obj_add_state(_row_team_message, LV_STATE_DISABLED);
     }
-    set_hidden(_row_wp_gps, !enabled || friend_mode);
     set_hidden(_row_wp_manual, !enabled || friend_mode);
 
     syncFocusGroupMembership();
@@ -512,7 +507,6 @@ void FindFriendScreen::syncFocusGroupMembership()
         _choice_team.dropdown,
         _choice_friend.dropdown,
         _row_team_message,
-        _row_wp_gps,
         _row_wp_manual,
     };
     uint16_t mask = 0;
@@ -1190,21 +1184,6 @@ void FindFriendScreen::handleAction(Action action, _lv_obj_t *source)
         }
         return;
     }
-    if (action == Action::WaypointGps)
-    {
-        const biz::IBizFacade::GpsStatus gps = _biz.gpsStatus();
-        if (gps.fix_valid && _biz.setFindFriendWaypoint(gps.lat_deg, gps.lon_deg))
-        {
-            char text[48];
-            _biz.formatFindFriendWaypointInput(text, sizeof(text));
-            _biz.showAlert(text[0] ? text : "Saved", 3000);
-        }
-        else
-        {
-            _biz.showAlert("Need GPS fix", 3000);
-        }
-        return;
-    }
     if (action == Action::WaypointManual)
     {
         _waypoint_keyboard_return_focus = source;
@@ -1225,8 +1204,6 @@ void FindFriendScreen::onActionClicked(lv_event_t *e)
         action = Action::Team;
     if (target == self->_row_team_message)
         action = Action::TeamMessage;
-    if (target == self->_row_wp_gps)
-        action = Action::WaypointGps;
     if (target == self->_row_wp_manual)
         action = Action::WaypointManual;
     if (action == Action::None)

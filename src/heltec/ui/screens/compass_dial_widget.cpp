@@ -61,13 +61,17 @@ void on_needle_draw(lv_event_t *e)
                                        dial->friend_turn_tenths,
                                        dial->friend_gps_fix, dial->friend_on_target);
         }
-        if (dial->friend_near_target)
+        if (dial->friend_near_target || dial->center_marker_visible)
         {
-            lv_coord_t diameter = (lv_coord_t)(dial->side / 8);
-            if (diameter < 6)
-                diameter = 6;
-            if (diameter > 10)
-                diameter = 10;
+            lv_coord_t diameter = dial->friend_near_target
+                                      ? (lv_coord_t)(dial->side / 8)
+                                      : (lv_coord_t)(dial->side / 16);
+            const lv_coord_t min_diameter = dial->friend_near_target ? 6 : 3;
+            const lv_coord_t max_diameter = dial->friend_near_target ? 10 : 5;
+            if (diameter < min_diameter)
+                diameter = min_diameter;
+            if (diameter > max_diameter)
+                diameter = max_diameter;
             const lv_coord_t half = (lv_coord_t)(diameter / 2);
             lv_area_t dot_area = { (lv_coord_t)(ax - half), (lv_coord_t)(ay - half),
                                    (lv_coord_t)(ax - half + diameter - 1),
@@ -170,6 +174,14 @@ void CompassDialWidget::setFriendNeedle(int16_t turn_tenths, bool gps_fix, bool 
     friend_direction_valid = direction_valid;
     friend_on_target = on_target;
     friend_near_target = near_target;
+    invalidateNeedle();
+}
+
+void CompassDialWidget::setCenterMarkerVisible(bool visible)
+{
+    if (center_marker_visible == visible)
+        return;
+    center_marker_visible = visible;
     invalidateNeedle();
 }
 

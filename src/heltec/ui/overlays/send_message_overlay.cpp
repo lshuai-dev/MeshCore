@@ -166,7 +166,7 @@ int SendMessageOverlay::rowCount() const
 
 const char *SendMessageOverlay::rowLabel(int index) const
 {
-    return _model.rowLabel(index);
+    return _model.rowLabel(_biz, index);
 }
 
 bool SendMessageOverlay::ensureRowPool()

@@ -9,6 +9,8 @@ namespace {
 
 char s_region_options[kRadioParamPresetUiScratchSize + 32];
 char s_screen_off_options[64];
+constexpr const char *kMessagePresetOptions =
+    "Select\nPreset 1\nPreset 2\nPreset 3\nPreset 4\nPreset 5";
 
 int append_options(char *buf, size_t cap, const biz::IBizFacade &app, int count,
                    bool (*label_fn)(const biz::IBizFacade &, int, char *, size_t)) {
@@ -56,6 +58,11 @@ bool SystemScreen::buildSurface() {
         setDropdownOptions(_choice_screen_off.dropdown, s_screen_off_options);
     }
 
+#if UI_INCLUDE_KEYBOARD_OVERLAY
+    addDropdownRow(_root, _choice_message_preset, "Message presets");
+    setDropdownOptions(_choice_message_preset.dropdown, kMessagePresetOptions);
+#endif
+
     addSwitchRow(_root, "Bluetooth", &_swBle);
 #ifdef PIN_BUZZER
     addSwitchRow(_root, "Buzzer", &_swBuzzer);
@@ -69,6 +76,9 @@ bool SystemScreen::buildSurface() {
     addFocusableObject(_choice_region.dropdown, _choice_region.row);
     addFocusableObject(_swForwarding, _swForwarding ? lv_obj_get_parent(_swForwarding) : nullptr);
     addFocusableObject(_choice_screen_off.dropdown, _choice_screen_off.row);
+#if UI_INCLUDE_KEYBOARD_OVERLAY
+    addFocusableObject(_choice_message_preset.dropdown, _choice_message_preset.row);
+#endif
     addFocusableObject(_swBle, _swBle ? lv_obj_get_parent(_swBle) : nullptr);
 #ifdef PIN_BUZZER
     addFocusableObject(_swBuzzer, _swBuzzer ? lv_obj_get_parent(_swBuzzer) : nullptr);
@@ -102,6 +112,20 @@ void SystemScreen::onGroupFocusChanged(lv_group_t *group) {
 void SystemScreen::onEnter() {
     AbstractScreen::onEnter();
     closeOpenDropdown();
+}
+
+void SystemScreen::openMessagePresetEditor(uint8_t index)
+{
+    if (index >= _biz.messagePresetCount())
+        return;
+    UiMessageKeyboardRequest request{};
+    request.title = "Edit preset";
+    request.initial_text = _biz.messagePresetAt(index);
+    request.purpose = UiMessageKeyboardPurpose::EditPreset;
+    request.preset_index = index;
+    request.max_bytes = 31;
+    if (!emitEvent(EventType::MessageKeyboardOpen, &request))
+        _feedback.showAlert("Unable to open keyboard", 1600);
 }
 
 } // namespace heltec::meshcore::ui

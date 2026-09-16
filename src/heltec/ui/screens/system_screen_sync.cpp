@@ -121,6 +121,8 @@ SystemScreen::ChoiceRow *SystemScreen::dropdownChoice(_lv_obj_t *dd)
         return &_choice_region;
     if (dd == _choice_screen_off.dropdown || dd == _choice_screen_off.row)
         return &_choice_screen_off;
+    if (dd == _choice_message_preset.dropdown || dd == _choice_message_preset.row)
+        return &_choice_message_preset;
     return nullptr;
 }
 
@@ -222,6 +224,12 @@ void SystemScreen::onDropdownValueChanged(lv_event_t *e)
         app.setDisplayAutoOffIndex(sel);
         self->_feedback.showAlert("Screen off saved", 2000);
     }
+    else if (dd == self->_choice_message_preset.dropdown)
+    {
+        self->setDropdownIndex(dd, 0, false, true);
+        if (sel > 0 && sel <= app.messagePresetCount())
+            self->openMessagePresetEditor(static_cast<uint8_t>(sel - 1));
+    }
 }
 
 void SystemScreen::onExit()
@@ -264,6 +272,7 @@ void SystemScreen::syncDropdownsFromApp(const biz::IBizFacade &app)
     setDropdownIndex(_choice_region.dropdown, regionDropdownIndex(app), false);
     setDropdownIndex(_choice_screen_off.dropdown,
                      static_cast<uint16_t>(app.displayAutoOffIndex()), false);
+    setDropdownIndex(_choice_message_preset.dropdown, 0, false);
 }
 
 void SystemScreen::setSwitchState(_lv_obj_t *sw, bool on)

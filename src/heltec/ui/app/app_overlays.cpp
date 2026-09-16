@@ -221,7 +221,8 @@ void UiApp::presentMessageKeyboard()
     if (!_inited)
         return;
     const bool send_active = _surfaces.isActive(&_sendMessageOvl);
-    if (!send_active)
+    const bool preset_active = activeScreen() == &_scrSystem;
+    if (!send_active && !preset_active)
         return;
     if (_surfaces.isVisible(&_keyboardOvl))
         return;

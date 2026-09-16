@@ -221,6 +221,8 @@ void FindFriendScreen::createInfoRows() {
 }
 
 void FindFriendScreen::render(const biz::FindFriendUi &u) {
+    _dial.setCenterMarkerVisible(!_biz.findFriendEnabled());
+
     const biz::IBizFacade::TeamStatus team = _biz.teamStatus();
     const auto team_state =
         static_cast<heltec::meshcore::team::JoinState>(team.pair_state);
