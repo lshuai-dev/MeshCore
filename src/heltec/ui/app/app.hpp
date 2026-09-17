@@ -22,6 +22,8 @@
 #include "ui/screens/recent_screen.hpp"
 #if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
 #include "ui/screens/compass_screen.hpp"
+#endif
+#if defined(ENV_INCLUDE_GPS) && ENV_INCLUDE_GPS
 #include "ui/screens/find_friend_screen.hpp"
 #endif
 #if UI_INCLUDE_GPS_SCREEN
@@ -202,6 +204,8 @@ class UiApp final : public IUiHost, public InputHost {
     RadioScreen _scrRadio;
 #if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
     CompassScreen _scrCompass;
+#endif
+#if defined(ENV_INCLUDE_GPS) && ENV_INCLUDE_GPS
     FindFriendScreen _scrFindFriend;
 #endif
 #if UI_INCLUDE_GPS_SCREEN

@@ -90,6 +90,7 @@ class MeshAppUi final : public IBizFacade
     bool teamOfferLabel(int index, char *label, size_t length) const override;
     bool teamSelectOffer(int index) override;
     bool teamStartSearch() override;
+    bool teamSetRole(bool leader) override;
     bool teamSetActive(bool active) override;
     bool teamSetJoining(bool open) override;
     bool teamMessageTarget(int member_index, ui::UiSendMessageTarget &target) const override;

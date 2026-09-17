@@ -61,14 +61,14 @@ static bool personalContactEligible(const ContactInfo &ci)
     return ci.name[0] != '\0';
 }
 
-#if HELTEC_TEAM_FEATURE
+#if defined(ENV_INCLUDE_GPS) && ENV_INCLUDE_GPS
 static bool teamMemberHasContact(const heltec::meshcore::team::TeamMember &member)
 {
     return the_mesh.lookupContactByPubKey(member.public_key, PUB_KEY_SIZE) != nullptr;
 }
 #endif
 
-#if HELTEC_TEAM_FEATURE
+#if defined(ENV_INCLUDE_GPS) && ENV_INCLUDE_GPS
 static bool isJoinChannel(int index)
 {
     return index == HELTEC_TEAM_JOIN_CHANNEL_INDEX;
@@ -192,7 +192,7 @@ int MeshAppUi::sendMessagePersonalCount() const
             continue;
         ++count;
     }
-#if HELTEC_TEAM_FEATURE
+#if defined(ENV_INCLUDE_GPS) && ENV_INCLUDE_GPS
     heltec::meshcore::team::TeamMember member{};
     const size_t team_count = the_mesh.teamService().memberCount();
     for (size_t index = 0; index < team_count; ++index)
@@ -229,7 +229,7 @@ bool MeshAppUi::sendMessagePersonalAt(int index, uint8_t pub_key_prefix[6], char
         }
         ++seen;
     }
-#if HELTEC_TEAM_FEATURE
+#if defined(ENV_INCLUDE_GPS) && ENV_INCLUDE_GPS
     heltec::meshcore::team::TeamMember member{};
     const size_t team_count = the_mesh.teamService().memberCount();
     for (size_t team_index = 0; team_index < team_count; ++team_index)

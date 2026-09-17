@@ -11,7 +11,7 @@
 
 #include <lvgl.h>
 
-#if !HELTEC_UI_INPUT_TOUCH
+#if !HELTEC_HAS_TOUCH
 
 namespace heltec::meshcore::ui
 {
@@ -443,4 +443,4 @@ bool ContextMenu::registerMenu(const char *title, const lv_img_dsc_t *icon, Abst
 
 } // namespace heltec::meshcore::ui
 
-#endif // !HELTEC_UI_INPUT_TOUCH
+#endif // !HELTEC_HAS_TOUCH

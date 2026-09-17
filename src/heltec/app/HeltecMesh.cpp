@@ -460,7 +460,7 @@ void HeltecMesh::setLocationShareEnabled(HeltecMesh &mesh, bool enabled, bool pe
 
 void HeltecMesh::pollLocShareAdvert(HeltecMesh &mesh)
 {
-#if HELTEC_TEAM_FEATURE
+#if defined(ENV_INCLUDE_GPS) && ENV_INCLUDE_GPS
     if (mesh.teamService().hasTeam())
         return;
 #endif
@@ -1135,7 +1135,7 @@ void HeltecMesh::onContactPathUpdated(const ContactInfo &contact)
     dirty_contacts_expiry = futureMillis(LAZY_CONTACTS_WRITE_DELAY);
 }
 
-#if HELTEC_TEAM_FEATURE
+#if defined(ENV_INCLUDE_GPS) && ENV_INCLUDE_GPS
 bool HeltecMesh::syncTeamMemberContact(const uint8_t *public_key, const char *name,
                                        size_t name_len)
 {
@@ -1401,7 +1401,7 @@ void HeltecMesh::onChannelMessageRecv(const mesh::GroupChannel &channel, mesh::P
         _ui->newMsg(path_len, channel_name, text, offline_queue_len);
 }
 
-#if HELTEC_TEAM_FEATURE
+#if defined(ENV_INCLUDE_GPS) && ENV_INCLUDE_GPS
 void HeltecMesh::onChannelDataRecv(const mesh::GroupChannel &channel, mesh::Packet *pkt,
                                    uint16_t data_type, const uint8_t *data, size_t data_len)
 {
@@ -1850,7 +1850,7 @@ bool HeltecMesh::getStableGpsFix(StableGpsFixSnapshot &out) const
 
 mesh::Packet *HeltecMesh::createPolicySelfAdvert(bool require_live_location)
 {
-#if HELTEC_TEAM_FEATURE
+#if defined(ENV_INCLUDE_GPS) && ENV_INCLUDE_GPS
     if (teamService().hasTeam())
     {
         // Team coordinates belong only in the encrypted Group Location frame.
@@ -2006,7 +2006,7 @@ void HeltecMesh::begin(bool has_display)
     bootstrapRTCfromContacts();
     addChannel("Public", PUBLIC_GROUP_PSK); // pre-configure Andy's public channel
     _store->loadChannels(this);
-#if HELTEC_TEAM_FEATURE
+#if defined(ENV_INCLUDE_GPS) && ENV_INCLUDE_GPS
     _team_service.begin(*this, *_store);
     _team_join_service.begin(*this, _team_service);
 #endif
@@ -2978,7 +2978,7 @@ void HeltecMesh::handleCmdFrame(size_t len)
     {
         uint8_t channel_idx = cmd_frame[1];
         ChannelDetails channel;
-#if HELTEC_TEAM_FEATURE
+#if defined(ENV_INCLUDE_GPS) && ENV_INCLUDE_GPS
         const bool channel_allowed = channel_idx < HELTEC_TEAM_USER_CHANNEL_CAPACITY;
 #else
         const bool channel_allowed = true;
@@ -3010,7 +3010,7 @@ void HeltecMesh::handleCmdFrame(size_t len)
         StrHelper::strncpy(channel.name, (char *)&cmd_frame[2], 32);
         memset(channel.channel.secret, 0, sizeof(channel.channel.secret));
         memcpy(channel.channel.secret, &cmd_frame[2 + 32], 16); // NOTE: only 128-bit supported
-#if HELTEC_TEAM_FEATURE
+#if defined(ENV_INCLUDE_GPS) && ENV_INCLUDE_GPS
         const bool channel_allowed = channel_idx < HELTEC_TEAM_USER_CHANNEL_CAPACITY;
 #else
         const bool channel_allowed = true;
@@ -3287,7 +3287,7 @@ void HeltecMesh::handleCmdFrame(size_t len)
             i += 4;
             _serial->writeFrame(out_frame, i);
         }
-#if HELTEC_TEAM_FEATURE
+#if defined(ENV_INCLUDE_GPS) && ENV_INCLUDE_GPS
         else if (stats_type == STATS_TYPE_TEAM)
         {
             int i = 0;
@@ -4024,7 +4024,7 @@ void HeltecMesh::handleCompanionJsonCmdLineTo(BaseSerialInterface *outSerial, Pr
 void HeltecMesh::loop()
 {
     BaseChatMesh::loop();
-#if HELTEC_TEAM_FEATURE
+#if defined(ENV_INCLUDE_GPS) && ENV_INCLUDE_GPS
     _team_service.poll();
     _team_join_service.poll();
 #endif

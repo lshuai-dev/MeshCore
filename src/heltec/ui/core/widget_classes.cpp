@@ -84,7 +84,7 @@ HT_DEFINE_CLASS(ht_preview_metadata_row_class, lv_obj_class, lv_obj_t);
 HT_DEFINE_CLASS(ht_preview_origin_class, lv_label_class, lv_label_t);
 HT_DEFINE_CLASS(ht_preview_text_class, lv_label_class, lv_label_t);
 
-#if defined(HELTEC_UI_INPUT_TOUCH) && HELTEC_UI_INPUT_TOUCH
+#if defined(HELTEC_HAS_TOUCH) && HELTEC_HAS_TOUCH
 HT_DEFINE_CLASS(ht_quick_ping_row_class, ht_container_class, ht_container_t);
 HT_DEFINE_CLASS(ht_quick_ping_badge_class, lv_obj_class, lv_obj_t);
 HT_DEFINE_CLASS(ht_quick_ping_message_row_class, lv_obj_class, lv_obj_t);

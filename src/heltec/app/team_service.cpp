@@ -6,7 +6,7 @@
  */
 #include "app/team_service.hpp"
 
-#if HELTEC_TEAM_FEATURE
+#if defined(ENV_INCLUDE_GPS) && ENV_INCLUDE_GPS
 
 #include "app/HeltecMesh.h"
 #include "config/DataStore.h"
@@ -126,11 +126,7 @@ void TeamService::clearTeamChannel()
 
 bool TeamService::createTeam(const char *name)
 {
-#if HELTEC_TEAM_ROLE != 1
-    (void)name;
-    return false;
-#else
-    if (!_mesh || !name)
+    if (_role != TeamRole::Leader || !_mesh || !name)
     {
         return false;
     }
@@ -154,7 +150,15 @@ bool TeamService::createTeam(const char *name)
     memcpy(next.leader_public_key, _mesh->self_id.pub_key, sizeof(next.leader_public_key));
     const bool installed = installTeam(next);
     return installed;
-#endif
+}
+
+bool TeamService::setRole(TeamRole role)
+{
+    if (_role == role)
+        return true;
+    (void)leaveTeam();
+    _role = role;
+    return true;
 }
 
 bool TeamService::installTeam(const TeamCredentials &credentials)
@@ -226,7 +230,7 @@ CommonHeader TeamService::makeHeader(uint8_t flags, uint16_t sequence) const
 {
     CommonHeader header{};
     header.flags = flags;
-    header.role = HELTEC_TEAM_ROLE;
+    header.role = static_cast<uint8_t>(_role);
     memcpy(header.sender_id, _mesh->self_id.pub_key, sizeof(header.sender_id));
     header.boot_id = _boot_id;
     header.sequence = sequence;

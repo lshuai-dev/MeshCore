@@ -35,7 +35,7 @@ bool MeshAppUi::factoryReset()
         return false;
 
     heltec::meshcore::ui::ui_task().disableSerial();
-#if HELTEC_TEAM_FEATURE
+#if defined(ENV_INCLUDE_GPS) && ENV_INCLUDE_GPS
     the_mesh.teamJoinService().closeJoinWindow();
     if (the_mesh.teamService().hasTeam() && !the_mesh.teamService().leaveTeam())
         return false;
@@ -49,7 +49,7 @@ bool MeshAppUi::factoryReset()
 
 bool MeshAppUi::clearUserData()
 {
-#if HELTEC_TEAM_FEATURE
+#if defined(ENV_INCLUDE_GPS) && ENV_INCLUDE_GPS
     the_mesh.teamJoinService().closeJoinWindow();
     if (the_mesh.teamService().hasTeam() && !the_mesh.teamService().leaveTeam())
         return false;

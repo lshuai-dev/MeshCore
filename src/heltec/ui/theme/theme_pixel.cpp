@@ -64,7 +64,7 @@ static const UiBehaviorProfile kPixelBehaviorProfile = {
     { 5000, 560, 380, 4, 2 },
 };
 
-#if HELTEC_UI_INPUT_TOUCH
+#if HELTEC_HAS_TOUCH
 static const UiThemeProfile kPixelThemeProfile = {
     { 8, 10, 22, 8, 32, 12 },
     { 8, 1, 3, 18 },
@@ -87,7 +87,7 @@ static void initDeviceStyles(lv_disp_t *disp)
 {
     ui_set_behavior_profile(&kPixelBehaviorProfile);
 
-#if HELTEC_UI_INPUT_TOUCH
+#if HELTEC_HAS_TOUCH
     (void)disp;
     ui_widget_theme_configure(kPixelThemeProfile);
 #else
@@ -99,7 +99,7 @@ static void initDeviceStyles(lv_disp_t *disp)
 
 static void styleSetBorderFrame(lv_style_t *st)
 {
-#if HELTEC_UI_INPUT_TOUCH
+#if HELTEC_HAS_TOUCH
     lv_style_set_border_width(st, 0);
     lv_style_set_border_opa(st, LV_OPA_TRANSP);
     lv_style_set_border_side(st, LV_BORDER_SIDE_NONE);
@@ -153,7 +153,7 @@ static void initWidgetStyles()
 
     lv_style_init(&s_switch_main);
     styleSetBorderFrame(&s_switch_main);
-#if !HELTEC_UI_INPUT_TOUCH
+#if !HELTEC_HAS_TOUCH
     lv_style_set_border_width(&s_switch_main, 2);
 #endif
     lv_style_set_width(&s_switch_main, 30);
@@ -164,7 +164,7 @@ static void initWidgetStyles()
 
     lv_style_init(&s_switch_main_focus);
     styleSetBorderFrame(&s_switch_main_focus);
-#if !HELTEC_UI_INPUT_TOUCH
+#if !HELTEC_HAS_TOUCH
     lv_style_set_border_width(&s_switch_main_focus, 1);
 #endif
     lv_style_set_border_color(&s_switch_main_focus, ui_color_highlight_fg());
@@ -186,7 +186,7 @@ static void initWidgetStyles()
     lv_style_init(&s_switch_knob);
     lv_style_set_bg_color(&s_switch_knob, s_color_border);
     lv_style_set_bg_opa(&s_switch_knob, LV_OPA_COVER);
-#if HELTEC_UI_INPUT_TOUCH
+#if HELTEC_HAS_TOUCH
     lv_style_set_border_width(&s_switch_knob, 0);
     lv_style_set_border_opa(&s_switch_knob, LV_OPA_TRANSP);
     lv_style_set_border_side(&s_switch_knob, LV_BORDER_SIDE_NONE);

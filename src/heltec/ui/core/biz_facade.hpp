@@ -226,6 +226,10 @@ class IBizFacade : public ui::IFeedback {
     virtual bool teamStartSearch() {
         return false;
     }
+    virtual bool teamSetRole(bool leader) {
+        (void)leader;
+        return false;
+    }
     virtual bool teamSetActive(bool active) {
         (void)active;
         return false;

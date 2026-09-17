@@ -64,7 +64,8 @@ class DataStore
     /** After boot FS ready; allows GPS track log to open on primary LittleFS (one file
      * open/volume). */
     void notifyBootRegionMapStorageDone();
-#if defined(ENV_INCLUDE_COMPASS) && (ENV_INCLUDE_COMPASS)
+#if (defined(ENV_INCLUDE_GPS) && (ENV_INCLUDE_GPS)) || \
+    (defined(ENV_INCLUDE_COMPASS) && (ENV_INCLUDE_COMPASS))
     bool loadFindFriendCompassSettings(int &mode, int &wpValid, double &wpLat, double &wpLon,
                                        uint16_t &trackMinDistCm, int *friendIdx = nullptr,
                                        uint16_t *trackIntervalMin = nullptr,
@@ -74,6 +75,8 @@ class DataStore
                                        uint16_t trackMinDistCm, int friendIdx = -1,
                                        uint16_t trackIntervalMin = 1, bool enabled = false,
                                        const uint8_t *friendPubKey = nullptr);
+#endif
+#if defined(ENV_INCLUDE_COMPASS) && (ENV_INCLUDE_COMPASS)
     /** Memsic soft-iron Hmm[4] from figure-8 calibration (/compass_mag_cal). */
     bool hasCompassMagCal() const;
     bool loadCompassMagCal(float hmm[4]) const;
@@ -101,7 +104,7 @@ class DataStore
     void saveContacts(DataStoreHost *host);
     void loadChannels(DataStoreHost *host);
     void saveChannels(DataStoreHost *host);
-#if defined(HELTEC_TEAM_FEATURE) && HELTEC_TEAM_FEATURE
+#if defined(ENV_INCLUDE_GPS) && ENV_INCLUDE_GPS
     bool deleteTeamPrefs();
 #endif
     void migrateToSecondaryFS();

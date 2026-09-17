@@ -32,7 +32,7 @@ bool MeshAppUi::applyGpsPowerPolicy()
 
     const bool track_active = gpsTrackRecording();
     const bool find_friend_enabled =
-#if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
+#if defined(ENV_INCLUDE_GPS) && ENV_INCLUDE_GPS
         findFriendEnabled();
 #else
         false;
@@ -60,19 +60,28 @@ void MeshAppUi::setFindFriendForegroundActive(bool active)
     if (_find_friend_foreground_active != active)
         resetFindFriendNavState();
     _find_friend_foreground_active = active;
-    reconcileGpsPower();
+    if (active)
+    {
+        reconcileGpsPower();
+    }
 }
 
 void MeshAppUi::setGpsForegroundActive(bool active)
 {
     _power.setGpsDemand(power::GpsDemand::GpsScreen, active);
-    (void)_power.reconcileGpsPower(millis());
+    if (active)
+    {
+        (void)_power.reconcileGpsPower(millis());
+    }
 }
 
 void MeshAppUi::setMapForegroundActive(bool active)
 {
     _power.setGpsDemand(power::GpsDemand::MapScreen, active);
-    (void)_power.reconcileGpsPower(millis());
+    if (active)
+    {
+        (void)_power.reconcileGpsPower(millis());
+    }
 }
 
 void MeshAppUi::notifyGpsChanged()
@@ -131,7 +140,7 @@ void MeshAppUi::setGpsEnabled(bool enabled)
     }
 #endif
 
-#if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
+#if defined(ENV_INCLUDE_GPS) && ENV_INCLUDE_GPS
     if (!enabled && findFriendEnabled())
     {
         (void)setFindFriendEnabled(false);

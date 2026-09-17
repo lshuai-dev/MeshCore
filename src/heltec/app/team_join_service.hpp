@@ -145,14 +145,11 @@ class TeamJoinService
     uint8_t _discover_rate_count = 0;
     TeamJoinStats _stats{};
 
-#if HELTEC_TEAM_ROLE == 1
     Session _sessions[HELTEC_TEAM_JOIN_MAX_SESSIONS] = {};
-#else
     TeamOffer _offers[HELTEC_TEAM_JOIN_MAX_SESSIONS] = {};
     uint8_t _offer_count = 0;
     TeamOffer _selected{};
     uint8_t _member_nonce[kNonceSize] = {};
-#endif
 };
 
 } // namespace heltec::meshcore::team

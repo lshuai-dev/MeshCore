@@ -177,7 +177,7 @@ inline uint8_t ui_widget_radius_px()
 }
 constexpr lv_coord_t ui_settings_row_height()
 {
-#if HELTEC_UI_INPUT_TOUCH
+#if HELTEC_HAS_TOUCH
     return 32;
 #else
     return LV_SIZE_CONTENT;
@@ -185,7 +185,7 @@ constexpr lv_coord_t ui_settings_row_height()
 }
 constexpr UiLayoutMetrics ui_layout_metrics()
 {
-#if HELTEC_UI_INPUT_TOUCH
+#if HELTEC_HAS_TOUCH
     return {2, 2};
 #else
     return {0, 1};

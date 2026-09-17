@@ -59,7 +59,7 @@ bool DialogOverlay::buildSurface()
 
     if (_options.has_title)
     {
-        _title = ht_class_create(&lv_label_class, _panel);
+        _title = ht_class_create(&ht_overlay_bar_class, _panel);
         if (!_title)
         {
             return false;

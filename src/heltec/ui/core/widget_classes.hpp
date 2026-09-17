@@ -67,7 +67,7 @@ extern const lv_obj_class_t ht_preview_metadata_row_class;
 extern const lv_obj_class_t ht_preview_origin_class;
 extern const lv_obj_class_t ht_preview_text_class;
 
-#if defined(HELTEC_UI_INPUT_TOUCH) && HELTEC_UI_INPUT_TOUCH
+#if defined(HELTEC_HAS_TOUCH) && HELTEC_HAS_TOUCH
 extern const lv_obj_class_t ht_quick_ping_row_class;
 extern const lv_obj_class_t ht_quick_ping_badge_class;
 extern const lv_obj_class_t ht_quick_ping_message_row_class;

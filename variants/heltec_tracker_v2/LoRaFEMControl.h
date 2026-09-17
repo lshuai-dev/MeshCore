@@ -18,4 +18,5 @@ class LoRaFEMControl
 
   private:
     bool lna_enabled = false;
+    bool lna_can_control = false;
 };

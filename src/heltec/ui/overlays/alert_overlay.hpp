@@ -1,30 +1,21 @@
 #pragma once
-
 #include "../core/dialog_overlay.hpp"
-
-#include <stdint.h>
-
 struct _lv_obj_t;
 
-namespace heltec::meshcore::biz
-{
+namespace heltec::meshcore::biz {
 class IBizFacade;
 }
 
-namespace heltec::meshcore::ui
-{
+namespace heltec::meshcore::ui {
 
 /** @brief 短时提示 overlay；由 UiApp::activate 驱动显隐。 */
-class AlertOverlay : public DialogOverlay
-{
+class AlertOverlay : public DialogOverlay {
   public:
     explicit AlertOverlay(biz::IBizFacade &biz)
-        : DialogOverlay(biz, Options{Variant::Alert, false, false, false})
-    {
+        : DialogOverlay(biz, Options{ Variant::Alert, false, false, false }) {
     }
 
     void onEnter() override;
-    void onExit() override;
     void setText(const char *text);
 
   protected:

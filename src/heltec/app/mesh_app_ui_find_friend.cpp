@@ -60,7 +60,7 @@ void format_e6_pair(char *buf, size_t len, int32_t lat_e6, int32_t lon_e6)
 bool load_ff_settings(int &mode, int &wp_valid, double &wp_lat, double &wp_lon, uint16_t &track_cm,
                       uint16_t *track_interval_min_out, bool *enabled_out)
 {
-#if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
+#if defined(ENV_INCLUDE_GPS) && ENV_INCLUDE_GPS
     DataStore *ds = the_mesh.getDataStore();
     if (!ds)
         return false;
@@ -117,7 +117,7 @@ FindFriendConfidence to_ui_confidence(nav::Confidence confidence)
 
 void MeshAppUi::persistFfPrefs(int mode, int wp_valid, double wp_lat, double wp_lon) const
 {
-#if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
+#if defined(ENV_INCLUDE_GPS) && ENV_INCLUDE_GPS
     DataStore *ds = the_mesh.getDataStore();
     if (!ds)
         return;
@@ -135,7 +135,7 @@ void MeshAppUi::persistFfPrefs(int mode, int wp_valid, double wp_lat, double wp_
 
 void MeshAppUi::syncFindFriendTeamPin() const
 {
-#if HELTEC_TEAM_FEATURE
+#if defined(ENV_INCLUDE_GPS) && ENV_INCLUDE_GPS
     const uint8_t *key =
         _ff_enabled && _ff_mode == 0 && _ff_target_pub_key_valid ? _ff_target_pub_key : nullptr;
     the_mesh.teamService().pinMember(key);
@@ -192,7 +192,7 @@ void MeshAppUi::ensureFindFriendPrefsLoaded() const
 
 bool MeshAppUi::locationShareEnabled() const
 {
-#if HELTEC_TEAM_FEATURE
+#if defined(ENV_INCLUDE_GPS) && ENV_INCLUDE_GPS
     return the_mesh.teamService().hasTeam() && the_mesh.teamService().locationShareEnabled();
 #else
     return false;
@@ -275,7 +275,7 @@ void MeshAppUi::formatFindFriendWaypointInput(char *buf, size_t buf_len) const
 
 int MeshAppUi::findFriendContactCount() const
 {
-#if HELTEC_TEAM_FEATURE
+#if defined(ENV_INCLUDE_GPS) && ENV_INCLUDE_GPS
     if (the_mesh.teamService().enabled())
         return static_cast<int>(the_mesh.teamService().memberCount());
 #endif
@@ -286,7 +286,7 @@ bool MeshAppUi::findFriendMemberLabel(int index, char *buf, size_t buf_len) cons
 {
     if (!buf || buf_len == 0 || index < 0)
         return false;
-#if HELTEC_TEAM_FEATURE
+#if defined(ENV_INCLUDE_GPS) && ENV_INCLUDE_GPS
     if (the_mesh.teamService().enabled())
     {
         heltec::meshcore::team::TeamMember member{};
@@ -337,7 +337,7 @@ bool MeshAppUi::findFriendMemberHasGps(int index) const
 {
     if (index < 0)
         return false;
-#if HELTEC_TEAM_FEATURE
+#if defined(ENV_INCLUDE_GPS) && ENV_INCLUDE_GPS
     if (the_mesh.teamService().enabled())
     {
         heltec::meshcore::team::TeamMember member{};
@@ -362,7 +362,7 @@ int MeshAppUi::resolveFindFriendTargetContactIndex() const
     const int n = findFriendContactCount();
     for (int i = 0; i < n; ++i)
     {
-#if HELTEC_TEAM_FEATURE
+#if defined(ENV_INCLUDE_GPS) && ENV_INCLUDE_GPS
         if (the_mesh.teamService().enabled())
         {
             heltec::meshcore::team::TeamMember member{};
@@ -382,7 +382,7 @@ int MeshAppUi::resolveFindFriendTargetContactIndex() const
 
 bool MeshAppUi::setFindFriendTargetKeyFromIndex(int index) const
 {
-#if HELTEC_TEAM_FEATURE
+#if defined(ENV_INCLUDE_GPS) && ENV_INCLUDE_GPS
     if (the_mesh.teamService().enabled())
     {
         heltec::meshcore::team::TeamMember member{};
@@ -484,7 +484,7 @@ FindFriendUi MeshAppUi::findFriendUi() const
         u.target_selected = target_index >= 0;
         if (target_index >= 0)
         {
-#if HELTEC_TEAM_FEATURE
+#if defined(ENV_INCLUDE_GPS) && ENV_INCLUDE_GPS
             if (the_mesh.teamService().enabled())
             {
                 heltec::meshcore::team::TeamMember member{};

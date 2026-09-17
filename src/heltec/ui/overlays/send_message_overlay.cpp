@@ -1,6 +1,6 @@
 #include "send_message_overlay.hpp"
 
-#if !HELTEC_UI_INPUT_TOUCH
+#if !HELTEC_HAS_TOUCH
 
 #include "heltec/ui/core/biz_facade.hpp"
 #include "keyboard_overlay.hpp"
@@ -597,4 +597,4 @@ void SendMessageOverlay::hideVisual()
 
 } // namespace heltec::meshcore::ui
 
-#endif // !HELTEC_UI_INPUT_TOUCH
+#endif // !HELTEC_HAS_TOUCH

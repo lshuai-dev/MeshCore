@@ -18,6 +18,12 @@ class HeltecMesh;
 namespace heltec::meshcore::team
 {
 
+enum class TeamRole : uint8_t
+{
+    Member = 0,
+    Leader = 1,
+};
+
 struct TeamCredentials
 {
     uint64_t team_id = 0;
@@ -72,6 +78,8 @@ class TeamService
     bool leaveTeam();
     bool setEnabled(bool enabled);
     bool requestSync();
+    TeamRole role() const { return _role; }
+    bool setRole(TeamRole role);
 
     bool hasTeam() const;
     bool enabled() const;
@@ -129,6 +137,7 @@ class TeamService
     uint32_t _last_sync_request_tx_ms = 0;
     bool _sync_request_tx_seen = false;
     bool _enabled = false;
+    TeamRole _role = TeamRole::Member;
     bool _sent_valid_location = false;
     TeamStats _stats{};
     uint16_t _change_sequence = 0;

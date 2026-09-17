@@ -74,6 +74,8 @@ UiApp::UiApp(biz::IBizFacade &biz, heltec::meshcore::power::PowerMgr &power)
       _scrRadio(_biz, "Radio", &icon_radio_img),
 #if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
       _scrCompass(_biz, "Compass", &icon_compass_img),
+#endif
+#if defined(ENV_INCLUDE_GPS) && ENV_INCLUDE_GPS
       _scrFindFriend(_biz, "Find Friend", &icon_findfriend_img),
 #endif
 #if UI_INCLUDE_GPS_SCREEN
@@ -655,6 +657,8 @@ bool UiApp::initScreens(_lv_obj_t *content) {
     screens[screen_count++] = &_scrRadio;
 #if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
     screens[screen_count++] = &_scrCompass;
+#endif
+#if defined(ENV_INCLUDE_GPS) && ENV_INCLUDE_GPS
     screens[screen_count++] = &_scrFindFriend;
 #endif
 #if UI_INCLUDE_GPS_SCREEN

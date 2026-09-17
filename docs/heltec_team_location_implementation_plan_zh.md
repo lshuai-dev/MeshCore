@@ -1062,7 +1062,6 @@ specific TeamMember -> sendMessage(transient_team_peer, text)
 新增功能宏：
 
 ```text
-HELTEC_TEAM_FEATURE=1
 HELTEC_TEAM_ROLE=0
 HELTEC_TEAM_MAX_MEMBERS=32
 HELTEC_TEAM_JOIN_CHANNEL_INDEX=(MAX_GROUP_CHANNELS-2)

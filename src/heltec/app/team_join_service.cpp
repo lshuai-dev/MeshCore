@@ -6,7 +6,7 @@
  */
 #include "app/team_join_service.hpp"
 
-#if HELTEC_TEAM_FEATURE
+#if defined(ENV_INCLUDE_GPS) && ENV_INCLUDE_GPS
 
 #include "app/HeltecMesh.h"
 
@@ -150,10 +150,7 @@ bool TeamJoinService::sendJoin(const uint8_t *data, size_t length, uint32_t dela
 
 bool TeamJoinService::openJoinWindow()
 {
-#if HELTEC_TEAM_ROLE != 1
-    return false;
-#else
-    if (!_team || !_team->hasTeam())
+    if (!_team || _team->role() != TeamRole::Leader || !_team->hasTeam())
     {
         return false;
     }
@@ -165,43 +162,36 @@ bool TeamJoinService::openJoinWindow()
     _state = JoinState::Idle;
     MESH_DEBUG_PRINTLN("[team:leader] join window opened");
     return true;
-#endif
 }
 
 void TeamJoinService::closeJoinWindow()
 {
     _join_window_open = false;
-#if HELTEC_TEAM_ROLE == 1
-    MESH_DEBUG_PRINTLN("[team:leader] join window closed");
-    for (Session &session : _sessions)
+    if (_team && _team->role() == TeamRole::Leader)
     {
-        if (session.occupied && session.request_received && !session.decision_sent)
+        MESH_DEBUG_PRINTLN("[team:leader] join window closed");
+        for (Session &session : _sessions)
         {
-            (void)sendDecision(session, false);
-            increment(_stats.rejected);
+            if (session.occupied && session.request_received && !session.decision_sent)
+            {
+                (void)sendDecision(session, false);
+                increment(_stats.rejected);
+            }
         }
     }
     clearAllSessions();
-#endif
     if (_state == JoinState::PendingApproval || _state == JoinState::SendingCredentials)
         _state = JoinState::TimedOut;
 }
 
 bool TeamJoinService::joinWindowOpen() const
 {
-#if HELTEC_TEAM_ROLE == 1
-    return _join_window_open;
-#else
-    return false;
-#endif
+    return _team && _team->role() == TeamRole::Leader && _join_window_open;
 }
 
 bool TeamJoinService::discoverTeams()
 {
-#if HELTEC_TEAM_ROLE == 1
-    return false;
-#else
-    if (!_mesh)
+    if (!_mesh || !_team || _team->role() != TeamRole::Member)
         return false;
     cancel();
     _mesh->getRNG()->random(reinterpret_cast<uint8_t *>(&_request_id), sizeof(_request_id));
@@ -210,7 +200,6 @@ bool TeamJoinService::discoverTeams()
     _discover_count = 0;
     _state = JoinState::Searching;
     return true;
-#endif
 }
 
 bool TeamJoinService::sendDiscover()
@@ -224,35 +213,36 @@ bool TeamJoinService::sendDiscover()
 void TeamJoinService::poll()
 {
     const uint32_t now = millis();
-#if HELTEC_TEAM_ROLE == 1
-    for (Session &session : _sessions)
+    if (_team && _team->role() == TeamRole::Leader)
     {
-        // RX only records the request. Build/encrypt the offer after RX has unwound.
-        if (session.occupied && session.offer_pending &&
-            !expired(now, session.expires_ms) && joinWindowOpen())
+        for (Session &session : _sessions)
         {
-            session.offer_pending = false;
-            (void)sendOffer(session);
-        }
-        if (session.occupied && expired(now, session.expires_ms))
-        {
-            if (session.request_received && !session.decision_sent)
+            if (session.occupied && session.offer_pending &&
+                !expired(now, session.expires_ms) && joinWindowOpen())
             {
-                (void)sendDecision(session, false);
-                increment(_stats.rejected);
+                session.offer_pending = false;
+                (void)sendOffer(session);
             }
-            clearSession(session);
-            _state = JoinState::TimedOut;
-            increment(_stats.timeout);
+            if (session.occupied && expired(now, session.expires_ms))
+            {
+                if (session.request_received && !session.decision_sent)
+                {
+                    (void)sendDecision(session, false);
+                    increment(_stats.rejected);
+                }
+                clearSession(session);
+                _state = JoinState::TimedOut;
+                increment(_stats.timeout);
+            }
         }
+        PendingJoin pending{};
+        if (pendingJoin(pending))
+        {
+            _pairing_code = pending.pairing_code;
+            _state = JoinState::PendingApproval;
+        }
+        return;
     }
-    PendingJoin pending{};
-    if (pendingJoin(pending))
-    {
-        _pairing_code = pending.pairing_code;
-        _state = JoinState::PendingApproval;
-    }
-#else
     if (_state == JoinState::Searching)
     {
         if (expired(now, _search_end_ms))
@@ -273,7 +263,6 @@ void TeamJoinService::poll()
         _state = JoinState::TimedOut;
         increment(_stats.timeout);
     }
-#endif
 }
 
 void TeamJoinService::handleJoinData(const uint8_t *data, size_t length)
@@ -303,35 +292,32 @@ void TeamJoinService::handleJoinData(const uint8_t *data, size_t length)
 
 TeamJoinService::Session *TeamJoinService::findSession(uint64_t session_id)
 {
-#if HELTEC_TEAM_ROLE == 1
+    if (!_team || _team->role() != TeamRole::Leader)
+        return nullptr;
     for (Session &session : _sessions)
     {
         if (session.occupied && session.session_id == session_id)
             return &session;
     }
-#else
-    (void)session_id;
-#endif
     return nullptr;
 }
 
 TeamJoinService::Session *TeamJoinService::findSessionByRequest(uint32_t request_id)
 {
-#if HELTEC_TEAM_ROLE == 1
+    if (!_team || _team->role() != TeamRole::Leader)
+        return nullptr;
     for (Session &session : _sessions)
     {
         if (session.occupied && session.request_id == request_id)
             return &session;
     }
-#else
-    (void)request_id;
-#endif
     return nullptr;
 }
 
 TeamJoinService::Session *TeamJoinService::allocateSession()
 {
-#if HELTEC_TEAM_ROLE == 1
+    if (!_team || _team->role() != TeamRole::Leader)
+        return nullptr;
     for (Session &session : _sessions)
     {
         if (!session.occupied)
@@ -341,7 +327,6 @@ TeamJoinService::Session *TeamJoinService::allocateSession()
             return &session;
         }
     }
-#endif
     return nullptr;
 }
 
@@ -352,29 +337,23 @@ void TeamJoinService::clearSession(Session &session)
 
 void TeamJoinService::clearAllSessions()
 {
-#if HELTEC_TEAM_ROLE == 1
     secure_clear(_sessions, sizeof(_sessions));
-#else
     secure_clear(_offers, sizeof(_offers));
     secure_clear(&_selected, sizeof(_selected));
     secure_clear(_member_nonce, sizeof(_member_nonce));
     _offer_count = 0;
-#endif
     _pairing_code = 0;
 }
 
 void TeamJoinService::clearMemberEphemeral()
 {
-#if HELTEC_TEAM_ROLE == 0
     secure_clear(&_selected, sizeof(_selected));
     secure_clear(_member_nonce, sizeof(_member_nonce));
-#endif
 }
 
 void TeamJoinService::receiveDiscover(const uint8_t *data, size_t length)
 {
-#if HELTEC_TEAM_ROLE == 1
-    if (!_mesh || !_team || !data)
+    if (!_mesh || !_team || _team->role() != TeamRole::Leader || !data)
     {
         return;
     }
@@ -423,19 +402,11 @@ void TeamJoinService::receiveDiscover(const uint8_t *data, size_t length)
     MESH_DEBUG_PRINTLN("[team:leader] discover accepted request=%08lX session=%08lX",
                        static_cast<unsigned long>(request_id),
                        static_cast<unsigned long>(session->session_id));
-#else
-    (void)data;
-    (void)length;
-#endif
 }
 
 bool TeamJoinService::sendOffer(Session &session)
 {
-#if HELTEC_TEAM_ROLE != 1
-    (void)session;
-    return false;
-#else
-    if (!_mesh || !_team)
+    if (!_mesh || !_team || _team->role() != TeamRole::Leader)
     {
         return false;
     }
@@ -465,12 +436,12 @@ bool TeamJoinService::sendOffer(Session &session)
     if (sent)
         increment(_stats.offer_tx);
     return sent;
-#endif
 }
 
 void TeamJoinService::receiveOffer(const uint8_t *data, size_t length)
 {
-#if HELTEC_TEAM_ROLE == 0
+    if (!_team || _team->role() != TeamRole::Member)
+        return;
     constexpr size_t kFixed = 2 + 4 + 8 + 8 + kPublicKeySize + kNonceSize + 1;
     if (_state != JoinState::Searching && _state != JoinState::OffersAvailable)
     {
@@ -512,42 +483,24 @@ void TeamJoinService::receiveOffer(const uint8_t *data, size_t length)
     memcpy(offer.name, data + kFixed, name_len);
     offer.name[name_len] = '\0';
     _state = JoinState::OffersAvailable;
-#else
-    (void)data;
-    (void)length;
-#endif
 }
 
 size_t TeamJoinService::offerCount() const
 {
-#if HELTEC_TEAM_ROLE == 0
-    return _offer_count;
-#else
-    return 0;
-#endif
+    return _team && _team->role() == TeamRole::Member ? _offer_count : 0;
 }
 
 bool TeamJoinService::offerAt(size_t index, TeamOffer &offer) const
 {
-#if HELTEC_TEAM_ROLE == 0
-    if (index >= _offer_count)
+    if (!_team || _team->role() != TeamRole::Member || index >= _offer_count)
         return false;
     offer = _offers[index];
     return true;
-#else
-    (void)index;
-    (void)offer;
-    return false;
-#endif
 }
 
 bool TeamJoinService::selectOffer(size_t index)
 {
-#if HELTEC_TEAM_ROLE == 1
-    (void)index;
-    return false;
-#else
-    if (index >= _offer_count)
+    if (!_team || _team->role() != TeamRole::Member || index >= _offer_count)
         return false;
     _selected = _offers[index];
     _mesh->getRNG()->random(_member_nonce, sizeof(_member_nonce));
@@ -569,14 +522,12 @@ bool TeamJoinService::selectOffer(size_t index)
     _state = JoinState::WaitingForApproval;
     _decision_end_ms = millis() + kSessionDurationMs;
     return true;
-#endif
 }
 
 bool TeamJoinService::sendRequest()
 {
-#if HELTEC_TEAM_ROLE == 1
-    return false;
-#else
+    if (!_team || _team->role() != TeamRole::Member)
+        return false;
     size_t name_len = strnlen(_mesh->getNodeName(), kMaxNameBytes);
     while (name_len > 0 && !valid_utf8(
                reinterpret_cast<const uint8_t *>(_mesh->getNodeName()), name_len))
@@ -597,12 +548,12 @@ bool TeamJoinService::sendRequest()
     memcpy(frame + offset, _mesh->getNodeName(), name_len);
     offset += name_len;
     return sendJoin(frame, offset);
-#endif
 }
 
 void TeamJoinService::receiveRequest(const uint8_t *data, size_t length)
 {
-#if HELTEC_TEAM_ROLE == 1
+    if (!_team || _team->role() != TeamRole::Leader)
+        return;
     constexpr size_t kFixed = 2 + 8 + kPublicKeySize + kNonceSize + 1;
     if (!joinWindowOpen() || length < kFixed)
         return;
@@ -640,16 +591,11 @@ void TeamJoinService::receiveRequest(const uint8_t *data, size_t length)
     session->expires_ms = millis() + kSessionDurationMs;
     _pairing_code = session->pairing_code;
     _state = JoinState::PendingApproval;
-#else
-    (void)data;
-    (void)length;
-#endif
 }
 
 bool TeamJoinService::pendingJoin(PendingJoin &pending) const
 {
     pending = PendingJoin{};
-#if HELTEC_TEAM_ROLE == 1
     if (!joinWindowOpen())
         return false;
     for (const Session &session : _sessions)
@@ -665,13 +611,11 @@ bool TeamJoinService::pendingJoin(PendingJoin &pending) const
         memcpy(pending.member_public_key, session.member_public_key, kPublicKeySize);
         return true;
     }
-#endif
     return false;
 }
 
 bool TeamJoinService::approvePending(uint64_t session_id)
 {
-#if HELTEC_TEAM_ROLE == 1
     Session *session = findSession(session_id);
     if (!joinWindowOpen() || !session || !session->request_received ||
         session->decision_sent || static_cast<int32_t>(millis() - session->expires_ms) >= 0)
@@ -685,15 +629,10 @@ bool TeamJoinService::approvePending(uint64_t session_id)
     increment(_stats.approved);
     _state = JoinState::SendingCredentials;
     return true;
-#else
-    (void)session_id;
-    return false;
-#endif
 }
 
 bool TeamJoinService::rejectPending(uint64_t session_id)
 {
-#if HELTEC_TEAM_ROLE == 1
     Session *session = findSession(session_id);
     if (!joinWindowOpen() || !session || !session->request_received ||
         session->decision_sent || static_cast<int32_t>(millis() - session->expires_ms) >= 0)
@@ -703,10 +642,6 @@ bool TeamJoinService::rejectPending(uint64_t session_id)
     _state = JoinState::Rejected;
     increment(_stats.rejected);
     return sent;
-#else
-    (void)session_id;
-    return false;
-#endif
 }
 
 bool TeamJoinService::deriveKeys(const uint8_t peer_public_key[kPublicKeySize],
@@ -733,13 +668,9 @@ bool TeamJoinService::deriveKeys(const uint8_t peer_public_key[kPublicKeySize],
     put_u64(ids, session_id);
     put_u64(ids + 8, team_id);
     hash.update(ids, sizeof(ids));
-#if HELTEC_TEAM_ROLE == 1
-    hash.update(_mesh->self_id.pub_key, kPublicKeySize);
-    hash.update(peer_public_key, kPublicKeySize);
-#else
-    hash.update(peer_public_key, kPublicKeySize);
-    hash.update(_mesh->self_id.pub_key, kPublicKeySize);
-#endif
+    const bool leader = _team && _team->role() == TeamRole::Leader;
+    hash.update(leader ? _mesh->self_id.pub_key : peer_public_key, kPublicKeySize);
+    hash.update(leader ? peer_public_key : _mesh->self_id.pub_key, kPublicKeySize);
     hash.update(leader_nonce, kNonceSize);
     hash.update(member_nonce, kNonceSize);
     hash.finalize(transcript_hash, 32);
@@ -767,11 +698,8 @@ bool TeamJoinService::deriveKeys(const uint8_t peer_public_key[kPublicKeySize],
 
 bool TeamJoinService::sendDecision(Session &session, bool approved)
 {
-#if HELTEC_TEAM_ROLE != 1
-    (void)session;
-    (void)approved;
-    return false;
-#else
+    if (!_team || _team->role() != TeamRole::Leader)
+        return false;
     uint8_t decision_key[32] = {};
     uint8_t ack_key[32] = {};
     uint8_t transcript[32] = {};
@@ -821,12 +749,12 @@ bool TeamJoinService::sendDecision(Session &session, bool approved)
     secure_clear(transcript, sizeof(transcript));
     secure_clear(plain, sizeof(plain));
     return encrypted && sendJoin(frame, offset);
-#endif
 }
 
 void TeamJoinService::receiveDecision(const uint8_t *data, size_t length)
 {
-#if HELTEC_TEAM_ROLE == 0
+    if (!_team || _team->role() != TeamRole::Member)
+        return;
     constexpr size_t kFixed = 2 + 8 + kAeadNonceSize + 1 + kAeadTagSize;
     if (_state != JoinState::WaitingForApproval || length < kFixed ||
         get_u64(data + 2) != _selected.session_id)
@@ -916,18 +844,12 @@ void TeamJoinService::receiveDecision(const uint8_t *data, size_t length)
     secure_clear(&credentials, sizeof(credentials));
     clearMemberEphemeral();
     _state = JoinState::Joined;
-#else
-    (void)data;
-    (void)length;
-#endif
 }
 
 bool TeamJoinService::sendAck(uint32_t key_version)
 {
-#if HELTEC_TEAM_ROLE == 1
-    (void)key_version;
-    return false;
-#else
+    if (!_team || _team->role() != TeamRole::Member)
+        return false;
     uint8_t decision_key[32] = {};
     uint8_t ack_key[32] = {};
     uint8_t transcript[32] = {};
@@ -954,12 +876,12 @@ bool TeamJoinService::sendAck(uint32_t key_version)
     secure_clear(ack_key, sizeof(ack_key));
     secure_clear(transcript, sizeof(transcript));
     return encrypted && sendJoin(frame, 23 + sizeof(plain) + kAeadTagSize);
-#endif
 }
 
 void TeamJoinService::receiveAck(const uint8_t *data, size_t length)
 {
-#if HELTEC_TEAM_ROLE == 1
+    if (!_team || _team->role() != TeamRole::Leader)
+        return;
     constexpr size_t kExpected = 2 + 8 + kAeadNonceSize + 1 + 5 + kAeadTagSize;
     if (length != kExpected || data[22] != 5)
         return;
@@ -997,10 +919,6 @@ void TeamJoinService::receiveAck(const uint8_t *data, size_t length)
     {
         increment(_stats.aead_error);
     }
-#else
-    (void)data;
-    (void)length;
-#endif
 }
 
 void TeamJoinService::cancel()

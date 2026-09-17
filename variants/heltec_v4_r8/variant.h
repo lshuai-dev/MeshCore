@@ -4,14 +4,11 @@
 // -include'd to shorten Windows g++ command line (CreateProcess limit).
 // Profiles: HELTEC_V4_R8_TFT / HELTEC_V4_R8_OLED.
 
-// Static build configuration lives here instead of in build_flags so Windows
-// does not have to pass the same long list of -D arguments to every compiler.
+// Hardware identity and pin definitions shared by the V4 R8 profiles.
 #define HELTEC_V4_R8 1
 #define USE_SX1262 1
-#define HELTEC_MESH_UI 1
 #define HAS_LNA_CONTROL 1
 #define ED25519_NO_SEED 1
-#define MOMENTARY_BUTTON_MAX 2
 #define HELTEC_BUTTON_MAX_CLICKS 3
 
 #define ENV_INCLUDE_GPS 1
@@ -151,30 +148,9 @@
 #endif
 
 #if defined(HELTEC_V4_R8_TFT)
-#define HELTEC_SENSOR_MANAGER 1
-#define HELTEC_DISPLAY_ST7789 1
-#define UI_THEME_COLOR 1
-#define UI_NAVIGATION_GRID 1
-#define UI_NAV_USE_SCREEN_ICONS 0
-#define HELTEC_HAS_TOUCH 1
-#define HELTEC_TOUCH_USE_CHSC6X 1
-#define HELTEC_TOUCH_GESTURE_INPUT 1
-#define HELTEC_TOUCH_GESTURE_SWIPE_PX 24
-#define HELTEC_TOUCH_GESTURE_DBL_MS 350
-#define HELTEC_TOUCH_GESTURE_DBL_DIST_PX 20
-#define HELTEC_TOUCH_GESTURE_LONG_MS 1000
-#define HELTEC_TOUCH_EDGE_PX 28
-#define HELTEC_TOUCH_ACTION_EDGE_PX 24
-#define HELTEC_TOUCH_TOP_ACTION_SIDE_MARGIN_PCT 10
-#define ENV_INCLUDE_MAP 1
-#define HELTEC_MAP_TOUCH_PAN 1
-#define MAP_UI_PAN_START_PX 6
-#define MAP_UI_PNG_LOADS_PER_TICK 1
-#define MAP_UI_SD_SPI_MAX_HZ 40000000U
 #define ENV_SKIP_GPS_DETECT 1
 #define SDFAT_FILE_TYPE 3
 #define HELTEC_SD_BUS_PRECONFIGURED 1
-#define HELTEC_TOPBAR_TOUCH_SHELL 1
 #ifndef GPS_L76K
 #define GPS_L76K
 #endif
@@ -296,23 +272,6 @@
 #endif
 
 #elif defined(HELTEC_V4_R8_OLED)
-
-#define HELTEC_DISPLAY_SSD1306 1
-#define UI_THEME_MONO 1
-#define LV_COLOR_DEPTH 1
-#define LV_MEM_BUF_MAX_NUM 16
-#define LV_DISP_DEF_REFR_PERIOD 33
-#define LV_INDEV_DEF_READ_PERIOD 20
-#define LV_LAYER_SIMPLE_BUF_SIZE 3200U
-#define LV_USE_THEME_DEFAULT 0
-#define LV_USE_THEME_BASIC 0
-#define LV_USE_THEME_MONO 1
-#define LV_USE_MENU 1
-#define LV_USE_ROLLER 0
-#define LV_FONT_HELTEC_7 1
-#define LV_FONT_CUSTOM_DECLARE LV_FONT_DECLARE(lv_font_heltec_7)
-#define LV_FONT_DEFAULT &lv_font_heltec_7
-
 #ifndef PIN_BOARD_SDA
 #define PIN_BOARD_SDA             (17)
 #endif

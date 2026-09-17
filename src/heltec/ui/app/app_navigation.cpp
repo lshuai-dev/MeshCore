@@ -144,6 +144,8 @@ bool UiApp::initNavigationPane(_lv_obj_t *parent)
 #if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
         { static_cast<uint8_t>(eScreenId::Compass), _scrCompass.title(), _scrCompass.icon(),
           false },
+#endif
+#if defined(ENV_INCLUDE_GPS) && ENV_INCLUDE_GPS
         { static_cast<uint8_t>(eScreenId::FindFriend), _scrFindFriend.title(),
           _scrFindFriend.icon(), false },
 #endif
@@ -157,15 +159,15 @@ bool UiApp::initNavigationPane(_lv_obj_t *parent)
         { static_cast<uint8_t>(eScreenId::System), _scrSystem.title(), _scrSystem.icon(), false },
     };
 #endif
-#if defined(UI_NAVIGATION_GRID) && UI_NAVIGATION_GRID && defined(ENV_INCLUDE_COMPASS) && \
-    ENV_INCLUDE_COMPASS
+#if defined(UI_NAVIGATION_GRID) && UI_NAVIGATION_GRID && defined(ENV_INCLUDE_GPS) && \
+    ENV_INCLUDE_GPS
     const UiNavigationItem footer = { static_cast<uint8_t>(eScreenId::FindFriend),
                                       _scrFindFriend.title(), _scrFindFriend.icon(), true };
 #endif
 
     _navigation.configure(items, static_cast<uint8_t>(sizeof(items) / sizeof(items[0])));
-#if defined(UI_NAVIGATION_GRID) && UI_NAVIGATION_GRID && defined(ENV_INCLUDE_COMPASS) && \
-    ENV_INCLUDE_COMPASS
+#if defined(UI_NAVIGATION_GRID) && UI_NAVIGATION_GRID && defined(ENV_INCLUDE_GPS) && \
+    ENV_INCLUDE_GPS
     _navigation.configure(&footer, 1);
 #endif
 

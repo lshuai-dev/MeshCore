@@ -1,4 +1,4 @@
-#if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
+#if defined(ENV_INCLUDE_GPS) && ENV_INCLUDE_GPS
 #include "find_friend_screen.hpp"
 #include "app/team_join_service.hpp"
 #include "compass_common.hpp"
@@ -21,6 +21,10 @@
 namespace heltec::meshcore::ui {
 
 namespace {
+#if defined(HELTEC_HAS_TOUCH) && HELTEC_HAS_TOUCH
+constexpr lv_coord_t kTouchFindFriendDialHeight = 144;
+constexpr lv_coord_t kTouchFindFriendDialEdgeMargin = 16;
+#endif
 #if defined(HELTEC_T1)
 // T1: 80px panel height - 12px top pane - 2px tile padding on each side.
 constexpr lv_coord_t kT1FindFriendContentHeight = 64;
@@ -104,7 +108,12 @@ void FindFriendScreen::setStatusText(const char *status) {
 }
 
 void FindFriendScreen::showInfoOnly(const char *info) {
-    _dial.setVisible(false);
+    _dial.setVisible(true);
+    _dial.setFriendNeedle(0, false, false, false, false);
+    _direction_valid = false;
+    _near_target = false;
+    _on_target = false;
+    _gps_fix = false;
     setInfoText(info);
 }
 
@@ -123,6 +132,9 @@ void FindFriendScreen::showHeadingOnly(const biz::FindFriendUi &ui, const char *
             _ring_heading_tenths = ring;
             _dial.setRingHeading(ring);
         }
+    } else if (_ring_heading_tenths != 0) {
+        _ring_heading_tenths = 0;
+        _dial.setRingHeading(0);
     }
     setInfoText(info);
 }
@@ -136,8 +148,7 @@ void FindFriendScreen::onEnter() {
     syncControls(true);
     _defer_cycle_target = _biz.findFriendEnabled();
 
-    if (_dial_row) lv_obj_update_layout(_dial_row);
-    _dial.layoutSize();
+    layoutDialColumns();
 
     render(_biz.findFriendUi());
 }
@@ -171,31 +182,45 @@ bool FindFriendScreen::createDial() {
 #else
     compass_init_dial_row(_dial_row, (lv_coord_t)FF_INFO_COL_MARGIN_RIGHT);
 #endif
+#if defined(HELTEC_HAS_TOUCH) && HELTEC_HAS_TOUCH
+    lv_obj_set_flex_flow(_dial_row, LV_FLEX_FLOW_COLUMN);
+    lv_obj_set_flex_align(_dial_row, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER,
+                          LV_FLEX_ALIGN_CENTER);
+    lv_obj_set_style_pad_right(_dial_row, 0, LV_PART_MAIN);
+    lv_obj_set_style_pad_row(_dial_row, LV_DPX(4), LV_PART_MAIN);
+#endif
 
     _dial.min_side = 16;
-#if defined(HELTEC_T1)
+#if defined(HELTEC_HAS_TOUCH) && HELTEC_HAS_TOUCH
+    // Reserve enough space for the cardinal labels drawn outside the dial.
+    _dial.edge_margin = kTouchFindFriendDialEdgeMargin;
+#elif defined(HELTEC_T1)
     // 64px column minus 4px padding on every side gives a 56px dial.
     _dial.edge_margin = kT1FindFriendDialPadding;
 #endif
     _dial.needle_kind = CompassDialNeedleKind::FriendTurn;
     if (!_dial.create(_dial_row)) return false;
-#if defined(HELTEC_T1)
-    // Give the graphic only the square it needs; the settings column receives
-    // every remaining horizontal pixel.
+    // The left column is a square matching the available content height. The
+    // right column receives every remaining horizontal pixel.
+#if defined(HELTEC_HAS_TOUCH) && HELTEC_HAS_TOUCH
+    lv_obj_set_size(_dial.center_col, lv_pct(100), kTouchFindFriendDialHeight);
+#elif defined(HELTEC_T1)
     lv_obj_set_width(_dial.center_col, kT1FindFriendDialColumnWidth);
-    lv_obj_set_flex_grow(_dial.center_col, 0);
+#else
+    lv_obj_set_width(_dial.center_col, _dial.min_side);
 #endif
+    lv_obj_set_flex_grow(_dial.center_col, 0);
 
     _right_column = compass_create_info_column(_dial_row, (lv_coord_t)FF_INFO_COL_WIDTH_PCT,
                                                (lv_coord_t)FF_INFO_COL_PAD_LEFT,
-#if defined(HELTEC_T1)
                                                0
-#else
-                                               1
-#endif
     );
     if (!_right_column) return false;
-#if defined(HELTEC_T1)
+#if defined(HELTEC_HAS_TOUCH) && HELTEC_HAS_TOUCH
+    lv_obj_set_size(_right_column, lv_pct(100), 0);
+    lv_obj_set_flex_grow(_right_column, 1);
+    ui_theme_set_compass_info_layout(_right_column, LV_DPX(4), LV_DPX(2));
+#else
     lv_obj_set_width(_right_column, 0);
     lv_obj_set_flex_grow(_right_column, 1);
 #endif
@@ -206,8 +231,45 @@ bool FindFriendScreen::createDial() {
     return true;
 }
 
+void FindFriendScreen::layoutDialColumns() {
+    if (!_dial_row || !_dial.center_col || !_right_column) return;
+
+    lv_obj_update_layout(_dial_row);
+#if defined(HELTEC_HAS_TOUCH) && HELTEC_HAS_TOUCH
+    if (lv_obj_get_height(_dial.center_col) != kTouchFindFriendDialHeight) {
+        lv_obj_set_height(_dial.center_col, kTouchFindFriendDialHeight);
+        lv_obj_update_layout(_dial_row);
+    }
+#elif !defined(HELTEC_T1)
+    const lv_coord_t content_width = lv_obj_get_content_width(_dial_row);
+    const lv_coord_t content_height = lv_obj_get_content_height(_dial_row);
+    const lv_coord_t column_gap = lv_obj_get_style_pad_column(_dial_row, LV_PART_MAIN);
+    const lv_coord_t usable_width = content_width > column_gap ?
+        static_cast<lv_coord_t>(content_width - column_gap) : content_width;
+    const lv_coord_t max_square_width = static_cast<lv_coord_t>(usable_width / 2);
+    const lv_coord_t dial_column_width = LV_MIN(content_height, max_square_width);
+    if (dial_column_width >= _dial.min_side &&
+        lv_obj_get_width(_dial.center_col) != dial_column_width) {
+        lv_obj_set_width(_dial.center_col, dial_column_width);
+        lv_obj_update_layout(_dial_row);
+    }
+#endif
+    _dial.layoutSize();
+}
+
 void FindFriendScreen::createInfoRows() {
     if (!_right_column) return;
+
+#if defined(HELTEC_HAS_TOUCH) && HELTEC_HAS_TOUCH
+    lv_obj_t *const spacer = lv_obj_create(_right_column);
+    if (spacer)
+    {
+        lv_obj_remove_style_all(spacer);
+        lv_obj_set_size(spacer, lv_pct(100), 0);
+        lv_obj_set_flex_grow(spacer, 1);
+        lv_obj_clear_flag(spacer, LV_OBJ_FLAG_CLICKABLE | LV_OBJ_FLAG_SCROLLABLE);
+    }
+#endif
 
     _lbl_info = lv_label_create(_right_column);
     compass_style_info_label(_lbl_info, "starting...", LV_LABEL_LONG_CLIP);
@@ -221,7 +283,7 @@ void FindFriendScreen::createInfoRows() {
 }
 
 void FindFriendScreen::render(const biz::FindFriendUi &u) {
-    _dial.setCenterMarkerVisible(!_biz.findFriendEnabled());
+    _dial.setCenterMarkerVisible(false);
 
     const biz::IBizFacade::TeamStatus team = _biz.teamStatus();
     const auto team_state =
@@ -255,12 +317,14 @@ void FindFriendScreen::render(const biz::FindFriendUi &u) {
 
     char gps_age[12];
     format_age_short(gps_age, sizeof(gps_age), u.gps_fix, u.gps_age_ms);
-    const char *compass_status =
-        u.compass_quality < 2 ? " calibrate" : (u.compass_quality == 2 ? " compass low" : "");
+    const char *compass_status = !u.compass_hw ? " north-up" :
+        (u.compass_quality < 2 ? " calibrate" :
+         (u.compass_quality == 2 ? " compass low" : ""));
     const char *gps_status = u.gps_low_accuracy ? " GPS low" : "";
     const char *target_status =
         u.target_freshness == biz::FindFriendTargetFreshness::Aging ? " target aging" : "";
-    const char *declination_status = u.declination_configured ? "" : " declination unset";
+    const char *declination_status = !u.compass_hw || u.declination_configured ?
+        "" : " declination unset";
     if (u.mode == 0 && u.target_selected) {
         char target_age[12];
         format_age_short(target_age, sizeof(target_age), u.target_age_known, u.target_age_ms);
@@ -275,7 +339,27 @@ void FindFriendScreen::render(const biz::FindFriendUi &u) {
     setStatusText(_status_text);
 
     if (!u.compass_hw) {
-        showInfoOnly("no compass");
+        if (!u.target_selected) {
+            showHeadingOnly(u, "");
+        } else if (!u.target_valid) {
+            showHeadingOnly(u, "no location");
+        } else if (!u.gps_fix) {
+            showHeadingOnly(u, "need gps");
+        } else if (u.bearing_valid) {
+            _dial.setVisible(true);
+            _ring_heading_tenths = 0;
+            _dial.setRingHeading(0);
+            const int16_t bearing = static_cast<int16_t>(
+                compass_dial_redraw_tenths(compass_heading_tenths(u.bearing_to_waypoint_deg)));
+            _dial.setFriendNeedle(bearing, true, true, false, u.near_target);
+            format_nav_distance(_info_text, sizeof(_info_text), u);
+            if (_lbl_info) {
+                lv_obj_clear_flag(_lbl_info, LV_OBJ_FLAG_HIDDEN);
+                lv_label_set_text_static(_lbl_info, _info_text);
+            }
+        } else {
+            showHeadingOnly(u, "starting...");
+        }
         return;
     }
     if (!u.heading_valid) {
@@ -364,11 +448,10 @@ void FindFriendScreen::runDeferredEnterActions() {
 }
 
 void FindFriendScreen::onExit() {
-    (void)lv_async_call_cancel(focusTeamDeferred, this);
-    (void)lv_async_call_cancel(focusMemberDeferred, this);
+    (void)lv_async_call_cancel(focusDeferred, this);
     _defer_cycle_target = false;
-    _focus_team_when_offer_available = false;
-    _focus_member_when_team_active = false;
+    _pending_focus = DeferredFocus::None;
+    _scheduled_focus = DeferredFocus::None;
     closeOpenDropdown();
     _suppress_released_dropdown = nullptr;
     _waypoint_keyboard_return_focus = nullptr;
@@ -382,10 +465,7 @@ void FindFriendScreen::refresh() {
 }
 
 void FindFriendScreen::refreshNavigation() {
-    if (_dial.side == 0) {
-        if (_dial_row) lv_obj_update_layout(_dial_row);
-        _dial.layoutSize();
-    }
+    layoutDialColumns();
 
     if (!_biz.findFriendEnabled()) {
         render(_biz.findFriendUi());
@@ -444,4 +524,4 @@ void FindFriendScreen::onUIEvent(const UiEvent &event) {
 
 } // namespace heltec::meshcore::ui
 
-#endif // ENV_INCLUDE_COMPASS
+#endif // ENV_INCLUDE_GPS

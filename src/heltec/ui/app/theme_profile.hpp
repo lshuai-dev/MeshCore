@@ -14,13 +14,4 @@
 #endif
 #endif
 
-#ifndef HELTEC_UI_INPUT_TOUCH
-#if (defined(HELTEC_HAS_TOUCH) && HELTEC_HAS_TOUCH) || \
-    (defined(HAS_TOUCH) && HAS_TOUCH)
-#define HELTEC_UI_INPUT_TOUCH 1
-#else
-#define HELTEC_UI_INPUT_TOUCH 0
-#endif
-#endif
-
 #endif // HELTEC_UI_APP_UI_THEME_PROFILE_HPP

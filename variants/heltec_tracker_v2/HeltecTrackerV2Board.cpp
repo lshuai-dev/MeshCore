@@ -1,4 +1,4 @@
-#include "HeltecRadioCoreC6Board.h"
+#include "HeltecTrackerV2Board.h"
 
 #if defined(HELTEC_MESH_UI) && HELTEC_MESH_UI && defined(HELTEC_DISPLAY_ST7735)
 #include <lvgl.h>
@@ -66,6 +66,23 @@ void HeltecTrackerV2Board::begin() {
 
   void HeltecTrackerV2Board::enterDeepSleep(uint32_t secs, int pin_wake_btn) {
     esp_sleep_pd_config(ESP_PD_DOMAIN_RTC_PERIPH, ESP_PD_OPTION_ON);
+    rtc_gpio_set_direction((gpio_num_t)P_LORA_DIO_1, RTC_GPIO_MODE_INPUT_ONLY);
+    rtc_gpio_pulldown_en((gpio_num_t)P_LORA_DIO_1);
+    rtc_gpio_hold_en((gpio_num_t)P_LORA_NSS);
+    loRaFEMControl.setRxModeEnableWhenMCUSleep();
+
+    uint64_t wake_mask = 1ULL << P_LORA_DIO_1;
+    if (pin_wake_btn >= 0) {
+      wake_mask |= 1ULL << pin_wake_btn;
+    }
+    esp_sleep_enable_ext1_wakeup(wake_mask, ESP_EXT1_WAKEUP_ANY_HIGH);
+
+    if (secs > 0) {
+      esp_sleep_enable_timer_wakeup(static_cast<uint64_t>(secs) * 1000000ULL);
+    }
+    esp_deep_sleep_start();
+  }
+
   void HeltecTrackerV2Board::powerOff() {
     // Turn off PA
     digitalWrite(P_LORA_PA_POWER, LOW);

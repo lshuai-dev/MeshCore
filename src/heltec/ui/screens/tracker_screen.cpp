@@ -146,7 +146,7 @@ bool TrackerScreen::hitMapToolbar(lv_coord_t x, lv_coord_t y) const
     if (!_toolbar)
         return false;
     const _lv_obj_t *buttons[] = {
-        _btn_zoom_out, _btn_zoom_in, _btn_gps, _btn_team,
+        _btn_zoom_out, _btn_zoom_in, _btn_gps,
 #if !defined(HELTEC_V4_R8_TFT)
         _dd_member_message,
 #endif
@@ -405,7 +405,6 @@ void TrackerScreen::syncTeamTools()
 {
     const biz::IBizFacade::TeamStatus team = _biz.teamStatus();
     const bool active = team.has_team;
-    const bool joining = team.join_window_open;
     if (active && !_team_refresh_enabled)
     {
         _team_refresh_enabled = true;
@@ -416,13 +415,12 @@ void TrackerScreen::syncTeamTools()
         _team_refresh_enabled = false;
         _next_team_refresh_ms = 0;
     }
-    if (_team_state_valid && active == _team_active_cached && joining == _team_joining_cached &&
+    if (_team_state_valid && active == _team_active_cached &&
         team.member_count == _team_member_count_cached &&
         team.member_revision == _team_member_revision_cached)
         return;
     _team_state_valid = true;
     _team_active_cached = active;
-    _team_joining_cached = joining;
 #if !defined(HELTEC_V4_R8_TFT)
     if (team.member_count != _team_member_count_cached ||
         team.member_revision != _team_member_revision_cached)
@@ -431,11 +429,11 @@ void TrackerScreen::syncTeamTools()
     _team_member_count_cached = team.member_count;
     _team_member_revision_cached = team.member_revision;
 #if defined(HELTEC_V4_R8_TFT)
-    _lv_obj_t *const buttons[] = { _btn_team, _btn_group_message };
-    const bool allowed[] = { true, active };
+    _lv_obj_t *const buttons[] = { _btn_group_message };
+    const bool allowed[] = { active };
 #else
-    _lv_obj_t *const buttons[] = { _btn_team, _dd_member_message, _btn_group_message };
-    const bool allowed[] = { true, active && team.member_count > 0, active };
+    _lv_obj_t *const buttons[] = { _dd_member_message, _btn_group_message };
+    const bool allowed[] = { active && team.member_count > 0, active };
 #endif
     for (unsigned i = 0; i < sizeof(buttons) / sizeof(buttons[0]); ++i)
     {
@@ -445,13 +443,6 @@ void TrackerScreen::syncTeamTools()
             lv_obj_add_state(buttons[i], LV_STATE_DISABLED);
         else
             lv_obj_clear_state(buttons[i], LV_STATE_DISABLED);
-    }
-    if (_btn_team && lv_obj_get_child(_btn_team, 0))
-    {
-        const char *label = !active ? "Off" : team.join_window_open ? "Close" : "Open";
-        _lv_obj_t *child = lv_obj_get_child(_btn_team, 0);
-        if (strcmp(lv_label_get_text(child), label) != 0)
-            lv_label_set_text_static(child, label);
     }
 }
 
@@ -517,42 +508,7 @@ void TrackerScreen::onTeamToolClicked(lv_event_t *event)
         return;
     _lv_obj_t *const button = lv_event_get_target(event);
     const lv_event_code_t code = lv_event_get_code(event);
-    if (button == self->_btn_team)
-    {
-        if (code == LV_EVENT_LONG_PRESSED)
-        {
-            if (!self->_biz.teamSetActive(!self->_biz.teamStatus().has_team))
-            {
-                self->_biz.showAlert("Team toggle failed", 2000);
-            }
-            else
-            {
-                self->_biz.showAlert(self->_biz.teamStatus().has_team ? "Team ON" : "Team OFF", 2000);
-            }
-            lv_event_stop_bubbling(event);
-            lv_event_stop_processing(event);
-        }
-        else if (code == LV_EVENT_SHORT_CLICKED)
-        {
-            const biz::IBizFacade::TeamStatus team = self->_biz.teamStatus();
-            if (!team.has_team)
-            {
-                self->_biz.showAlert("Hold: turn Team ON", 2000);
-            }
-            else if (!self->_biz.teamSetJoining(!team.join_window_open))
-            {
-                self->_biz.showAlert("Join window unavailable", 2000);
-            }
-            else
-            {
-                self->_biz.showAlert(self->_biz.teamStatus().join_window_open ?
-                                     "Join window OPEN" : "Join window CLOSED", 2000);
-            }
-            lv_event_stop_bubbling(event);
-            lv_event_stop_processing(event);
-        }
-    }
-    else if (button == self->_btn_group_message && code == LV_EVENT_SHORT_CLICKED)
+    if (button == self->_btn_group_message && code == LV_EVENT_SHORT_CLICKED)
     {
         UiSendMessageTarget target{};
         if (self->_biz.teamMessageTarget(-1, target))
@@ -591,11 +547,9 @@ void TrackerScreen::syncMapToolbarVisibility()
     if (_toolbar)
     {
 #if defined(HELTEC_V4_R8_TFT)
-        const int visible_buttons = 3 + (_btn_team ? 1 : 0) +
-                                    (_btn_group_message ? 1 : 0);
+        const int visible_buttons = 3 + (_btn_group_message ? 1 : 0);
 #else
-        const int visible_buttons = (gps_usable ? 3 : 2) + (_btn_team ? 1 : 0) +
-                                    (_dd_member_message ? 1 : 0) +
+        const int visible_buttons = (gps_usable ? 3 : 2) + (_dd_member_message ? 1 : 0) +
                                     (_btn_group_message ? 1 : 0);
 #endif
         lv_obj_set_width(_toolbar, map_toolbar_width(visible_buttons));
@@ -608,7 +562,7 @@ void TrackerScreen::raiseMapToolbar()
     if (!_toolbar || !_map_viewport)
         return;
     const _lv_obj_t *const buttons[] = {
-        _btn_zoom_out, _btn_zoom_in, _btn_gps, _btn_team,
+        _btn_zoom_out, _btn_zoom_in, _btn_gps,
 #if !defined(HELTEC_V4_R8_TFT)
         _dd_member_message,
 #endif
@@ -1185,9 +1139,9 @@ bool TrackerScreen::buildSurface()
         if (_toolbar)
         {
 #if defined(HELTEC_V4_R8_TFT)
-            const int tool_count = 5;
+            const int tool_count = 4;
 #else
-            const int tool_count = _biz.teamStatus().is_leader ? 6 : 4;
+            const int tool_count = 5;
 #endif
             lv_obj_set_size(_toolbar, map_toolbar_width(tool_count),
                             kMapToolbarPad * 2 + kMapToolBtnH);
@@ -1218,21 +1172,16 @@ bool TrackerScreen::buildSurface()
             _btn_zoom_out = lv_btn_create(_toolbar);
             _btn_zoom_in = lv_btn_create(_toolbar);
             _btn_gps = lv_btn_create(_toolbar);
-            if (_biz.teamStatus().is_leader)
-            {
-                _btn_team = lv_btn_create(_toolbar);
 #if !defined(HELTEC_V4_R8_TFT)
-                _dd_member_message = lv_dropdown_create(_toolbar);
+            _dd_member_message = lv_dropdown_create(_toolbar);
 #endif
-            }
-#if HELTEC_TEAM_FEATURE
+#if defined(ENV_INCLUDE_GPS) && ENV_INCLUDE_GPS
             _btn_group_message = lv_btn_create(_toolbar);
 #endif
             _lv_obj_t *const buttons[] = {
                 _btn_zoom_out,
                 _btn_zoom_in,
                 _btn_gps,
-                _btn_team,
 #if !defined(HELTEC_V4_R8_TFT)
                 _dd_member_message,
 #endif
@@ -1287,24 +1236,19 @@ bool TrackerScreen::buildSurface()
                 lv_obj_add_event_cb(_btn_gps, onGpsClicked, LV_EVENT_CLICKED, this);
                 addFocusableObject(_btn_gps, nullptr, false);
             }
-            _lv_obj_t *const team_buttons[] = {
-                _btn_team, _btn_group_message
-            };
+            _lv_obj_t *const team_buttons[] = { _btn_group_message };
 #if defined(HELTEC_V4_R8_TFT)
-            const char *const labels[] = { "Team", "Msg" };
+            const char *const labels[] = { "Msg" };
 #else
-            const char *const labels[] = { "Team", "All" };
+            const char *const labels[] = { "All" };
 #endif
-            for (unsigned i = 0; i < 2; ++i)
+            for (unsigned i = 0; i < 1; ++i)
             {
                 if (!team_buttons[i])
                     continue;
                 (void)add_tool_btn_label(team_buttons[i], labels[i]);
                 lv_obj_set_style_opa(team_buttons[i], LV_OPA_40, LV_STATE_DISABLED);
                 lv_obj_add_event_cb(team_buttons[i], onTeamToolClicked, LV_EVENT_SHORT_CLICKED, this);
-                if (team_buttons[i] == _btn_team)
-                    lv_obj_add_event_cb(team_buttons[i], onTeamToolClicked,
-                                        LV_EVENT_LONG_PRESSED, this);
                 addFocusableObject(team_buttons[i], nullptr, false);
             }
             syncTeamTools();

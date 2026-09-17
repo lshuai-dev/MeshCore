@@ -68,7 +68,6 @@ class TrackerScreen : public AbstractScreen
     _lv_obj_t *_btn_zoom_in = nullptr;
     _lv_obj_t *_btn_zoom_out = nullptr;
     _lv_obj_t *_btn_gps = nullptr;
-    _lv_obj_t *_btn_team = nullptr;
 #if !defined(HELTEC_V4_R8_TFT)
     _lv_obj_t *_dd_member_message = nullptr;
 #endif
@@ -95,7 +94,6 @@ class TrackerScreen : public AbstractScreen
     bool _toolbar_busy = false;
     bool _team_state_valid = false;
     bool _team_active_cached = false;
-    bool _team_joining_cached = false;
     int _team_member_count_cached = -1;
     uint16_t _team_member_revision_cached = 0;
     int8_t _toolbar_gps_usable = -1;

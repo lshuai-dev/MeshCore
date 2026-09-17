@@ -6,14 +6,6 @@
  */
 #pragma once
 
-#ifndef HELTEC_TEAM_FEATURE
-#define HELTEC_TEAM_FEATURE 0
-#endif
-
-#ifndef HELTEC_TEAM_ROLE
-#define HELTEC_TEAM_ROLE 0
-#endif
-
 #ifndef HELTEC_TEAM_MAX_MEMBERS
 #define HELTEC_TEAM_MAX_MEMBERS 32
 #endif
@@ -50,18 +42,14 @@
 #define HELTEC_TEAM_MEMBER_TIMEOUT_SEC 1200UL
 #endif
 
-#if HELTEC_TEAM_ROLE != 0 && HELTEC_TEAM_ROLE != 1
-#error "HELTEC_TEAM_ROLE must be 0 (Member) or 1 (Leader)"
-#endif
-
 #if HELTEC_TEAM_MAX_MEMBERS < 1 || HELTEC_TEAM_MAX_MEMBERS > 32
 #error "HELTEC_TEAM_MAX_MEMBERS must be between 1 and 32"
 #endif
 
-#if HELTEC_TEAM_FEATURE
+#if defined(ENV_INCLUDE_GPS) && ENV_INCLUDE_GPS
 #ifndef MAX_GROUP_CHANNELS
-#error "HELTEC_TEAM_FEATURE requires MAX_GROUP_CHANNELS"
-#endif
+#error "Find Friend Team support requires MAX_GROUP_CHANNELS"
+#endif // ENV_INCLUDE_GPS
 
 #define HELTEC_TEAM_USER_CHANNEL_CAPACITY (MAX_GROUP_CHANNELS - 2)
 #define HELTEC_TEAM_JOIN_CHANNEL_INDEX     (MAX_GROUP_CHANNELS - 2)

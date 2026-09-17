@@ -35,6 +35,13 @@ class FindFriendScreen : public AbstractScreen {
         WaypointManual
     };
 
+    enum class DeferredFocus : uint8_t {
+        None,
+        Role,
+        Team,
+        Member
+    };
+
     void onUIEvent(const UiEvent &event) override;
     void onAppStateChanged(const AppStateEvent &event) override;
     void onActivated() override;
@@ -47,11 +54,12 @@ class FindFriendScreen : public AbstractScreen {
     void setStatusText(const char *status);
     void runDeferredEnterActions();
     bool createDial();
+    void layoutDialColumns();
     void createInfoRows();
     void createControls();
     void startTeamSearch();
-    static void focusTeamDeferred(void *user_data);
-    static void focusMemberDeferred(void *user_data);
+    void requestDeferredFocus(DeferredFocus target);
+    static void focusDeferred(void *user_data);
     void configureFocusItems();
     _lv_obj_t *addDropdownRow(ChoiceRow &choice, const char *title, const char *options);
     _lv_obj_t *addActionRow(const char *title, Action action);
@@ -64,6 +72,8 @@ class FindFriendScreen : public AbstractScreen {
     void loadFriendDropdownWindow(int start, int selected_rank, bool force);
     bool moveFriendDropdownSelection(int direction);
     int friendMeshIndexForSelection() const;
+    void beginDropdownEdit(_lv_obj_t *dropdown);
+    void endDropdownEdit(_lv_obj_t *dropdown);
     void closeOpenDropdown();
     void realignDropdownList(_lv_obj_t *dropdown);
     void scrollFocusedIntoView(_lv_obj_t *focused) const;
@@ -86,6 +96,7 @@ class FindFriendScreen : public AbstractScreen {
     lv_obj_t *_lbl_info = nullptr;
     lv_obj_t *_lbl_status = nullptr;
     ChoiceRow _choice_mode;
+    ChoiceRow _choice_role;
     ChoiceRow _choice_team;
     ChoiceRow _choice_friend;
     _lv_obj_t *_row_wp_manual = nullptr;
@@ -111,8 +122,8 @@ class FindFriendScreen : public AbstractScreen {
     bool _direction_valid = false;
     bool _near_target = false;
     bool _defer_cycle_target = false;
-    bool _focus_team_when_offer_available = false;
-    bool _focus_member_when_team_active = false;
+    DeferredFocus _pending_focus = DeferredFocus::None;
+    DeferredFocus _scheduled_focus = DeferredFocus::None;
     uint16_t _focus_membership_mask = 0xFFFFU;
     int16_t _friend_mesh_map[kFriendWindowSize] = {};
     uint32_t _friend_options_hash = 0;

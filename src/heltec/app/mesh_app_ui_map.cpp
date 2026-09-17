@@ -35,7 +35,7 @@ void buildTeamMapPlotUi(MapPlotUi &out)
 {
     out.online_count = 0;
     out.marker_count = 0;
-#if HELTEC_TEAM_FEATURE
+#if defined(ENV_INCLUDE_GPS) && ENV_INCLUDE_GPS
     const uint32_t now_ms = millis();
     const auto &team = the_mesh.teamService();
     for (size_t slot = 0; slot < HELTEC_TEAM_MAX_MEMBERS &&

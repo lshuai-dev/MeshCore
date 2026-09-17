@@ -148,7 +148,11 @@ void compass_draw_dial_ring(lv_draw_ctx_t *ctx, lv_coord_t cx, lv_coord_t cy,
     if (!ctx || side < 16)
         return;
     const lv_coord_t outer = (lv_coord_t)(side / 2 - COMPASS_DIAL_RING_INSET);
+#if defined(HELTEC_HAS_TOUCH) && HELTEC_HAS_TOUCH
+    const lv_coord_t labels = (lv_coord_t)(outer + 11);
+#else
     const lv_coord_t labels = (lv_coord_t)(outer - COMPASS_DIAL_LABEL_INSET);
+#endif
     const int16_t ring = (int16_t)-tenths;
     for (int offset = 45; offset < 360; offset += 90)
     {
@@ -211,10 +215,15 @@ void compass_draw_friend_needle(lv_draw_ctx_t *ctx, lv_coord_t cx, lv_coord_t cy
             triangle[point] = points[kFriendTriangles[index * 3 + point]];
         drawTriangle(ctx, triangle, fill);
     }
+#if defined(HELTEC_HAS_TOUCH) && HELTEC_HAS_TOUCH
+    const lv_color_t edge_color = lv_color_hex(0x244552);
+#else
+    const lv_color_t edge_color = ui_color_fg_on_dark();
+#endif
     for (int index = 0; index < 4; ++index)
     {
         drawLine(ctx, points[kFriendEdges[index][0]], points[kFriendEdges[index][1]],
-                 ui_color_fg_on_dark(), !gps_fix);
+                 edge_color, !gps_fix);
     }
 }
 } // namespace heltec::meshcore::ui

@@ -54,12 +54,21 @@ class KeyboardOverlay : public AbstractOverlay
     void fillWaypointFromGps();
     void submitMessageInput();
     void submitWaypointInput();
+#if defined(HELTEC_HAS_TOUCH) && HELTEC_HAS_TOUCH
+    void applyTouchCoordinateLayout(bool waypoint);
+#endif
 
     _lv_obj_t *_hint = nullptr;
     _lv_obj_t *_textarea = nullptr;
     _lv_obj_t *_longitude_textarea = nullptr;
     _lv_obj_t *_active_waypoint_editor = nullptr;
     _lv_obj_t *_keyboard = nullptr;
+#if defined(HELTEC_HAS_TOUCH) && HELTEC_HAS_TOUCH
+    _lv_obj_t *_latitude_row = nullptr;
+    _lv_obj_t *_longitude_row = nullptr;
+    _lv_obj_t *_latitude_label = nullptr;
+    _lv_obj_t *_longitude_label = nullptr;
+#endif
 
     ComposeMode _compose_mode = ComposeMode::Message;
     UiMessageKeyboardPurpose _message_purpose = UiMessageKeyboardPurpose::SendCustom;

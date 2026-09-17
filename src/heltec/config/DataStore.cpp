@@ -60,9 +60,12 @@ void DataStore::notifyBootRegionMapStorageDone()
 #endif
 }
 
-#if defined(ENV_INCLUDE_COMPASS) && (ENV_INCLUDE_COMPASS)
+#if (defined(ENV_INCLUDE_GPS) && (ENV_INCLUDE_GPS)) || \
+    (defined(ENV_INCLUDE_COMPASS) && (ENV_INCLUDE_COMPASS))
 
 static const char kCompassCfgPath[] = "/compass_cfg";
+
+#if defined(ENV_INCLUDE_COMPASS) && (ENV_INCLUDE_COMPASS)
 static const char kCompassMagCalPath[] = "/compass_mag_cal";
 
 static bool compass_mag_cal_valid(const float hmm[4])
@@ -137,6 +140,7 @@ static bool save_compass_mag_cal_to(FILESYSTEM *fs, const float hmm[4])
     float verify[4];
     return load_compass_mag_cal_from(fs, verify);
 }
+#endif
 
 /** nth comma-separated field (0-based); nullptr if missing. */
 static const char *compass_cfg_field(const char *line, int index)
@@ -370,6 +374,9 @@ void DataStore::saveFindFriendCompassSettings(int mode, int wpValid, double wpLa
     (void)save_find_friend_cfg_to(_fs, buf, (size_t)len);
 }
 
+#endif // ENV_INCLUDE_GPS || ENV_INCLUDE_COMPASS
+
+#if defined(ENV_INCLUDE_COMPASS) && (ENV_INCLUDE_COMPASS)
 bool DataStore::hasCompassMagCal() const
 {
     float hmm[4];
@@ -1254,7 +1261,7 @@ void DataStore::saveChannels(DataStoreHost *host)
     }
 }
 
-#if defined(HELTEC_TEAM_FEATURE) && HELTEC_TEAM_FEATURE
+#if defined(ENV_INCLUDE_GPS) && ENV_INCLUDE_GPS
 
 static const char kTeamPrefsPath[] = "/team_prefs";
 static const char kTeamPrefsTempPath[] = "/team_prefs.tmp";

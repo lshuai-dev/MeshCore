@@ -3,7 +3,7 @@
 #include "config/NodePrefs.h"
 #include "core/AbstractUITask.h"
 #include "app/team_config.hpp"
-#if HELTEC_TEAM_FEATURE
+#if defined(ENV_INCLUDE_GPS) && ENV_INCLUDE_GPS
 #include "app/team_service.hpp"
 #include "app/team_join_service.hpp"
 #endif
@@ -150,7 +150,7 @@ class HeltecMesh : public BaseChatMesh, public DataStoreHost
     {
         return _store;
     }
-#if HELTEC_TEAM_FEATURE
+#if defined(ENV_INCLUDE_GPS) && ENV_INCLUDE_GPS
     /** Synchronize Team identity data into the regular contact table. */
     bool syncTeamMemberContact(const uint8_t *public_key, const char *name, size_t name_len);
     heltec::meshcore::team::TeamService &teamService()
@@ -237,7 +237,7 @@ class HeltecMesh : public BaseChatMesh, public DataStoreHost
     }
 
   protected:
-#if HELTEC_TEAM_FEATURE
+#if defined(ENV_INCLUDE_GPS) && ENV_INCLUDE_GPS
 #endif
     float getAirtimeBudgetFactor() const override;
     int getInterferenceThreshold() const override;
@@ -281,7 +281,7 @@ class HeltecMesh : public BaseChatMesh, public DataStoreHost
                              const uint8_t *sender_prefix, const char *text) override;
     void onChannelMessageRecv(const mesh::GroupChannel &channel, mesh::Packet *pkt,
                               uint32_t timestamp, const char *text) override;
-#if HELTEC_TEAM_FEATURE
+#if defined(ENV_INCLUDE_GPS) && ENV_INCLUDE_GPS
     void onChannelDataRecv(const mesh::GroupChannel &channel, mesh::Packet *pkt,
                            uint16_t data_type, const uint8_t *data,
                            size_t data_len) override;
@@ -309,7 +309,7 @@ class HeltecMesh : public BaseChatMesh, public DataStoreHost
     }
     bool onChannelLoaded(uint8_t channel_idx, const ChannelDetails &ch) override
     {
-#if HELTEC_TEAM_FEATURE
+#if defined(ENV_INCLUDE_GPS) && ENV_INCLUDE_GPS
         if (channel_idx >= HELTEC_TEAM_USER_CHANNEL_CAPACITY)
             return false;
 #endif
@@ -317,7 +317,7 @@ class HeltecMesh : public BaseChatMesh, public DataStoreHost
     }
     bool getChannelForSave(uint8_t channel_idx, ChannelDetails &ch) override
     {
-#if HELTEC_TEAM_FEATURE
+#if defined(ENV_INCLUDE_GPS) && ENV_INCLUDE_GPS
         if (channel_idx >= HELTEC_TEAM_USER_CHANNEL_CAPACITY)
             return false;
 #endif
@@ -339,7 +339,7 @@ class HeltecMesh : public BaseChatMesh, public DataStoreHost
     }
 
   private:
-#if HELTEC_TEAM_FEATURE
+#if defined(ENV_INCLUDE_GPS) && ENV_INCLUDE_GPS
     friend class heltec::meshcore::team::TeamService;
     friend class heltec::meshcore::team::TeamJoinService;
 #endif
@@ -388,7 +388,7 @@ class HeltecMesh : public BaseChatMesh, public DataStoreHost
     }
 
     DataStore *_store;
-#if HELTEC_TEAM_FEATURE
+#if defined(ENV_INCLUDE_GPS) && ENV_INCLUDE_GPS
     heltec::meshcore::team::TeamService _team_service{};
     heltec::meshcore::team::TeamJoinService _team_join_service{};
 #endif

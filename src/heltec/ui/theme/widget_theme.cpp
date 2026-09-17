@@ -18,7 +18,7 @@
 #include "ui/overlays/keyboard_overlay.hpp"
 #endif
 #include "ui/overlays/preview_overlay.hpp"
-#if HELTEC_UI_INPUT_TOUCH
+#if HELTEC_HAS_TOUCH
 #include "ui/overlays/quick_ping_overlay.hpp"
 #endif
 #include "ui/overlays/radio_param_sync_overlay.hpp"
@@ -45,7 +45,7 @@ static const lv_style_selector_t kInteractiveSelectors[] = {
     LV_PART_MAIN | LV_STATE_PRESSED,
 };
 
-#if !HELTEC_UI_INPUT_TOUCH
+#if !HELTEC_HAS_TOUCH
 static const lv_style_selector_t kContextMenuRootSelectors[] = {
     LV_PART_MAIN,
     LV_PART_MAIN | LV_STATE_CHECKED,
@@ -87,7 +87,7 @@ static const lv_style_selector_t kSystemControlNoChromeSelectors[] = {
     LV_PART_SCROLLBAR,
 };
 
-#if !HELTEC_UI_INPUT_TOUCH
+#if !HELTEC_HAS_TOUCH
 static lv_style_t s_ctx_menu_style;
 static lv_style_t s_ctx_header_style;
 static lv_style_t s_ctx_header_row_style;
@@ -136,11 +136,13 @@ static lv_style_t s_keyboard_waypoint_textarea_style;
 static lv_style_t s_keyboard_root_layout_style;
 static lv_style_t s_keyboard_root_waypoint_layout_style;
 static lv_style_t s_keyboard_surface_color_style;
+static lv_style_t s_keyboard_waypoint_surface_style;
 static lv_style_t s_keyboard_main_style;
 static lv_style_t s_keyboard_waypoint_main_style;
 static lv_style_t s_keyboard_items_base_style;
 static lv_style_t s_keyboard_waypoint_items_style;
 static lv_style_t s_keyboard_items_selected_style;
+static lv_style_t s_keyboard_waypoint_items_selected_style;
 static bool s_keyboard_child_styles_ready = false;
 #endif
 
@@ -200,7 +202,7 @@ static constexpr NavigationStyleConfig kNavigationStyleConfig = {
 static constexpr lv_coord_t kContextMenuBorderWidth = 1;
 static constexpr lv_coord_t kContextMenuTitleBorderWidth = 1;
 static constexpr lv_coord_t kContextMenuFrameInsetX = 8;
-#if HELTEC_UI_INPUT_TOUCH
+#if HELTEC_HAS_TOUCH
 static constexpr lv_coord_t kQuickPingMessageListMinWidth = 104;
 #endif
 
@@ -212,7 +214,7 @@ static const UiThemeProfile &theme_profile()
 static lv_style_t s_alert_overlay_root_style;
 static lv_style_t s_calibration_overlay_root_style;
 static lv_style_t s_splash_overlay_text_style;
-#if !HELTEC_UI_INPUT_TOUCH
+#if !HELTEC_HAS_TOUCH
 static lv_style_t s_context_menu_root_style;
 #endif
 static lv_style_t s_app_overlay_layer_style;
@@ -227,7 +229,7 @@ static bool s_surface_app_styles_ready = false;
 static bool s_splash_overlay_text_style_ready = false;
 static const lv_font_t *s_splash_overlay_text_font = nullptr;
 
-#if HELTEC_UI_INPUT_TOUCH
+#if HELTEC_HAS_TOUCH
 static lv_style_t s_quick_ping_root_style;
 static lv_style_t s_quick_ping_backdrop_style;
 static lv_style_t s_quick_ping_title_bar_style;
@@ -272,7 +274,7 @@ static lv_style_t s_system_volume_slider_style;
 static lv_style_t s_system_volume_slider_indicator_style;
 static lv_style_t s_system_volume_slider_knob_style;
 static lv_style_t s_confirm_overlay_backdrop_style;
-static lv_style_t s_confirm_overlay_box_style;
+static lv_style_t s_dialog_panel_style;
 static lv_style_t s_confirm_overlay_text_style;
 static lv_style_t s_confirm_overlay_button_row_style;
 static lv_style_t s_confirm_overlay_button_style;
@@ -425,15 +427,22 @@ static void apply_overlay_header_footer_style(lv_obj_t *obj)
     init_overlay_header_footer_style();
     lv_obj_add_style(obj, &s_overlay_header_footer_style, LV_PART_MAIN);
 
-#if defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213
-    // Dialog bars size to their content; the dialog content uses the inverse
-    // paper-safe palette (white surface with black text).
     lv_obj_t *const dialog_parent = lv_obj_get_parent(obj);
     const bool dialog_header =
         dialog_parent && lv_obj_check_type(dialog_parent, &ht_dialog_panel_class);
+    if (dialog_header)
+    {
+        lv_obj_set_style_height(obj, LV_SIZE_CONTENT, LV_PART_MAIN);
+        lv_obj_set_style_pad_top(obj, 0, LV_PART_MAIN);
+        lv_obj_set_style_pad_bottom(obj, 0, LV_PART_MAIN);
+    }
+
+#if defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213
+    // E-paper footer hints also size to their content and use the inverse
+    // paper-safe palette (white surface with black text).
     const bool dialog_footer_hint =
         dialog_parent && lv_obj_check_type(dialog_parent, &ht_dialog_actions_class);
-    if (dialog_header || dialog_footer_hint)
+    if (dialog_footer_hint)
     {
         lv_obj_set_style_height(obj, LV_SIZE_CONTENT, LV_PART_MAIN);
         lv_obj_set_style_pad_top(obj, 0, LV_PART_MAIN);
@@ -451,7 +460,7 @@ static void apply_overlay_header_footer_style(lv_obj_t *obj)
 
 static lv_coord_t reference_card_gap()
 {
-#if HELTEC_UI_INPUT_TOUCH
+#if HELTEC_HAS_TOUCH
     // The reference theme inherits PAD_SMALL from LVGL's small-display card style.
     return LV_DPX(10);
 #else
@@ -465,7 +474,7 @@ static bool is_compact_display()
     return display && lv_disp_get_ver_res(display) <= 80;
 }
 
-#if !HELTEC_UI_INPUT_TOUCH
+#if !HELTEC_HAS_TOUCH
 static void init_classic_context_styles(lv_obj_t *obj)
 {
     if (s_ctx_styles_ready)
@@ -653,7 +662,7 @@ static void init_radio_sync_styles()
 
     init_overlay_center_label_style();
     const lv_coord_t gap =
-#if HELTEC_UI_INPUT_TOUCH
+#if HELTEC_HAS_TOUCH
         LV_DPX(10);
 #else
         3;
@@ -767,6 +776,13 @@ static void init_keyboard_child_styles()
     lv_style_set_bg_color(&s_keyboard_surface_color_style, ui_color_bg());
     lv_style_set_text_color(&s_keyboard_surface_color_style, ui_color_fg());
 
+    lv_style_init(&s_keyboard_waypoint_surface_style);
+#if defined(HELTEC_HAS_TOUCH) && HELTEC_HAS_TOUCH
+    lv_style_set_bg_opa(&s_keyboard_waypoint_surface_style, LV_OPA_COVER);
+    lv_style_set_bg_color(&s_keyboard_waypoint_surface_style, lv_color_white());
+    lv_style_set_text_color(&s_keyboard_waypoint_surface_style, lv_color_black());
+#endif
+
     lv_style_init(&s_keyboard_root_waypoint_layout_style);
     lv_style_set_flex_main_place(&s_keyboard_root_waypoint_layout_style,
                                  LV_FLEX_ALIGN_SPACE_BETWEEN);
@@ -797,14 +813,30 @@ static void init_keyboard_child_styles()
     lv_style_set_flex_grow(&s_keyboard_textarea_style, 1);
 
     lv_style_init(&s_keyboard_waypoint_textarea_style);
+#if defined(HELTEC_HAS_TOUCH) && HELTEC_HAS_TOUCH
+    const lv_coord_t waypoint_editor_height = compact ? 16 : (short_display ? 20 : 28);
+#else
     const lv_coord_t waypoint_editor_height = compact ? 16 : (short_display ? 20 : 32);
+#endif
     lv_style_set_height(&s_keyboard_waypoint_textarea_style,
                         waypoint_editor_height);
     lv_style_set_min_height(&s_keyboard_waypoint_textarea_style,
                             waypoint_editor_height);
     lv_style_set_max_height(&s_keyboard_waypoint_textarea_style,
                             waypoint_editor_height);
+#if !defined(HELTEC_HAS_TOUCH) || !HELTEC_HAS_TOUCH
     lv_style_set_flex_grow(&s_keyboard_waypoint_textarea_style, 0);
+#endif
+#if defined(HELTEC_HAS_TOUCH) && HELTEC_HAS_TOUCH
+    lv_style_set_bg_opa(&s_keyboard_waypoint_textarea_style, LV_OPA_COVER);
+    lv_style_set_bg_color(&s_keyboard_waypoint_textarea_style, lv_color_white());
+    lv_style_set_text_color(&s_keyboard_waypoint_textarea_style, lv_color_black());
+    lv_style_set_border_color(&s_keyboard_waypoint_textarea_style,
+                              lv_color_hex(0xB8C2CC));
+    lv_style_set_border_width(&s_keyboard_waypoint_textarea_style, 1);
+    lv_style_set_radius(&s_keyboard_waypoint_textarea_style, 4);
+    lv_style_set_pad_hor(&s_keyboard_waypoint_textarea_style, 6);
+#endif
 
     lv_style_init(&s_keyboard_main_style);
     lv_style_set_pad_all(&s_keyboard_main_style, 0);
@@ -823,11 +855,22 @@ static void init_keyboard_child_styles()
     lv_style_set_min_height(&s_keyboard_main_style, compact ? 36 : 40);
 
     lv_style_init(&s_keyboard_waypoint_main_style);
+#if defined(HELTEC_HAS_TOUCH) && HELTEC_HAS_TOUCH
+    lv_style_set_flex_grow(&s_keyboard_waypoint_main_style, 1);
+    lv_style_set_height(&s_keyboard_waypoint_main_style, 0);
+    lv_style_set_min_height(&s_keyboard_waypoint_main_style, 132);
+#else
     lv_style_set_flex_grow(&s_keyboard_waypoint_main_style, 0);
     lv_style_set_width(&s_keyboard_waypoint_main_style, lv_pct(100));
     const lv_coord_t waypoint_keyboard_height = compact ? 40 : (short_display ? 60 : 132);
     lv_style_set_height(&s_keyboard_waypoint_main_style, waypoint_keyboard_height);
     lv_style_set_min_height(&s_keyboard_waypoint_main_style, waypoint_keyboard_height);
+#endif
+    lv_style_set_width(&s_keyboard_waypoint_main_style, lv_pct(100));
+#if defined(HELTEC_HAS_TOUCH) && HELTEC_HAS_TOUCH
+    lv_style_set_bg_opa(&s_keyboard_waypoint_main_style, LV_OPA_COVER);
+    lv_style_set_bg_color(&s_keyboard_waypoint_main_style, lv_color_white());
+#endif
 
     lv_style_init(&s_keyboard_items_base_style);
     lv_style_set_pad_all(&s_keyboard_items_base_style, compact ? 0 : 1);
@@ -845,6 +888,13 @@ static void init_keyboard_child_styles()
     lv_style_init(&s_keyboard_waypoint_items_style);
     lv_style_set_text_font(&s_keyboard_waypoint_items_style, waypoint_font);
     lv_style_set_pad_all(&s_keyboard_waypoint_items_style, compact ? 1 : 2);
+#if defined(HELTEC_HAS_TOUCH) && HELTEC_HAS_TOUCH
+    lv_style_set_bg_opa(&s_keyboard_waypoint_items_style, LV_OPA_COVER);
+    lv_style_set_bg_color(&s_keyboard_waypoint_items_style, lv_color_hex(0xF4F6F8));
+    lv_style_set_text_color(&s_keyboard_waypoint_items_style, lv_color_black());
+    lv_style_set_border_color(&s_keyboard_waypoint_items_style, lv_color_hex(0xB8C2CC));
+    lv_style_set_border_width(&s_keyboard_waypoint_items_style, 1);
+#endif
 
     lv_style_init(&s_keyboard_items_selected_style);
     lv_style_set_bg_color(&s_keyboard_items_selected_style, ui_color_highlight_bg());
@@ -853,6 +903,15 @@ static void init_keyboard_child_styles()
     lv_style_set_border_width(&s_keyboard_items_selected_style, 0);
     lv_style_set_outline_width(&s_keyboard_items_selected_style, 0);
     lv_style_set_shadow_width(&s_keyboard_items_selected_style, 0);
+
+    lv_style_init(&s_keyboard_waypoint_items_selected_style);
+#if defined(HELTEC_HAS_TOUCH) && HELTEC_HAS_TOUCH
+    lv_style_set_bg_color(&s_keyboard_waypoint_items_selected_style, ui_color_accent());
+    lv_style_set_bg_opa(&s_keyboard_waypoint_items_selected_style, LV_OPA_COVER);
+    lv_style_set_text_color(&s_keyboard_waypoint_items_selected_style, lv_color_white());
+    lv_style_set_border_color(&s_keyboard_waypoint_items_selected_style, ui_color_accent());
+    lv_style_set_border_width(&s_keyboard_waypoint_items_selected_style, 1);
+#endif
 
     s_keyboard_child_styles_ready = true;
 }
@@ -979,7 +1038,7 @@ static void init_top_pane_styles(lv_obj_t *obj)
     const lv_coord_t bat_w = geometry.battery_width;
     const lv_coord_t bat_h = geometry.battery_height;
     const lv_color_t bar_fg = ui_color_top_pane_fg();
-#if HELTEC_UI_INPUT_TOUCH
+#if HELTEC_HAS_TOUCH
     const lv_color_t battery_chrome = lv_color_white();
 #else
     const lv_color_t battery_chrome = bar_fg;
@@ -987,7 +1046,7 @@ static void init_top_pane_styles(lv_obj_t *obj)
     const int16_t cap_i = (bat_h + 1) / 3;
     const int16_t cap_px = (cap_i < 2 ? 2 : (cap_i > 6 ? 6 : cap_i));
     const lv_coord_t body_w = bat_w - cap_px + 1;
-#if HELTEC_UI_INPUT_TOUCH
+#if HELTEC_HAS_TOUCH
     const lv_coord_t cap_h = LV_MAX(4, static_cast<lv_coord_t>((bat_h * 2 + 2) / 3));
 #else
     const lv_coord_t cap_h = LV_MAX(2, bat_h / 2);
@@ -1040,7 +1099,7 @@ static void init_top_pane_styles(lv_obj_t *obj)
     lv_style_set_shadow_opa(&s_top_pane_title_style, LV_OPA_TRANSP);
 
     lv_style_init(&s_top_pane_battery_outline_style);
-#if HELTEC_UI_INPUT_TOUCH
+#if HELTEC_HAS_TOUCH
     lv_style_set_pad_all(&s_top_pane_battery_outline_style, 0);
 #else
     lv_style_set_pad_all(&s_top_pane_battery_outline_style, 1);
@@ -1140,7 +1199,7 @@ static void init_surface_app_styles(lv_obj_t *obj = nullptr)
     const UiAppFrameStyleConfig &frame_config = theme_profile().app_frame;
     const lv_coord_t screen_pad = frame_config.screen_pad;
     const lv_coord_t content_radius = frame_config.content_radius;
-#if !HELTEC_UI_INPUT_TOUCH
+#if !HELTEC_HAS_TOUCH
     const UiContextMenuStyleConfig &context_config = theme_profile().context_menu;
 #endif
 
@@ -1154,7 +1213,7 @@ static void init_surface_app_styles(lv_obj_t *obj = nullptr)
     lv_style_set_bg_opa(&s_calibration_overlay_root_style, LV_OPA_COVER);
     lv_style_set_border_width(&s_calibration_overlay_root_style, 0);
 
-#if !HELTEC_UI_INPUT_TOUCH
+#if !HELTEC_HAS_TOUCH
     const lv_coord_t context_border_w = kContextMenuBorderWidth;
 
     lv_style_init(&s_context_menu_root_style);
@@ -1208,7 +1267,7 @@ static void init_surface_app_styles(lv_obj_t *obj = nullptr)
     lv_style_set_radius(&s_app_screen_root_style, 0);
     lv_style_set_clip_corner(&s_app_screen_root_style, false);
     lv_style_set_pad_all(&s_app_screen_root_style, 0);
-#if !HELTEC_UI_INPUT_TOUCH
+#if !HELTEC_HAS_TOUCH
     if (screen_pad > 0 || content_radius > 0)
     {
         lv_style_set_bg_color(&s_app_screen_root_style, ui_color_panel_bg());
@@ -1219,7 +1278,7 @@ static void init_surface_app_styles(lv_obj_t *obj = nullptr)
 #endif
     lv_style_init(&s_app_tileview_style);
     lv_style_set_pad_all(&s_app_tileview_style, 0);
-#if HELTEC_UI_INPUT_TOUCH
+#if HELTEC_HAS_TOUCH
     lv_style_set_bg_color(&s_app_tileview_style, lv_color_white());
     lv_style_set_bg_opa(&s_app_tileview_style, LV_OPA_COVER);
     lv_style_set_border_width(&s_app_tileview_style, 0);
@@ -1237,7 +1296,7 @@ static void init_surface_app_styles(lv_obj_t *obj = nullptr)
     s_surface_app_styles_ready = true;
 }
 
-#if HELTEC_UI_INPUT_TOUCH
+#if HELTEC_HAS_TOUCH
 static void init_quick_ping_styles()
 {
     if (s_quick_ping_styles_ready)
@@ -1493,7 +1552,7 @@ static void init_screen_system_styles()
                          ui_layout_metrics().row_padding_vertical);
 
     lv_style_init(&s_container_focus_style);
-#if HELTEC_UI_INPUT_TOUCH
+#if HELTEC_HAS_TOUCH
     lv_style_set_bg_color(&s_container_focus_style, ui_color_accent());
     lv_style_set_bg_opa(&s_container_focus_style, LV_OPA_30);
 #else
@@ -1515,7 +1574,7 @@ static void init_screen_system_styles()
     lv_style_set_min_height(&s_find_friend_dial_layout_style, dial_height);
 
     lv_style_init(&s_screen_dropdown_list_layout_style);
-#if HELTEC_UI_INPUT_TOUCH
+#if HELTEC_HAS_TOUCH
     lv_style_set_pad_top(&s_screen_dropdown_list_layout_style, 2);
     lv_style_set_pad_bottom(&s_screen_dropdown_list_layout_style, 2);
 #endif
@@ -1531,7 +1590,7 @@ static void init_screen_system_styles()
     lv_style_set_border_color(&s_system_dropdown_style, ui_color_fg());
     lv_style_set_border_opa(&s_system_dropdown_style, LV_OPA_COVER);
 #else
-#if HELTEC_UI_INPUT_TOUCH
+#if HELTEC_HAS_TOUCH
     lv_style_set_pad_all(&s_system_dropdown_style, reference_card_gap());
 #else
     lv_style_set_pad_hor(&s_system_dropdown_style, 4);
@@ -1542,7 +1601,7 @@ static void init_screen_system_styles()
     lv_style_set_border_opa(&s_system_dropdown_style, LV_OPA_TRANSP);
     lv_style_set_border_side(&s_system_dropdown_style, LV_BORDER_SIDE_NONE);
 #endif
-#if HELTEC_UI_INPUT_TOUCH
+#if HELTEC_HAS_TOUCH
     // Screen focus is shown on the complete logical row. Keeping a permanent
     // blue dropdown fill makes an unfocused row look selected as well.
     lv_style_set_bg_opa(&s_system_dropdown_style, LV_OPA_TRANSP);
@@ -1633,17 +1692,19 @@ static void init_screen_system_styles()
     lv_style_set_border_width(&s_confirm_overlay_backdrop_style, 0);
     lv_style_set_pad_all(&s_confirm_overlay_backdrop_style, 0);
 
-    lv_style_init(&s_confirm_overlay_box_style);
-    lv_style_set_bg_color(&s_confirm_overlay_box_style, ui_color_overlay_bg());
-    lv_style_set_bg_opa(&s_confirm_overlay_box_style, LV_OPA_COVER);
-    lv_style_set_border_color(&s_confirm_overlay_box_style, ui_color_overlay_fg());
-    lv_style_set_border_width(&s_confirm_overlay_box_style, 1);
+    lv_style_init(&s_dialog_panel_style);
+    lv_style_set_width(&s_dialog_panel_style, lv_pct(80));
+    lv_style_set_height(&s_dialog_panel_style, LV_SIZE_CONTENT);
+    lv_style_set_bg_color(&s_dialog_panel_style, ui_color_overlay_bg());
+    lv_style_set_bg_opa(&s_dialog_panel_style, LV_OPA_COVER);
+    lv_style_set_border_color(&s_dialog_panel_style, ui_color_overlay_fg());
+    lv_style_set_border_width(&s_dialog_panel_style, 1);
     const lv_coord_t dialog_radius = theme_profile().app_frame.bar_radius;
-    lv_style_set_radius(&s_confirm_overlay_box_style, dialog_radius);
-    lv_style_set_clip_corner(&s_confirm_overlay_box_style, dialog_radius > 0);
-    lv_style_set_pad_all(&s_confirm_overlay_box_style, 0);
-    lv_style_set_pad_row(&s_confirm_overlay_box_style, compact_dialog ? 4 : LV_DPX(12));
-    lv_style_set_text_color(&s_confirm_overlay_box_style, ui_color_overlay_fg());
+    lv_style_set_radius(&s_dialog_panel_style, dialog_radius);
+    lv_style_set_clip_corner(&s_dialog_panel_style, dialog_radius > 0);
+    lv_style_set_pad_all(&s_dialog_panel_style, 0);
+    lv_style_set_pad_row(&s_dialog_panel_style, compact_dialog ? 4 : LV_DPX(12));
+    lv_style_set_text_color(&s_dialog_panel_style, ui_color_overlay_fg());
 
     lv_style_init(&s_confirm_overlay_text_style);
     lv_style_set_text_align(&s_confirm_overlay_text_style, LV_TEXT_ALIGN_CENTER);
@@ -1659,6 +1720,12 @@ static void init_screen_system_styles()
     lv_style_set_border_width(&s_confirm_overlay_button_row_style, 0);
     lv_style_set_pad_all(&s_confirm_overlay_button_row_style, 0);
     lv_style_set_pad_column(&s_confirm_overlay_button_row_style, compact_dialog ? 4 : LV_DPX(10));
+#if defined(HELTEC_HAS_TOUCH) && HELTEC_HAS_TOUCH
+    lv_style_set_pad_hor(&s_confirm_overlay_button_row_style,
+                         compact_dialog ? 4 : LV_DPX(12));
+    lv_style_set_pad_bottom(&s_confirm_overlay_button_row_style,
+                            compact_dialog ? 4 : LV_DPX(12));
+#endif
 
     lv_style_init(&s_confirm_overlay_button_style);
     lv_style_set_bg_color(&s_confirm_overlay_button_style, ui_color_panel_bg());
@@ -1713,7 +1780,7 @@ static void init_navigation_styles(lv_obj_t *obj = nullptr)
     lv_style_set_bg_opa(&s_nav_grid_icon_area_style, LV_OPA_TRANSP);
     lv_style_set_border_width(&s_nav_grid_icon_area_style, 0);
     lv_style_set_pad_all(&s_nav_grid_icon_area_style,
-#if HELTEC_UI_INPUT_TOUCH
+#if HELTEC_HAS_TOUCH
                          0
 #else
                          4
@@ -2065,7 +2132,7 @@ static bool apply_top_pane_nested_child(_lv_obj_t *obj)
     {
         init_top_pane_styles(obj);
         lv_obj_add_style(obj, &s_top_pane_battery_outline_style, LV_PART_MAIN);
-#if HELTEC_UI_INPUT_TOUCH
+#if HELTEC_HAS_TOUCH
         lv_obj_set_style_border_width(obj, 1, LV_PART_MAIN);
         lv_obj_set_style_border_color(obj, lv_color_white(), LV_PART_MAIN);
         lv_obj_set_style_border_opa(obj, LV_OPA_COVER, LV_PART_MAIN);
@@ -2120,6 +2187,8 @@ static bool apply_surface_root_theme(_lv_obj_t *obj)
         lv_obj_add_style(obj, &s_keyboard_surface_color_style, LV_PART_MAIN);
 #endif
         lv_obj_add_style(obj, &s_keyboard_root_waypoint_layout_style,
+                         LV_PART_MAIN | LV_STATE_USER_1);
+        lv_obj_add_style(obj, &s_keyboard_waypoint_surface_style,
                          LV_PART_MAIN | LV_STATE_USER_1);
         return true;
     }
@@ -2196,14 +2265,14 @@ static bool apply_surface_root_theme(_lv_obj_t *obj)
             lv_style_set_text_color(&s_splash_overlay_text_style, ui_color_fg());
 #endif
             lv_obj_add_style(obj, &s_splash_overlay_text_style, LV_PART_MAIN);
-#if HELTEC_UI_INPUT_TOUCH
+#if HELTEC_HAS_TOUCH
             lv_obj_set_style_bg_color(obj, lv_color_hex(0x001765), LV_PART_MAIN);
             lv_obj_set_style_bg_opa(obj, LV_OPA_COVER, LV_PART_MAIN);
 #endif
         }
         return true;
     }
-#if !HELTEC_UI_INPUT_TOUCH
+#if !HELTEC_HAS_TOUCH
     if (lv_obj_check_type(obj, &ht_context_menu_class))
     {
         apply_surface_root_common(obj);
@@ -2283,7 +2352,7 @@ static bool apply_app_frame_theme(_lv_obj_t *obj)
 
 static bool apply_classic_context_menu_child_theme(_lv_obj_t *obj)
 {
-#if !HELTEC_UI_INPUT_TOUCH
+#if !HELTEC_HAS_TOUCH
     if (!obj)
         return false;
 #if LV_USE_MENU
@@ -2363,7 +2432,7 @@ static bool apply_classic_context_menu_child_theme(_lv_obj_t *obj)
     return false;
 }
 
-#if  defined(HELTEC_UI_INPUT_TOUCH) && HELTEC_UI_INPUT_TOUCH
+#if defined(HELTEC_HAS_TOUCH) && HELTEC_HAS_TOUCH
 static bool apply_quick_ping_overlay_theme(_lv_obj_t *obj)
 {
     if (!obj)
@@ -2565,7 +2634,7 @@ static bool apply_quick_ping_overlay_theme(_lv_obj_t *)
 
 static bool apply_context_menu_child_theme(_lv_obj_t *obj)
 {
-#if HELTEC_UI_INPUT_TOUCH
+#if HELTEC_HAS_TOUCH
     return apply_classic_context_menu_child_theme(obj) || apply_quick_ping_overlay_theme(obj);
 #else
     return apply_classic_context_menu_child_theme(obj);
@@ -2765,6 +2834,7 @@ static bool apply_keyboard_overlay_child_theme(_lv_obj_t *obj)
     }
     return false;
 }
+
 #endif
 
 static bool apply_radio_param_sync_overlay_child_theme(_lv_obj_t *obj)
@@ -2896,7 +2966,7 @@ static bool apply_splash_overlay_child_theme(_lv_obj_t *obj)
     }
     if (lv_obj_check_type(obj, &lv_img_class))
     {
-#if HELTEC_UI_INPUT_TOUCH
+#if HELTEC_HAS_TOUCH
         lv_obj_set_style_img_recolor(obj, ui_color_overlay_fg(), LV_PART_MAIN);
         lv_obj_set_style_img_recolor_opa(obj, LV_OPA_COVER, LV_PART_MAIN);
 #endif
@@ -2939,7 +3009,7 @@ static bool apply_overlay_child_theme(_lv_obj_t *obj)
     {
         init_screen_system_styles();
         init_overlay_feedback_styles();
-        lv_obj_add_style(obj, &s_confirm_overlay_box_style, LV_PART_MAIN);
+        lv_obj_add_style(obj, &s_dialog_panel_style, LV_PART_MAIN);
         for (lv_style_selector_t selector : kInteractiveSelectors)
         {
             lv_obj_add_style(obj, &s_alert_box_style, selector | LV_STATE_USER_1);
@@ -3090,9 +3160,52 @@ static void apply_navigator_panel_chrome(lv_obj_t *obj)
 
 } // namespace
 
+void ui_theme_set_waypoint_keyboard_active(_lv_obj_t *keyboard, bool active)
+{
+#if UI_INCLUDE_KEYBOARD_OVERLAY && defined(HELTEC_HAS_TOUCH) && HELTEC_HAS_TOUCH
+    if (!keyboard)
+    {
+        return;
+    }
+    init_keyboard_child_styles();
+    static const lv_style_selector_t base_selectors[] = {
+        LV_PART_ITEMS,
+        LV_PART_ITEMS | LV_STATE_FOCUSED,
+        LV_PART_ITEMS | LV_STATE_FOCUS_KEY,
+        LV_PART_ITEMS | LV_STATE_EDITED,
+    };
+    static const lv_style_selector_t selected_selectors[] = {
+        LV_PART_ITEMS | LV_STATE_PRESSED,
+        LV_PART_ITEMS | LV_STATE_CHECKED,
+        LV_PART_ITEMS | (LV_STATE_FOCUSED | LV_STATE_CHECKED),
+        LV_PART_ITEMS | (LV_STATE_FOCUS_KEY | LV_STATE_CHECKED),
+        LV_PART_ITEMS | (LV_STATE_EDITED | LV_STATE_CHECKED),
+    };
+    for (lv_style_selector_t selector : base_selectors)
+    {
+        lv_obj_remove_style(keyboard, &s_keyboard_waypoint_items_style, selector);
+        if (active)
+        {
+            lv_obj_add_style(keyboard, &s_keyboard_waypoint_items_style, selector);
+        }
+    }
+    for (lv_style_selector_t selector : selected_selectors)
+    {
+        lv_obj_remove_style(keyboard, &s_keyboard_waypoint_items_selected_style, selector);
+        if (active)
+        {
+            lv_obj_add_style(keyboard, &s_keyboard_waypoint_items_selected_style, selector);
+        }
+    }
+#else
+    (void)keyboard;
+    (void)active;
+#endif
+}
+
 void ui_theme_apply_context_menu_title(_lv_obj_t *obj)
 {
-#if !HELTEC_UI_INPUT_TOUCH
+#if !HELTEC_HAS_TOUCH
     if (!obj)
     {
         return;
@@ -3109,7 +3222,7 @@ void ui_theme_apply_context_menu_title(_lv_obj_t *obj)
 
 void ui_theme_apply_quick_ping_message_dropdown_list(_lv_obj_t *list)
 {
-#if HELTEC_UI_INPUT_TOUCH
+#if HELTEC_HAS_TOUCH
     if (!list)
         return;
     init_quick_ping_styles();
@@ -3255,7 +3368,7 @@ void ui_widget_theme_configure(const UiThemeProfile &profile)
     {
         return;
     }
-#if !HELTEC_UI_INPUT_TOUCH
+#if !HELTEC_HAS_TOUCH
     if (s_ctx_styles_ready)
     {
         return;

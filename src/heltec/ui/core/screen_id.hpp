@@ -12,6 +12,8 @@ enum class eScreenId : uint8_t
     Radio,
 #if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
     Compass,
+#endif
+#if defined(ENV_INCLUDE_GPS) && ENV_INCLUDE_GPS
     FindFriend,
 #endif
 #if UI_INCLUDE_GPS_SCREEN
