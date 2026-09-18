@@ -3,6 +3,7 @@
 #include "ui/core/framed_overlay.hpp"
 #include "ui/widgets/button_roller.hpp"
 
+#include <stddef.h>
 #include <stdint.h>
 
 struct _lv_obj_t;
@@ -25,6 +26,7 @@ class RepeatModeOverlay : public FramedOverlay
 
   private:
     static constexpr uint8_t kMaxFrequencyItems = 3;
+    static constexpr size_t kFrequencyLabelCapacity = 28;
 
     _lv_obj_t *focusTarget() const override;
     bool onKey(uint32_t key) override;
@@ -40,13 +42,11 @@ class RepeatModeOverlay : public FramedOverlay
 
 #if defined(HELTEC_V4_R8_TFT)
     _lv_obj_t *_touch_roller = nullptr;
-    char _roller_options[kMaxFrequencyItems * 28]{};
+    char _roller_options[kMaxFrequencyItems * kFrequencyLabelCapacity]{};
 #else
     ButtonRoller _roller;
-    _lv_obj_t *_frequency_buttons[kMaxFrequencyItems]{};
 #endif
     int8_t _frequency_indices[kMaxFrequencyItems]{};
-    char _frequency_labels[kMaxFrequencyItems][28]{};
     uint8_t _frequency_count = 0;
     bool _applying = false;
 };

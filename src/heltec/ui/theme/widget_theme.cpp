@@ -3589,6 +3589,7 @@ bool ui_widget_theme_apply(_lv_obj_t *obj)
                                 apply_context_menu_child_theme(obj) ||
                                 apply_navigation_theme(obj) ||
                                 apply_navigation_ring_theme(obj) ||
+                                ui_radial_navigation_icon_apply_theme(obj) ||
                                 ui_license_gate_apply_theme(obj) ||
                                 ui_button_roller_apply_theme(obj) ||
                                 ui_map_widget_apply_theme(obj);

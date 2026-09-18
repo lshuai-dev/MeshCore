@@ -87,7 +87,7 @@ void ui_theme_apply_cascading_menu_item(_lv_obj_t *obj);
 void ui_theme_set_radio_sync_list_margin(_lv_obj_t *obj, lv_coord_t margin);
 void ui_theme_center_single_line_textarea(_lv_obj_t *textarea);
 void ui_theme_set_waypoint_keyboard_active(_lv_obj_t *keyboard, bool active);
-void ui_theme_apply_radial_navigation_icon(_lv_obj_t *button, const lv_img_dsc_t *image);
+bool ui_radial_navigation_icon_apply_theme(_lv_obj_t *icon);
 void ui_theme_layout_navigation_grid(_lv_obj_t *host, _lv_obj_t *footer_cell);
 void ui_theme_sync_navigation_radius(_lv_obj_t *pane, _lv_obj_t *reference);
 

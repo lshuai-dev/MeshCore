@@ -50,12 +50,10 @@ class RadialNavigator : public UiSurface
     bool panelVisible() const;
     void openPanel();
     void resetPanel();
-    void layoutRing(bool animate, bool snap_theta = true, bool update_emphasis = true);
+    void layoutRing(bool animate, bool snap_theta = true, bool update_emphasis = true,
+                    bool update_selection = true);
     void updateGeometry();
-    void setNavButtonsInteractive(bool interactive);
     void stepNavFocus(int delta);
-    void onCellTouchEvent(lv_event_t *e);
-    void onCellClicked(_lv_obj_t *cell);
     void sendTilePreview(uint8_t tile_idx);
     void clearAnimations();
     void ensureDefaultFocus();
@@ -71,6 +69,9 @@ class RadialNavigator : public UiSurface
     _lv_obj_t *_frame_root = nullptr;
     float _slot_cos[kMaxButtons] = {};
     float _slot_sin[kMaxButtons] = {};
+    uint8_t _icon_width[kMaxButtons] = {};
+    uint8_t _icon_height[kMaxButtons] = {};
+    lv_coord_t _max_icon_side = 0;
     float _ring_theta = 0.f;
     uint8_t _emphasis_index = kNoEmphasis;
     uint8_t _ring_layout_focus = kNoEmphasis;
@@ -78,13 +79,11 @@ class RadialNavigator : public UiSurface
     uint8_t _slot_cache_count = 0;
     bool _updating_geometry = false;
     bool _geometry_valid = false;
+    bool _configuring = false;
     bool _cached_panel_visible = false;
     lv_coord_t _cached_nav_x = 0;
     lv_coord_t _cached_nav_y = 0;
     lv_coord_t _cached_nav_side = 0;
-    bool _touch_active = false;
-    bool _touch_dragged = false;
-    lv_point_t _touch_origin = { 0, 0 };
 };
 
 } // namespace heltec::meshcore::ui

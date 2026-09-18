@@ -71,6 +71,9 @@ bool init()
     s_disp_drv.ver_res = kDisplayHeight;
     s_disp_drv.draw_buf = &s_draw_buf;
     s_disp_drv.full_refresh = 1;
+    // Keep Alpha8 image masks read-only. LVGL otherwise thresholds them in place when
+    // antialiasing is disabled, which attempts to write const image data stored in Flash.
+    s_disp_drv.antialiasing = 1;
     s_disp_drv.flush_cb = [](lv_disp_drv_t *drv, const lv_area_t *area, lv_color_t *color_p)
     {
         (void)drv;

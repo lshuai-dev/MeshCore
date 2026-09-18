@@ -86,18 +86,28 @@ bool RepeatModeOverlay::buildSurface() {
     lv_obj_add_flag(_roller.root(), LV_OBJ_FLAG_EVENT_BUBBLE);
 #endif
 
+    char label[kFrequencyLabelCapacity]{};
+#if defined(HELTEC_V4_R8_TFT)
+    size_t options_used = 0;
+#endif
     const int available = _biz.forwardingFrequencyCount();
     for (int index = 0; index < available && _frequency_count < kMaxFrequencyItems; ++index) {
-        char *const label = _frequency_labels[_frequency_count];
-        if (!format_frequency_item(_biz, index, label,
-                                   sizeof(_frequency_labels[_frequency_count]))) {
+        if (!format_frequency_item(_biz, index, label, sizeof(label))) {
             continue;
         }
 
-#if !defined(HELTEC_V4_R8_TFT)
+#if defined(HELTEC_V4_R8_TFT)
+        const int written = lv_snprintf(_roller_options + options_used,
+                                        sizeof(_roller_options) - options_used, "%s%s",
+                                        options_used > 0 ? "\n" : "", label);
+        if (written < 0 || static_cast<size_t>(written) >=
+                               sizeof(_roller_options) - options_used) {
+            break;
+        }
+        options_used += static_cast<size_t>(written);
+#else
         _lv_obj_t *const button = _roller.addItem(label);
         if (!button) return false;
-        _frequency_buttons[_frequency_count] = button;
         if (_lv_obj_t *const label_obj = lv_obj_get_child(button, 0)) {
             lv_obj_center(label_obj);
         }
@@ -108,16 +118,6 @@ bool RepeatModeOverlay::buildSurface() {
     }
 
 #if defined(HELTEC_V4_R8_TFT)
-    size_t used = 0;
-    for (uint8_t i = 0; i < _frequency_count && used < sizeof(_roller_options); ++i) {
-        const int written =
-            lv_snprintf(_roller_options + used, sizeof(_roller_options) - used, "%s%s",
-                        _frequency_labels[i], i + 1u < _frequency_count ? "\n" : "");
-        if (written < 0 || static_cast<size_t>(written) >= sizeof(_roller_options) - used) {
-            break;
-        }
-        used += static_cast<size_t>(written);
-    }
     if (_frequency_count == 0) {
         lv_snprintf(_roller_options, sizeof(_roller_options), "No frequency");
     }
@@ -139,7 +139,6 @@ _lv_obj_t *RepeatModeOverlay::focusTarget() const {
 }
 
 void RepeatModeOverlay::onEnter() {
-    _applying = false;
     AbstractOverlay::onEnter();
     setApplying(false);
 
@@ -208,11 +207,10 @@ void RepeatModeOverlay::onItemClicked(lv_event_t *event) {
     _lv_obj_t *const target = lv_event_get_target(event);
     if (!self || !target || self->_applying) return;
 
-    for (uint8_t i = 0; i < self->_frequency_count; ++i) {
-        if (target == self->_frequency_buttons[i]) {
-            self->applySelection(i);
-            return;
-        }
+    if (lv_obj_get_parent(target) != self->_roller.root()) return;
+    const uint32_t item_index = lv_obj_get_index(target);
+    if (item_index < self->_frequency_count) {
+        self->applySelection(static_cast<uint8_t>(item_index));
     }
 }
 
@@ -251,12 +249,15 @@ void RepeatModeOverlay::setApplying(bool applying) {
         }
     }
 #else
-    for (uint8_t i = 0; i < _frequency_count; ++i) {
-        if (!_frequency_buttons[i]) continue;
+    _lv_obj_t *const root = _roller.root();
+    const uint32_t count = root ? lv_obj_get_child_cnt(root) : 0;
+    for (uint32_t i = 0; i < count; ++i) {
+        _lv_obj_t *const button = lv_obj_get_child(root, i);
+        if (!button) continue;
         if (applying) {
-            lv_obj_add_state(_frequency_buttons[i], LV_STATE_DISABLED);
+            lv_obj_add_state(button, LV_STATE_DISABLED);
         } else {
-            lv_obj_clear_state(_frequency_buttons[i], LV_STATE_DISABLED);
+            lv_obj_clear_state(button, LV_STATE_DISABLED);
         }
     }
 #endif

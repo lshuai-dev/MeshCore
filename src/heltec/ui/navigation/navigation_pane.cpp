@@ -594,11 +594,6 @@ void NavigationPane::setIcon(uint8_t id, const lv_img_dsc_t *img)
     if (!_nav || !group())
         return;
 
-#if defined(UI_NAV_USE_SCREEN_ICONS) && UI_NAV_USE_SCREEN_ICONS
-    const lv_img_dsc_t *const nav_img = img;
-#else
-    const lv_img_dsc_t *const nav_img = nav_ring_icon_for(img);
-#endif
     _lv_obj_t *const host = itemHost();
     if (!host)
         return;
@@ -607,7 +602,7 @@ void NavigationPane::setIcon(uint8_t id, const lv_img_dsc_t *img)
     if (existing)
     {
         if (_lv_obj_t *icon = gridCellIcon(existing))
-            lv_img_set_src(icon, nav_img);
+            lv_img_set_src(icon, img);
         _geometry_valid = false;
         if (panelVisible())
             layoutNav(false);
@@ -644,7 +639,7 @@ void NavigationPane::setIcon(uint8_t id, const lv_img_dsc_t *img)
         lv_obj_del(cell);
         return;
     }
-    lv_img_set_src(icon, nav_img);
+    lv_img_set_src(icon, img);
     lv_img_set_antialias(icon, false);
     lv_obj_clear_flag(icon, LV_OBJ_FLAG_CLICKABLE | LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_add_flag(icon, LV_OBJ_FLAG_EVENT_BUBBLE);

@@ -64,6 +64,9 @@ HT_DEFINE_CLASS(ht_navigation_icon_area_class, lv_obj_class, lv_obj_t);
 HT_DEFINE_CLASS(ht_navigation_title_bar_class, lv_obj_class, lv_obj_t);
 #endif
 HT_DEFINE_CLASS(ht_navigation_ring_class, ht_navigator_class, ht_navigator_t);
+#if !defined(UI_NAVIGATION_GRID) || !UI_NAVIGATION_GRID
+HT_DEFINE_CLASS(ht_radial_navigation_icon_class, lv_img_class, lv_img_t);
+#endif
 
 #if defined(ENV_INCLUDE_MAP) && ENV_INCLUDE_MAP
 HT_DEFINE_CLASS(ht_map_status_label_class, lv_label_class, lv_label_t);

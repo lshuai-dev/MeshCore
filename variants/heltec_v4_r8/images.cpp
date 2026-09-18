@@ -636,15 +636,6 @@ HELTEC_EXPANSION_UI_ICON_IMG_DSC(icon_map_img, Map_map);
 HELTEC_EXPANSION_UI_ICON_IMG_DSC(icon_recent_img, Recent_map);
 HELTEC_EXPANSION_UI_ICON_IMG_DSC(icon_system_img, System_map);
 
-HELTEC_EXPANSION_UI_NAV_ICON_IMG_DSC(icon_home_nav_img, Home_map);
-HELTEC_EXPANSION_UI_ICON_IMG_DSC_WH(icon_compass_nav_img, HELTEC_EXPANSION_UI_ICON_LEGACY_W,
-                                    HELTEC_EXPANSION_UI_ICON_LEGACY_H, Compass_map);
-HELTEC_EXPANSION_UI_ICON_IMG_DSC(icon_gps_nav_img, GPS_map);
-HELTEC_EXPANSION_UI_NAV_ICON_IMG_DSC(icon_radio_nav_img, Radio_map);
-HELTEC_EXPANSION_UI_ICON_IMG_DSC(icon_map_nav_img, Map_map);
-HELTEC_EXPANSION_UI_ICON_IMG_DSC(icon_recent_nav_img, Recent_map);
-HELTEC_EXPANSION_UI_NAV_ICON_IMG_DSC(icon_system_nav_img, System_map);
-
 #elif defined(HELTEC_V4_R8_OLED)
 static const uint8_t icon_home_i1[] PROGMEM = {
     HELTEC_IMG_PALETTE_BW_I1_ON_WHITE[0], HELTEC_IMG_PALETTE_BW_I1_ON_WHITE[1],
@@ -694,29 +685,22 @@ static const uint8_t icon_system_i1[] PROGMEM = {
     0xff, 0xf0, 0xff, 0xf0, 0x80, 0x90, 0xff, 0xf0, 0xff, 0xf0, 0x80, 0x90, 0xff, 0xf0,
     0xff, 0xf0, 0x80, 0x90, 0xff, 0xf0, 0xff, 0xf0, 0xff, 0xf0};
 
-HELTEC_IMG_ICON_DSC(icon_home_img, icon_home_i1);
-HELTEC_IMG_ICON_DSC(icon_compass_img, icon_compass_i1);
-HELTEC_IMG_ICON_DSC(icon_gps_img, icon_gps_i1);
-HELTEC_IMG_ICON_DSC(icon_radio_img, icon_radio_i1);
-HELTEC_IMG_ICON_DSC(icon_recent_img, icon_recent_i1);
-HELTEC_IMG_ICON_DSC(icon_system_img, icon_system_i1);
-
-HELTEC_IMG_NAV_ICON_I1(icon_home_nav_img, icon_home_nav_i1, 0x06, 0x0f, 0x09, 0x0f, 0x10, 0x8f,
+HELTEC_IMG_NAV_ICON_I1(icon_home_img, icon_home_nav_i1, 0x06, 0x0f, 0x09, 0x0f, 0x10, 0x8f,
                       0x20, 0x4f, 0x40, 0x2f, 0xc0, 0x3f, 0x20, 0x4f, 0x20, 0x4f, 0x26, 0x4f,
                       0x24, 0x4f, 0x26, 0x4f, 0x3f, 0xcf);
-HELTEC_IMG_NAV_ICON_I1(icon_compass_nav_img, icon_compass_nav_i1, 0x0f, 0x0f, 0x30, 0xcf, 0x40,
+HELTEC_IMG_NAV_ICON_I1(icon_compass_img, icon_compass_nav_i1, 0x0f, 0x0f, 0x30, 0xcf, 0x40,
                       0x2f, 0x40, 0xaf, 0x83, 0x1f, 0x85, 0x1f, 0x86, 0x1f, 0x88, 0x1f, 0x50, 0x2f,
                       0x40, 0x2f, 0x30, 0xcf, 0x0f, 0x0f);
-HELTEC_IMG_NAV_ICON_I1(icon_gps_nav_img, icon_gps_nav_i1, 0x1f, 0x8f, 0x30, 0xcf, 0x66, 0x6f, 0x49,
+HELTEC_IMG_NAV_ICON_I1(icon_gps_img, icon_gps_nav_i1, 0x1f, 0x8f, 0x30, 0xcf, 0x66, 0x6f, 0x49,
                       0x2f, 0x49, 0x2f, 0x46, 0x2f, 0x20, 0x4f, 0x30, 0xcf, 0x10, 0x8f, 0x19, 0x8f,
                       0x09, 0x0f, 0x06, 0x0f);
-HELTEC_IMG_NAV_ICON_I1(icon_radio_nav_img, icon_radio_nav_i1, 0x00, 0x0f, 0x19, 0x8f, 0x20, 0x4f,
+HELTEC_IMG_NAV_ICON_I1(icon_radio_img, icon_radio_nav_i1, 0x00, 0x0f, 0x19, 0x8f, 0x20, 0x4f,
                       0x49, 0x2f, 0x90, 0x9f, 0xa6, 0x5f, 0xa6, 0x5f, 0x90, 0x9f, 0x49, 0x2f, 0x20,
                       0x4f, 0x19, 0x8f, 0x00, 0x0f);
-HELTEC_IMG_NAV_ICON_I1(icon_recent_nav_img, icon_recent_nav_i1, 0x0f, 0x0f, 0x30, 0xcf, 0x40, 0x2f,
+HELTEC_IMG_NAV_ICON_I1(icon_recent_img, icon_recent_nav_i1, 0x0f, 0x0f, 0x30, 0xcf, 0x40, 0x2f,
                       0x42, 0x2f, 0x82, 0x1f, 0x82, 0x1f, 0x9e, 0x1f, 0x80, 0x1f, 0x40, 0x2f, 0x40,
                       0x2f, 0x30, 0xcf, 0x0f, 0x0f);
-HELTEC_IMG_NAV_ICON_I1(icon_system_nav_img, icon_system_nav_i1, 0x00, 0x0f, 0x00, 0x0f, 0x7f, 0x6f,
+HELTEC_IMG_NAV_ICON_I1(icon_system_img, icon_system_nav_i1, 0x00, 0x0f, 0x00, 0x0f, 0x7f, 0x6f,
                       0x00, 0x0f, 0x00, 0x0f, 0x7f, 0x6f, 0x00, 0x0f, 0x00, 0x0f, 0x7f, 0x6f, 0x00,
                       0x0f, 0x00, 0x0f, 0x00, 0x0f);
 #else
@@ -731,9 +715,7 @@ static const uint8_t icon_findfriend_i1[] PROGMEM = {
     0xf0, 0xf0, 0xef, 0x70, 0xef, 0x70, 0xef, 0x70, 0xef, 0x70, 0xf0, 0xf0, 0xef, 0x70,
     0xcf, 0xf0, 0xbf, 0xb0, 0x7f, 0x10, 0x7f, 0xb0, 0x7f, 0xf0};
 
-HELTEC_IMG_ICON_DSC(icon_findfriend_img, icon_findfriend_i1);
-
-HELTEC_IMG_NAV_ICON_I1(icon_findfriend_nav_img, icon_findfriend_nav_i1, 0x0f, 0x0f, 0x10, 0x8f, 0x10,
+HELTEC_IMG_NAV_ICON_I1(icon_findfriend_img, icon_findfriend_nav_i1, 0x0f, 0x0f, 0x10, 0x8f, 0x10,
                       0x8f, 0x10, 0x8f, 0x10, 0x8f, 0x0f, 0x0f, 0x10, 0x8f, 0x30, 0x0f, 0x40, 0x4f,
                       0x80, 0xef, 0x80, 0x4f, 0x80, 0x0f);
 
@@ -19990,18 +19972,3 @@ static constexpr uint32_t kUiBackgroundH = 320;
 HELTEC_EXPANSION_UI_ICON_IMG_DSC_WH(ui_background_img, kUiBackgroundW, kUiBackgroundH,
                                     ui_background_map);
 #endif
-
-const lv_img_dsc_t* nav_ring_icon_for(const lv_img_dsc_t* screen_icon) {
-  if (!screen_icon) return screen_icon;
-  if (screen_icon == &icon_home_img) return &icon_home_nav_img;
-  if (screen_icon == &icon_compass_img) return &icon_compass_nav_img;
-  if (screen_icon == &icon_gps_img) return &icon_gps_nav_img;
-  if (screen_icon == &icon_radio_img) return &icon_radio_nav_img;
-#if defined(HELTEC_V4_R8_TFT)
-  if (screen_icon == &icon_map_img) return &icon_map_nav_img;
-#endif
-  if (screen_icon == &icon_findfriend_img) return &icon_findfriend_nav_img;
-  if (screen_icon == &icon_recent_img) return &icon_recent_nav_img;
-  if (screen_icon == &icon_system_img) return &icon_system_nav_img;
-  return screen_icon;
-}

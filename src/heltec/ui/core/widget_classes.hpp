@@ -47,6 +47,9 @@ extern const lv_obj_class_t ht_navigation_icon_area_class;
 extern const lv_obj_class_t ht_navigation_title_bar_class;
 #endif
 extern const lv_obj_class_t ht_navigation_ring_class;
+#if !defined(UI_NAVIGATION_GRID) || !UI_NAVIGATION_GRID
+extern const lv_obj_class_t ht_radial_navigation_icon_class;
+#endif
 
 #if defined(ENV_INCLUDE_MAP) && ENV_INCLUDE_MAP
 extern const lv_obj_class_t ht_map_status_label_class;

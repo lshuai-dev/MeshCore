@@ -87,27 +87,12 @@ static const uint8_t kMeshCoreLogo[] PROGMEM = {
 }  // namespace
 
 #define E213_ICON(name_, data_) \
-  const lv_img_dsc_t name_ = {{LV_IMG_CF_INDEXED_1BIT, 0, 0, 12, 12}, sizeof(data_), data_}
-#define E213_NAV_ICON(name_, data_) \
   const lv_img_dsc_t name_ = {{LV_IMG_CF_ALPHA_1BIT, 0, 0, 12, 12}, sizeof(data_), data_}
 
-E213_ICON(icon_home_img, kHome);
-E213_ICON(icon_recent_img, kRecent);
-E213_ICON(icon_radio_img, kRadio);
-E213_ICON(icon_system_img, kSystem);
-
-E213_NAV_ICON(icon_home_nav_img, kHomeNav);
-E213_NAV_ICON(icon_recent_nav_img, kRecentNav);
-E213_NAV_ICON(icon_radio_nav_img, kRadioNav);
-E213_NAV_ICON(icon_system_nav_img, kSystemNav);
+E213_ICON(icon_home_img, kHomeNav);
+E213_ICON(icon_recent_img, kRecentNav);
+E213_ICON(icon_radio_img, kRadioNav);
+E213_ICON(icon_system_img, kSystemNav);
 
 const lv_img_dsc_t icon_meshcore_log_img = {
     {LV_IMG_CF_INDEXED_1BIT, 0, 0, 128, 13}, sizeof(kMeshCoreLogo), kMeshCoreLogo};
-
-const lv_img_dsc_t* nav_ring_icon_for(const lv_img_dsc_t* screen_icon) {
-  if (screen_icon == &icon_home_img) return &icon_home_nav_img;
-  if (screen_icon == &icon_recent_img) return &icon_recent_nav_img;
-  if (screen_icon == &icon_radio_img) return &icon_radio_nav_img;
-  if (screen_icon == &icon_system_img) return &icon_system_nav_img;
-  return screen_icon;
-}

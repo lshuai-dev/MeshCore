@@ -66,75 +66,63 @@ void init_license_gate_styles()
 }
 
 #if !defined(UI_NAVIGATION_GRID) || !UI_NAVIGATION_GRID
-struct RadialNavigationIconStyleSet
-{
-    bool ready = false;
-    lv_opa_t recolor_opa = LV_OPA_TRANSP;
-    lv_style_t idle;
-    lv_style_t focus;
-};
+static lv_style_t s_radial_icon_style;
+static lv_style_t s_radial_icon_focus_style;
+static bool s_radial_icon_styles_ready = false;
 
-RadialNavigationIconStyleSet s_radial_navigation_icon_styles[2];
-
-bool radial_navigation_icon_uses_recolor(const lv_img_dsc_t *image)
+void init_radial_icon_styles()
 {
-    if (!image)
-        return true;
-    switch (image->header.cf)
-    {
-    case LV_IMG_CF_ALPHA_1BIT:
-    case LV_IMG_CF_ALPHA_2BIT:
-    case LV_IMG_CF_ALPHA_4BIT:
-    case LV_IMG_CF_ALPHA_8BIT:
-        return true;
-    case LV_IMG_CF_INDEXED_1BIT:
-    case LV_IMG_CF_INDEXED_2BIT:
-    case LV_IMG_CF_INDEXED_4BIT:
-    case LV_IMG_CF_INDEXED_8BIT:
-#if defined(UI_EINK_DISPLAY) && UI_EINK_DISPLAY && \
-    defined(UI_NAV_USE_SCREEN_ICONS) && UI_NAV_USE_SCREEN_ICONS
-        // E213 indexed assets already contain their black/white palette.
-        // Recoloring both palette entries at full opacity turns the image
-        // into a solid block whenever navigation falls back to a screen icon.
-        return false;
+    if (s_radial_icon_styles_ready)
+        return;
+
+    lv_style_init(&s_radial_icon_style);
+    lv_style_set_bg_opa(&s_radial_icon_style, LV_OPA_TRANSP);
+    lv_style_set_border_width(&s_radial_icon_style, 0);
+    lv_style_set_outline_width(&s_radial_icon_style, 0);
+    lv_style_set_shadow_width(&s_radial_icon_style, 0);
+    lv_style_set_pad_all(&s_radial_icon_style, 0);
+
+    lv_style_init(&s_radial_icon_focus_style);
+    lv_style_set_border_width(&s_radial_icon_focus_style, 0);
+    lv_style_set_shadow_width(&s_radial_icon_focus_style, 0);
+    lv_style_set_pad_all(&s_radial_icon_focus_style, 0);
+
+#if defined(UI_EINK_DISPLAY) && UI_EINK_DISPLAY
+    lv_style_set_bg_opa(&s_radial_icon_focus_style, LV_OPA_TRANSP);
+    lv_style_set_outline_color(&s_radial_icon_focus_style, lv_color_black());
+    lv_style_set_outline_width(&s_radial_icon_focus_style, 1);
+    lv_style_set_outline_pad(&s_radial_icon_focus_style, 1);
+#elif (defined(HELTEC_DISPLAY_ST7735) && HELTEC_DISPLAY_ST7735) ||                         \
+    (defined(HELTEC_DISPLAY_ST7789) && HELTEC_DISPLAY_ST7789) ||                          \
+    (defined(HELTEC_DISPLAY_NV3001B) && HELTEC_DISPLAY_NV3001B)
+    lv_style_set_img_recolor(&s_radial_icon_style, lv_color_white());
+    lv_style_set_img_recolor_opa(&s_radial_icon_style, LV_OPA_COVER);
+    lv_style_set_bg_opa(&s_radial_icon_focus_style, LV_OPA_TRANSP);
+    lv_style_set_border_width(&s_radial_icon_focus_style, 0);
+    lv_style_set_border_opa(&s_radial_icon_focus_style, LV_OPA_TRANSP);
+    lv_style_set_outline_width(&s_radial_icon_focus_style, 0);
+    lv_style_set_outline_opa(&s_radial_icon_focus_style, LV_OPA_TRANSP);
+    lv_style_set_img_recolor(&s_radial_icon_focus_style, lv_color_hex(0x00C853));
+    lv_style_set_img_recolor_opa(&s_radial_icon_focus_style, LV_OPA_COVER);
+#elif (defined(HELTEC_DISPLAY_SSD1306) && HELTEC_DISPLAY_SSD1306) || LV_COLOR_DEPTH == 1
+    lv_style_set_img_recolor(&s_radial_icon_style, lv_color_white());
+    lv_style_set_img_recolor_opa(&s_radial_icon_style, LV_OPA_COVER);
+    lv_style_set_bg_color(&s_radial_icon_focus_style, lv_color_white());
+    lv_style_set_bg_opa(&s_radial_icon_focus_style, LV_OPA_COVER);
+    lv_style_set_img_recolor(&s_radial_icon_focus_style, lv_color_black());
+    lv_style_set_img_recolor_opa(&s_radial_icon_focus_style, LV_OPA_COVER);
+    lv_style_set_outline_color(&s_radial_icon_focus_style, lv_color_white());
+    lv_style_set_outline_width(&s_radial_icon_focus_style, 1);
 #else
-        return true;
+    lv_style_set_img_recolor(&s_radial_icon_style, lv_color_white());
+    lv_style_set_img_recolor_opa(&s_radial_icon_style, LV_OPA_COVER);
+    lv_style_set_bg_opa(&s_radial_icon_focus_style, LV_OPA_TRANSP);
+    lv_style_set_outline_width(&s_radial_icon_focus_style, 0);
+    lv_style_set_img_recolor(&s_radial_icon_focus_style, lv_color_hex(0x00C853));
+    lv_style_set_img_recolor_opa(&s_radial_icon_focus_style, LV_OPA_COVER);
 #endif
-    default:
-        return false;
-    }
-}
 
-RadialNavigationIconStyleSet *radial_navigation_icon_styles(lv_opa_t recolor_opa)
-{
-    for (RadialNavigationIconStyleSet &slot : s_radial_navigation_icon_styles)
-    {
-        if (slot.ready && slot.recolor_opa == recolor_opa)
-            return &slot;
-    }
-    for (RadialNavigationIconStyleSet &slot : s_radial_navigation_icon_styles)
-    {
-        if (slot.ready)
-            continue;
-        slot.ready = true;
-        slot.recolor_opa = recolor_opa;
-
-        lv_style_init(&slot.idle);
-        lv_style_set_bg_opa(&slot.idle, LV_OPA_TRANSP);
-        lv_style_set_border_width(&slot.idle, 0);
-        lv_style_set_shadow_width(&slot.idle, 0);
-        lv_style_set_pad_all(&slot.idle, 0);
-        lv_style_set_img_recolor(&slot.idle, ui_color_fg());
-        lv_style_set_img_recolor_opa(&slot.idle, recolor_opa);
-
-        lv_style_init(&slot.focus);
-        lv_style_set_bg_opa(&slot.focus, LV_OPA_TRANSP);
-        lv_style_set_border_width(&slot.focus, 0);
-        lv_style_set_img_recolor(&slot.focus, ui_color_accent());
-        lv_style_set_img_recolor_opa(&slot.focus, recolor_opa);
-        return &slot;
-    }
-    return nullptr;
+    s_radial_icon_styles_ready = true;
 }
 #endif
 
@@ -492,38 +480,20 @@ bool ui_license_gate_apply_theme(_lv_obj_t *obj)
     return true;
 }
 
-void ui_theme_apply_radial_navigation_icon(_lv_obj_t *button, const lv_img_dsc_t *image)
+bool ui_radial_navigation_icon_apply_theme(_lv_obj_t *icon)
 {
 #if !defined(UI_NAVIGATION_GRID) || !UI_NAVIGATION_GRID
-    if (!button)
-        return;
-    lv_obj_remove_style_all(button);
-    const lv_opa_t recolor_opa =
-        radial_navigation_icon_uses_recolor(image) ? LV_OPA_COVER : LV_OPA_TRANSP;
-    RadialNavigationIconStyleSet *styles = radial_navigation_icon_styles(recolor_opa);
-    if (!styles)
-        return;
-    static const lv_style_selector_t idle_selectors[] = {
-        LV_PART_MAIN,
-        LV_PART_MAIN | LV_STATE_PRESSED,
-    };
-    static const lv_style_selector_t focus_selectors[] = {
-        LV_PART_MAIN | LV_STATE_FOCUS_KEY,
-        LV_PART_MAIN | LV_STATE_FOCUS_KEY | LV_STATE_PRESSED,
-        LV_PART_MAIN | LV_STATE_FOCUSED,
-        LV_PART_MAIN | LV_STATE_FOCUSED | LV_STATE_PRESSED,
-    };
-    for (lv_style_selector_t selector : idle_selectors)
-    {
-        lv_obj_add_style(button, &styles->idle, selector);
-    }
-    for (lv_style_selector_t selector : focus_selectors)
-    {
-        lv_obj_add_style(button, &styles->focus, selector);
-    }
+    if (!icon || !lv_obj_check_type(icon, &ht_radial_navigation_icon_class))
+        return false;
+    init_radial_icon_styles();
+    lv_obj_remove_style_all(icon);
+    lv_obj_add_style(icon, &s_radial_icon_style, LV_PART_MAIN);
+    lv_obj_add_style(icon, &s_radial_icon_focus_style,
+                     LV_PART_MAIN | LV_STATE_CHECKED);
+    return true;
 #else
-    (void)button;
-    (void)image;
+    (void)icon;
+    return false;
 #endif
 }
 

@@ -115,15 +115,6 @@ HELTEC_IMG_ICON_ALPHA1_DSC(icon_recent_img, Recent_map);
 HELTEC_IMG_ICON_ALPHA1_DSC(icon_system_img, System_map);
 HELTEC_IMG_ICON_ALPHA1_DSC(icon_findfriend_img, FindFriend_map);
 
-// T114 navigation uses the same imported 24x24 assets as the screen icons.
-HELTEC_IMG_ICON_ALPHA1_DSC(icon_home_nav_img, Home_map);
-HELTEC_IMG_ICON_ALPHA1_DSC(icon_compass_nav_img, Compass_map);
-HELTEC_IMG_ICON_ALPHA1_DSC(icon_gps_nav_img, GPS_map);
-HELTEC_IMG_ICON_ALPHA1_DSC(icon_radio_nav_img, Radio_map);
-HELTEC_IMG_ICON_ALPHA1_DSC(icon_findfriend_nav_img, FindFriend_map);
-HELTEC_IMG_ICON_ALPHA1_DSC(icon_recent_nav_img, Recent_map);
-HELTEC_IMG_ICON_ALPHA1_DSC(icon_system_nav_img, System_map);
-
 HELTEC_IMG_CARDINAL_ICON_I1(compass_cardinal_n_img, compass_cardinal_n_i1, 0x0e, 0x11, 0x11, 0x11,
                            0x11, 0x11, 0x11);
 HELTEC_IMG_CARDINAL_ICON_I1(compass_cardinal_e_img, compass_cardinal_e_i1, 0x1f, 0x10, 0x1e, 0x10,
@@ -140,15 +131,3 @@ const lv_img_dsc_t icon_meshcore_log_img = {
     sizeof(meshcore_logo_i1),
     meshcore_logo_i1,
 };
-
-const lv_img_dsc_t* nav_ring_icon_for(const lv_img_dsc_t* screen_icon) {
-  if (!screen_icon) return screen_icon;
-  if (screen_icon == &icon_home_img) return &icon_home_nav_img;
-  if (screen_icon == &icon_compass_img) return &icon_compass_nav_img;
-  if (screen_icon == &icon_gps_img) return &icon_gps_nav_img;
-  if (screen_icon == &icon_radio_img) return &icon_radio_nav_img;
-  if (screen_icon == &icon_findfriend_img) return &icon_findfriend_nav_img;
-  if (screen_icon == &icon_recent_img) return &icon_recent_nav_img;
-  if (screen_icon == &icon_system_img) return &icon_system_nav_img;
-  return screen_icon;
-}

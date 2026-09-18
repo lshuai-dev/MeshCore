@@ -417,14 +417,7 @@ bool ContextMenu::registerMenu(const char *title, const lv_img_dsc_t *icon, Abst
     lv_obj_t *im = lv_img_create(btn);
     if (!im)
         return false;
-#if defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213
-    // E213 screen icons contain an opaque black/white palette. Context-menu
-    // recoloring would recolor both entries and turn the image into a solid
-    // square, so use the equivalent alpha-only navigation asset here.
-    lv_img_set_src(im, nav_ring_icon_for(icon));
-#else
     lv_img_set_src(im, icon);
-#endif
     lv_img_set_antialias(im, false);
 
     const lv_coord_t icon_width = static_cast<lv_coord_t>(icon->header.w);
