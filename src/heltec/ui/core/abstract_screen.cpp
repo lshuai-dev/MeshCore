@@ -2,7 +2,7 @@
 #include "ui/core/ht_container.hpp"
 #include "ui/core/ht_event.h"
 #include "ui/core/ht_scroll_view.hpp"
-#if defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213
+#if defined(HELTEC_HAS_KEY_FRAME) && HELTEC_HAS_KEY_FRAME
 #include "heltec/drivers/display/e213_port.hpp"
 #endif
 
@@ -153,10 +153,10 @@ void AbstractScreen::handleFramePressedEvent(lv_event_t *event) {
     }
 }
 
-#if defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213
-void AbstractScreen::e213FocusEvent(lv_event_t *event) {
+#if defined(HELTEC_HAS_KEY_FRAME) && HELTEC_HAS_KEY_FRAME
+void AbstractScreen::keyFrameFocusEvent(lv_event_t *event) {
     if (lv_event_get_code(event) == LV_EVENT_FOCUSED) {
-        heltec::meshcore::dal::e213::requestSelectionRefresh("screen-selection");
+        heltec::meshcore::dal::e213::requestSelectionRefresh();
     }
 }
 #endif
@@ -190,8 +190,8 @@ void AbstractScreen::addFocusableObject(_lv_obj_t *object, _lv_obj_t *frame, boo
     }
     lv_obj_add_flag(object, LV_OBJ_FLAG_CLICK_FOCUSABLE);
     lv_obj_add_flag(object, kFocusItemFlag);
-#if defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213
-    lv_obj_add_event_cb(object, e213FocusEvent, LV_EVENT_FOCUSED, nullptr);
+#if defined(HELTEC_HAS_KEY_FRAME) && HELTEC_HAS_KEY_FRAME
+    lv_obj_add_event_cb(object, keyFrameFocusEvent, LV_EVENT_FOCUSED, nullptr);
 #endif
 }
 

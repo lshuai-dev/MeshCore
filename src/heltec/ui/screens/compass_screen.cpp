@@ -131,19 +131,19 @@ bool CompassScreen::buildSurface()
                                                 (lv_coord_t)COMPASS_INFO_COL_PAD_LEFT, 0);
     if (info)
     {
-        _lbl_hdg = lv_label_create(info);
+        _lbl_hdg = ht_label_create(&ht_compass_label_class, info);
         compass_style_info_label(_lbl_hdg, "HDG:--", LV_LABEL_LONG_CLIP);
         if (_lbl_hdg)
             lv_label_set_text_static(_lbl_hdg, _hdg_text);
 
-        _lbl_q = lv_label_create(info);
+        _lbl_q = ht_label_create(&ht_compass_label_class, info);
         if (_lbl_q)
         {
             compass_style_info_label(_lbl_q, _q_text, LV_LABEL_LONG_CLIP);
             lv_label_set_recolor(_lbl_q, true);
         }
 
-        _lbl_mag = lv_label_create(info);
+        _lbl_mag = ht_label_create(&ht_compass_label_class, info);
         if (_lbl_mag)
         {
             lv_obj_set_width(_lbl_mag, lv_pct(100));

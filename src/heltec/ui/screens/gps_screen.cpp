@@ -1,4 +1,5 @@
 #include "gps_screen.hpp"
+#include "ui/core/widget_classes.hpp"
 #include "ui/app/theme.hpp"
 #include "ui/core/ht_container.hpp"
 #include "ui/core/ht_event.h"
@@ -77,11 +78,11 @@ bool GPSScreen::buildSurface()
     }
 #endif
 
-    _lbl_fix = lv_label_create(_root);
-    _lbl_sat = lv_label_create(_root);
-    _lbl_latlon = lv_label_create(_root);
-    _lbl_alt = lv_label_create(_root);
-    _lbl_speed = lv_label_create(_root);
+    _lbl_fix = ht_label_create(&ht_screen_info_label_class, _root);
+    _lbl_sat = ht_label_create(&ht_screen_info_label_class, _root);
+    _lbl_latlon = ht_label_create(&ht_screen_info_label_class, _root);
+    _lbl_alt = ht_label_create(&ht_screen_info_label_class, _root);
+    _lbl_speed = ht_label_create(&ht_screen_info_label_class, _root);
     if (!_lbl_fix || !_lbl_sat || !_lbl_latlon || !_lbl_alt || !_lbl_speed)
         return false;
     lv_label_set_text_static(_lbl_fix, "no fix");
@@ -118,7 +119,6 @@ bool GPSScreen::buildSurface()
         if (!info_label)
             continue;
         lv_obj_set_width(info_label, lv_pct(100));
-        ui_theme_apply_screen_info_label(info_label);
     }
 
     return true;

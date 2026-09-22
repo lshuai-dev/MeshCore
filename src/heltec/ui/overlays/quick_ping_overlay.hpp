@@ -1,5 +1,7 @@
 #pragma once
 
+#if HELTEC_HAS_TOUCH
+
 #include "heltec/ui/core/abstract_overlay.hpp"
 namespace heltec::meshcore::ui
 {
@@ -10,9 +12,13 @@ extern const lv_obj_class_t ht_quick_ping_content_class;
 extern const lv_obj_class_t ht_quick_ping_message_controls_class;
 extern const lv_obj_class_t ht_quick_ping_keyboard_editor_class;
 extern const lv_obj_class_t ht_quick_ping_keyboard_counter_class;
+extern const lv_obj_class_t ht_quick_ping_title_class;
+extern const lv_obj_class_t ht_quick_ping_label_class;
+extern const lv_obj_class_t ht_quick_ping_dropdown_class;
+extern const lv_obj_class_t ht_quick_ping_message_dropdown_class;
+extern const lv_obj_class_t ht_quick_ping_message_editor_class;
+extern const lv_obj_class_t ht_quick_ping_keyboard_class;
 } // namespace heltec::meshcore::ui
-
-#if defined(HELTEC_V4_R8_TFT) && defined(HELTEC_HAS_TOUCH) && HELTEC_HAS_TOUCH
 
 #include <stddef.h>
 #include <stdint.h>
@@ -92,7 +98,6 @@ class QuickPingOverlay final : public AbstractOverlay
     void setDropdownEnabled(_lv_obj_t *dropdown, bool enabled);
     void closeDropdowns();
     bool closeDropdown(_lv_obj_t *dropdown);
-    void syncDropdownListLayout(_lv_obj_t *dropdown);
     void updateMessageTextPresentation(bool editing);
     void updateKeyboardCounter();
     void syncKeyboardEditorToMessage();

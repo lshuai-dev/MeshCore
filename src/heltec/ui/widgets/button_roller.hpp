@@ -11,7 +11,9 @@ class ButtonRoller
 {
   public:
     bool create(lv_obj_t *parent, lv_group_t *group,
-                const lv_obj_class_t *root_class = &ht_button_roller_class);
+                const lv_obj_class_t *root_class = &ht_button_roller_class,
+                const lv_obj_class_t *item_class = &ht_button_roller_item_class,
+                const lv_obj_class_t *label_class = &ht_button_roller_label_class);
     lv_obj_t *addItem(const char *label);
     lv_obj_t *root() const
     {
@@ -32,6 +34,8 @@ class ButtonRoller
     static constexpr uint8_t kMaxItems = 12;
     lv_obj_t *_root = nullptr;
     lv_group_t *_group = nullptr;
+    const lv_obj_class_t *_item_class = &ht_button_roller_item_class;
+    const lv_obj_class_t *_label_class = &ht_button_roller_label_class;
     lv_obj_t *_items[kMaxItems]{};
     uint8_t _count = 0;
     bool _input_enabled = true;

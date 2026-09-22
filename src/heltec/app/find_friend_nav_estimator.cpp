@@ -10,7 +10,7 @@ namespace
 {
 
 constexpr double kPi = 3.14159265358979323846;
-constexpr float kMinimumNearbyM = 15.0f;
+constexpr float kMinimumNearbyM = 20.0f;
 constexpr float kNearbyHysteresisM = 5.0f;
 constexpr float kAssumedTargetErrorM = 10.0f;
 

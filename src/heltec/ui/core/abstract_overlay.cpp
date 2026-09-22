@@ -22,6 +22,18 @@ bool AbstractOverlay::buildSurface() {
 }
 
 void AbstractOverlay::onEnter() {
+    if (_root) {
+        lv_obj_t *const parent = lv_obj_get_parent(_root);
+        if (parent) {
+            lv_obj_update_layout(parent);
+            const lv_coord_t width = lv_obj_get_width(parent);
+            const lv_coord_t height = lv_obj_get_height(parent);
+            if (width > 0 && height > 0) {
+                lv_obj_set_size(_root, width, height);
+                lv_obj_set_pos(_root, 0, 0);
+            }
+        }
+    }
     if (_lv_obj_t *target = focusTarget()) setFocusObject(target);
 }
 

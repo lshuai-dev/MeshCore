@@ -1,6 +1,8 @@
 #if defined(ENV_INCLUDE_GPS) && ENV_INCLUDE_GPS
 
 #include "find_friend_screen.hpp"
+
+#include "ui/core/ht_dropdown.hpp"
 #include "app/team_join_service.hpp"
 #include "ui/app/theme.hpp"
 #include "ui/core/ht_container.hpp"
@@ -15,7 +17,7 @@ namespace
 {
 using heltec::meshcore::team::JoinState;
 
-#if defined(HELTEC_V4_R8_TFT)
+#if HELTEC_HAS_TOUCH
 constexpr lv_coord_t kFindFriendRowHeight = 28;
 constexpr lv_coord_t kFindFriendRowPadVer = 1;
 constexpr lv_coord_t kDropdownHeight = kFindFriendRowHeight - 2 * kFindFriendRowPadVer;
@@ -84,35 +86,6 @@ void configure_label(_lv_obj_t *label, lv_coord_t width)
     lv_label_set_long_mode(label, LV_LABEL_LONG_CLIP);
 }
 
-bool cycle_dropdown(_lv_obj_t *dropdown, uint32_t key)
-{
-    if (!dropdown || !lv_dropdown_is_open(dropdown))
-        return false;
-    const uint16_t count = lv_dropdown_get_option_cnt(dropdown);
-    if (count <= 1)
-        return false;
-
-    const uint16_t current = lv_dropdown_get_selected(dropdown);
-    uint16_t next = current;
-    if (key == LV_KEY_DOWN || key == LV_KEY_RIGHT || key == LV_KEY_NEXT)
-    {
-        next = static_cast<uint16_t>((current + 1u) % count);
-    }
-    else if (key == LV_KEY_UP || key == LV_KEY_LEFT || key == LV_KEY_PREV)
-    {
-        next =
-            current == 0 ? static_cast<uint16_t>(count - 1u) : static_cast<uint16_t>(current - 1u);
-    }
-    else
-    {
-        return false;
-    }
-    lv_dropdown_set_selected(dropdown, next);
-    if (_lv_obj_t *const list = lv_dropdown_get_list(dropdown))
-        lv_obj_invalidate(list);
-    return true;
-}
-
 } // namespace
 
 _lv_obj_t *FindFriendScreen::addDropdownRow(ChoiceRow &choice, const char *title,
@@ -127,25 +100,29 @@ _lv_obj_t *FindFriendScreen::addDropdownRow(ChoiceRow &choice, const char *title
     if (choice.label)
         lv_label_set_text(choice.label, title);
     configure_label(choice.label, LV_SIZE_CONTENT);
-    choice.dropdown = lv_dropdown_create(choice.row);
+    choice.dropdown = ht_dropdown_create(choice.row);
     if (!choice.dropdown)
         return choice.row;
+    _lv_obj_t *const viewport = lv_obj_get_parent(_root);
+    ht_dropdown_set_viewport(choice.dropdown, viewport ? viewport : _root);
+    if (&choice == &_choice_team)
+    {
+        ht_dropdown_set_scroll_parent(choice.dropdown, _right_column);
+    }
 
     lv_dropdown_set_options_static(choice.dropdown, options ? options : "");
     lv_obj_set_width(choice.dropdown, 0);
     lv_obj_set_flex_grow(choice.dropdown, 1);
 #if LV_COLOR_DEPTH == 1
     lv_obj_set_height(choice.dropdown, 12);
-#elif defined(HELTEC_V4_R8_TFT)
+#elif HELTEC_HAS_TOUCH
     lv_obj_set_height(choice.dropdown, kDropdownHeight);
-    ui_theme_center_dropdown_value(choice.dropdown);
 #else
     lv_obj_set_height(choice.dropdown, LV_SIZE_CONTENT);
 #endif
     lv_obj_clear_flag(choice.dropdown, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_set_scrollbar_mode(choice.dropdown, LV_SCROLLBAR_MODE_OFF);
     lv_dropdown_set_dir(choice.dropdown, LV_DIR_BOTTOM);
-    lv_dropdown_set_selected_highlight(choice.dropdown, true);
     bindControl(choice.dropdown);
     lv_obj_add_event_cb(choice.dropdown, onDropdownValueChanged, LV_EVENT_VALUE_CHANGED, this);
     lv_obj_add_event_cb(choice.dropdown, onDropdownStateEvent, LV_EVENT_READY, this);
@@ -199,9 +176,17 @@ void FindFriendScreen::createControls()
 #endif
     addDropdownRow(_choice_friend, "member", "(none)");
 #if defined(ENV_INCLUDE_GPS) && ENV_INCLUDE_GPS
-    _row_team_message = addActionRow("> Team message", Action::TeamMessage);
+    _row_team_message = addActionRow("> Message", Action::TeamMessage);
 #endif
     addActionRow("> set waypoint coordinates", Action::WaypointManual);
+}
+
+void FindFriendScreen::onRightColumnScrolled(lv_event_t *event)
+{
+    auto *const self = static_cast<FindFriendScreen *>(lv_event_get_user_data(event));
+    if (!self || !self->_open_dropdown)
+        return;
+    ht_dropdown_realign(self->_open_dropdown);
 }
 
 void FindFriendScreen::configureFocusItems()
@@ -214,12 +199,13 @@ void FindFriendScreen::configureFocusItems()
     addFocusableObject(_choice_friend.dropdown, _choice_friend.row);
     addFocusableObject(_row_team_message);
     addFocusableObject(_row_wp_manual);
-    // Match System Screen's deterministic focus scrolling. Pointer focus must
-    // not snap the column after a drag or tap; keypad/encoder traversal owns it.
+    // Pointer focus must not snap the column after a drag or tap;
+    // keypad/encoder traversal owns deterministic row scrolling.
     _lv_obj_t *const focus_controls[] = {
         _choice_mode.dropdown,
         _choice_role.dropdown,
-        _row_team, _choice_team.dropdown,
+        _row_team,
+        _choice_team.dropdown,
         _choice_friend.dropdown,
         _row_team_message,
         _row_wp_manual,
@@ -235,15 +221,6 @@ void FindFriendScreen::configureFocusItems()
     {
         lv_group_set_focus_cb(group(), onGroupFocusChanged);
     }
-}
-
-void FindFriendScreen::onRightColumnScrolled(lv_event_t *event)
-{
-    auto *const self = static_cast<FindFriendScreen *>(lv_event_get_user_data(event));
-    if (!self || !self->_open_dropdown)
-        return;
-    if (lv_async_call(realignDropdownListAsync, self->_open_dropdown) != LV_RES_OK)
-        self->realignDropdownList(self->_open_dropdown);
 }
 
 void FindFriendScreen::onGroupFocusChanged(lv_group_t *group)
@@ -282,7 +259,7 @@ void FindFriendScreen::scrollFocusedIntoView(_lv_obj_t *focused) const
     lv_obj_get_coords(row, &row_area);
 
     const lv_coord_t margin =
-#if defined(HELTEC_V4_R8_TFT)
+#if HELTEC_HAS_TOUCH
         LV_DPX(6);
 #else
         1;
@@ -555,6 +532,7 @@ void FindFriendScreen::onDropdownValueChanged(lv_event_t *e)
     {
         lv_dropdown_close(dropdown);
     }
+    self->endDropdownEdit(dropdown);
 
     if (dropdown == self->_choice_mode.dropdown)
     {
@@ -587,6 +565,12 @@ void FindFriendScreen::onDropdownValueChanged(lv_event_t *e)
         if (mode == 0)
         {
             self->updateConditionalVisibility();
+            const biz::IBizFacade::TeamStatus team = self->_biz.teamStatus();
+            if (!team.is_leader && !team.has_team)
+            {
+                self->startTeamSearch();
+                return;
+            }
             self->requestDeferredFocus(DeferredFocus::Role);
             self->syncFriendDropdown(true);
         }
@@ -649,7 +633,6 @@ void FindFriendScreen::onDropdownValueChanged(lv_event_t *e)
                 return;
             }
 
-            self->endDropdownEdit(dropdown);
             self->_biz.setFindFriendTargetContactIndex(-1);
             self->_friend_window_start = 0;
             self->syncFriendDropdown(true);
@@ -692,10 +675,8 @@ void FindFriendScreen::onDropdownValueChanged(lv_event_t *e)
 
 void FindFriendScreen::startTeamSearch()
 {
-    closeOpenDropdown();
     _pending_focus = DeferredFocus::Team;
     const bool started = _biz.teamStartSearch();
-    syncControls(true);
     if (!started)
     {
         _pending_focus = DeferredFocus::None;
@@ -762,10 +743,6 @@ void FindFriendScreen::onDropdownStateEvent(lv_event_t *e)
     if (code == LV_EVENT_READY)
     {
         self->beginDropdownEdit(dropdown);
-        if (lv_async_call(realignDropdownListAsync, dropdown) != LV_RES_OK)
-        {
-            self->realignDropdownList(dropdown);
-        }
     }
     else if (code == LV_EVENT_CANCEL)
     {
@@ -794,7 +771,6 @@ void FindFriendScreen::onDropdownReleasedPre(lv_event_t *e)
         lv_event_stop_bubbling(e);
         return;
     }
-    self->realignDropdownList(dropdown);
 }
 
 void FindFriendScreen::syncFriendDropdown(bool force)
@@ -1002,69 +978,6 @@ void FindFriendScreen::closeOpenDropdown()
     endDropdownEdit(closing);
 }
 
-void FindFriendScreen::realignDropdownListAsync(void *user_data)
-{
-    _lv_obj_t *const dropdown = static_cast<_lv_obj_t *>(user_data);
-    if (!dropdown || !lv_obj_is_valid(dropdown))
-        return;
-    for (_lv_obj_t *obj = dropdown; obj; obj = lv_obj_get_parent(obj))
-    {
-        if (!lv_obj_get_user_data(obj))
-            continue;
-        auto *self = static_cast<FindFriendScreen *>(lv_obj_get_user_data(obj));
-        if (self)
-            self->realignDropdownList(dropdown);
-        return;
-    }
-}
-
-void FindFriendScreen::realignDropdownList(_lv_obj_t *dropdown)
-{
-    if (!dropdown || !_root || !lv_obj_is_valid(dropdown) || !lv_dropdown_is_open(dropdown))
-    {
-        return;
-    }
-    _lv_obj_t *const list = lv_dropdown_get_list(dropdown);
-    if (!list || !lv_obj_is_valid(list))
-        return;
-
-    lv_obj_update_layout(_root);
-    lv_obj_update_layout(lv_obj_get_parent(dropdown));
-    lv_obj_update_layout(dropdown);
-    const lv_coord_t width = lv_obj_get_width(dropdown);
-    if (width > 0)
-        lv_obj_set_width(list, width);
-    lv_obj_set_scrollbar_mode(list, LV_SCROLLBAR_MODE_OFF);
-    ui_theme_match_dropdown_list_padding(dropdown, list);
-    _lv_obj_t *const viewport = lv_obj_get_parent(_root);
-    // Position from the anchor's current screen coordinates; do not scroll an
-    // unrelated parent while fitting the popup (which can move the anchor again).
-    _lv_obj_t *scroll_parent = nullptr;
-    if (dropdown == _choice_team.dropdown)
-    {
-        scroll_parent = _right_column;
-    }
-    ui_dropdown_fit_list_to_viewport(dropdown, viewport ? viewport : _root, scroll_parent);
-    if (dropdown == _choice_team.dropdown)
-    {
-        lv_obj_update_layout(viewport ? viewport : _root);
-        lv_obj_update_layout(dropdown);
-        lv_obj_update_layout(list);
-        lv_area_t viewport_area{};
-        lv_area_t dropdown_area{};
-        lv_obj_get_coords(viewport ? viewport : _root, &viewport_area);
-        lv_obj_get_coords(dropdown, &dropdown_area);
-        const lv_coord_t available_below = viewport_area.y2 - dropdown_area.y2;
-        if (available_below > 0)
-        {
-            const lv_coord_t list_height = lv_obj_get_height(list);
-            if (list_height > available_below)
-                lv_obj_set_height(list, available_below);
-            lv_obj_align_to(list, dropdown, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 0);
-        }
-    }
-}
-
 void FindFriendScreen::onControlKeyPreprocess(lv_event_t *e)
 {
     if (lv_event_get_code(e) != LV_EVENT_KEY)
@@ -1103,18 +1016,14 @@ void FindFriendScreen::onControlKeyPreprocess(lv_event_t *e)
             direction = -1;
         if (direction != 0 && self->moveFriendDropdownSelection(direction))
         {
-            if (lv_async_call(realignDropdownListAsync, target) != LV_RES_OK)
-                self->realignDropdownList(target);
             lv_event_stop_processing(e);
             lv_event_stop_bubbling(e);
             return;
         }
     }
 
-    if (self->_open_dropdown == target && cycle_dropdown(target, key))
+    if (self->_open_dropdown == target && ht_dropdown_cycle(target, key))
     {
-        if (lv_async_call(realignDropdownListAsync, target) != LV_RES_OK)
-            self->realignDropdownList(target);
         lv_event_stop_processing(e);
         lv_event_stop_bubbling(e);
         return;
@@ -1133,9 +1042,9 @@ void FindFriendScreen::onControlKeyPreprocess(lv_event_t *e)
                request to begin Team discovery. */
             changed = true;
         }
-#if defined(HELTEC_T1)
-        /* T1 long-press emits KEY followed by RELEASED. Without suppressing that
-           release, LVGL closes here and immediately reopens the dropdown. */
+#if !HELTEC_HAS_TOUCH
+        /* Key input emits KEY followed by RELEASED. Suppress that release so
+           it cannot reopen the dropdown that was just confirmed and closed. */
         self->_suppress_released_dropdown = target;
 #endif
         lv_dropdown_close(target);

@@ -1,6 +1,6 @@
 #pragma once
 
-#if defined(HELTEC_V4_R8_TFT) && defined(HELTEC_HAS_TOUCH) && HELTEC_HAS_TOUCH
+#if HELTEC_HAS_TOUCH
 
 #include "../core/framed_overlay.hpp"
 #include "send_message_model.hpp"
@@ -81,4 +81,4 @@ class SendMessageOverlay : public FramedOverlay
 
 } // namespace heltec::meshcore::ui
 
-#endif // HELTEC_V4_R8_TFT && HELTEC_HAS_TOUCH
+#endif // HELTEC_HAS_TOUCH

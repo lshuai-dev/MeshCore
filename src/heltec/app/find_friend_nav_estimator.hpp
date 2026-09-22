@@ -66,7 +66,7 @@ struct FindFriendNavOutput
     float turn_deg = 0.0f;
     double distance_m = -1.0;
     bool near_target = false;
-    float nearby_enter_m = 15.0f;
+    float nearby_enter_m = 20.0f;
     Confidence confidence = Confidence::Unavailable;
 };
 

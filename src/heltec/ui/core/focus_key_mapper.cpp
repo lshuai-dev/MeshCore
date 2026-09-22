@@ -72,7 +72,7 @@ uint32_t FocusKeyMapper::translateForObject(lv_obj_t *obj, uint32_t lv_key)
 #endif
 
 #if LV_USE_DROPDOWN
-    if (lv_obj_check_type(obj, &lv_dropdown_class) && lv_dropdown_is_open(obj))
+    if (lv_obj_has_class(obj, &lv_dropdown_class) && lv_dropdown_is_open(obj))
     {
         if (lv_key == LV_KEY_NEXT || lv_key == LV_KEY_RIGHT)
             return LV_KEY_DOWN;

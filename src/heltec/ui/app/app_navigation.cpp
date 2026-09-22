@@ -2,7 +2,7 @@
 #include "ui/app/behavior_profile.hpp"
 #include "ui/core/screen_id.hpp"
 #include "ui/core/ht_event.h"
-#if defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213
+#if defined(HELTEC_HAS_KEY_FRAME) && HELTEC_HAS_KEY_FRAME
 #include "heltec/drivers/display/e213_port.hpp"
 #endif
 
@@ -22,7 +22,7 @@ void UiApp::openNavigationPane()
 
     _navigation.setSelectedIndex(activeTileIndex(), true);
     notifyNavActivity(millis());
-#if defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213
+#if defined(HELTEC_HAS_KEY_FRAME) && HELTEC_HAS_KEY_FRAME
     heltec::meshcore::dal::e213::beginNavigationSession();
 #endif
     (void)_surfaces.show(&_navigation, true);
@@ -104,7 +104,7 @@ void UiApp::closeNavigationPane()
         return;
     _nav_last_activity_ms = 0;
     stopNavigationAutoCommitTimer();
-#if defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213
+#if defined(HELTEC_HAS_KEY_FRAME) && HELTEC_HAS_KEY_FRAME
     heltec::meshcore::dal::e213::endNavigationSession();
 #endif
     (void)_surfaces.show(&_navigation, false);
@@ -181,7 +181,7 @@ void UiApp::notifyNavActivity(uint32_t now_ms)
     _nav_last_activity_ms = now_ms;
     restartNavigationAutoCommitTimer();
     notifyDisplayActivity(now_ms);
-#if defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213
+#if defined(HELTEC_HAS_KEY_FRAME) && HELTEC_HAS_KEY_FRAME
     heltec::meshcore::dal::e213::navigationActivity();
 #endif
 }
@@ -201,7 +201,7 @@ void UiApp::ensureTileKeypadFocus()
     {
         closeNavigationImmediate();
     }
-#if !defined(HELTEC_V4_R8_TFT) || !defined(HELTEC_HAS_TOUCH) || !HELTEC_HAS_TOUCH
+#if !defined(HELTEC_HAS_TOUCH) || !HELTEC_HAS_TOUCH
     if (_surfaces.isVisible(&_contextMenu))
         (void)closeActionPane();
 #endif
@@ -251,7 +251,7 @@ void UiApp::closeNavigationImmediate()
 {
     _nav_last_activity_ms = 0;
     stopNavigationAutoCommitTimer();
-#if defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213
+#if defined(HELTEC_HAS_KEY_FRAME) && HELTEC_HAS_KEY_FRAME
     heltec::meshcore::dal::e213::endNavigationSession();
 #endif
     (void)_surfaces.show(&_navigation, false);

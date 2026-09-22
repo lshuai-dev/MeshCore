@@ -42,7 +42,7 @@
 #include "ui/overlays/repeat_mode_overlay.hpp"
 #include "ui/overlays/send_message_overlay.hpp"
 #include "ui/screens/system_screen.hpp"
-#if defined(HELTEC_V4_R8_TFT) && defined(HELTEC_HAS_TOUCH) && HELTEC_HAS_TOUCH
+#if HELTEC_HAS_TOUCH
 #include "ui/overlays/quick_ping_overlay.hpp"
 #else
 #include "ui/menus/cascading_menu.hpp"
@@ -108,7 +108,7 @@ class UiApp final : public IUiHost, public InputHost {
         return _frame_root;
     }
 
-#if !defined(HELTEC_V4_R8_TFT) || !defined(HELTEC_HAS_TOUCH) || !HELTEC_HAS_TOUCH
+#if !defined(HELTEC_HAS_TOUCH) || !HELTEC_HAS_TOUCH
     bool openContextMenu();
     void closeContextMenu();
     void ensureContextMenusRegistered();
@@ -131,10 +131,10 @@ class UiApp final : public IUiHost, public InputHost {
     void presentMessageKeyboard();
     void closeKeyboardOverlay();
 
+#if HELTEC_HAS_TOUCH
     bool hitActiveTrackerViewport(lv_coord_t x, lv_coord_t y) const;
-#if defined(HELTEC_TOUCH_GESTURE_INPUT) && HELTEC_TOUCH_GESTURE_INPUT
+#if defined(HELTEC_TOUCH_GESTURE) && HELTEC_TOUCH_GESTURE
     static bool touchGestureBlockLongPress(int16_t x, int16_t y);
-#if defined(HELTEC_V4_R8_TFT) && defined(HELTEC_HAS_TOUCH) && HELTEC_HAS_TOUCH
     static bool touchGestureRawPointerPassthrough(int16_t x, int16_t y);
     static bool touchGestureBlockQuickPingDoubleTap(int16_t x, int16_t y);
 #endif
@@ -150,7 +150,7 @@ class UiApp final : public IUiHost, public InputHost {
     AbstractScreen *resolveActiveScreen() const;
     void bindScreen(AbstractScreen *scr);
     void activateActiveScreen();
-#if defined(HELTEC_V4_R8_TFT) && defined(HELTEC_HAS_TOUCH) && HELTEC_HAS_TOUCH
+#if HELTEC_HAS_TOUCH
     static void nativeTouchGestureEvent(lv_event_t *e);
     void handleNativeTouchGesture(lv_event_t *e);
 
@@ -169,9 +169,9 @@ class UiApp final : public IUiHost, public InputHost {
     void deferTouchAction(DeferredTouchAction action);
     void runDeferredTouchAction();
     static void deferredTouchActionTimerCb(lv_timer_t *timer);
-#endif
     /** Touch swipe: edge gestures first, then page switching. */
     void onTouchSwipe(lv_dir_t direction, int16_t start_x, int16_t start_y);
+#endif
     void restartNavigationAutoCommitTimer();
     void stopNavigationAutoCommitTimer();
     void handleNavigationAutoCommitTimeout();
@@ -184,11 +184,6 @@ class UiApp final : public IUiHost, public InputHost {
     void previewNavTile(uint8_t tile_idx);
     void onTileActiveChanged();
     bool switchAdjacentTile(int8_t dir);
-#if defined(HELTEC_TOPBAR_TOUCH_SHELL) && HELTEC_TOPBAR_TOUCH_SHELL
-    void onTopPaneShortPress();
-    void onTopPaneLongPress();
-#endif
-
     biz::IBizFacade &_biz;
     heltec::meshcore::power::PowerMgr &_power;
     AppStateUiDispatcher _app_state_dispatcher;
@@ -216,13 +211,13 @@ class UiApp final : public IUiHost, public InputHost {
 #endif
     SystemScreen _scrSystem;
 
-#if !defined(HELTEC_V4_R8_TFT) || !defined(HELTEC_HAS_TOUCH) || !HELTEC_HAS_TOUCH
+#if !defined(HELTEC_HAS_TOUCH) || !HELTEC_HAS_TOUCH
     CascadingMenu _ctxRadioMenu;
 #if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
     CascadingMenu _ctxCompassMenu;
 #endif
 #endif
-#if defined(HELTEC_V4_R8_TFT) && defined(HELTEC_HAS_TOUCH) && HELTEC_HAS_TOUCH
+#if HELTEC_HAS_TOUCH
     QuickPingOverlay _quickPingOverlay;
 #endif
 
@@ -240,11 +235,11 @@ class UiApp final : public IUiHost, public InputHost {
 #if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
     CalibrationOverlay _calibrationOvl;
 #endif
-#if !defined(HELTEC_V4_R8_TFT) || !defined(HELTEC_HAS_TOUCH) || !HELTEC_HAS_TOUCH
+#if !defined(HELTEC_HAS_TOUCH) || !HELTEC_HAS_TOUCH
     ContextMenu _contextMenu;
     bool _context_menus_registered = false;
 #endif
-#if defined(HELTEC_V4_R8_TFT) && defined(HELTEC_HAS_TOUCH) && HELTEC_HAS_TOUCH
+#if HELTEC_HAS_TOUCH
     DeferredTouchAction _deferred_touch_action = DeferredTouchAction::None;
     lv_timer_t *_deferred_touch_timer = nullptr;
 #endif

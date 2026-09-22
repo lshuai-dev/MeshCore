@@ -1,4 +1,5 @@
 #pragma once
+#include "ui/app/theme_profile.hpp"
 #include "ui/core/widget_classes.hpp"
 
 #include <lvgl.h>
@@ -21,16 +22,11 @@ class TopPane
     {
         return _root;
     }
-#if defined(HELTEC_TOPBAR_TOUCH_SHELL) && HELTEC_TOPBAR_TOUCH_SHELL
-    void enableTouchShell(lv_event_cb_t on_short_press, lv_event_cb_t on_long_press,
-                          void *user_data);
-#endif
-
   protected:
     void renderBattery();
 
   private:
-#if defined(HELTEC_V4_R8_TFT)
+#if !HELTEC_UI_DISPLAY_MONO
     static void onBatteryDraw(lv_event_t *e);
 #else
     static void onBatteryOutlineSizeChanged(lv_event_t *e);
@@ -38,11 +34,8 @@ class TopPane
 
     _lv_obj_t *_root = nullptr;
     _lv_obj_t *_title = nullptr;
-#if defined(HELTEC_TOPBAR_TOUCH_SHELL) && HELTEC_TOPBAR_TOUCH_SHELL
-    _lv_obj_t *_touch_slot = nullptr;
-#endif
     _lv_obj_t *_bat_cont = nullptr;
-#if !defined(HELTEC_V4_R8_TFT)
+#if HELTEC_UI_DISPLAY_MONO
     _lv_obj_t *_bat_fill = nullptr;
 #endif
     uint8_t _bat_percent = 0;

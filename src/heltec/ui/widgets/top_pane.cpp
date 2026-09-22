@@ -7,7 +7,7 @@ namespace heltec::meshcore::ui
 namespace
 {
 
-#if defined(HELTEC_V4_R8_TFT)
+#if !HELTEC_UI_DISPLAY_MONO
 lv_color_t battery_fill_color(uint8_t pct)
 {
 #if LV_COLOR_DEPTH == 1
@@ -148,7 +148,7 @@ bool TopPane::create(_lv_obj_t *parent)
                           LV_FLEX_ALIGN_CENTER);
     lv_obj_clear_flag(center_slot, LV_OBJ_FLAG_SCROLLABLE);
 
-    _title = lv_label_create(center_slot);
+    _title = ht_label_create(&ht_top_pane_title_class, center_slot);
     if (!_title)
     {
         lv_obj_del(_root);
@@ -161,10 +161,6 @@ bool TopPane::create(_lv_obj_t *parent)
     lv_obj_clear_flag(_title, LV_OBJ_FLAG_SCROLLABLE | LV_OBJ_FLAG_SCROLL_ON_FOCUS);
     lv_label_set_long_mode(_title, LV_LABEL_LONG_SCROLL_CIRCULAR);
     lv_obj_add_flag(_title, LV_OBJ_FLAG_EVENT_BUBBLE);
-
-#if defined(HELTEC_TOPBAR_TOUCH_SHELL) && HELTEC_TOPBAR_TOUCH_SHELL
-    _touch_slot = center_slot;
-#endif
 
     _lv_obj_t *right_slot = ht_class_create(&ht_top_pane_right_slot_class, _root);
     if (!right_slot)
@@ -180,7 +176,7 @@ bool TopPane::create(_lv_obj_t *parent)
                           LV_FLEX_ALIGN_CENTER);
     lv_obj_clear_flag(right_slot, LV_OBJ_FLAG_SCROLLABLE);
 
-    _bat_cont = lv_obj_create(right_slot);
+    _bat_cont = ht_class_create(&ht_top_pane_battery_class, right_slot);
     if (!_bat_cont)
     {
         lv_obj_del(_root);
@@ -193,7 +189,7 @@ bool TopPane::create(_lv_obj_t *parent)
     lv_obj_add_flag(_bat_cont, LV_OBJ_FLAG_OVERFLOW_VISIBLE);
     lv_obj_clear_flag(_bat_cont, LV_OBJ_FLAG_SCROLLABLE);
 
-#if defined(HELTEC_V4_R8_TFT)
+#if !HELTEC_UI_DISPLAY_MONO
     lv_obj_add_event_cb(_bat_cont, onBatteryDraw, LV_EVENT_DRAW_MAIN, this);
 #else
     lv_obj_t *bat_outline =
@@ -250,7 +246,7 @@ void TopPane::setBatteryStatus(uint16_t millivolts, uint8_t percent)
     renderBattery();
 }
 
-#if defined(HELTEC_V4_R8_TFT)
+#if !HELTEC_UI_DISPLAY_MONO
 void TopPane::onBatteryDraw(lv_event_t *e)
 {
     if (!e || lv_event_get_code(e) != LV_EVENT_DRAW_MAIN)
@@ -322,7 +318,7 @@ void TopPane::onBatteryOutlineSizeChanged(lv_event_t *e)
 
 void TopPane::renderBattery()
 {
-#if defined(HELTEC_V4_R8_TFT)
+#if !HELTEC_UI_DISPLAY_MONO
     if (_bat_cont)
         lv_obj_invalidate(_bat_cont);
 #else
@@ -349,22 +345,5 @@ void TopPane::renderBattery()
     lv_obj_invalidate(outline);
 #endif
 }
-
-#if defined(HELTEC_TOPBAR_TOUCH_SHELL) && HELTEC_TOPBAR_TOUCH_SHELL
-
-void TopPane::enableTouchShell(lv_event_cb_t on_short_press, lv_event_cb_t on_long_press,
-                               void *user_data)
-{
-    if (!_touch_slot || !on_short_press)
-        return;
-    lv_obj_add_flag(_touch_slot, LV_OBJ_FLAG_CLICKABLE);
-    lv_obj_add_event_cb(_touch_slot, on_short_press, LV_EVENT_SHORT_CLICKED, user_data);
-    if (on_long_press)
-    {
-        lv_obj_add_event_cb(_touch_slot, on_long_press, LV_EVENT_LONG_PRESSED, user_data);
-    }
-}
-
-#endif
 
 } // namespace heltec::meshcore::ui

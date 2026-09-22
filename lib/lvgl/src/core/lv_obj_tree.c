@@ -140,7 +140,6 @@ void lv_obj_set_parent(lv_obj_t * obj, lv_obj_t * parent)
     }
 
     lv_obj_invalidate(obj);
-
     lv_obj_allocate_spec_attr(parent);
 
     lv_obj_t * old_parent = obj->parent;
@@ -162,7 +161,7 @@ void lv_obj_set_parent(lv_obj_t * obj, lv_obj_t * parent)
     /*Add the child to the new parent as the last (newest child)*/
     parent->spec_attr->child_cnt++;
     parent->spec_attr->children = lv_mem_realloc(parent->spec_attr->children,
-                                                 parent->spec_attr->child_cnt * (sizeof(lv_obj_t *)));
+                                                   parent->spec_attr->child_cnt * (sizeof(lv_obj_t *)));
     parent->spec_attr->children[lv_obj_get_child_cnt(parent) - 1] = obj;
 
     obj->parent = parent;

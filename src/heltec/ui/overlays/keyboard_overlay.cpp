@@ -5,7 +5,7 @@
 #include "ui/core/ht_event.h"
 #include "ui/core/widget_classes.hpp"
 #include "ui/theme/widget_theme.hpp"
-#if defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213
+#if defined(HELTEC_HAS_KEY_FRAME) && HELTEC_HAS_KEY_FRAME
 #include "heltec/drivers/display/e213_port.hpp"
 #endif
 
@@ -31,10 +31,9 @@ constexpr lv_btnmatrix_ctrl_t kWaypointActionCtrl =
 #if defined(HELTEC_HAS_TOUCH) && HELTEC_HAS_TOUCH
 constexpr lv_coord_t kTouchCoordinateRowHeight = 28;
 constexpr lv_coord_t kTouchCoordinateLabelWidth = 72;
-constexpr lv_coord_t kTouchKeyboardTopGap = 8;
 #endif
 
-#if !defined(HELTEC_V4_R8_TFT) || !defined(HELTEC_HAS_TOUCH) || !HELTEC_HAS_TOUCH
+#if !HELTEC_HAS_TOUCH
 static const char *kMessageCompactKbMap[] = {
     "1",          "2", "3", "4", "5",  "6", "7", "8",   "9",  "0",
     "\n",         "a", "b", "c", "d",  "e", "f", "g",   "h",  "i",
@@ -167,10 +166,10 @@ lv_keyboard_mode_t message_keyboard_mode()
 }
 
 void set_keyboard_layout_state(lv_obj_t *root, lv_obj_t *kb, lv_obj_t *latitude,
-                               lv_obj_t *longitude, bool waypoint)
+                               lv_obj_t *longitude, lv_obj_t *title, bool waypoint)
 {
     const lv_state_t layout_states = LV_STATE_USER_1;
-    lv_obj_t *objs[] = { root, kb, latitude, longitude };
+    lv_obj_t *objs[] = { root, kb, latitude, longitude, title };
     for (lv_obj_t *obj : objs)
     {
         if (!obj)
@@ -184,9 +183,9 @@ void set_keyboard_layout_state(lv_obj_t *root, lv_obj_t *kb, lv_obj_t *latitude,
 }
 
 void apply_message_keyboard_layout(lv_obj_t *root, lv_obj_t *kb, lv_obj_t *textarea,
-                                   lv_obj_t *longitude)
+                                   lv_obj_t *longitude, lv_obj_t *title)
 {
-    set_keyboard_layout_state(root, kb, textarea, longitude, false);
+    set_keyboard_layout_state(root, kb, textarea, longitude, title, false);
     if (textarea)
     {
         lv_textarea_set_one_line(textarea, false);
@@ -201,9 +200,9 @@ void apply_message_keyboard_layout(lv_obj_t *root, lv_obj_t *kb, lv_obj_t *texta
 }
 
 void apply_waypoint_keyboard_layout(lv_obj_t *root, lv_obj_t *kb, lv_obj_t *latitude,
-                                    lv_obj_t *longitude)
+                                    lv_obj_t *longitude, lv_obj_t *title)
 {
-    set_keyboard_layout_state(root, kb, latitude, longitude, true);
+    set_keyboard_layout_state(root, kb, latitude, longitude, title, true);
     if (latitude)
     {
         lv_textarea_set_one_line(latitude, true);
@@ -265,13 +264,13 @@ void label_message_space_key(lv_obj_t *kb)
         lv_btnmatrix_set_map(kb, s_visible_space_map);
 }
 
-#if defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213
-void request_keyboard_refresh(lv_obj_t *root, const char *reason)
+#if defined(HELTEC_HAS_KEY_FRAME) && HELTEC_HAS_KEY_FRAME
+void request_keyboard_refresh(lv_obj_t *root)
 {
     if (!root || lv_obj_has_flag(root, LV_OBJ_FLAG_HIDDEN))
         return;
     lv_obj_invalidate(root);
-    heltec::meshcore::dal::e213::requestSelectionRefresh(reason);
+    heltec::meshcore::dal::e213::requestSelectionRefresh();
 }
 #endif
 
@@ -329,8 +328,8 @@ void KeyboardOverlay::on_keyboard_value_pre(lv_event_t *e)
                                                                   : LV_KEYBOARD_MODE_TEXT_UPPER);
             label_message_space_key(kb);
             reset_keyboard_interaction(kb);
-#if defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213
-            request_keyboard_refresh(self->_root, "keyboard-layout");
+#if defined(HELTEC_HAS_KEY_FRAME) && HELTEC_HAS_KEY_FRAME
+            request_keyboard_refresh(self->_root);
 #endif
             lv_event_stop_processing(e);
         }
@@ -340,8 +339,8 @@ void KeyboardOverlay::on_keyboard_value_pre(lv_event_t *e)
                                                                   : LV_KEYBOARD_MODE_TEXT_LOWER);
             label_message_space_key(kb);
             reset_keyboard_interaction(kb);
-#if defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213
-            request_keyboard_refresh(self->_root, "keyboard-layout");
+#if defined(HELTEC_HAS_KEY_FRAME) && HELTEC_HAS_KEY_FRAME
+            request_keyboard_refresh(self->_root);
 #endif
             lv_event_stop_processing(e);
         }
@@ -350,8 +349,8 @@ void KeyboardOverlay::on_keyboard_value_pre(lv_event_t *e)
             if (self->_textarea)
                 lv_textarea_add_char(self->_textarea, ' ');
             reset_keyboard_interaction(kb);
-#if defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213
-            request_keyboard_refresh(self->_root, "keyboard-value");
+#if defined(HELTEC_HAS_KEY_FRAME) && HELTEC_HAS_KEY_FRAME
+            request_keyboard_refresh(self->_root);
 #endif
             lv_event_stop_processing(e);
         }
@@ -380,12 +379,11 @@ void KeyboardOverlay::on_keyboard_value_pre(lv_event_t *e)
         if (self->_active_waypoint_editor)
         {
             lv_textarea_del_char(self->_active_waypoint_editor);
-            ui_theme_center_single_line_textarea(self->_active_waypoint_editor);
             lv_obj_invalidate(self->_active_waypoint_editor);
         }
         reset_keyboard_interaction(kb);
-#if defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213
-        request_keyboard_refresh(self->_root, "keyboard-value");
+#if defined(HELTEC_HAS_KEY_FRAME) && HELTEC_HAS_KEY_FRAME
+        request_keyboard_refresh(self->_root);
 #endif
         lv_event_stop_processing(e);
         return;
@@ -394,8 +392,8 @@ void KeyboardOverlay::on_keyboard_value_pre(lv_event_t *e)
     {
         self->selectWaypointEditor(self->_textarea);
         reset_keyboard_interaction(kb);
-#if defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213
-        request_keyboard_refresh(self->_root, "keyboard-field");
+#if defined(HELTEC_HAS_KEY_FRAME) && HELTEC_HAS_KEY_FRAME
+        request_keyboard_refresh(self->_root);
 #endif
         lv_event_stop_processing(e);
         return;
@@ -404,8 +402,8 @@ void KeyboardOverlay::on_keyboard_value_pre(lv_event_t *e)
     {
         self->selectWaypointEditor(self->_longitude_textarea);
         reset_keyboard_interaction(kb);
-#if defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213
-        request_keyboard_refresh(self->_root, "keyboard-field");
+#if defined(HELTEC_HAS_KEY_FRAME) && HELTEC_HAS_KEY_FRAME
+        request_keyboard_refresh(self->_root);
 #endif
         lv_event_stop_processing(e);
         return;
@@ -419,8 +417,8 @@ void KeyboardOverlay::on_keyboard_value_pre(lv_event_t *e)
     {
         self->fillWaypointFromGps();
         reset_keyboard_interaction(kb);
-#if defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213
-        request_keyboard_refresh(self->_root, "keyboard-gps");
+#if defined(HELTEC_HAS_KEY_FRAME) && HELTEC_HAS_KEY_FRAME
+        request_keyboard_refresh(self->_root);
 #endif
         lv_event_stop_processing(e);
         return;
@@ -428,11 +426,10 @@ void KeyboardOverlay::on_keyboard_value_pre(lv_event_t *e)
     if (self->_active_waypoint_editor && txt[0] != '\0')
     {
         lv_textarea_add_text(self->_active_waypoint_editor, txt);
-        ui_theme_center_single_line_textarea(self->_active_waypoint_editor);
         lv_obj_invalidate(self->_active_waypoint_editor);
         reset_keyboard_interaction(kb);
-#if defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213
-        request_keyboard_refresh(self->_root, "keyboard-value");
+#if defined(HELTEC_HAS_KEY_FRAME) && HELTEC_HAS_KEY_FRAME
+        request_keyboard_refresh(self->_root);
 #endif
         lv_event_stop_processing(e);
     }
@@ -482,22 +479,11 @@ void KeyboardOverlay::selectWaypointEditor(lv_obj_t *editor)
         {
             lv_obj_clear_flag(item, LV_OBJ_FLAG_HIDDEN);
         }
-        lv_obj_set_style_border_width(item, active ? 2 : 1, LV_PART_MAIN);
-#if defined(HELTEC_HAS_TOUCH) && HELTEC_HAS_TOUCH
-        lv_obj_set_style_border_color(item,
-                                      active ? ui_color_accent() : lv_color_hex(0xB8C2CC),
-                                      LV_PART_MAIN);
-        lv_obj_set_style_outline_width(item, 0, LV_PART_MAIN);
-        lv_obj_set_style_border_color(item, ui_color_accent(), LV_PART_CURSOR);
-        lv_obj_set_style_border_width(item, active ? 1 : 0, LV_PART_CURSOR);
-#elif defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213
-        lv_obj_set_style_border_color(item, ui_color_fg(), LV_PART_MAIN);
-#else
-        lv_obj_set_style_border_color(item, lv_color_white(), LV_PART_MAIN);
-#endif
+        if (active)
+            lv_obj_add_state(item, LV_STATE_CHECKED);
+        else
+            lv_obj_clear_state(item, LV_STATE_CHECKED);
     }
-    ui_theme_center_single_line_textarea(_textarea);
-    ui_theme_center_single_line_textarea(_longitude_textarea);
     lv_obj_invalidate(_root);
 }
 
@@ -525,8 +511,6 @@ void KeyboardOverlay::fillWaypointFromGps()
     lv_snprintf(longitude, sizeof(longitude), "%.6f", gps.lon_deg);
     lv_textarea_set_text(_textarea, latitude);
     lv_textarea_set_text(_longitude_textarea, longitude);
-    ui_theme_center_single_line_textarea(_textarea);
-    ui_theme_center_single_line_textarea(_longitude_textarea);
     selectWaypointEditor(_longitude_textarea);
     setWaypointHint("GPS coordinates loaded");
 }
@@ -575,22 +559,21 @@ void KeyboardOverlay::on_keyboard_key_post(lv_event_t *e)
     const uint32_t key = lv_event_get_key(e);
     if (key == LV_KEY_LEFT || key == LV_KEY_RIGHT || key == LV_KEY_UP || key == LV_KEY_DOWN)
     {
-#if defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213
+        reset_keyboard_interaction(self->_keyboard);
+#if defined(HELTEC_HAS_KEY_FRAME) && HELTEC_HAS_KEY_FRAME
         if (self->_root && !lv_obj_has_flag(self->_root, LV_OBJ_FLAG_HIDDEN))
         {
             lv_obj_invalidate(self->_keyboard);
             heltec::meshcore::dal::e213::requestSelectionRefresh("keyboard-selection");
         }
-#else
-        reset_keyboard_interaction(self->_keyboard);
 #endif
     }
-#if defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213
+#if defined(HELTEC_HAS_KEY_FRAME) && HELTEC_HAS_KEY_FRAME
     else if (key == LV_KEY_ENTER && self->_root &&
              !lv_obj_has_flag(self->_root, LV_OBJ_FLAG_HIDDEN))
     {
         lv_obj_invalidate(self->_root);
-        heltec::meshcore::dal::e213::requestSelectionRefresh("keyboard-value");
+        heltec::meshcore::dal::e213::requestSelectionRefresh();
     }
 #endif
 }
@@ -615,8 +598,8 @@ void KeyboardOverlay::on_keyboard_events(lv_event_t *e)
     else if (code == LV_EVENT_VALUE_CHANGED)
     {
         reset_keyboard_interaction(self->_keyboard);
-#if defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213
-        request_keyboard_refresh(self->_root, "keyboard-value");
+#if defined(HELTEC_HAS_KEY_FRAME) && HELTEC_HAS_KEY_FRAME
+        request_keyboard_refresh(self->_root);
 #endif
     }
 }
@@ -645,13 +628,11 @@ bool KeyboardOverlay::ensureContent()
         return obj;
     };
 
-    _hint = create_object(&ht_overlay_bar_class, _root);
+    _hint = create_object(&ht_keyboard_title_class, _root);
     if (!_hint)
         return false;
 #if defined(HELTEC_HAS_TOUCH) && HELTEC_HAS_TOUCH
     lv_obj_set_size(_hint, lv_pct(100), LV_DPX(34));
-    lv_obj_set_style_text_align(_hint, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
-    lv_obj_set_style_pad_ver(_hint, LV_DPX(6), LV_PART_MAIN);
 #endif
     lv_label_set_long_mode(_hint, LV_LABEL_LONG_CLIP);
     lv_snprintf(_title_text, sizeof(_title_text), "#broadcast");
@@ -659,16 +640,14 @@ bool KeyboardOverlay::ensureContent()
 
 #if defined(HELTEC_HAS_TOUCH) && HELTEC_HAS_TOUCH
     auto create_coordinate_row = [this]() -> lv_obj_t * {
-        lv_obj_t *const row = lv_obj_create(_root);
+        lv_obj_t *const row = ht_class_create(&ht_coordinate_row_class, _root);
         if (!row)
             return nullptr;
-        lv_obj_remove_style_all(row);
         lv_obj_set_width(row, lv_pct(94));
         lv_obj_set_height(row, LV_DPX(kTouchCoordinateRowHeight));
         lv_obj_set_flex_flow(row, LV_FLEX_FLOW_ROW);
         lv_obj_set_flex_align(row, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER,
                               LV_FLEX_ALIGN_CENTER);
-        lv_obj_set_style_pad_column(row, LV_DPX(8), LV_PART_MAIN);
         lv_obj_clear_flag(row, LV_OBJ_FLAG_CLICKABLE | LV_OBJ_FLAG_SCROLLABLE |
                                    LV_OBJ_FLAG_SCROLL_ELASTIC | LV_OBJ_FLAG_SCROLL_MOMENTUM |
                                    LV_OBJ_FLAG_SCROLL_CHAIN);
@@ -677,13 +656,11 @@ bool KeyboardOverlay::ensureContent()
     _latitude_row = create_coordinate_row();
     if (!_latitude_row)
         return false;
-    _latitude_label = lv_label_create(_latitude_row);
+    _latitude_label = ht_label_create(&ht_coordinate_label_class, _latitude_row);
     if (!_latitude_label)
         return false;
     lv_label_set_text_static(_latitude_label, "Latitude");
     lv_obj_set_width(_latitude_label, LV_DPX(kTouchCoordinateLabelWidth));
-    lv_obj_set_style_text_align(_latitude_label, LV_TEXT_ALIGN_LEFT, LV_PART_MAIN);
-    lv_obj_set_style_text_color(_latitude_label, lv_color_black(), LV_PART_MAIN);
     lv_obj_add_flag(_latitude_label, LV_OBJ_FLAG_HIDDEN);
     lv_obj_t *const latitude_parent = _latitude_row;
 #else
@@ -706,13 +683,11 @@ bool KeyboardOverlay::ensureContent()
     _longitude_row = create_coordinate_row();
     if (!_longitude_row)
         return false;
-    _longitude_label = lv_label_create(_longitude_row);
+    _longitude_label = ht_label_create(&ht_coordinate_label_class, _longitude_row);
     if (!_longitude_label)
         return false;
     lv_label_set_text_static(_longitude_label, "Longitude");
     lv_obj_set_width(_longitude_label, LV_DPX(kTouchCoordinateLabelWidth));
-    lv_obj_set_style_text_align(_longitude_label, LV_TEXT_ALIGN_LEFT, LV_PART_MAIN);
-    lv_obj_set_style_text_color(_longitude_label, lv_color_black(), LV_PART_MAIN);
     lv_obj_add_flag(_longitude_label, LV_OBJ_FLAG_HIDDEN);
     lv_obj_t *const longitude_parent = _longitude_row;
 #else
@@ -756,7 +731,7 @@ bool KeyboardOverlay::ensureContent()
     lv_obj_add_event_cb(_keyboard, &KeyboardOverlay::on_keyboard_key_pre,
                         static_cast<lv_event_code_t>(LV_EVENT_KEY | LV_EVENT_PREPROCESS), this);
     lv_obj_add_event_cb(_keyboard, &KeyboardOverlay::on_keyboard_key_post, LV_EVENT_KEY, this);
-    apply_message_keyboard_layout(_root, _keyboard, _textarea, _longitude_textarea);
+    apply_message_keyboard_layout(_root, _keyboard, _textarea, _longitude_textarea, _hint);
     lv_obj_update_layout(_root);
     return true;
 }
@@ -783,11 +758,16 @@ void KeyboardOverlay::applyTouchCoordinateLayout(bool waypoint)
         lv_obj_set_flex_grow(_longitude_textarea, 1);
         lv_textarea_set_one_line(_textarea, true);
         lv_textarea_set_one_line(_longitude_textarea, true);
-        lv_obj_set_style_pad_top(_keyboard, LV_DPX(kTouchKeyboardTopGap), LV_PART_MAIN);
-        lv_obj_set_style_text_color(lv_textarea_get_label(_textarea), lv_color_black(),
-                                    LV_PART_MAIN);
-        lv_obj_set_style_text_color(lv_textarea_get_label(_longitude_textarea),
-                                    lv_color_black(), LV_PART_MAIN);
+        lv_obj_t *const latitude_text = lv_textarea_get_label(_textarea);
+        lv_obj_t *const longitude_text = lv_textarea_get_label(_longitude_textarea);
+        if (latitude_text)
+        {
+            lv_obj_set_style_text_color(latitude_text, lv_color_black(), LV_PART_MAIN);
+        }
+        if (longitude_text)
+        {
+            lv_obj_set_style_text_color(longitude_text, lv_color_black(), LV_PART_MAIN);
+        }
         return;
     }
 
@@ -796,9 +776,16 @@ void KeyboardOverlay::applyTouchCoordinateLayout(bool waypoint)
     lv_obj_set_height(_latitude_row, 0);
     lv_obj_set_flex_grow(_latitude_row, 1);
     lv_textarea_set_one_line(_textarea, false);
-    lv_obj_set_style_pad_top(_keyboard, 0, LV_PART_MAIN);
-    lv_obj_set_style_text_color(lv_textarea_get_label(_textarea), ui_color_overlay_fg(),
-                                LV_PART_MAIN);
+    lv_obj_t *const latitude_text = lv_textarea_get_label(_textarea);
+    lv_obj_t *const longitude_text = lv_textarea_get_label(_longitude_textarea);
+    if (latitude_text)
+    {
+        lv_obj_remove_local_style_prop(latitude_text, LV_STYLE_TEXT_COLOR, LV_PART_MAIN);
+    }
+    if (longitude_text)
+    {
+        lv_obj_remove_local_style_prop(longitude_text, LV_STYLE_TEXT_COLOR, LV_PART_MAIN);
+    }
 }
 #endif
 
@@ -816,20 +803,12 @@ bool KeyboardOverlay::prepareMessageInput(const UiMessageKeyboardRequest &reques
     _skip_next_ok_value = false;
     _skip_next_ok_value_ms = 0;
     _submitted_text[0] = '\0';
-    ui_theme_set_waypoint_keyboard_active(_keyboard, false);
+    ui_theme_set_waypoint_keyboard_active(_keyboard, _textarea, _longitude_textarea, false);
 #if defined(HELTEC_HAS_TOUCH) && HELTEC_HAS_TOUCH
     applyTouchCoordinateLayout(false);
 #endif
     lv_snprintf(_title_text, sizeof(_title_text), "#%s",
                 request.title ? request.title : "message");
-#if defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213
-    lv_obj_set_style_bg_color(_hint, ui_color_bg(), LV_PART_MAIN);
-    lv_obj_set_style_text_color(_hint, ui_color_fg(), LV_PART_MAIN);
-#else
-    lv_obj_set_style_bg_color(_hint, ui_color_highlight_bg(), LV_PART_MAIN);
-    lv_obj_set_style_text_color(_hint, ui_color_highlight_fg(), LV_PART_MAIN);
-#endif
-    lv_obj_set_style_bg_opa(_hint, LV_OPA_COVER, LV_PART_MAIN);
     lv_textarea_set_accepted_chars(_textarea, nullptr);
     lv_textarea_set_max_length(_textarea, _message_max_bytes);
     lv_textarea_set_text(_textarea, request.initial_text ? request.initial_text : "");
@@ -838,7 +817,7 @@ bool KeyboardOverlay::prepareMessageInput(const UiMessageKeyboardRequest &reques
     lv_keyboard_set_mode(_keyboard, message_keyboard_mode());
     label_message_space_key(_keyboard);
     reset_keyboard_interaction(_keyboard);
-    apply_message_keyboard_layout(_root, _keyboard, _textarea, _longitude_textarea);
+    apply_message_keyboard_layout(_root, _keyboard, _textarea, _longitude_textarea, _hint);
     lv_obj_update_layout(_root);
     return true;
 }
@@ -851,22 +830,11 @@ bool KeyboardOverlay::prepareWaypointInput()
     _skip_next_ok_value = false;
     _skip_next_ok_value_ms = 0;
     _submitted_text[0] = '\0';
-    ui_theme_set_waypoint_keyboard_active(_keyboard, true);
+    ui_theme_set_waypoint_keyboard_active(_keyboard, _textarea, _longitude_textarea, true);
 #if defined(HELTEC_HAS_TOUCH) && HELTEC_HAS_TOUCH
     lv_snprintf(_title_text, sizeof(_title_text), "Waypoint coordinates");
 #else
     lv_snprintf(_title_text, sizeof(_title_text), "Waypoint: LAT");
-#endif
-#if defined(HELTEC_HAS_TOUCH) && HELTEC_HAS_TOUCH
-    lv_obj_set_style_bg_color(_hint, ui_color_accent(), LV_PART_MAIN);
-    lv_obj_set_style_bg_opa(_hint, LV_OPA_COVER, LV_PART_MAIN);
-    lv_obj_set_style_text_color(_hint, lv_color_white(), LV_PART_MAIN);
-#elif defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213
-    lv_obj_set_style_bg_opa(_hint, LV_OPA_TRANSP, LV_PART_MAIN);
-    lv_obj_set_style_text_color(_hint, ui_color_fg(), LV_PART_MAIN);
-#else
-    lv_obj_set_style_bg_opa(_hint, LV_OPA_TRANSP, LV_PART_MAIN);
-    lv_obj_set_style_text_color(_hint, lv_color_white(), LV_PART_MAIN);
 #endif
     lv_label_set_text_static(_hint, _title_text);
     lv_textarea_set_max_length(_textarea, sizeof(_longitude_buffer) - 1U);
@@ -876,7 +844,7 @@ bool KeyboardOverlay::prepareWaypointInput()
     lv_textarea_set_accepted_chars(_longitude_textarea, "0123456789.-");
     lv_keyboard_set_mode(_keyboard, waypoint_keyboard_mode());
     reset_keyboard_interaction(_keyboard);
-    apply_waypoint_keyboard_layout(_root, _keyboard, _textarea, _longitude_textarea);
+    apply_waypoint_keyboard_layout(_root, _keyboard, _textarea, _longitude_textarea, _hint);
 #if defined(HELTEC_HAS_TOUCH) && HELTEC_HAS_TOUCH
     applyTouchCoordinateLayout(true);
 #endif
@@ -893,7 +861,7 @@ void KeyboardOverlay::onEnter()
     setFocusObject(_keyboard);
     if (_compose_mode == ComposeMode::Waypoint)
     {
-        apply_waypoint_keyboard_layout(_root, _keyboard, _textarea, _longitude_textarea);
+        apply_waypoint_keyboard_layout(_root, _keyboard, _textarea, _longitude_textarea, _hint);
         selectWaypointEditor(_active_waypoint_editor ? _active_waypoint_editor : _textarea);
     }
     lv_obj_update_layout(_root);
@@ -918,29 +886,16 @@ void KeyboardOverlay::onExit()
         lv_textarea_set_text(_longitude_textarea, "");
         lv_textarea_set_accepted_chars(_longitude_textarea, nullptr);
     }
-    lv_obj_t *editors[] = { _textarea, _longitude_textarea };
-    for (lv_obj_t *editor : editors)
-    {
-        if (!editor)
-            continue;
-        lv_obj_set_style_border_width(editor, 1, LV_PART_MAIN);
-#if defined(HELTEC_HAS_TOUCH) && HELTEC_HAS_TOUCH
-        lv_obj_set_style_outline_width(editor, 0, LV_PART_MAIN);
-#endif
-#if defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213
-        lv_obj_set_style_border_color(editor, ui_color_fg(), LV_PART_MAIN);
-#else
-        lv_obj_set_style_border_color(editor, ui_color_overlay_fg(), LV_PART_MAIN);
-#endif
-    }
+    lv_obj_clear_state(_textarea, LV_STATE_CHECKED);
+    lv_obj_clear_state(_longitude_textarea, LV_STATE_CHECKED);
     if (_keyboard)
     {
-        ui_theme_set_waypoint_keyboard_active(_keyboard, false);
+        ui_theme_set_waypoint_keyboard_active(_keyboard, _textarea, _longitude_textarea, false);
 #if defined(HELTEC_HAS_TOUCH) && HELTEC_HAS_TOUCH
         applyTouchCoordinateLayout(false);
 #endif
         lv_keyboard_set_mode(_keyboard, message_keyboard_mode());
-        apply_message_keyboard_layout(_root, _keyboard, _textarea, _longitude_textarea);
+        apply_message_keyboard_layout(_root, _keyboard, _textarea, _longitude_textarea, _hint);
     }
     if (focusGroup())
         lv_group_set_editing(focusGroup(), false);

@@ -10,7 +10,7 @@
 #include "ui/core/widget_classes.hpp"
 #include "ui/core/ht_event.h"
 
-#if defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213
+#if defined(HELTEC_HAS_KEY_FRAME) && HELTEC_HAS_KEY_FRAME
 #include "heltec/drivers/display/e213_port.hpp"
 #endif
 #include <cstdio>
@@ -21,7 +21,8 @@ namespace heltec::meshcore::ui
 {
 
 SendMessageOverlay::SendMessageOverlay(biz::IBizFacade &biz)
-    : FramedOverlay(biz, ht_send_message_selector_overlay_class)
+    : FramedOverlay(biz, ht_send_message_selector_overlay_class,
+                    &ht_send_message_content_class)
 {
 }
 
@@ -178,9 +179,9 @@ bool SendMessageOverlay::ensureRowPool()
         if (_row_objs[i])
             continue;
 #if defined(HELTEC_LORA_V4_TFT)
-        lv_obj_t *row = ht_obj_create(_list_mid);
+        lv_obj_t *row = ht_class_create(&ht_send_message_row_class, _list_mid);
 #else
-        lv_obj_t *row = lv_label_create(_list_mid);
+        lv_obj_t *row = ht_label_create(&ht_send_message_text_row_class, _list_mid);
 #endif
         if (!row)
             return false;
@@ -194,7 +195,7 @@ bool SendMessageOverlay::ensureRowPool()
         lv_obj_set_flex_align(row, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER,
                               LV_FLEX_ALIGN_CENTER);
 
-        lv_obj_t *label = ht_label_create(row);
+        lv_obj_t *label = ht_label_create(&ht_send_message_label_class, row);
         if (!label)
             return false;
         lv_obj_set_width(label, lv_pct(100));
@@ -291,8 +292,8 @@ void SendMessageOverlay::renderRows()
             if (_row_objs[i])
                 lv_obj_add_flag(_row_objs[i], LV_OBJ_FLAG_HIDDEN);
         }
-#if defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213
-        heltec::meshcore::dal::e213::requestSelectionRefresh("send-message-selection");
+#if defined(HELTEC_HAS_KEY_FRAME) && HELTEC_HAS_KEY_FRAME
+        heltec::meshcore::dal::e213::requestSelectionRefresh();
 #endif
         return;
     }
@@ -315,11 +316,6 @@ void SendMessageOverlay::renderRows()
         {
             lv_obj_add_flag(row, LV_OBJ_FLAG_HIDDEN);
             lv_obj_clear_state(row, LV_STATE_CHECKED | LV_STATE_FOCUSED | LV_STATE_FOCUS_KEY);
-#if defined(HELTEC_LORA_V4_TFT)
-            if (_row_labels[slot])
-                lv_obj_clear_state(_row_labels[slot],
-                                   LV_STATE_CHECKED | LV_STATE_FOCUSED | LV_STATE_FOCUS_KEY);
-#endif
             continue;
         }
 
@@ -341,21 +337,15 @@ void SendMessageOverlay::renderRows()
         if (slot == focus)
         {
             lv_obj_add_state(row, LV_STATE_CHECKED);
-#if defined(HELTEC_LORA_V4_TFT)
-            lv_obj_add_state(label, LV_STATE_CHECKED);
-#endif
         }
         else
         {
             lv_obj_clear_state(row, LV_STATE_CHECKED | LV_STATE_FOCUSED | LV_STATE_FOCUS_KEY);
-#if defined(HELTEC_LORA_V4_TFT)
-            lv_obj_clear_state(label, LV_STATE_CHECKED | LV_STATE_FOCUSED | LV_STATE_FOCUS_KEY);
-#endif
         }
     }
-#if defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213
+#if defined(HELTEC_HAS_KEY_FRAME) && HELTEC_HAS_KEY_FRAME
     lv_obj_invalidate(_list_mid);
-    heltec::meshcore::dal::e213::requestSelectionRefresh("send-message-selection");
+    heltec::meshcore::dal::e213::requestSelectionRefresh();
 #endif
 }
 

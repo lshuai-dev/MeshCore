@@ -140,7 +140,9 @@ void ContextMenu::selectPane(uint8_t index)
         lv_menu_set_page(_menu, menu->page());
     }
     if (!_in_leaf)
+    {
         menu->resetInputState(false);
+    }
 }
 
 void ContextMenu::enterMenuLeaf(AbstractMenu *menu)
@@ -311,7 +313,7 @@ bool ContextMenu::buildSurface()
     lv_obj_move_to_index(_header_icon_row, 0);
     lv_obj_clear_flag(_header_icon_row, LV_OBJ_FLAG_SCROLLABLE);
 
-    lv_obj_t *nav_row = lv_obj_create(mh);
+    lv_obj_t *nav_row = ht_class_create(&ht_context_menu_nav_row_class, mh);
     if (!nav_row)
         return false;
     lv_obj_set_size(nav_row, lv_pct(100), LV_SIZE_CONTENT);
@@ -328,7 +330,7 @@ bool ContextMenu::buildSurface()
     lv_label_set_long_mode(title_lbl, LV_LABEL_LONG_DOT);
     lv_obj_clear_flag(title_lbl, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_move_to_index(nav_row, 1);
-    ui_theme_apply_context_menu_title(title_lbl);
+    ui_context_menu_title_apply_theme(title_lbl);
 
     lv_group_set_wrap(focusGroup(), true);
     lv_group_set_editing(focusGroup(), false);
@@ -414,7 +416,7 @@ bool ContextMenu::registerMenu(const char *title, const lv_img_dsc_t *icon, Abst
         },
         LV_EVENT_KEY, this);
 
-    lv_obj_t *im = lv_img_create(btn);
+    lv_obj_t *im = ht_class_create(&ht_context_menu_icon_class, btn);
     if (!im)
         return false;
     lv_img_set_src(im, icon);

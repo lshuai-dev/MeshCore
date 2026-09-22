@@ -31,8 +31,8 @@ class AbstractScreen : public UiSurface {
     static void handleRootEvent(lv_event_t *event);
     static void handleFocusChangedEvent(lv_event_t *event);
     static void handleFramePressedEvent(lv_event_t *event);
-#if defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213
-    static void e213FocusEvent(lv_event_t *event);
+#if defined(HELTEC_HAS_KEY_FRAME) && HELTEC_HAS_KEY_FRAME
+    static void keyFrameFocusEvent(lv_event_t *event);
 #endif
 
     const char *_title;

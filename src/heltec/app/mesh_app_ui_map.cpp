@@ -13,6 +13,37 @@ namespace heltec::meshcore::biz
 namespace
 {
 
+void copyMarkerLabel(char output[9], const char *name, size_t name_length)
+{
+    output[0] = 'T';
+    output[1] = '\0';
+    if (!name || name_length == 0)
+        return;
+
+    size_t input_offset = 0;
+    size_t output_offset = 0;
+    uint8_t character_count = 0;
+    while (input_offset < name_length && character_count < 2U)
+    {
+        const uint8_t lead = static_cast<uint8_t>(name[input_offset]);
+        size_t character_bytes = 1;
+        if ((lead & 0xF8U) == 0xF0U)
+            character_bytes = 4;
+        else if ((lead & 0xF0U) == 0xE0U)
+            character_bytes = 3;
+        else if ((lead & 0xE0U) == 0xC0U)
+            character_bytes = 2;
+        if (input_offset + character_bytes > name_length ||
+            output_offset + character_bytes >= 9U)
+            break;
+        memcpy(output + output_offset, name + input_offset, character_bytes);
+        input_offset += character_bytes;
+        output_offset += character_bytes;
+        ++character_count;
+    }
+    output[output_offset] = '\0';
+}
+
 bool teamLocationUsable(const heltec::meshcore::team::TeamMember &member, uint32_t now_ms)
 {
     if (!member.location_valid ||
@@ -31,7 +62,7 @@ bool teamLocationUsable(const heltec::meshcore::team::TeamMember &member, uint32
     return static_cast<uint32_t>(member.fix_age_sec) <= remaining_ms / 1000UL;
 }
 
-void buildTeamMapPlotUi(MapPlotUi &out)
+void buildTeamMapPlotUi(const MeshAppUi &app, MapPlotUi &out)
 {
     out.online_count = 0;
     out.marker_count = 0;
@@ -58,9 +89,12 @@ void buildTeamMapPlotUi(MapPlotUi &out)
         MapPlotMarker &marker = out.markers[out.marker_count++];
         marker.lat_micro = member->latitude_e6;
         marker.lon_micro = member->longitude_e6;
-        marker.glyph = member->name[0] ? member->name[0] : 'T';
+        copyMarkerLabel(marker.label, member->name, member->name_len);
         marker.is_self = false;
         memcpy(marker.pub_key_prefix, member->public_key, sizeof(marker.pub_key_prefix));
+#if defined(HELTEC_GEOFENCE) && HELTEC_GEOFENCE
+        marker.alarm_active = app.teamGeofenceMemberAlarm(marker.pub_key_prefix);
+#endif
     }
 #endif
 }
@@ -69,7 +103,7 @@ void buildTeamMapPlotUi(MapPlotUi &out)
 
 const MapPlotUi &MeshAppUi::mapPlotUi() const
 {
-    buildTeamMapPlotUi(_map_plot_cache);
+    buildTeamMapPlotUi(*this, _map_plot_cache);
     return _map_plot_cache;
 }
 

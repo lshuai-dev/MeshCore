@@ -65,6 +65,9 @@ class MapPanel
 
     void set_gps(float lat, float lon, bool valid);
     void set_markers(const heltec::meshcore::biz::MapPlotMarker *markers, int count);
+    bool screenToLocation(lv_coord_t screen_x, lv_coord_t screen_y, float &latitude,
+                          float &longitude) const;
+    bool locationToPoint(float latitude, float longitude, lv_point_t &point) const;
 
     /** Hit-test screen coordinates and copy the rendered recipient identity. */
     void zoom_in();
@@ -113,6 +116,10 @@ class MapPanel
     {
         return _marker_layer;
     }
+    _lv_obj_t *overlayLayer() const
+    {
+        return _marker_layer;
+    }
     /** Re-measure viewport and queue tile redraw (call after flex layout). */
     void syncViewportLayout();
     /** Move the map center; persist it only when requested. */
@@ -143,9 +150,9 @@ class MapPanel
         lv_obj_t *root = nullptr;
         lv_obj_t *label = nullptr;
         bool active = false;
-        char glyph = '?';
+        bool alarm_active = false;
         int8_t data_index = -1;
-        char text[2] = { '?', '\0' };
+        char text[9] = { '?', '\0' };
     };
 
     struct TileNeed
@@ -162,8 +169,9 @@ class MapPanel
         int32_t lat_micro = 0;
         int32_t lon_micro = 0;
         uint8_t pub_key_prefix[6] = {};
-        char glyph = '?';
+        char label[9] = { '?', '\0' };
         bool is_self = false;
+        bool alarm_active = false;
     };
 
     void center_view();

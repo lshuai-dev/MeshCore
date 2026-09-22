@@ -12,6 +12,9 @@ void MeshAppUi::pollRuntime()
 {
     pollGpsTrack();
     pollRadioStatus();
+#if defined(HELTEC_GEOFENCE) && HELTEC_GEOFENCE
+    pollTeamGeofence();
+#endif
 #if defined(ENV_INCLUDE_GPS) && ENV_INCLUDE_GPS
     // Non-overlapping fields: simultaneous changes must not cancel each other.
     const uint32_t team_fingerprint =

@@ -2,6 +2,9 @@
 #include "app/find_friend_nav_estimator.hpp"
 #include "app/power_mgr.hpp"
 #include "app/team_config.hpp"
+#if defined(HELTEC_GEOFENCE) && HELTEC_GEOFENCE
+#include "app/team_geofence.hpp"
+#endif
 #include "config/message_preset_store.hpp"
 #include "ui/core/app_state_event.hpp"
 #include "ui/core/biz_facade.hpp"
@@ -67,6 +70,17 @@ class MeshAppUi final : public IBizFacade
     GpsStatus gpsStatus() const override;
     TeamStatus teamStatus() const override;
     int teamOnlineCount() const override;
+#if defined(HELTEC_GEOFENCE) && HELTEC_GEOFENCE
+    team::GeofenceState teamGeofenceState() const override;
+    uint8_t teamGeofencePointCount() const override;
+    bool teamGeofencePoint(uint8_t index, team::GeofencePoint &point) const override;
+    bool beginTeamGeofenceEdit() override;
+    void cancelTeamGeofenceEdit() override;
+    void deleteTeamGeofence() override;
+    team::GeofenceAddResult addTeamGeofencePoint(int32_t latitude_e7,
+                                                 int32_t longitude_e7) override;
+    bool teamGeofenceMemberAlarm(const uint8_t member_id[6]) const override;
+#endif
 
     bool companionLinkEnabled() const override;
     void setCompanionLinkEnabled(bool enabled) override;
@@ -157,6 +171,9 @@ class MeshAppUi final : public IBizFacade
     void setFfWaypointCache(double lat_deg, double lon_deg);
     void resetFindFriendNavState() const;
     void syncFindFriendTeamPin() const;
+#if defined(HELTEC_GEOFENCE) && HELTEC_GEOFENCE
+    void pollTeamGeofence();
+#endif
     bool findFriendMemberLabel(int index, char *buf, size_t buf_len) const;
     bool findFriendMemberHasGps(int index) const;
     void persistFfPrefs(int mode, int wp_valid, double wp_lat, double wp_lon) const;
@@ -190,6 +207,11 @@ class MeshAppUi final : public IBizFacade
     bool _find_friend_foreground_active = false;
     uint32_t _team_runtime_fingerprint = 0;
     bool _team_runtime_fingerprint_valid = false;
+#if defined(HELTEC_GEOFENCE) && HELTEC_GEOFENCE
+    team::TeamGeofence _team_geofence{};
+    uint64_t _geofence_team_id = 0;
+    uint16_t _geofence_change_sequence = 0;
+#endif
 
 #if defined(ENV_INCLUDE_MAP) && ENV_INCLUDE_MAP
     mutable MapPlotUi _map_plot_cache{};

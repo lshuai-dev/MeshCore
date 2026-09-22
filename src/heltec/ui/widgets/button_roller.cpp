@@ -12,11 +12,6 @@ namespace heltec::meshcore::ui
 namespace
 {
 
-lv_obj_t *itemLabel(lv_obj_t *item)
-{
-    return item && lv_obj_get_child_cnt(item) > 0 ? lv_obj_get_child(item, 0) : nullptr;
-}
-
 void setItemSelected(lv_obj_t *item, bool selected)
 {
     if (!item)
@@ -24,14 +19,10 @@ void setItemSelected(lv_obj_t *item, bool selected)
     if (selected)
     {
         lv_obj_add_state(item, LV_STATE_CHECKED);
-        if (lv_obj_t *label = itemLabel(item))
-            lv_obj_add_state(label, LV_STATE_CHECKED);
     }
     else
     {
         lv_obj_clear_state(item, LV_STATE_CHECKED);
-        if (lv_obj_t *label = itemLabel(item))
-            lv_obj_clear_state(label, LV_STATE_CHECKED);
     }
 }
 
@@ -39,12 +30,7 @@ void clearItemFocusState(lv_obj_t *item)
 {
     if (!item)
         return;
-    ui_theme_set_focus_text_scroll(item, false);
     lv_obj_clear_state(item, LV_STATE_CHECKED | LV_STATE_FOCUSED | LV_STATE_FOCUS_KEY);
-    if (lv_obj_t *label = itemLabel(item))
-    {
-        lv_obj_clear_state(label, LV_STATE_CHECKED | LV_STATE_FOCUSED | LV_STATE_FOCUS_KEY);
-    }
 }
 
 } // namespace
@@ -159,13 +145,13 @@ lv_obj_t *ButtonRoller::addItem(const char *label)
     if (!_root || _count >= kMaxItems || !_group)
         return nullptr;
 
-    lv_obj_t *const btn = lv_btn_create(_root);
+    lv_obj_t *const btn = ht_btn_create(_item_class, _root);
     if (!btn)
         return nullptr;
     lv_obj_set_width(btn, lv_pct(100));
     lv_obj_add_flag(btn, LV_OBJ_FLAG_EVENT_BUBBLE);
 
-    lv_obj_t *const lbl = lv_label_create(btn);
+    lv_obj_t *const lbl = ht_label_create(_label_class, btn);
     if (lbl)
     {
         lv_label_set_text(lbl, label ? label : "");
@@ -181,7 +167,6 @@ lv_obj_t *ButtonRoller::addItem(const char *label)
             lv_obj_t *const target = lv_event_get_target(e);
             if (roller && target && roller->root())
             {
-                ui_theme_set_focus_text_scroll(target, true);
                 roller->layoutItems(lv_obj_get_index(target), LV_ANIM_ON, true);
             }
         },
@@ -194,7 +179,6 @@ lv_obj_t *ButtonRoller::addItem(const char *label)
             lv_obj_t *btn = lv_event_get_target(e);
             if (btn)
             {
-                ui_theme_set_focus_text_scroll(btn, false);
                 setItemSelected(btn, false);
             }
         },
@@ -206,7 +190,9 @@ lv_obj_t *ButtonRoller::addItem(const char *label)
 }
 
 bool ButtonRoller::create(lv_obj_t *parent, lv_group_t *group,
-                          const lv_obj_class_t *root_class)
+                          const lv_obj_class_t *root_class,
+                          const lv_obj_class_t *item_class,
+                          const lv_obj_class_t *label_class)
 {
     if (!parent || !group)
         return false;
@@ -214,6 +200,8 @@ bool ButtonRoller::create(lv_obj_t *parent, lv_group_t *group,
         return true;
 
     _group = group;
+    _item_class = item_class ? item_class : &ht_button_roller_item_class;
+    _label_class = label_class ? label_class : &ht_button_roller_label_class;
     _root = ht_class_create(root_class ? root_class : &ht_button_roller_class, parent);
     if (!_root)
         return false;

@@ -3,35 +3,7 @@
 #include "ui/core/widget_classes.hpp"
 
 namespace heltec::meshcore::ui {
-namespace {
-
 constexpr uint32_t kClickGuardMs = 500;
-
-void fit_to_parent(lv_obj_t *obj) {
-    if (!obj) {
-        return;
-    }
-
-    lv_obj_t *parent = obj ? lv_obj_get_parent(obj) : nullptr;
-    if (parent) {
-        lv_obj_update_layout(parent);
-        const lv_coord_t w = lv_obj_get_width(parent);
-        const lv_coord_t h = lv_obj_get_height(parent);
-        if (w > 0 && h > 0) {
-            lv_obj_set_size(obj, w, h);
-            lv_obj_set_pos(obj, 0, 0);
-            return;
-        }
-    }
-
-    lv_disp_t *const display = lv_disp_get_default();
-    if (display) {
-        lv_obj_set_size(obj, lv_disp_get_hor_res(display), lv_disp_get_ver_res(display));
-        lv_obj_set_pos(obj, 0, 0);
-    }
-}
-
-} // namespace
 
 bool AlertOverlay::buildSurface() {
     if (!DialogOverlay::buildSurface()) return false;
@@ -68,7 +40,6 @@ void AlertOverlay::onEnter() {
     if (!_root) return;
     _entered_ms = lv_tick_get();
 
-    fit_to_parent(_root);
     lv_obj_set_layout(_root, 0);
 
     if (panel()) {

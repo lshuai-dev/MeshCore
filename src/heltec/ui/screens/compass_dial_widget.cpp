@@ -234,7 +234,7 @@ bool CompassDialWidget::create(lv_obj_t *parent_row)
     if (!parent_row)
         return false;
 
-    center_col = lv_obj_create(parent_row);
+    center_col = ht_class_create(&ht_compass_plain_class, parent_row);
     if (!center_col)
         return false;
     lv_obj_set_height(center_col, lv_pct(100));
@@ -244,27 +244,23 @@ bool CompassDialWidget::create(lv_obj_t *parent_row)
                           LV_FLEX_ALIGN_CENTER);
     lv_obj_clear_flag(center_col, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_add_flag(center_col, LV_OBJ_FLAG_OVERFLOW_VISIBLE);
-    ui_theme_apply_compass_plain(center_col);
 
-    hub = lv_obj_create(center_col);
+    hub = ht_class_create(&ht_compass_hub_class, center_col);
     if (!hub)
         return false;
     lv_obj_clear_flag(hub, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_add_flag(hub, LV_OBJ_FLAG_OVERFLOW_VISIBLE);
-    ui_theme_apply_compass_hub(hub);
-    lv_obj_set_style_border_width(hub, 0, LV_PART_MAIN);
 
     lv_obj_add_event_cb(hub, on_ring_draw, LV_EVENT_DRAW_MAIN, this);
 #if defined(HELTEC_HAS_TOUCH) && HELTEC_HAS_TOUCH
     lv_obj_add_event_cb(hub, on_ring_ext_draw_size, LV_EVENT_REFR_EXT_DRAW_SIZE, nullptr);
 #endif
 
-    needle = lv_obj_create(hub);
+    needle = ht_class_create(&ht_compass_needle_class, hub);
     if (!needle)
         return false;
     lv_obj_clear_flag(needle, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_add_flag(needle, LV_OBJ_FLAG_OVERFLOW_VISIBLE);
-    ui_theme_apply_compass_needle(needle);
     lv_obj_add_event_cb(needle, on_needle_draw, LV_EVENT_DRAW_MAIN, this);
     lv_obj_move_foreground(needle);
 

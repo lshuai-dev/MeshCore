@@ -57,7 +57,9 @@ class NavigationPane : public UiSurface
     void updateGeometry();
     void setNavButtonsInteractive(bool interactive);
     void stepNavFocus(int delta);
+#if HELTEC_HAS_TOUCH
     void onCellTouchEvent(lv_event_t *e);
+#endif
     void onCellClicked(_lv_obj_t *cell);
     bool commitFocused();
     void sendTilePreview(uint8_t tile_idx);
@@ -75,9 +77,11 @@ class NavigationPane : public UiSurface
     bool _close_animating = false;
     bool _updating_geometry = false;
     bool _layout_busy = false;
+#if HELTEC_HAS_TOUCH
     bool _touch_active = false;
     bool _touch_dragged = false;
     lv_point_t _touch_origin = { 0, 0 };
+#endif
     bool _geometry_valid = false;
     bool _cached_panel_visible = false;
     lv_coord_t _cached_nav_x = 0;

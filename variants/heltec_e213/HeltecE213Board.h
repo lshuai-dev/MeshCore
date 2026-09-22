@@ -14,4 +14,6 @@ public:
   void begin();
   uint16_t getBattMilliVolts() override;
   const char* getManufacturerName() const override ;
+  void enterDeepSleep(uint32_t secs, int pin_wake_btn = -1);
+  void powerOff() override;
 };

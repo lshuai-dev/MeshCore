@@ -46,8 +46,6 @@ class SystemScreen : public AbstractScreen {
     static void onSwitchValueChanged(lv_event_t *e);
     static void onDropdownValueChanged(lv_event_t *e);
     static void onDropdownStateEvent(lv_event_t *e);
-    static void onDropdownReleasedPre(lv_event_t *e);
-    static void realignDropdownListAsync(void *user_data);
     static void onGroupFocusChanged(lv_group_t *group);
 #if defined(HAS_BUZZER_VOLUME_CONTROL) && HAS_BUZZER_VOLUME_CONTROL
     static void onBuzzerVolumeButtonClicked(lv_event_t *e);
@@ -56,8 +54,6 @@ class SystemScreen : public AbstractScreen {
     void handleAction(SysAction action);
     void executeAction(SysAction action);
     SysAction actionForRow(_lv_obj_t *obj) const;
-    void syncDropdownLayout(_lv_obj_t *dropdown) const;
-    void realignDropdownList(_lv_obj_t *dropdown);
     void closeOpenDropdown();
     void syncDropdownsFromApp(const biz::IBizFacade &app);
     void syncSwitchesFromApp(const biz::IBizFacade &app);

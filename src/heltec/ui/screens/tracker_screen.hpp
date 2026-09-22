@@ -2,7 +2,9 @@
 
 #include "heltec/ui/core/abstract_screen.hpp"
 #include "heltec/ui/core/app_state_event.hpp"
-#include "heltec/app/team_config.hpp"
+#if defined(HELTEC_GEOFENCE) && HELTEC_GEOFENCE
+#include "heltec/app/team_geofence.hpp"
+#endif
 
 #if defined(ENV_INCLUDE_MAP) && ENV_INCLUDE_MAP
 
@@ -68,20 +70,18 @@ class TrackerScreen : public AbstractScreen
     _lv_obj_t *_btn_zoom_in = nullptr;
     _lv_obj_t *_btn_zoom_out = nullptr;
     _lv_obj_t *_btn_gps = nullptr;
-#if !defined(HELTEC_V4_R8_TFT)
-    _lv_obj_t *_dd_member_message = nullptr;
+#if defined(HELTEC_GEOFENCE) && HELTEC_GEOFENCE
+    _lv_obj_t *_btn_fence = nullptr;
+    _lv_obj_t *_btn_fence_delete = nullptr;
+    static void onFenceToolLongPressed(lv_event_t *event);
+    static void onFenceOverlayDraw(lv_event_t *event);
+    void syncFenceTools();
+    void syncFenceOverlay();
+    void addFencePointAt(lv_coord_t screen_x, lv_coord_t screen_y);
+    _lv_obj_t *_fence_overlay = nullptr;
+    lv_point_t _fence_points[heltec::meshcore::team::TeamGeofence::kMaxPoints] = {};
+    bool _fence_point_visible[heltec::meshcore::team::TeamGeofence::kMaxPoints] = {};
 #endif
-    _lv_obj_t *_btn_group_message = nullptr;
-    void syncTeamTools();
-#if !defined(HELTEC_V4_R8_TFT)
-    void rebuildTeamMemberOptions(int member_count);
-    static void onTeamMemberSelected(lv_event_t *event);
-    static constexpr size_t kTeamMemberOptionsCapacity = 1024;
-    char _team_member_options[kTeamMemberOptionsCapacity] = "Select";
-    uint8_t _team_member_prefixes[HELTEC_TEAM_MAX_MEMBERS][6] = {};
-    uint8_t _team_member_option_count = 0;
-#endif
-    static void onTeamToolClicked(lv_event_t *event);
     char _status_text[112] = "Map";
     lv_point_t _pan_origin = { 0, 0 };
     int32_t _pan_applied_x = 0;
@@ -92,10 +92,7 @@ class TrackerScreen : public AbstractScreen
     bool _auto_center_on_first_fix = false;
     bool _panel_attached = false;
     bool _toolbar_busy = false;
-    bool _team_state_valid = false;
-    bool _team_active_cached = false;
     int _team_member_count_cached = -1;
-    uint16_t _team_member_revision_cached = 0;
     int8_t _toolbar_gps_usable = -1;
     bool _map_unavailable = false;
     bool _pool_prewarm_pending = false;

@@ -1,9 +1,11 @@
 #include "system_screen.hpp"
+
+#include "ui/core/ht_dropdown.hpp"
 #include "ui/app/theme.hpp"
 #include "ui/core/ht_container.hpp"
 #include "ui/core/widget_classes.hpp"
 #include "ui/theme/widget_theme.hpp"
-#if defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213
+#if defined(HELTEC_HAS_KEY_FRAME) && HELTEC_HAS_KEY_FRAME
 #include "heltec/drivers/display/e213_port.hpp"
 #endif
 
@@ -13,18 +15,18 @@ namespace heltec::meshcore::ui
 {
 namespace
 {
-#if defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213
-void request_dropdown_refresh(const char *reason)
+#if defined(HELTEC_HAS_KEY_FRAME) && HELTEC_HAS_KEY_FRAME
+void request_dropdown_refresh()
 {
-    heltec::meshcore::dal::e213::requestSelectionRefresh(reason);
+    heltec::meshcore::dal::e213::requestSelectionRefresh();
 }
 #else
-void request_dropdown_refresh(const char *)
+void request_dropdown_refresh()
 {
 }
 #endif
 
-#if defined(HELTEC_V4_R8_TFT)
+#if HELTEC_HAS_TOUCH
 constexpr lv_coord_t kSystemDropdownHeight =
     ui_settings_row_height() - 2 * ui_layout_metrics().row_padding_vertical;
 #endif
@@ -63,7 +65,7 @@ bool keypad_suppresses_bubble(_lv_obj_t *obj)
         return true;
 #endif
 #if LV_USE_DROPDOWN != 0
-    if (lv_obj_check_type(obj, &lv_dropdown_class))
+    if (lv_obj_has_class(obj, &lv_dropdown_class))
         return true;
 #endif
 #if LV_USE_SLIDER != 0
@@ -72,43 +74,6 @@ bool keypad_suppresses_bubble(_lv_obj_t *obj)
 #endif
     return false;
 }
-#if LV_USE_DROPDOWN != 0
-bool cycle_open_dropdown(_lv_obj_t *dropdown, uint32_t key)
-{
-    if (!dropdown || !lv_obj_check_type(dropdown, &lv_dropdown_class) ||
-        !lv_dropdown_is_open(dropdown))
-    {
-        return false;
-    }
-    const uint16_t count = lv_dropdown_get_option_cnt(dropdown);
-    if (count <= 1)
-        return false;
-
-    const uint16_t current = lv_dropdown_get_selected(dropdown);
-    uint16_t next = current;
-    if (key == LV_KEY_DOWN || key == LV_KEY_RIGHT || key == LV_KEY_NEXT)
-    {
-        next = static_cast<uint16_t>((current + 1u) % count);
-    }
-    else if (key == LV_KEY_UP || key == LV_KEY_LEFT || key == LV_KEY_PREV)
-    {
-        next =
-            current == 0 ? static_cast<uint16_t>(count - 1u) : static_cast<uint16_t>(current - 1u);
-    }
-    else
-    {
-        return false;
-    }
-
-    lv_dropdown_set_selected(dropdown, next);
-    if (_lv_obj_t *const list = lv_dropdown_get_list(dropdown))
-    {
-        lv_obj_invalidate(list);
-    }
-    request_dropdown_refresh("system-dropdown-selection");
-    return true;
-}
-#endif
 } // namespace
 
 _lv_obj_t *SystemScreen::addActionRow(_lv_obj_t *scroll, const char *title, _lv_obj_t **out_row)
@@ -163,10 +128,11 @@ _lv_obj_t *SystemScreen::addDropdownRow(_lv_obj_t *scroll, ChoiceRow &choice, co
         lv_label_set_text_static(label, title ? title : "");
     }
 
-    _lv_obj_t *dd = lv_dropdown_create(row);
+    _lv_obj_t *dd = ht_dropdown_create(row);
     choice.dropdown = dd;
     if (!dd)
         return row;
+    ht_dropdown_set_viewport(dd, lv_obj_get_parent(scroll));
     // Flex owns the horizontal layout. A zero base width ensures the dropdown
     // does not request space from its option text; it simply fills the row area
     // left after the label.
@@ -175,9 +141,8 @@ _lv_obj_t *SystemScreen::addDropdownRow(_lv_obj_t *scroll, ChoiceRow &choice, co
 #if LV_COLOR_DEPTH == 1
     lv_obj_set_height(dd, 12);
 #else
-#if defined(HELTEC_V4_R8_TFT)
+#if HELTEC_HAS_TOUCH
     lv_obj_set_height(dd, kSystemDropdownHeight);
-    ui_theme_center_dropdown_value(dd);
 #else
     lv_obj_set_height(dd, LV_SIZE_CONTENT);
 #endif
@@ -185,7 +150,6 @@ _lv_obj_t *SystemScreen::addDropdownRow(_lv_obj_t *scroll, ChoiceRow &choice, co
     lv_obj_clear_flag(dd, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_set_scrollbar_mode(dd, LV_SCROLLBAR_MODE_OFF);
     lv_dropdown_set_dir(dd, LV_DIR_BOTTOM);
-    lv_dropdown_set_selected_highlight(dd, true);
 
     bindWidget(dd);
     lv_obj_add_event_cb(dd, onDropdownValueChanged, LV_EVENT_VALUE_CHANGED, this);
@@ -202,14 +166,6 @@ void SystemScreen::bindWidget(_lv_obj_t *obj)
         lv_obj_clear_flag(obj, LV_OBJ_FLAG_EVENT_BUBBLE);
     lv_obj_add_event_cb(obj, onWidgetKeyPreprocess,
                         static_cast<lv_event_code_t>(LV_EVENT_KEY | LV_EVENT_PREPROCESS), this);
-#if LV_USE_DROPDOWN != 0
-    if (lv_obj_check_type(obj, &lv_dropdown_class))
-    {
-        lv_obj_add_event_cb(obj, onDropdownReleasedPre,
-                            static_cast<lv_event_code_t>(LV_EVENT_RELEASED | LV_EVENT_PREPROCESS),
-                            this);
-    }
-#endif
 }
 
 void SystemScreen::closeOpenDropdown()
@@ -219,7 +175,7 @@ void SystemScreen::closeOpenDropdown()
     _lv_obj_t *const closing = _open_dropdown;
     _open_dropdown = nullptr;
 #if LV_USE_DROPDOWN != 0
-    if (lv_obj_is_valid(closing) && lv_obj_check_type(closing, &lv_dropdown_class) &&
+    if (lv_obj_is_valid(closing) && lv_obj_has_class(closing, &lv_dropdown_class) &&
         lv_dropdown_is_open(closing))
     {
         lv_dropdown_set_selected(closing, _open_dropdown_original_index);
@@ -230,67 +186,7 @@ void SystemScreen::closeOpenDropdown()
         lv_obj_clear_state(closing, LV_STATE_EDITED);
     if (group())
         lv_group_set_editing(group(), false);
-    request_dropdown_refresh("system-dropdown-close");
-}
-
-void SystemScreen::syncDropdownLayout(_lv_obj_t *dropdown) const
-{
-#if LV_USE_DROPDOWN != 0
-    if (!dropdown || !_root)
-        return;
-    lv_obj_update_layout(_root);
-    for (_lv_obj_t *obj = dropdown; obj; obj = lv_obj_get_parent(obj))
-    {
-        lv_obj_update_layout(obj);
-    }
-#else
-    (void)dropdown;
-#endif
-}
-
-void SystemScreen::realignDropdownListAsync(void *user_data)
-{
-#if LV_USE_DROPDOWN != 0
-    _lv_obj_t *const dropdown = static_cast<_lv_obj_t *>(user_data);
-    if (!dropdown || !lv_obj_is_valid(dropdown))
-        return;
-
-    for (_lv_obj_t *obj = dropdown; obj; obj = lv_obj_get_parent(obj))
-    {
-        if (!lv_obj_get_user_data(obj))
-            continue;
-        auto *self = static_cast<SystemScreen *>(lv_obj_get_user_data(obj));
-        if (self)
-            self->realignDropdownList(dropdown);
-        return;
-    }
-#else
-    (void)user_data;
-#endif
-}
-
-void SystemScreen::realignDropdownList(_lv_obj_t *dropdown)
-{
-#if LV_USE_DROPDOWN != 0
-    if (!dropdown || !_root || !lv_obj_is_valid(dropdown) || !lv_dropdown_is_open(dropdown))
-    {
-        return;
-    }
-    _lv_obj_t *const list = lv_dropdown_get_list(dropdown);
-    if (!list || !lv_obj_is_valid(list))
-        return;
-
-    syncDropdownLayout(dropdown);
-    const lv_coord_t width = lv_obj_get_width(dropdown);
-    if (width > 0)
-        lv_obj_set_width(list, width);
-    lv_obj_set_scrollbar_mode(list, LV_SCROLLBAR_MODE_OFF);
-    ui_theme_match_dropdown_list_padding(dropdown, list);
-    _lv_obj_t *const viewport = lv_obj_get_parent(_root);
-    ui_dropdown_fit_list_to_viewport(dropdown, viewport ? viewport : _root, _root);
-#else
-    (void)dropdown;
-#endif
+    request_dropdown_refresh();
 }
 
 void SystemScreen::onWidgetKeyPreprocess(lv_event_t *e)
@@ -305,12 +201,9 @@ void SystemScreen::onWidgetKeyPreprocess(lv_event_t *e)
     _lv_obj_t *const target = lv_event_get_target(e);
 
 #if LV_USE_DROPDOWN != 0
-    if (self->_open_dropdown == target && cycle_open_dropdown(target, key))
+    if (self->_open_dropdown == target && ht_dropdown_cycle(target, key))
     {
-        if (lv_async_call(realignDropdownListAsync, target) != LV_RES_OK)
-        {
-            self->realignDropdownList(target);
-        }
+        request_dropdown_refresh();
         lv_event_stop_processing(e);
         lv_event_stop_bubbling(e);
         return;
@@ -329,7 +222,7 @@ void SystemScreen::onWidgetKeyPreprocess(lv_event_t *e)
             lv_group_set_editing(self->group(), false);
         if (changed)
             lv_event_send(target, LV_EVENT_VALUE_CHANGED, nullptr);
-        request_dropdown_refresh("system-dropdown-close");
+        request_dropdown_refresh();
         lv_event_stop_processing(e);
         lv_event_stop_bubbling(e);
         return;
@@ -458,7 +351,7 @@ void SystemScreen::addBuzzerVolumeButton(_lv_obj_t *parent, const char *text,
     if (!button)
         return;
     lv_obj_set_size(button, 26, 24);
-#if defined(HELTEC_V4_R8_TFT)
+#if HELTEC_HAS_TOUCH
     lv_obj_set_ext_click_area(button, 5);
 #endif
     _lv_obj_t *const label = lv_label_create(button);

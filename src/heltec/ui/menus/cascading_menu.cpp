@@ -2,7 +2,7 @@
 
 #if LV_USE_MENU
 #include "ui/theme/widget_theme.hpp"
-#if defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213
+#if defined(HELTEC_HAS_KEY_FRAME) && HELTEC_HAS_KEY_FRAME
 #include "heltec/drivers/display/e213_port.hpp"
 #endif
 
@@ -50,17 +50,30 @@ bool CascadingMenu::create(lv_obj_t *menu, lv_group_t *group, const char *title,
     _menu_host = menu;
     _event_target = event_target;
 
-    _page = lv_menu_page_create(menu, title ? const_cast<char *>(title) : nullptr);
+    _page = ht_class_create(&ht_cascading_menu_page_class, menu);
+    if (_page)
+    {
+        lv_menu_page_t *const page = reinterpret_cast<lv_menu_page_t *>(_page);
+        const size_t title_len = strlen(title);
+        page->title = static_cast<char *>(lv_mem_alloc(title_len + 1U));
+        if (!page->title)
+        {
+            lv_obj_del(_page);
+            _page = nullptr;
+            return false;
+        }
+        memcpy(page->title, title, title_len + 1U);
+    }
     if (_page)
         lv_obj_set_user_data(_page, this);
     if (!_page)
         return false;
-    ui_theme_apply_cascading_menu_page(_page);
     lv_obj_clear_flag(_page, LV_OBJ_FLAG_SCROLLABLE);
 
     _focus_group = group;
 
-    if (!_roller.create(_page, _focus_group))
+    if (!_roller.create(_page, _focus_group, &ht_cascading_menu_roller_class,
+                        &ht_cascading_menu_item_class, &ht_cascading_menu_label_class))
     {
         lv_obj_del(_page);
         _page = nullptr;
@@ -78,7 +91,6 @@ bool CascadingMenu::create(lv_obj_t *menu, lv_group_t *group, const char *title,
             lv_obj_t *const btn = _roller.addItem(buf);
             if (!btn)
                 continue;
-            ui_theme_apply_cascading_menu_item(btn);
             lv_obj_set_user_data(btn, this);
             lv_obj_add_event_cb(
                 btn,
@@ -92,9 +104,8 @@ bool CascadingMenu::create(lv_obj_t *menu, lv_group_t *group, const char *title,
                     if (index < menu->_item_count)
                     {
                         menu->_focused_index = static_cast<uint8_t>(index);
-#if defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213
-                        heltec::meshcore::dal::e213::requestSelectionRefresh(
-                            "context-menu-selection");
+#if defined(HELTEC_HAS_KEY_FRAME) && HELTEC_HAS_KEY_FRAME
+                        heltec::meshcore::dal::e213::requestSelectionRefresh();
 #endif
                     }
                 },

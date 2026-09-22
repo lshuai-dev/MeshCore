@@ -1,5 +1,4 @@
 #include "ht_container.hpp"
-#include "ui/app/theme.hpp"
 
 namespace heltec::meshcore::ui {
 namespace {
@@ -43,7 +42,6 @@ void container_state_changed(lv_event_t *event) {
 
     const bool focused = code == LV_EVENT_FOCUSED;
     set_container_children_focused(container, focused);
-    ui_theme_set_focus_text_scroll(container, focused);
 }
 
 void container_constructor(const lv_obj_class_t *class_p, lv_obj_t *obj) {
@@ -78,7 +76,6 @@ void ht_container_set_focused(lv_obj_t *container, bool focused) {
         lv_obj_clear_state(container, states);
     }
     set_container_children_focused(container, focused);
-    ui_theme_set_focus_text_scroll(container, focused);
 }
 
 const lv_obj_class_t ht_container_class = {

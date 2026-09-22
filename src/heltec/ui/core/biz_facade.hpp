@@ -1,5 +1,8 @@
 #pragma once
 #include "feedback.hpp"
+#if defined(HELTEC_GEOFENCE) && HELTEC_GEOFENCE
+#include "heltec/app/team_geofence.hpp"
+#endif
 
 #include <stddef.h>
 #include <stdint.h>
@@ -24,8 +27,9 @@ struct MapPlotMarker {
     int32_t lat_micro = 0;
     int32_t lon_micro = 0;
     uint8_t pub_key_prefix[6] = {};
-    char glyph = '?';
+    char label[9] = { '?', '\0' };
     bool is_self = false;
+    bool alarm_active = false;
 };
 
 struct MapPlotUi {
@@ -82,7 +86,7 @@ struct FindFriendUi {
     FindFriendTargetFreshness target_freshness = FindFriendTargetFreshness::NotApplicable;
     bool near_target = false;
     double distance_m = -1.0;
-    float nearby_enter_m = 15.f;
+    float nearby_enter_m = 20.f;
     FindFriendConfidence confidence = FindFriendConfidence::Unavailable;
 };
 
@@ -203,6 +207,30 @@ class IBizFacade : public ui::IFeedback {
     virtual FindFriendUi findFriendUi() const = 0;
 
     virtual int teamOnlineCount() const = 0;
+#if defined(HELTEC_GEOFENCE) && HELTEC_GEOFENCE
+    virtual team::GeofenceState teamGeofenceState() const {
+        return team::GeofenceState::Empty;
+    }
+    virtual uint8_t teamGeofencePointCount() const { return 0; }
+    virtual bool teamGeofencePoint(uint8_t index, team::GeofencePoint &point) const {
+        (void)index;
+        point = team::GeofencePoint{};
+        return false;
+    }
+    virtual bool beginTeamGeofenceEdit() { return false; }
+    virtual void cancelTeamGeofenceEdit() { }
+    virtual void deleteTeamGeofence() { }
+    virtual team::GeofenceAddResult addTeamGeofencePoint(int32_t latitude_e7,
+                                                         int32_t longitude_e7) {
+        (void)latitude_e7;
+        (void)longitude_e7;
+        return team::GeofenceAddResult::Invalid;
+    }
+    virtual bool teamGeofenceMemberAlarm(const uint8_t member_id[6]) const {
+        (void)member_id;
+        return false;
+    }
+#endif
 
     virtual bool teamPendingDetails(char *name, size_t length, uint64_t &session,
                                     uint16_t &code) const {

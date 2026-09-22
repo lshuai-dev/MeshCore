@@ -85,6 +85,13 @@ void format_nav_distance(char *buf, size_t len, const biz::FindFriendUi &u) {
     const uint32_t rounded = ((meters + step_m / 2U) / step_m) * step_m;
     lv_snprintf(buf, len, "%s%lum", approximate, (unsigned long)rounded);
 }
+
+void format_arrival_distance(char *buf, size_t len, const biz::FindFriendUi &u) {
+    if (!buf || len == 0) return;
+    char distance[16] = {};
+    format_nav_distance(distance, sizeof(distance), u);
+    lv_snprintf(buf, len, "arrived %s", distance);
+}
 } // namespace
 
 void FindFriendScreen::setInfoText(const char *info) {
@@ -168,9 +175,8 @@ bool FindFriendScreen::buildSurface() {
 }
 
 bool FindFriendScreen::createDial() {
-    _dial_row = lv_obj_create(_root);
+    _dial_row = ht_class_create(&ht_find_friend_dial_host_class, _root);
     if (!_dial_row) return false;
-    ui_theme_apply_find_friend_dial_host(_dial_row);
     // Keep the dial fixed in the left column. Only the settings/info column on
     // the right scrolls when its rows no longer fit on screen.
     lv_obj_clear_flag(_root, LV_OBJ_FLAG_SCROLLABLE);
@@ -271,13 +277,13 @@ void FindFriendScreen::createInfoRows() {
     }
 #endif
 
-    _lbl_info = lv_label_create(_right_column);
+    _lbl_info = ht_label_create(&ht_compass_label_class, _right_column);
     compass_style_info_label(_lbl_info, "starting...", LV_LABEL_LONG_CLIP);
     if (_lbl_info) {
         lv_label_set_text_static(_lbl_info, _info_text);
     }
 
-    _lbl_status = lv_label_create(_right_column);
+    _lbl_status = ht_label_create(&ht_compass_label_class, _right_column);
     compass_style_info_label(_lbl_status, "", LV_LABEL_LONG_WRAP);
     if (_lbl_status) lv_label_set_text_static(_lbl_status, _status_text);
 }
@@ -375,7 +381,9 @@ void FindFriendScreen::render(const biz::FindFriendUi &u) {
             _dial.setFriendNeedle(0, u.gps_fix, false, false, true);
             _near_target = true;
             _direction_valid = false;
-            setInfoText("nearby");
+            char distance[sizeof(_info_text)] = {};
+            format_arrival_distance(distance, sizeof(distance), u);
+            setInfoText(distance);
         } else if (!u.gps_fix) {
             showInfoOnly("need gps");
         } else if (u.compass_quality < 2) {
@@ -423,7 +431,9 @@ void FindFriendScreen::render(const biz::FindFriendUi &u) {
                u.target_freshness == biz::FindFriendTargetFreshness::Stale) {
         setInfoText("target stale");
     } else if (u.near_target) {
-        setInfoText("nearby");
+        char distance[sizeof(_info_text)] = {};
+        format_arrival_distance(distance, sizeof(distance), u);
+        setInfoText(distance);
     } else if (!u.gps_fix) {
         setInfoText("need gps");
     } else if (u.bearing_valid) {

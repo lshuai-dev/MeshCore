@@ -2,7 +2,9 @@
 #include "navigation_pane.hpp"
 
 #include "MeshCore.h"
+#if HELTEC_HAS_TOUCH
 #include "heltec/drivers/input/touch_port.hpp"
+#endif
 #include "heltec/ui/images.h"
 #include "ui/app/behavior_profile.hpp"
 #include "ui/app/theme.hpp"
@@ -140,6 +142,7 @@ static int navStepDelta(uint32_t key)
     return (key == LV_KEY_PREV || key == LV_KEY_LEFT || key == LV_KEY_UP) ? -1 : 1;
 }
 
+#if HELTEC_HAS_TOUCH
 static bool navTouchMovedBeyondThreshold(const lv_point_t &origin, const lv_point_t &current)
 {
     const int32_t dx = static_cast<int32_t>(current.x) - origin.x;
@@ -148,6 +151,7 @@ static bool navTouchMovedBeyondThreshold(const lv_point_t &origin, const lv_poin
     const int32_t abs_dy = dy < 0 ? -dy : dy;
     return abs_dx >= HELTEC_TOUCH_GESTURE_SWIPE_PX || abs_dy >= HELTEC_TOUCH_GESTURE_SWIPE_PX;
 }
+#endif
 
 static uint8_t navCellId(_lv_obj_t *cell)
 {
@@ -362,12 +366,10 @@ void NavigationPane::layoutGrid(bool update_emphasis)
             if (id == focus)
             {
                 lv_obj_add_state(cell, LV_STATE_FOCUS_KEY);
-                ui_theme_set_focus_text_scroll(cell, true);
             }
             else
             {
                 lv_obj_clear_state(cell, LV_STATE_FOCUS_KEY);
-                ui_theme_set_focus_text_scroll(cell, false);
             }
             continue;
         }
@@ -378,12 +380,10 @@ void NavigationPane::layoutGrid(bool update_emphasis)
         if (id == focus)
         {
             lv_obj_add_state(cell, LV_STATE_FOCUS_KEY);
-            ui_theme_set_focus_text_scroll(cell, true);
         }
         else
         {
             lv_obj_clear_state(cell, LV_STATE_FOCUS_KEY);
-            ui_theme_set_focus_text_scroll(cell, false);
         }
     }
 
@@ -558,6 +558,19 @@ bool NavigationPane::buildSurface()
     if (!_nav)
         return false;
     lv_group_add_obj(focusGroup(), _nav);
+    lv_obj_add_event_cb(
+        _nav,
+        [](lv_event_t *event)
+        {
+            if (lv_event_get_code(event) != LV_EVENT_KEY)
+                return;
+            auto *self = static_cast<NavigationPane *>(lv_event_get_user_data(event));
+            if (!self || !self->onKey(lv_event_get_key(event)))
+                return;
+            lv_event_stop_processing(event);
+            lv_event_stop_bubbling(event);
+        },
+        LV_EVENT_KEY, this);
 
     lv_obj_add_event_cb(
         _root,
@@ -633,7 +646,7 @@ void NavigationPane::setIcon(uint8_t id, const lv_img_dsc_t *img)
     lv_obj_clear_flag(icon_area, LV_OBJ_FLAG_SCROLLABLE | LV_OBJ_FLAG_CLICKABLE);
     lv_obj_add_flag(icon_area, LV_OBJ_FLAG_EVENT_BUBBLE);
 
-    _lv_obj_t *icon = lv_img_create(icon_area);
+    _lv_obj_t *icon = ht_class_create(&ht_navigation_grid_icon_class, icon_area);
     if (!icon)
     {
         lv_obj_del(cell);
@@ -656,7 +669,8 @@ void NavigationPane::setIcon(uint8_t id, const lv_img_dsc_t *img)
     lv_obj_add_flag(bar, LV_OBJ_FLAG_EVENT_BUBBLE);
 
     _lv_obj_t *lbl =
-        ht_label_create(&lv_label_class, bar, _labels[id] ? _labels[id] : "");
+        ht_label_create(&ht_navigation_title_label_class, bar,
+                        _labels[id] ? _labels[id] : "");
     if (!lbl)
     {
         lv_obj_del(cell);
@@ -683,17 +697,20 @@ void NavigationPane::setIcon(uint8_t id, const lv_img_dsc_t *img)
             auto *nav = static_cast<NavigationPane *>(lv_event_get_user_data(e));
             if (!nav)
                 return;
+#if HELTEC_HAS_TOUCH
             nav->onCellTouchEvent(e);
+#endif
             if (LV_EVENT_CLICKED != lv_event_get_code(e))
                 return;
             if (!nav->panelVisible() || nav->_ring_fade_busy)
                 return;
-#if defined(HELTEC_V4_R8_TFT) && defined(HELTEC_HAS_TOUCH) && HELTEC_HAS_TOUCH
+#if HELTEC_HAS_TOUCH
             // Custom long-press or double-tap actions can hold LVGL at RELEASED while
             // the finger is still down. Do not turn that transition into a nav commit.
             if (heltec::meshcore::dal::touch_port::isPressed())
                 return;
 #endif
+#if HELTEC_HAS_TOUCH
             if (nav->_touch_dragged)
             {
                 nav->_touch_active = false;
@@ -701,12 +718,17 @@ void NavigationPane::setIcon(uint8_t id, const lv_img_dsc_t *img)
                 return;
             }
             nav->_touch_active = false;
+#endif
             nav->onCellClicked(lv_event_get_target(e));
             (void)nav->commitFocused();
             lv_event_stop_processing(e);
             lv_event_stop_bubbling(e);
         },
+#if HELTEC_HAS_TOUCH
         LV_EVENT_ALL,
+#else
+        LV_EVENT_CLICKED,
+#endif
         this);
 
     _geometry_valid = false;
@@ -714,6 +736,7 @@ void NavigationPane::setIcon(uint8_t id, const lv_img_dsc_t *img)
         layoutNav(false);
 }
 
+#if HELTEC_HAS_TOUCH
 void NavigationPane::onCellTouchEvent(lv_event_t *e)
 {
     if (!e)
@@ -763,6 +786,7 @@ void NavigationPane::onCellTouchEvent(lv_event_t *e)
             _touch_active = false;
     }
 }
+#endif
 
 void NavigationPane::setSelectedIndex(uint8_t id, bool preview)
 {

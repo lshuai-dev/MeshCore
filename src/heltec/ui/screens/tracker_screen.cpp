@@ -51,13 +51,8 @@ constexpr int kMarkersPerPoll = 4;
 constexpr uint32_t kPoolPrewarmIntervalMs = 10;
 constexpr uint32_t kTeamRefreshPeriodMs = 60000UL;
 
-#if defined(HELTEC_V4_R8_TFT)
 constexpr lv_coord_t kMapToolBtnW = 38;
 constexpr lv_coord_t kMapToolBtnH = 38;
-#else
-constexpr lv_coord_t kMapToolBtnW = 38;
-constexpr lv_coord_t kMapToolBtnH = 30;
-#endif
 constexpr lv_coord_t kMapToolbarPad = 3;
 constexpr lv_coord_t kMapToolbarGap = 3;
 
@@ -117,11 +112,15 @@ TrackerScreen::TrackerScreen(biz::IBizFacade &biz, const char *title, const lv_i
 namespace
 {
 
+constexpr const lv_obj_class_t *kTrackerToolbarClass = &ht_tracker_toolbar_class;
+constexpr const lv_obj_class_t *kTrackerToolbarButtonClass = &ht_tracker_toolbar_button_class;
+constexpr const lv_obj_class_t *kTrackerToolbarLabelClass = &ht_tracker_toolbar_label_class;
+
 _lv_obj_t *add_tool_btn_label(_lv_obj_t *btn, const char *text)
 {
     if (!btn)
         return nullptr;
-    _lv_obj_t *lb = ht_label_create(btn, text);
+    _lv_obj_t *lb = ht_label_create(kTrackerToolbarLabelClass, btn, text);
     if (!lb)
         return nullptr;
     lv_obj_align(lb, LV_ALIGN_CENTER, 0, 0);
@@ -147,10 +146,9 @@ bool TrackerScreen::hitMapToolbar(lv_coord_t x, lv_coord_t y) const
         return false;
     const _lv_obj_t *buttons[] = {
         _btn_zoom_out, _btn_zoom_in, _btn_gps,
-#if !defined(HELTEC_V4_R8_TFT)
-        _dd_member_message,
+#if defined(HELTEC_GEOFENCE) && HELTEC_GEOFENCE
+        _btn_fence, _btn_fence_delete,
 #endif
-        _btn_group_message,
     };
     for (const _lv_obj_t *button : buttons)
     {
@@ -244,14 +242,21 @@ void TrackerScreen::on_map_gesture(lv_event_t *e)
             self->_panel.finish_pan();
             self->_panel.setPanDragging(false);
             self->_panel.refreshOverlays();
+#if defined(HELTEC_GEOFENCE) && HELTEC_GEOFENCE
+            self->syncFenceOverlay();
+#endif
             self->_panel.save_prefs();
             self->syncMapToolbarVisibility();
             self->update_status_line();
         }
-        else if (self->_pan_active)
+        else if (self->_pan_active && !self->_pan_moved)
         {
             self->_panel.setPanDragging(false);
             self->_panel.refreshOverlays();
+#if defined(HELTEC_GEOFENCE) && HELTEC_GEOFENCE
+            if (self->_biz.teamGeofenceState() == heltec::meshcore::team::GeofenceState::Editing)
+                self->addFencePointAt(p.x, p.y);
+#endif
         }
         self->_pan_active = false;
         self->_pan_moved = false;
@@ -338,17 +343,30 @@ void TrackerScreen::ensure_panel_attached()
     {
         raiseMapToolbar();
     }
-#if defined(HELTEC_MAP_TOUCH_PAN) && HELTEC_MAP_TOUCH_PAN
     if (_panel_attached)
     {
         bindPanGestures(_panel.touchLayer());
-    }
+        _lv_obj_t *const overlay_layer = _panel.overlayLayer();
+#if defined(HELTEC_GEOFENCE) && HELTEC_GEOFENCE
+        if (!_fence_overlay && overlay_layer)
+        {
+            _fence_overlay = lv_obj_create(overlay_layer);
+            if (_fence_overlay)
+            {
+                lv_obj_remove_style_all(_fence_overlay);
+                lv_obj_set_size(_fence_overlay, lv_pct(100), lv_pct(100));
+                lv_obj_set_pos(_fence_overlay, 0, 0);
+                lv_obj_clear_flag(_fence_overlay,
+                                  LV_OBJ_FLAG_CLICKABLE | LV_OBJ_FLAG_SCROLLABLE);
+                lv_obj_add_event_cb(_fence_overlay, onFenceOverlayDraw, LV_EVENT_DRAW_MAIN, this);
+                lv_obj_move_background(_fence_overlay);
+            }
+        }
+        syncFenceOverlay();
 #else
-    if (_panel_attached && _panel.touchLayer())
-    {
-        lv_obj_clear_flag(_panel.touchLayer(), LV_OBJ_FLAG_CLICKABLE);
-    }
+        (void)overlay_layer;
 #endif
+    }
 }
 
 void TrackerScreen::refreshMap(bool refresh_sd_tiles)
@@ -369,14 +387,18 @@ void TrackerScreen::refreshMap(bool refresh_sd_tiles)
         _auto_center_on_first_fix = false;
     }
     _panel.set_markers(plot.markers, plot.marker_count);
+    const biz::IBizFacade::TeamStatus team = _biz.teamStatus();
+    _team_member_count_cached = team.has_team ? team.member_count : 0;
     _team_location_count = plot.marker_count;
     _team_online_count = plot.online_count;
     _panel.refreshOverlays();
+#if defined(HELTEC_GEOFENCE) && HELTEC_GEOFENCE
+    syncFenceOverlay();
+#endif
     if (_panel.tilesLoadPending())
     {
         requestMapWork(kMapWorkTiles, nextMapWorkDelayMs());
     }
-    syncTeamTools();
     syncMapToolbarVisibility();
     update_status_line();
 }
@@ -401,123 +423,150 @@ void TrackerScreen::center_map_on_current_gps()
 }
 
 
-void TrackerScreen::syncTeamTools()
+#if defined(HELTEC_GEOFENCE) && HELTEC_GEOFENCE
+void TrackerScreen::syncFenceTools()
 {
+    const auto state = _biz.teamGeofenceState();
     const biz::IBizFacade::TeamStatus team = _biz.teamStatus();
-    const bool active = team.has_team;
-    if (active && !_team_refresh_enabled)
+    const bool can_edit = team.has_team && team.is_leader;
+    if (_btn_fence)
     {
-        _team_refresh_enabled = true;
-        _next_team_refresh_ms = millis() + kTeamRefreshPeriodMs;
-    }
-    else if (!active)
-    {
-        _team_refresh_enabled = false;
-        _next_team_refresh_ms = 0;
-    }
-    if (_team_state_valid && active == _team_active_cached &&
-        team.member_count == _team_member_count_cached &&
-        team.member_revision == _team_member_revision_cached)
-        return;
-    _team_state_valid = true;
-    _team_active_cached = active;
-#if !defined(HELTEC_V4_R8_TFT)
-    if (team.member_count != _team_member_count_cached ||
-        team.member_revision != _team_member_revision_cached)
-        rebuildTeamMemberOptions(team.member_count);
-#endif
-    _team_member_count_cached = team.member_count;
-    _team_member_revision_cached = team.member_revision;
-#if defined(HELTEC_V4_R8_TFT)
-    _lv_obj_t *const buttons[] = { _btn_group_message };
-    const bool allowed[] = { active };
-#else
-    _lv_obj_t *const buttons[] = { _dd_member_message, _btn_group_message };
-    const bool allowed[] = { active && team.member_count > 0, active };
-#endif
-    for (unsigned i = 0; i < sizeof(buttons) / sizeof(buttons[0]); ++i)
-    {
-        if (!buttons[i])
-            continue;
-        if (!allowed[i])
-            lv_obj_add_state(buttons[i], LV_STATE_DISABLED);
+        if (can_edit && state != heltec::meshcore::team::GeofenceState::Active)
+            lv_obj_clear_state(_btn_fence, LV_STATE_DISABLED);
         else
-            lv_obj_clear_state(buttons[i], LV_STATE_DISABLED);
+            lv_obj_add_state(_btn_fence, LV_STATE_DISABLED);
+        if (state == heltec::meshcore::team::GeofenceState::Editing)
+            lv_obj_add_state(_btn_fence, LV_STATE_CHECKED);
+        else
+            lv_obj_clear_state(_btn_fence, LV_STATE_CHECKED);
+        if (_lv_obj_t *label = lv_obj_get_child(_btn_fence, 0))
+            lv_label_set_text_static(label,
+                                     state == heltec::meshcore::team::GeofenceState::Editing
+                                         ? LV_SYMBOL_CLOSE
+                                         : "F");
     }
-}
-
-#if !defined(HELTEC_V4_R8_TFT)
-void TrackerScreen::rebuildTeamMemberOptions(int member_count)
-{
-    if (!_dd_member_message)
-        return;
-
-    size_t used = static_cast<size_t>(snprintf(_team_member_options,
-                                               sizeof(_team_member_options), "Select"));
-    _team_member_option_count = 0;
-    memset(_team_member_prefixes, 0, sizeof(_team_member_prefixes));
-    for (int index = 0; index < member_count && used < sizeof(_team_member_options); ++index)
+    if (_btn_fence_delete)
     {
-        UiSendMessageTarget target{};
-        if (!_biz.teamMessageTarget(index, target))
-            continue;
-        const int written = snprintf(_team_member_options + used,
-                                     sizeof(_team_member_options) - used, "\n%s", target.label);
-        if (written < 0 || static_cast<size_t>(written) >= sizeof(_team_member_options) - used)
-            break;
-        used += static_cast<size_t>(written);
-        memcpy(_team_member_prefixes[_team_member_option_count], target.pub_key_prefix,
-               sizeof(target.pub_key_prefix));
-        ++_team_member_option_count;
+        if (can_edit && state == heltec::meshcore::team::GeofenceState::Active)
+            lv_obj_clear_state(_btn_fence_delete, LV_STATE_DISABLED);
+        else
+            lv_obj_add_state(_btn_fence_delete, LV_STATE_DISABLED);
     }
-    lv_dropdown_set_options(_dd_member_message, _team_member_options);
-    lv_dropdown_set_selected(_dd_member_message, 0);
-    lv_dropdown_set_text(_dd_member_message, "DM");
 }
 
-void TrackerScreen::onTeamMemberSelected(lv_event_t *event)
+void TrackerScreen::syncFenceOverlay()
 {
-    auto *const self = static_cast<TrackerScreen *>(lv_event_get_user_data(event));
-    _lv_obj_t *const dropdown = lv_event_get_target(event);
-    if (!self || dropdown != self->_dd_member_message)
+    if (!_fence_overlay)
         return;
-
-    const uint16_t selected = lv_dropdown_get_selected(dropdown);
-    lv_dropdown_close(dropdown);
-    if (selected == 0U)
-        return;
-
-    const uint16_t target_index = selected - 1U;
-    UiSendMessageTarget target{};
-    if (target_index < self->_team_member_option_count &&
-        self->_biz.mapMessageTarget(self->_team_member_prefixes[target_index],
-                                    sizeof(self->_team_member_prefixes[target_index]), target))
-        (void)self->emitEvent(EventType::SendMessageOpen, &target);
-    else
-        self->_biz.showAlert("Member unavailable", 2000);
-
-    lv_dropdown_set_selected(dropdown, 0);
-    lv_dropdown_set_text(dropdown, "DM");
+    memset(_fence_point_visible, 0, sizeof(_fence_point_visible));
+    for (uint8_t index = 0; index < _biz.teamGeofencePointCount(); ++index)
+    {
+        heltec::meshcore::team::GeofencePoint point{};
+        if (!_biz.teamGeofencePoint(index, point))
+            continue;
+        _fence_point_visible[index] = _panel.locationToPoint(
+            static_cast<float>(point.latitude_e7) / 10000000.0f,
+            static_cast<float>(point.longitude_e7) / 10000000.0f,
+            _fence_points[index]);
+    }
+    lv_obj_invalidate(_fence_overlay);
 }
-#endif
 
-void TrackerScreen::onTeamToolClicked(lv_event_t *event)
+void TrackerScreen::onFenceOverlayDraw(lv_event_t *event)
 {
     auto *self = static_cast<TrackerScreen *>(lv_event_get_user_data(event));
-    if (!self)
+    lv_draw_ctx_t *const draw_ctx = lv_event_get_draw_ctx(event);
+    if (!self || !draw_ctx || !self->_fence_overlay)
         return;
-    _lv_obj_t *const button = lv_event_get_target(event);
-    const lv_event_code_t code = lv_event_get_code(event);
-    if (button == self->_btn_group_message && code == LV_EVENT_SHORT_CLICKED)
+
+    const uint8_t count = self->_biz.teamGeofencePointCount();
+    if (count == 0)
+        return;
+    lv_area_t overlay_area;
+    lv_obj_get_coords(self->_fence_overlay, &overlay_area);
+
+    lv_draw_line_dsc_t line_dsc;
+    lv_draw_line_dsc_init(&line_dsc);
+    line_dsc.color = ui_color_accent();
+    line_dsc.width = 2;
+    line_dsc.round_start = true;
+    line_dsc.round_end = true;
+    auto absolute_point = [&overlay_area](const lv_point_t &point)
     {
-        UiSendMessageTarget target{};
-        if (self->_biz.teamMessageTarget(-1, target))
-            (void)self->emitEvent(EventType::SendMessageOpen, &target);
-        else
-            self->_biz.showAlert("No Team recipient", 2000);
+        return lv_point_t{ static_cast<lv_coord_t>(overlay_area.x1 + point.x),
+                           static_cast<lv_coord_t>(overlay_area.y1 + point.y) };
+    };
+    for (uint8_t index = 1; index < count; ++index)
+    {
+        if (!self->_fence_point_visible[index - 1U] || !self->_fence_point_visible[index])
+            continue;
+        const lv_point_t start = absolute_point(self->_fence_points[index - 1U]);
+        const lv_point_t end = absolute_point(self->_fence_points[index]);
+        lv_draw_line(draw_ctx, &line_dsc, &start, &end);
     }
-    self->syncTeamTools();
+    if (self->_biz.teamGeofenceState() == heltec::meshcore::team::GeofenceState::Active && count > 2U &&
+        self->_fence_point_visible[count - 1U] && self->_fence_point_visible[0])
+    {
+        const lv_point_t start = absolute_point(self->_fence_points[count - 1U]);
+        const lv_point_t end = absolute_point(self->_fence_points[0]);
+        lv_draw_line(draw_ctx, &line_dsc, &start, &end);
+    }
+
+    lv_draw_rect_dsc_t point_dsc;
+    lv_draw_rect_dsc_init(&point_dsc);
+    point_dsc.radius = LV_RADIUS_CIRCLE;
+    point_dsc.bg_opa = LV_OPA_COVER;
+    for (uint8_t index = 0; index < count; ++index)
+    {
+        if (!self->_fence_point_visible[index])
+            continue;
+        point_dsc.bg_color = index == 0 ? ui_color_success() : ui_color_accent();
+        const lv_point_t point = absolute_point(self->_fence_points[index]);
+        lv_area_t point_area = { static_cast<lv_coord_t>(point.x - 4),
+                                 static_cast<lv_coord_t>(point.y - 4),
+                                 static_cast<lv_coord_t>(point.x + 4),
+                                 static_cast<lv_coord_t>(point.y + 4) };
+        lv_draw_rect(draw_ctx, &point_dsc, &point_area);
+    }
 }
+
+void TrackerScreen::addFencePointAt(lv_coord_t screen_x, lv_coord_t screen_y)
+{
+    float latitude = 0.0f;
+    float longitude = 0.0f;
+    if (!_panel.screenToLocation(screen_x, screen_y, latitude, longitude))
+        return;
+    const auto result = _biz.addTeamGeofencePoint(static_cast<int32_t>(latitude * 10000000.0f),
+                                                  static_cast<int32_t>(longitude * 10000000.0f));
+    if (result == heltec::meshcore::team::GeofenceAddResult::Completed)
+        _biz.showAlert("Fence active", 1200);
+    else if (result == heltec::meshcore::team::GeofenceAddResult::Full)
+        _biz.showAlert("Fence full; tap first point", 1500);
+    syncFenceOverlay();
+    syncFenceTools();
+}
+
+void TrackerScreen::onFenceToolLongPressed(lv_event_t *event)
+{
+    auto *self = static_cast<TrackerScreen *>(lv_event_get_user_data(event));
+    if (!self || lv_event_get_code(event) != LV_EVENT_LONG_PRESSED)
+        return;
+    const auto *button = lv_event_get_target(event);
+    if (button == self->_btn_fence)
+    {
+        if (self->_biz.teamGeofenceState() == heltec::meshcore::team::GeofenceState::Editing)
+            self->_biz.cancelTeamGeofenceEdit();
+        else if (self->_biz.beginTeamGeofenceEdit())
+            self->_biz.showAlert("Fence marking started", 1500);
+    }
+    else if (button == self->_btn_fence_delete)
+    {
+        self->_biz.deleteTeamGeofence();
+    }
+    self->syncFenceOverlay();
+    self->syncFenceTools();
+}
+#endif
 
 void TrackerScreen::syncMapToolbarVisibility()
 {
@@ -537,21 +586,12 @@ void TrackerScreen::syncMapToolbarVisibility()
     }
     else
     {
-#if defined(HELTEC_V4_R8_TFT)
         lv_obj_clear_flag(_btn_gps, LV_OBJ_FLAG_HIDDEN);
         lv_obj_add_state(_btn_gps, LV_STATE_DISABLED);
-#else
-        lv_obj_add_flag(_btn_gps, LV_OBJ_FLAG_HIDDEN);
-#endif
     }
     if (_toolbar)
     {
-#if defined(HELTEC_V4_R8_TFT)
-        const int visible_buttons = 3 + (_btn_group_message ? 1 : 0);
-#else
-        const int visible_buttons = (gps_usable ? 3 : 2) + (_dd_member_message ? 1 : 0) +
-                                    (_btn_group_message ? 1 : 0);
-#endif
+        const int visible_buttons = 5;
         lv_obj_set_width(_toolbar, map_toolbar_width(visible_buttons));
     }
     raiseMapToolbar();
@@ -563,10 +603,9 @@ void TrackerScreen::raiseMapToolbar()
         return;
     const _lv_obj_t *const buttons[] = {
         _btn_zoom_out, _btn_zoom_in, _btn_gps,
-#if !defined(HELTEC_V4_R8_TFT)
-        _dd_member_message,
+#if defined(HELTEC_GEOFENCE) && HELTEC_GEOFENCE
+        _btn_fence, _btn_fence_delete,
 #endif
-        _btn_group_message,
     };
     int count = 0;
     for (const _lv_obj_t *button : buttons)
@@ -578,11 +617,7 @@ void TrackerScreen::raiseMapToolbar()
     const lv_coord_t desired = map_toolbar_width(count);
     if (available > 0)
         lv_obj_set_width(_toolbar, desired < available ? desired : available);
-#if defined(HELTEC_V4_R8_TFT)
     lv_obj_align(_toolbar, LV_ALIGN_BOTTOM_MID, 0, -4);
-#else
-    lv_obj_align(_toolbar, LV_ALIGN_BOTTOM_RIGHT, -4, -4);
-#endif
     lv_obj_move_foreground(_toolbar);
     lv_obj_clear_flag(_toolbar, LV_OBJ_FLAG_HIDDEN);
 }
@@ -637,7 +672,6 @@ void TrackerScreen::setMapUnavailable()
         lv_timer_pause(_map_work_timer);
     _map_work_timer_active = false;
     setMapToolbarBusy(false);
-    syncTeamTools();
     raiseMapToolbar();
     if (_lbl_status)
     {
@@ -696,14 +730,20 @@ void TrackerScreen::onGpsClicked(lv_event_t *event)
 void TrackerScreen::zoomOutMap(TrackerScreen &screen)
 {
     screen._panel.zoom_out();
-    screen._panel.refreshOverlays();
+    screen.refreshMap(false);
+#if defined(HELTEC_GEOFENCE) && HELTEC_GEOFENCE
+    screen.syncFenceOverlay();
+#endif
     screen.update_status_line();
 }
 
 void TrackerScreen::zoomInMap(TrackerScreen &screen)
 {
     screen._panel.zoom_in();
-    screen._panel.refreshOverlays();
+    screen.refreshMap(false);
+#if defined(HELTEC_GEOFENCE) && HELTEC_GEOFENCE
+    screen.syncFenceOverlay();
+#endif
     screen.update_status_line();
 }
 
@@ -715,6 +755,9 @@ void TrackerScreen::centerMapOnGps(TrackerScreen &screen)
 void TrackerScreen::onEnter()
 {
     AbstractScreen::onEnter();
+#if defined(HELTEC_GEOFENCE) && HELTEC_GEOFENCE
+    syncFenceTools();
+#endif
     _biz.setMapForegroundActive(true);
     using namespace heltec::meshcore::ui::map;
     map_sd_on_screen_enter();
@@ -757,6 +800,14 @@ void TrackerScreen::onEnter()
 
 void TrackerScreen::onExit()
 {
+#if defined(HELTEC_GEOFENCE) && HELTEC_GEOFENCE
+    if (_biz.teamGeofenceState() == heltec::meshcore::team::GeofenceState::Editing)
+    {
+        _biz.cancelTeamGeofenceEdit();
+        syncFenceOverlay();
+        syncFenceTools();
+    }
+#endif
     _biz.setMapForegroundActive(false);
     if (_panel_attached)
     {
@@ -980,7 +1031,6 @@ bool TrackerScreen::processStartupWork()
         _panel.syncViewportLayout();
         _map_unavailable = false;
         setMapToolbarBusy(false);
-        syncTeamTools();
         syncMapToolbarVisibility();
         _startup_phase = kStartupNone;
         _map_work = static_cast<uint8_t>((_map_work & ~kMapWorkStartup) | kMapWorkRefresh);
@@ -1098,7 +1148,22 @@ uint32_t TrackerScreen::nextMapWorkDelayMs() const
 void TrackerScreen::onAppStateChanged(const AppStateEvent &event)
 {
     if (event.type == AppStateEventType::TeamChanged)
-        syncTeamTools();
+    {
+        const biz::IBizFacade::TeamStatus team = _biz.teamStatus();
+        _team_member_count_cached = team.has_team ? team.member_count : 0;
+        _team_refresh_enabled = team.has_team;
+        _next_team_refresh_ms = _team_refresh_enabled ? millis() + kTeamRefreshPeriodMs : 0;
+        if (!team.has_team || !team.is_leader)
+        {
+#if defined(HELTEC_GEOFENCE) && HELTEC_GEOFENCE
+            _biz.deleteTeamGeofence();
+            syncFenceOverlay();
+#endif
+        }
+#if defined(HELTEC_GEOFENCE) && HELTEC_GEOFENCE
+        syncFenceTools();
+#endif
+    }
     if (event.type == AppStateEventType::GpsChanged ||
         event.type == AppStateEventType::ContactLocationChanged ||
         event.type == AppStateEventType::RecentHeardChanged ||
@@ -1110,7 +1175,6 @@ void TrackerScreen::onAppStateChanged(const AppStateEvent &event)
 
 void TrackerScreen::onActivated()
 {
-    syncTeamTools();
     requestMapWork(kMapWorkRefresh);
 }
 
@@ -1135,57 +1199,42 @@ bool TrackerScreen::buildSurface()
         lv_obj_set_width(_map_viewport, lv_pct(100));
         lv_obj_set_flex_grow(_map_viewport, 1);
         lv_obj_clear_flag(_map_viewport, LV_OBJ_FLAG_SCROLLABLE);
-        _toolbar = ht_class_create(&ht_map_toolbar_class, _map_viewport);
+        _toolbar = ht_class_create(kTrackerToolbarClass, _map_viewport);
         if (_toolbar)
         {
-#if defined(HELTEC_V4_R8_TFT)
-            const int tool_count = 4;
+            const int tool_count =
+#if defined(HELTEC_GEOFENCE) && HELTEC_GEOFENCE
+                5;
 #else
-            const int tool_count = 5;
+                3;
 #endif
             lv_obj_set_size(_toolbar, map_toolbar_width(tool_count),
                             kMapToolbarPad * 2 + kMapToolBtnH);
-#if defined(HELTEC_V4_R8_TFT)
             lv_obj_align(_toolbar, LV_ALIGN_BOTTOM_MID, 0, -4);
-#else
-            lv_obj_align(_toolbar, LV_ALIGN_BOTTOM_RIGHT, -4, -4);
-#endif
-#if defined(HELTEC_V4_R8_TFT)
-    lv_obj_set_flex_flow(_toolbar, LV_FLEX_FLOW_ROW);
-#else
-    lv_obj_set_flex_flow(_toolbar, LV_FLEX_FLOW_ROW_WRAP);
-#endif
+            lv_obj_set_flex_flow(_toolbar, LV_FLEX_FLOW_ROW);
             lv_obj_set_height(_toolbar, LV_SIZE_CONTENT);
-#if defined(HELTEC_V4_R8_TFT)
             lv_obj_set_flex_align(_toolbar, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER,
                                   LV_FLEX_ALIGN_CENTER);
-#else
-            lv_obj_set_flex_align(_toolbar, LV_FLEX_ALIGN_END, LV_FLEX_ALIGN_CENTER,
-                                  LV_FLEX_ALIGN_CENTER);
-#endif
             lv_obj_clear_flag(_toolbar, LV_OBJ_FLAG_SCROLLABLE);
             lv_obj_add_flag(_toolbar, LV_OBJ_FLAG_FLOATING | LV_OBJ_FLAG_OVERFLOW_VISIBLE);
             lv_obj_move_foreground(_toolbar);
             lv_obj_add_event_cb(_map_viewport, onMapViewportSizeChanged,
                                 LV_EVENT_SIZE_CHANGED, this);
 
-            _btn_zoom_out = lv_btn_create(_toolbar);
-            _btn_zoom_in = lv_btn_create(_toolbar);
-            _btn_gps = lv_btn_create(_toolbar);
-#if !defined(HELTEC_V4_R8_TFT)
-            _dd_member_message = lv_dropdown_create(_toolbar);
-#endif
-#if defined(ENV_INCLUDE_GPS) && ENV_INCLUDE_GPS
-            _btn_group_message = lv_btn_create(_toolbar);
+            _btn_zoom_out = ht_btn_create(kTrackerToolbarButtonClass, _toolbar);
+            _btn_zoom_in = ht_btn_create(kTrackerToolbarButtonClass, _toolbar);
+            _btn_gps = ht_btn_create(kTrackerToolbarButtonClass, _toolbar);
+#if defined(HELTEC_GEOFENCE) && HELTEC_GEOFENCE
+            _btn_fence = ht_btn_create(kTrackerToolbarButtonClass, _toolbar);
+            _btn_fence_delete = ht_btn_create(kTrackerToolbarButtonClass, _toolbar);
 #endif
             _lv_obj_t *const buttons[] = {
                 _btn_zoom_out,
                 _btn_zoom_in,
                 _btn_gps,
-#if !defined(HELTEC_V4_R8_TFT)
-                _dd_member_message,
+#if defined(HELTEC_GEOFENCE) && HELTEC_GEOFENCE
+                _btn_fence, _btn_fence_delete,
 #endif
-                _btn_group_message,
             };
             for (_lv_obj_t *button : buttons)
             {
@@ -1194,30 +1243,6 @@ bool TrackerScreen::buildSurface()
                 lv_obj_set_size(button, kMapToolBtnW, kMapToolBtnH);
                 lv_obj_add_flag(button, LV_OBJ_FLAG_CLICKABLE);
             }
-#if !defined(HELTEC_V4_R8_TFT)
-            if (_dd_member_message)
-            {
-                lv_dropdown_set_options_static(_dd_member_message, "Select");
-                lv_dropdown_set_text(_dd_member_message, "DM");
-                lv_dropdown_set_symbol(_dd_member_message, nullptr);
-                lv_dropdown_set_dir(_dd_member_message, LV_DIR_TOP);
-                lv_obj_set_style_radius(_dd_member_message, 3, LV_PART_MAIN);
-                lv_obj_set_style_border_width(_dd_member_message, 1, LV_PART_MAIN);
-                lv_obj_set_style_border_color(_dd_member_message, ui_color_accent(),
-                                              LV_PART_MAIN);
-                lv_obj_set_style_border_opa(_dd_member_message, LV_OPA_COVER, LV_PART_MAIN);
-                lv_obj_set_style_border_side(_dd_member_message, LV_BORDER_SIDE_FULL,
-                                             LV_PART_MAIN);
-                lv_obj_set_style_bg_opa(_dd_member_message, LV_OPA_TRANSP, LV_PART_MAIN);
-                lv_obj_set_style_text_color(_dd_member_message, ui_color_accent(), LV_PART_MAIN);
-                lv_obj_set_style_text_align(_dd_member_message, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
-                lv_obj_set_style_pad_all(_dd_member_message, 0, LV_PART_MAIN);
-                lv_obj_set_style_opa(_dd_member_message, LV_OPA_40, LV_STATE_DISABLED);
-                lv_obj_add_event_cb(_dd_member_message, onTeamMemberSelected,
-                                    LV_EVENT_VALUE_CHANGED, this);
-                addFocusableObject(_dd_member_message, nullptr, false);
-            }
-#endif
             if (_btn_zoom_out)
             {
                 (void)add_tool_btn_label(_btn_zoom_out, "-");
@@ -1236,22 +1261,23 @@ bool TrackerScreen::buildSurface()
                 lv_obj_add_event_cb(_btn_gps, onGpsClicked, LV_EVENT_CLICKED, this);
                 addFocusableObject(_btn_gps, nullptr, false);
             }
-            _lv_obj_t *const team_buttons[] = { _btn_group_message };
-#if defined(HELTEC_V4_R8_TFT)
-            const char *const labels[] = { "Msg" };
-#else
-            const char *const labels[] = { "All" };
-#endif
-            for (unsigned i = 0; i < 1; ++i)
+#if defined(HELTEC_GEOFENCE) && HELTEC_GEOFENCE
+            if (_btn_fence)
             {
-                if (!team_buttons[i])
-                    continue;
-                (void)add_tool_btn_label(team_buttons[i], labels[i]);
-                lv_obj_set_style_opa(team_buttons[i], LV_OPA_40, LV_STATE_DISABLED);
-                lv_obj_add_event_cb(team_buttons[i], onTeamToolClicked, LV_EVENT_SHORT_CLICKED, this);
-                addFocusableObject(team_buttons[i], nullptr, false);
+                (void)add_tool_btn_label(_btn_fence, "F");
+                lv_obj_add_event_cb(_btn_fence, onFenceToolLongPressed,
+                                    LV_EVENT_LONG_PRESSED, this);
+                addFocusableObject(_btn_fence, nullptr, false);
             }
-            syncTeamTools();
+            if (_btn_fence_delete)
+            {
+                (void)add_tool_btn_label(_btn_fence_delete, "D");
+                lv_obj_add_event_cb(_btn_fence_delete, onFenceToolLongPressed,
+                                    LV_EVENT_LONG_PRESSED, this);
+                addFocusableObject(_btn_fence_delete, nullptr, false);
+            }
+            syncFenceTools();
+#endif
             syncMapToolbarVisibility();
             raiseMapToolbar();
         }

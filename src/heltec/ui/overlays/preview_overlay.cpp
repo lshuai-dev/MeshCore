@@ -20,12 +20,6 @@ bool PreviewOverlay::buildHeader() {
 bool PreviewOverlay::buildSurface() {
     if (!FramedOverlay::buildSurface()) return false;
 
-    if (_footer != nullptr) {
-        const lv_coord_t radius = lv_obj_get_style_radius(_root, LV_PART_MAIN);
-        lv_obj_set_style_radius(_footer, radius > 0 ? radius : 6, LV_PART_MAIN);
-        lv_obj_set_style_clip_corner(_footer, true, LV_PART_MAIN);
-    }
-
     lv_obj_add_flag(_root, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_add_event_cb(_root, onRootClicked, LV_EVENT_CLICKED, this);
 
@@ -37,8 +31,8 @@ bool PreviewOverlay::buildSurface() {
                           LV_FLEX_ALIGN_CENTER);
     lv_obj_clear_flag(row, LV_OBJ_FLAG_SCROLLABLE);
 
-    _unread_label = lv_label_create(row);
-    _age_label = lv_label_create(row);
+    _unread_label = ht_label_create(&ht_preview_metadata_label_class, row);
+    _age_label = ht_label_create(&ht_preview_metadata_label_class, row);
     if (!_unread_label || !_age_label) return false;
     lv_label_set_text_static(_unread_label, _unread_text);
     lv_label_set_text_static(_age_label, _age_text);

@@ -10,7 +10,7 @@
 #include "ui/theme/theme_mono_flat.hpp"
 #endif
 #if defined(UI_EINK_DISPLAY) && UI_EINK_DISPLAY
-#include "e213_theme.hpp"
+#include "e213_ui_theme.hpp"
 #endif
 
 #if !HELTEC_UI_DISPLAY_MONO

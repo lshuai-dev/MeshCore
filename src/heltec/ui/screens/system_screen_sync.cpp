@@ -1,6 +1,6 @@
 #include "system_screen.hpp"
 #include "ui/app/theme.hpp"
-#if defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213
+#if defined(HELTEC_HAS_KEY_FRAME) && HELTEC_HAS_KEY_FRAME
 #include "heltec/drivers/display/e213_port.hpp"
 #endif
 
@@ -10,13 +10,13 @@ namespace heltec::meshcore::ui
 {
 namespace
 {
-#if defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213
-void request_dropdown_refresh(const char *reason)
+#if defined(HELTEC_HAS_KEY_FRAME) && HELTEC_HAS_KEY_FRAME
+void request_dropdown_refresh()
 {
-    heltec::meshcore::dal::e213::requestSelectionRefresh(reason);
+    heltec::meshcore::dal::e213::requestSelectionRefresh();
 }
 #else
-void request_dropdown_refresh(const char *)
+void request_dropdown_refresh()
 {
 }
 #endif
@@ -139,14 +139,6 @@ void SystemScreen::setDropdownOptions(_lv_obj_t *dd, const char *options)
     lv_dropdown_set_options_static(choice->dropdown, options ? options : "");
 }
 
-void SystemScreen::onDropdownReleasedPre(lv_event_t *e)
-{
-    auto *self = static_cast<SystemScreen *>(lv_event_get_user_data(e));
-    if (!self)
-        return;
-    self->syncDropdownLayout(lv_event_get_target(e));
-}
-
 void SystemScreen::onDropdownStateEvent(lv_event_t *e)
 {
     auto *self = static_cast<SystemScreen *>(lv_event_get_user_data(e));
@@ -165,19 +157,10 @@ void SystemScreen::onDropdownStateEvent(lv_event_t *e)
         }
         self->_open_dropdown = dropdown;
         self->_open_dropdown_original_index = lv_dropdown_get_selected(dropdown);
-        if (_lv_obj_t *const list = lv_dropdown_get_list(dropdown))
-        {
-            ui_theme_match_dropdown_list_padding(dropdown, list);
-        }
         lv_obj_add_state(dropdown, LV_STATE_EDITED);
         if (self->group())
             lv_group_set_editing(self->group(), true);
-        self->syncDropdownLayout(dropdown);
-        if (lv_async_call(realignDropdownListAsync, dropdown) != LV_RES_OK)
-        {
-            self->realignDropdownList(dropdown);
-        }
-        request_dropdown_refresh("system-dropdown-open");
+        request_dropdown_refresh();
     }
     else if (code == LV_EVENT_CANCEL)
     {
@@ -186,7 +169,7 @@ void SystemScreen::onDropdownStateEvent(lv_event_t *e)
         lv_obj_clear_state(dropdown, LV_STATE_EDITED);
         if (self->group())
             lv_group_set_editing(self->group(), false);
-        request_dropdown_refresh("system-dropdown-close");
+        request_dropdown_refresh();
     }
 }
 

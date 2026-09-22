@@ -200,16 +200,6 @@ inline lv_color_t ui_navigation_focus_color()
     return ui_color_accent();
 }
 bool ui_theme_init(lv_disp_t *disp);
-void ui_theme_set_focus_text_scroll(_lv_obj_t *row, bool focused);
-/** Applies the active theme's popup dropdown list chrome/background/selection style. */
-void ui_theme_apply_dropdown_list(_lv_obj_t *list);
-/** Matches popup-list horizontal text padding to its closed dropdown control. */
-void ui_theme_match_dropdown_list_padding(_lv_obj_t *dropdown, _lv_obj_t *list);
-/** Keeps an opened dropdown list inside a viewport, scrolling its owner when possible. */
-void ui_dropdown_fit_list_to_viewport(_lv_obj_t *dropdown, _lv_obj_t *viewport,
-                                      _lv_obj_t *scroll_parent = nullptr);
-/** Vertically centers the closed dropdown value inside the current fixed height. */
-void ui_theme_center_dropdown_value(_lv_obj_t *dropdown);
 } // namespace heltec::meshcore::ui
 
 #if HELTEC_UI_DISPLAY_MONO

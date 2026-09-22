@@ -135,9 +135,7 @@
 #ifndef PIN_GPS_RESET_ACTIVE
 #define PIN_GPS_RESET_ACTIVE LOW
 #endif
-#ifndef GPS_UC6580
-#define GPS_UC6580 1
-#endif
+
 #ifndef GPS_BAUD_RATE
 #define GPS_BAUD_RATE 115200
 #endif

@@ -82,7 +82,7 @@ lv_obj_t *make_pin(lv_obj_t *parent, const char *text, lv_color_t color)
     lv_obj_clear_flag(o, LV_OBJ_FLAG_SCROLLABLE | LV_OBJ_FLAG_CLICKABLE);
     lv_obj_add_flag(o, LV_OBJ_FLAG_HIDDEN);
     ui_map_marker_apply_color(o, color);
-    if (lv_obj_t *label = ht_label_create(o, text))
+    if (lv_obj_t *label = ht_label_create(&ht_map_marker_label_class, o, text))
     {
         lv_obj_align(label, LV_ALIGN_CENTER, 0, 0);
     }
@@ -209,7 +209,7 @@ bool MapPanel::createTileSlot(int idx)
     lv_obj_set_pos(t.img, 0, 0);
     lv_obj_clear_flag(t.img, LV_OBJ_FLAG_SCROLLABLE | LV_OBJ_FLAG_CLICKABLE);
     lv_obj_add_flag(t.img, LV_OBJ_FLAG_HIDDEN);
-    t.placeholder = ht_label_create(t.root);
+    t.placeholder = ht_label_create(&ht_map_tile_placeholder_class, t.root);
     if (t.placeholder)
     {
         lv_obj_set_width(t.placeholder, map::kTileSizePx - 8);
@@ -258,10 +258,10 @@ bool MapPanel::ensureMarkerSlot(int idx)
     m.root = ht_class_create(&ht_map_marker_class, _marker_layer);
     if (!m.root)
         return false;
-    lv_obj_set_size(m.root, 14, 14);
+    lv_obj_set_size(m.root, 22, 14);
     lv_obj_clear_flag(m.root, LV_OBJ_FLAG_SCROLLABLE | LV_OBJ_FLAG_CLICKABLE);
     lv_obj_add_flag(m.root, LV_OBJ_FLAG_HIDDEN);
-    m.label = ht_label_create(m.root, "?");
+    m.label = ht_label_create(&ht_map_marker_label_class, m.root, "?");
     if (!m.label)
     {
         lv_obj_del(m.root);
@@ -349,14 +349,14 @@ void MapPanel::attach(_lv_obj_t *viewport)
 
     for (int i = 0; i < kRangeRingCount; ++i)
     {
-        _range_rings[i] = ht_obj_create(_range_layer);
+        _range_rings[i] = ht_class_create(&ht_map_range_ring_class, _range_layer);
         if (_range_rings[i])
         {
             lv_obj_clear_flag(_range_rings[i], LV_OBJ_FLAG_SCROLLABLE | LV_OBJ_FLAG_CLICKABLE);
             lv_obj_add_flag(_range_rings[i], LV_OBJ_FLAG_HIDDEN);
             ui_map_range_ring_apply_opa(_range_rings[i], (lv_opa_t)(LV_OPA_COVER - (i * 18)));
         }
-        _range_labels[i] = ht_label_create(_range_layer);
+        _range_labels[i] = ht_label_create(&ht_map_range_label_class, _range_layer);
         if (_range_labels[i])
         {
             lv_label_set_text_static(_range_labels[i], kRangeLabels[i]);
@@ -687,12 +687,18 @@ void MapPanel::layout_markers()
         m.data_index = static_cast<int8_t>(i);
         _visible_marker_count++;
         lv_obj_clear_flag(m.root, LV_OBJ_FLAG_HIDDEN);
-        lv_obj_set_pos(m.root, (lv_coord_t)(tx - 7), (lv_coord_t)(ty - 7));
-        if (m.label && m.glyph != src.glyph)
+        lv_obj_set_pos(m.root, (lv_coord_t)(tx - 11), (lv_coord_t)(ty - 7));
+        if (m.label && strcmp(m.text, src.label) != 0)
         {
-            m.glyph = src.glyph;
-            m.text[0] = m.glyph;
+            snprintf(m.text, sizeof(m.text), "%s", src.label);
             lv_label_set_text_static(m.label, m.text);
+        }
+        if (m.alarm_active != src.alarm_active)
+        {
+            m.alarm_active = src.alarm_active;
+            lv_obj_set_style_bg_color(m.root,
+                                      src.alarm_active ? ui_color_error() : ui_color_success(),
+                                      LV_PART_MAIN);
         }
         ++slot;
     }
@@ -960,6 +966,61 @@ void MapPanel::set_gps(float lat, float lon, bool valid)
     markDirty(DirtyRings | DirtyGpsPin);
 }
 
+bool MapPanel::screenToLocation(lv_coord_t screen_x, lv_coord_t screen_y, float &latitude,
+                                float &longitude) const
+{
+    if (!_marker_layer || _width <= 0 || _height <= 0)
+        return false;
+
+    lv_area_t area;
+    lv_obj_get_coords(_marker_layer, &area);
+    const int32_t local_x = static_cast<int32_t>(screen_x) - area.x1;
+    const int32_t local_y = static_cast<int32_t>(screen_y) - area.y1;
+    if (local_x < 0 || local_y < 0 || local_x >= _width || local_y >= _height)
+        return false;
+
+    const uint8_t zoom = clampMapZoom(_scrolled.zoom_level);
+    const int64_t world_px = static_cast<int64_t>(1U << zoom) * kTileSizePx;
+    int64_t global_x = static_cast<int64_t>(_x_start) * kTileSizePx + local_x - _x_offset;
+    int64_t global_y = static_cast<int64_t>(_y_start) * kTileSizePx + local_y - _y_offset;
+    global_x %= world_px;
+    if (global_x < 0)
+        global_x += world_px;
+    if (global_y < 0)
+        global_y = 0;
+    else if (global_y >= world_px)
+        global_y = world_px - 1;
+
+    longitude = normalizeLongitude(
+        static_cast<float>(static_cast<double>(global_x) / world_px * 360.0 - 180.0));
+    const double mercator_y = M_PI * (1.0 - 2.0 * static_cast<double>(global_y) / world_px);
+    latitude = clampMercatorLatitude(
+        static_cast<float>((180.0 / M_PI) * atan(sinh(mercator_y))));
+    return true;
+}
+
+bool MapPanel::locationToPoint(float latitude, float longitude, lv_point_t &point) const
+{
+    if (!_marker_layer || _width <= 0 || _height <= 0 || !isfinite(latitude) ||
+        !isfinite(longitude))
+    {
+        return false;
+    }
+
+    GeoPoint location(latitude, longitude, _scrolled.zoom_level);
+    const uint32_t world_tiles = 1U << clampMapZoom(_scrolled.zoom_level);
+    const int32_t tile_x = wrapped_tile_delta(location.x_tile, _x_start, world_tiles);
+    const int32_t tile_y = static_cast<int32_t>(location.y_tile) - static_cast<int32_t>(_y_start);
+    const int32_t x = tile_x * kTileSizePx + _x_offset + location.x_pos;
+    const int32_t y = tile_y * kTileSizePx + _y_offset + location.y_pos;
+    if (x < 0 || y < 0 || x >= _width || y >= _height)
+        return false;
+
+    point.x = static_cast<lv_coord_t>(x);
+    point.y = static_cast<lv_coord_t>(y);
+    return true;
+}
+
 void MapPanel::set_markers(const heltec::meshcore::biz::MapPlotMarker *markers, int count)
 {
     int n = (markers && count > 0) ? count : 0;
@@ -970,7 +1031,8 @@ void MapPanel::set_markers(const heltec::meshcore::biz::MapPlotMarker *markers, 
     {
         const auto &src = markers[i];
         const auto &cached = _marker_data[i];
-        unchanged = src.glyph == cached.glyph &&
+        unchanged = strcmp(src.label, cached.label) == 0 &&
+                    src.alarm_active == cached.alarm_active &&
                     src.is_self == cached.is_self &&
                     memcmp(src.pub_key_prefix, cached.pub_key_prefix, 6) == 0 &&
                     (src.is_self ||
@@ -985,8 +1047,9 @@ void MapPanel::set_markers(const heltec::meshcore::biz::MapPlotMarker *markers, 
         _marker_data[i].lat_micro = markers[i].lat_micro;
         _marker_data[i].lon_micro = markers[i].lon_micro;
         memcpy(_marker_data[i].pub_key_prefix, markers[i].pub_key_prefix, 6);
-        _marker_data[i].glyph = markers[i].glyph;
+        snprintf(_marker_data[i].label, sizeof(_marker_data[i].label), "%s", markers[i].label);
         _marker_data[i].is_self = markers[i].is_self;
+        _marker_data[i].alarm_active = markers[i].alarm_active;
     }
     markDirty(DirtyMarkers);
 }

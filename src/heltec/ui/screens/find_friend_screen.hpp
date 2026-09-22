@@ -75,7 +75,6 @@ class FindFriendScreen : public AbstractScreen {
     void beginDropdownEdit(_lv_obj_t *dropdown);
     void endDropdownEdit(_lv_obj_t *dropdown);
     void closeOpenDropdown();
-    void realignDropdownList(_lv_obj_t *dropdown);
     void scrollFocusedIntoView(_lv_obj_t *focused) const;
     void applyGroupFocus(_lv_obj_t *focused);
     void restoreWaypointKeyboardFocus();
@@ -85,10 +84,9 @@ class FindFriendScreen : public AbstractScreen {
     static void onDropdownStateEvent(lv_event_t *e);
     static void onDropdownReleasedPre(lv_event_t *e);
     static void onControlKeyPreprocess(lv_event_t *e);
-    static void onActionClicked(lv_event_t *e);
     static void onRightColumnScrolled(lv_event_t *event);
+    static void onActionClicked(lv_event_t *e);
     static void onGroupFocusChanged(lv_group_t *group);
-    static void realignDropdownListAsync(void *user_data);
 
     CompassDialWidget _dial;
     _lv_obj_t *_dial_row = nullptr;

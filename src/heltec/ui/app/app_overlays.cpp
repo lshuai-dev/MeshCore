@@ -1,7 +1,7 @@
 #include "ui/app/app.hpp"
 #include "ui/core/ht_event.h"
 #include "ui/core/task.hpp"
-#if defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213
+#if defined(HELTEC_HAS_KEY_FRAME) && HELTEC_HAS_KEY_FRAME
 #include "heltec/drivers/display/e213_port.hpp"
 #endif
 
@@ -14,7 +14,7 @@ bool UiApp::openActionPane()
 {
     if (!_inited || !inputOnActiveScreen())
         return false;
-#if defined(HELTEC_V4_R8_TFT) && defined(HELTEC_HAS_TOUCH) && HELTEC_HAS_TOUCH
+#if HELTEC_HAS_TOUCH
     if (_surfaces.isVisible(&_quickPingOverlay))
         return true;
     return _surfaces.show(&_quickPingOverlay, true);
@@ -25,7 +25,7 @@ bool UiApp::openActionPane()
 
 bool UiApp::closeActionPane()
 {
-#if defined(HELTEC_V4_R8_TFT) && defined(HELTEC_HAS_TOUCH) && HELTEC_HAS_TOUCH
+#if HELTEC_HAS_TOUCH
     if (!_surfaces.isVisible(&_quickPingOverlay))
         return false;
     if (_quickPingOverlay.requestCloseAnimation())
@@ -40,13 +40,14 @@ bool UiApp::closeActionPane()
 
 bool UiApp::isActionPaneVisible() const
 {
-#if defined(HELTEC_V4_R8_TFT) && defined(HELTEC_HAS_TOUCH) && HELTEC_HAS_TOUCH
+#if HELTEC_HAS_TOUCH
     return _surfaces.isVisible(&_quickPingOverlay);
 #else
     return _surfaces.isVisible(&_contextMenu);
 #endif
 }
 
+#if !defined(HELTEC_HAS_TOUCH) || !HELTEC_HAS_TOUCH
 namespace
 {
 void cm_send_advert(biz::IBizFacade &app, _lv_obj_t *)
@@ -64,6 +65,7 @@ void cm_calibrate_compass(biz::IBizFacade &, _lv_obj_t *target)
 }
 #endif
 } // namespace
+#endif
 
 bool UiApp::initOverlay()
 {
@@ -89,7 +91,7 @@ bool UiApp::initOverlay()
     if (!_calibrationOvl.init(_layerOverlay, _frame_root))
         return false;
 #endif
-#if defined(HELTEC_V4_R8_TFT) && defined(HELTEC_HAS_TOUCH) && HELTEC_HAS_TOUCH
+#if HELTEC_HAS_TOUCH
     if (!_quickPingOverlay.init(_layerOverlay, _frame_root))
         return false;
 #else
@@ -109,8 +111,8 @@ void UiApp::openPreviewOverlay(uint8_t unread, uint32_t received_ms, const char 
         return;
     _previewOvl.applyContent(unread, received_ms, origin, text);
     (void)_surfaces.show(&_previewOvl, true);
-#if defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213
-    heltec::meshcore::dal::e213::requestRefresh("preview-message");
+#if defined(HELTEC_HAS_KEY_FRAME) && HELTEC_HAS_KEY_FRAME
+    heltec::meshcore::dal::e213::requestRefresh();
 #endif
 }
 
@@ -130,16 +132,16 @@ void UiApp::openAlertOverlay(const char *text)
     if (_surfaces.isVisible(&_alertOvl))
     {
         (void)_surfaces.show(&_alertOvl, true);
-#if defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213
-        heltec::meshcore::dal::e213::requestRefresh("alert-content");
+#if defined(HELTEC_HAS_KEY_FRAME) && HELTEC_HAS_KEY_FRAME
+        heltec::meshcore::dal::e213::requestRefresh();
 #endif
         return;
     }
     const bool shown = _surfaces.show(&_alertOvl, true);
-#if defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213
+#if defined(HELTEC_HAS_KEY_FRAME) && HELTEC_HAS_KEY_FRAME
     if (shown)
     {
-        heltec::meshcore::dal::e213::requestRefresh("alert-visible");
+        heltec::meshcore::dal::e213::requestRefresh();
     }
 #else
     (void)shown;
@@ -161,13 +163,13 @@ bool UiApp::openSendMessageOverlay()
     if (_surfaces.isVisible(&_sendMessageOvl))
         return true;
     const bool shown = _surfaces.show(&_sendMessageOvl, true);
-#if defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213
+#if defined(HELTEC_HAS_KEY_FRAME) && HELTEC_HAS_KEY_FRAME
     if (shown)
     {
         // Arm the panel only after the deferred surface mutation has happened,
         // so the request waits for the Send Message frame rather than an older
         // ContextMenu flush cycle.
-        heltec::meshcore::dal::e213::requestRefresh("send-message-visible");
+        heltec::meshcore::dal::e213::requestRefresh();
     }
 #endif
     return shown;
@@ -227,10 +229,10 @@ void UiApp::presentMessageKeyboard()
     if (_surfaces.isVisible(&_keyboardOvl))
         return;
     const bool shown = _surfaces.show(&_keyboardOvl, true);
-#if defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213
+#if defined(HELTEC_HAS_KEY_FRAME) && HELTEC_HAS_KEY_FRAME
     if (shown)
     {
-        heltec::meshcore::dal::e213::requestRefresh("keyboard-visible");
+        heltec::meshcore::dal::e213::requestRefresh();
     }
 #else
     (void)shown;
@@ -248,10 +250,10 @@ void UiApp::openWaypointKeyboard()
     if (_surfaces.isVisible(&_keyboardOvl))
         return;
     const bool shown = _surfaces.show(&_keyboardOvl, true);
-#if defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213
+#if defined(HELTEC_HAS_KEY_FRAME) && HELTEC_HAS_KEY_FRAME
     if (shown)
     {
-        heltec::meshcore::dal::e213::requestRefresh("keyboard-visible");
+        heltec::meshcore::dal::e213::requestRefresh();
     }
 #else
     (void)shown;
@@ -273,7 +275,7 @@ void UiApp::closeKeyboardOverlay()
 #endif
 }
 
-#if !defined(HELTEC_V4_R8_TFT) || !defined(HELTEC_HAS_TOUCH) || !HELTEC_HAS_TOUCH
+#if !defined(HELTEC_HAS_TOUCH) || !HELTEC_HAS_TOUCH
 
 bool UiApp::registerRadioContextMenu()
 {
@@ -298,7 +300,6 @@ void UiApp::ensureContextMenusRegistered()
         return;
 
     _contextMenu.beginRegister();
-
     const bool radio_ok = registerRadioContextMenu();
     const bool compass_ok = registerCompassContextMenu();
 

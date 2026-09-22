@@ -29,10 +29,10 @@ bool RadioScreen::buildSurface()
     if (!AbstractScreen::buildSurface())
         return false;
 
-    _line1 = lv_label_create(_root);
-    _line2 = lv_label_create(_root);
-    _line3 = lv_label_create(_root);
-    _line4 = lv_label_create(_root);
+    _line1 = ht_label_create(&ht_screen_info_label_class, _root);
+    _line2 = ht_label_create(&ht_screen_info_label_class, _root);
+    _line3 = ht_label_create(&ht_screen_info_label_class, _root);
+    _line4 = ht_label_create(&ht_screen_info_label_class, _root);
     if (!_line1 || !_line2 || !_line3 || !_line4)
         return false;
 
@@ -46,7 +46,6 @@ bool RadioScreen::buildSurface()
         lv_obj_clear_flag(label, LV_OBJ_FLAG_SCROLLABLE | LV_OBJ_FLAG_SCROLL_ON_FOCUS);
         lv_label_set_long_mode(label, LV_LABEL_LONG_CLIP);
         lv_label_set_text_static(label, _line_text[i]);
-        ui_theme_apply_screen_info_label(label);
     }
 
 #if defined(HAS_LNA_CONTROL) && HAS_LNA_CONTROL

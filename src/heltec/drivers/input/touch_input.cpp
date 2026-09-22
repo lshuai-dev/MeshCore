@@ -4,7 +4,7 @@
 
 #include "touch_port.hpp"
 
-#if defined(HELTEC_TOUCH_GESTURE_INPUT) && HELTEC_TOUCH_GESTURE_INPUT
+#if defined(HELTEC_TOUCH_GESTURE) && HELTEC_TOUCH_GESTURE
 #include "touch_gesture_input.hpp"
 #endif
 
@@ -22,7 +22,7 @@ uint16_t s_hor = 0;
 uint16_t s_ver = 0;
 uint32_t s_init_after_ms = 0;
 
-#if defined(HELTEC_TOUCH_GESTURE_INPUT) && HELTEC_TOUCH_GESTURE_INPUT
+#if defined(HELTEC_TOUCH_GESTURE) && HELTEC_TOUCH_GESTURE
 #if defined(HELTEC_V4_R8_TFT)
 GestureBlockFn s_raw_pointer_passthrough_fn = nullptr;
 bool s_raw_pointer_passthrough_active = false;
@@ -62,7 +62,7 @@ static void gestureHook(bool pressed, int16_t x, int16_t y, bool *suppress)
 void bindUi(const UiHooks &hooks)
 {
     touch_port::set_wake_handler(hooks.wake);
-#if defined(HELTEC_TOUCH_GESTURE_INPUT) && HELTEC_TOUCH_GESTURE_INPUT
+#if defined(HELTEC_TOUCH_GESTURE) && HELTEC_TOUCH_GESTURE
     touch_gesture_input::init();
 #if defined(HELTEC_V4_R8_TFT)
     s_raw_pointer_passthrough_fn = hooks.raw_pointer_passthrough;

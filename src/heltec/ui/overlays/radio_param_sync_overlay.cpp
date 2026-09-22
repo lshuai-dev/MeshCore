@@ -7,7 +7,7 @@
 #include "ui/core/operation_hints.hpp"
 #include "ui/core/ht_event.h"
 #include "ui/theme/widget_theme.hpp"
-#if defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213
+#if defined(HELTEC_HAS_KEY_FRAME) && HELTEC_HAS_KEY_FRAME
 #include "heltec/drivers/display/e213_port.hpp"
 #endif
 
@@ -57,9 +57,9 @@ bool RadioParamSyncOverlay::buildSurface()
     const int preset_count = _biz.loRaBandPresetCount();
     _count = static_cast<uint8_t>(preset_count > 0 ? (preset_count > 255 ? 255 : preset_count) : 0);
 
-#if defined(HELTEC_V4_R8_TFT)
+#if HELTEC_HAS_TOUCH
 #if LV_USE_ROLLER == 0
-#error "HELTEC_V4_R8_TFT radio preset overlay requires LV_USE_ROLLER=1"
+#error "Touch radio preset overlay requires LV_USE_ROLLER=1"
 #endif
     _roller = lv_roller_create(_list);
     if (!_roller)
@@ -97,7 +97,7 @@ bool RadioParamSyncOverlay::buildSurface()
 #else
     for (uint8_t i = 0; i < _count; i++)
     {
-        lv_obj_t *row = lv_label_create(_list);
+        lv_obj_t *row = ht_label_create(&ht_radio_sync_row_class, _list);
         if (!row)
             return false;
         lv_obj_set_width(row, lv_pct(100));
@@ -105,7 +105,7 @@ bool RadioParamSyncOverlay::buildSurface()
     }
 #endif
 
-#if !defined(HELTEC_V4_R8_TFT)
+#if !HELTEC_HAS_TOUCH
     lv_obj_add_flag(_root, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_add_event_cb(
         _root,
@@ -126,7 +126,7 @@ bool RadioParamSyncOverlay::buildSurface()
     return true;
 }
 
-#if defined(HELTEC_V4_R8_TFT)
+#if HELTEC_HAS_TOUCH
 bool RadioParamSyncOverlay::hitRoller(int16_t x, int16_t y) const
 {
     if (!_roller || !lv_obj_is_valid(_roller) || lv_obj_has_flag(_roller, LV_OBJ_FLAG_HIDDEN))
@@ -166,7 +166,7 @@ void RadioParamSyncOverlay::stepSelection(int8_t dir)
     if (dir == 0 || _count == 0)
         return;
     _select = (int8_t)wrapIndex((int)_select + (int)dir, (int)_count);
-#if defined(HELTEC_V4_R8_TFT)
+#if HELTEC_HAS_TOUCH
     if (_roller)
         lv_roller_set_selected(_roller, static_cast<uint16_t>(_select), LV_ANIM_ON);
 #else
@@ -186,20 +186,12 @@ void RadioParamSyncOverlay::configureListLayout()
     if (!_root || !_list || _count == 0)
         return;
 
-    // Measure from the actual laid-out list area. The vertical breathing room
-    // scales with the display instead of being tied to a particular board size.
-    ui_theme_set_radio_sync_list_margin(_list, 0);
-    lv_obj_update_layout(_root);
-
-    const lv_coord_t list_height = lv_obj_get_height(_list);
-    const lv_coord_t margin = list_height > 0 ? list_height / 14 : 0;
-    ui_theme_set_radio_sync_list_margin(_list, margin);
     lv_obj_update_layout(_root);
 
     const lv_coord_t usable_height = lv_obj_get_content_height(_list);
     int visible = 1;
 
-#if defined(HELTEC_V4_R8_TFT)
+#if HELTEC_HAS_TOUCH
     if (_roller)
     {
         const lv_font_t *font = lv_obj_get_style_text_font(_roller, LV_PART_MAIN);
@@ -233,7 +225,7 @@ void RadioParamSyncOverlay::configureListLayout()
         --visible;
     _visible_rows = static_cast<uint8_t>(visible);
 
-#if defined(HELTEC_V4_R8_TFT)
+#if HELTEC_HAS_TOUCH
     if (_roller)
         lv_roller_set_visible_row_count(_roller, _visible_rows);
 #else
@@ -258,7 +250,7 @@ void RadioParamSyncOverlay::renderRows()
 {
     if (!_root)
         return;
-#if defined(HELTEC_V4_R8_TFT)
+#if HELTEC_HAS_TOUCH
     if (!_roller)
         return;
     const int current_index = _biz.currentLoRaBandPresetIndex();
@@ -300,14 +292,14 @@ void RadioParamSyncOverlay::renderRows()
             lv_obj_clear_state(row, LV_STATE_CHECKED);
         }
     }
-#if defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213
+#if defined(HELTEC_HAS_KEY_FRAME) && HELTEC_HAS_KEY_FRAME
     lv_obj_invalidate(_list);
-    heltec::meshcore::dal::e213::requestSelectionRefresh("radio-preset-selection");
+    heltec::meshcore::dal::e213::requestSelectionRefresh();
 #endif
 #endif
 }
 
-#if defined(HELTEC_V4_R8_TFT)
+#if HELTEC_HAS_TOUCH
 void RadioParamSyncOverlay::rebuildRollerOptions()
 {
     if (!_roller || kRadioParamPresetUiScratchSize < 2)
@@ -344,7 +336,7 @@ void RadioParamSyncOverlay::onEnter()
     if (!_root)
         return;
     _applying = false;
-#if defined(HELTEC_V4_R8_TFT)
+#if HELTEC_HAS_TOUCH
     if (_roller)
         lv_obj_clear_state(_roller, LV_STATE_DISABLED);
 #endif
@@ -364,7 +356,7 @@ void RadioParamSyncOverlay::applySelection()
     if (_count == 0 || _applying)
         return;
     _applying = true;
-#if defined(HELTEC_V4_R8_TFT)
+#if HELTEC_HAS_TOUCH
     if (_roller)
         lv_obj_add_state(_roller, LV_STATE_DISABLED);
 #endif

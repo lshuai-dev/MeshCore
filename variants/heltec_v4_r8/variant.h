@@ -11,7 +11,6 @@
 #define ED25519_NO_SEED 1
 #define HELTEC_BUTTON_MAX_CLICKS 3
 
-#define ENV_INCLUDE_GPS 1
 #define ENV_INCLUDE_AHTX0 1
 #define ENV_INCLUDE_BME280 1
 #define ENV_INCLUDE_BMP280 1
@@ -151,9 +150,6 @@
 #define ENV_SKIP_GPS_DETECT 1
 #define SDFAT_FILE_TYPE 3
 #define HELTEC_SD_BUS_PRECONFIGURED 1
-#ifndef GPS_L76K
-#define GPS_L76K
-#endif
 #ifndef PIN_BOARD_SDA
 #define PIN_BOARD_SDA             (17)
 #endif

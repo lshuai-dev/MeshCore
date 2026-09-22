@@ -2,8 +2,10 @@
 #include "widget_classes.hpp"
 
 namespace heltec::meshcore::ui {
-FramedOverlay::FramedOverlay(biz::IBizFacade &biz, const lv_obj_class_t &root_class)
-    : AbstractOverlay(biz, root_class) {
+FramedOverlay::FramedOverlay(biz::IBizFacade &biz, const lv_obj_class_t &root_class,
+                             const lv_obj_class_t *content_class)
+    : AbstractOverlay(biz, root_class),
+      _content_class(content_class ? content_class : &ht_framed_overlay_content_class) {
 }
 
 bool FramedOverlay::buildSurface() {
@@ -24,7 +26,7 @@ bool FramedOverlay::buildSurface() {
 }
 
 bool FramedOverlay::buildHeader() {
-    _header = lv_obj_class_create_obj(&ht_overlay_bar_class, _root);
+    _header = lv_obj_class_create_obj(&ht_overlay_header_class, _root);
     if (_header == nullptr) {
         return false;
     }
@@ -36,7 +38,7 @@ bool FramedOverlay::buildHeader() {
 }
 
 bool FramedOverlay::buildContent() {
-    _content = lv_obj_class_create_obj(&ht_framed_overlay_content_class, _root);
+    _content = lv_obj_class_create_obj(_content_class, _root);
     if (_content == nullptr) {
         return false;
     }
@@ -52,7 +54,7 @@ bool FramedOverlay::buildContent() {
 }
 
 bool FramedOverlay::buildFooter() {
-    _footer = lv_obj_class_create_obj(&ht_overlay_bar_class, _root);
+    _footer = lv_obj_class_create_obj(&ht_overlay_footer_class, _root);
     if (_footer == nullptr) {
         return false;
     }

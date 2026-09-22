@@ -45,49 +45,34 @@ struct UiCascadingMenuStyles
 {
     UiCascadingMenuStyles(const lv_style_t *page_style = nullptr,
                           const lv_style_t *item_style = nullptr,
-                          const lv_style_t *selected_item_style = nullptr,
-                          const lv_style_t *label_style = nullptr,
-                          const lv_style_t *selected_label_style = nullptr)
-        : page(page_style), item(item_style), item_selected(selected_item_style),
-          label(label_style), label_selected(selected_label_style)
+                          const lv_style_t *selected_item_style = nullptr)
+        : page(page_style), item(item_style), item_selected(selected_item_style)
     {
     }
 
     const lv_style_t *page = nullptr;
     const lv_style_t *item = nullptr;
     const lv_style_t *item_selected = nullptr;
-    const lv_style_t *label = nullptr;
-    const lv_style_t *label_selected = nullptr;
 };
 
 /** Configures geometry from a profile with static storage duration. */
 void ui_widget_theme_configure(const UiThemeProfile &profile);
 void ui_widget_theme_set_cascading_menu_styles(const UiCascadingMenuStyles &styles);
-void ui_theme_apply_context_menu_title(_lv_obj_t *obj);
+void ui_theme_set_waypoint_keyboard_active(_lv_obj_t *keyboard, _lv_obj_t *latitude,
+                                           _lv_obj_t *longitude, bool active);
 
 bool ui_widget_theme_apply(_lv_obj_t *obj);
 void ui_app_active_screen_apply_theme(_lv_obj_t *obj);
-void ui_theme_apply_quick_ping_message_dropdown_list(_lv_obj_t *list);
 
 void ui_map_marker_apply_color(_lv_obj_t *obj, lv_color_t color);
 void ui_map_range_ring_apply_opa(_lv_obj_t *obj, lv_opa_t opa);
 bool ui_map_widget_apply_theme(_lv_obj_t *obj);
 void ui_theme_set_compass_info_layout(_lv_obj_t *obj, lv_coord_t pad_left, lv_coord_t pad_row);
 void ui_theme_set_compass_dial_row_layout(_lv_obj_t *obj, lv_coord_t pad_right);
-void ui_theme_apply_compass_plain(_lv_obj_t *obj);
-void ui_theme_apply_compass_hub(_lv_obj_t *obj);
-void ui_theme_apply_compass_needle(_lv_obj_t *obj);
-void ui_theme_apply_compass_label(_lv_obj_t *label);
-void ui_theme_apply_find_friend_dial_host(_lv_obj_t *obj);
-void ui_theme_apply_screen_info_label(_lv_obj_t *label);
 bool ui_button_roller_apply_theme(_lv_obj_t *obj);
 bool ui_license_gate_apply_theme(_lv_obj_t *obj);
-void ui_theme_apply_cascading_menu_page(_lv_obj_t *obj);
-void ui_theme_apply_cascading_menu_item(_lv_obj_t *obj);
-void ui_theme_set_radio_sync_list_margin(_lv_obj_t *obj, lv_coord_t margin);
-void ui_theme_center_single_line_textarea(_lv_obj_t *textarea);
-void ui_theme_set_waypoint_keyboard_active(_lv_obj_t *keyboard, bool active);
 bool ui_radial_navigation_icon_apply_theme(_lv_obj_t *icon);
+void ui_context_menu_title_apply_theme(_lv_obj_t *title);
 void ui_theme_layout_navigation_grid(_lv_obj_t *host, _lv_obj_t *footer_cell);
 void ui_theme_sync_navigation_radius(_lv_obj_t *pane, _lv_obj_t *reference);
 

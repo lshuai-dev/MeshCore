@@ -1,4 +1,4 @@
-#if defined(HELTEC_TOUCH_GESTURE_INPUT) && HELTEC_TOUCH_GESTURE_INPUT
+#if defined(HELTEC_TOUCH_GESTURE) && HELTEC_TOUCH_GESTURE
 
 #include "touch_gesture_input.hpp"
 
@@ -178,4 +178,4 @@ void feed(bool pressed, int16_t x, int16_t y, uint32_t now_ms, bool native_scrol
 
 } // namespace heltec::meshcore::dal::touch_gesture_input
 
-#endif // HELTEC_TOUCH_GESTURE_INPUT
+#endif // HELTEC_TOUCH_GESTURE

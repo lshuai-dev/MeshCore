@@ -1,5 +1,10 @@
 #include "quick_ping_overlay.hpp"
 
+#if HELTEC_HAS_TOUCH
+
+#include "ui/core/ht_dropdown.hpp"
+#include "ui/core/ht_textarea.hpp"
+
 #include "ui/core/ht_container.hpp"
 #include "ui/core/widget_classes.hpp"
 
@@ -42,13 +47,23 @@ const lv_obj_class_t ht_quick_ping_content_class =
 const lv_obj_class_t ht_quick_ping_message_controls_class =
     quick_ping_class(&ht_container_class, sizeof(ht_container_t));
 const lv_obj_class_t ht_quick_ping_keyboard_editor_class =
-    quick_ping_class(&lv_textarea_class, sizeof(lv_textarea_t));
+    quick_ping_class(&ht_textarea_class, sizeof(ht_textarea_t));
 const lv_obj_class_t ht_quick_ping_keyboard_counter_class =
     quick_ping_class(&lv_label_class, sizeof(lv_label_t));
+const lv_obj_class_t ht_quick_ping_title_class =
+    quick_ping_class(&lv_label_class, sizeof(lv_label_t));
+const lv_obj_class_t ht_quick_ping_label_class =
+    quick_ping_class(&lv_label_class, sizeof(lv_label_t));
+const lv_obj_class_t ht_quick_ping_dropdown_class =
+    quick_ping_class(&ht_dropdown_class, sizeof(ht_dropdown_t));
+const lv_obj_class_t ht_quick_ping_message_dropdown_class =
+    quick_ping_class(&ht_quick_ping_dropdown_class, sizeof(ht_dropdown_t));
+const lv_obj_class_t ht_quick_ping_message_editor_class =
+    quick_ping_class(&ht_textarea_class, sizeof(ht_textarea_t));
+const lv_obj_class_t ht_quick_ping_keyboard_class =
+    quick_ping_class(&lv_keyboard_class, sizeof(lv_keyboard_t));
 
 } // namespace heltec::meshcore::ui
-
-#if defined(HELTEC_V4_R8_TFT) && defined(HELTEC_HAS_TOUCH) && HELTEC_HAS_TOUCH
 
 #include "heltec/ui/core/biz_facade.hpp"
 #include "heltec/ui/images.h"
@@ -449,7 +464,7 @@ bool QuickPingOverlay::buildSurface()
                           LV_FLEX_ALIGN_CENTER);
     lv_obj_clear_flag(_title_bar, LV_OBJ_FLAG_SCROLLABLE);
 
-    _title = ht_label_create(&lv_label_class, _title_bar, "Quick Ping");
+    _title = ht_label_create(&ht_quick_ping_title_class, _title_bar, "Quick Ping");
     if (!_title)
         return fail();
     lv_obj_set_size(_title, lv_pct(100), LV_SIZE_CONTENT);
@@ -473,11 +488,18 @@ bool QuickPingOverlay::buildSurface()
         return fail();
     }
     _rebuilding_focus_group = true;
-    lv_group_add_obj(focusGroup(), _dd_target);
-    lv_group_add_obj(focusGroup(), _dd_recipient);
-    lv_group_add_obj(focusGroup(), _ta_message);
-    lv_group_add_obj(focusGroup(), _dd_message);
-    lv_group_add_obj(focusGroup(), _keyboard);
+    _lv_obj_t *const focus_objects[] = {
+        _dd_target,
+        _dd_recipient,
+        _ta_message,
+        _dd_message,
+        _keyboard,
+    };
+    for (_lv_obj_t *object : focus_objects)
+    {
+        lv_obj_add_flag(object, LV_OBJ_FLAG_EVENT_BUBBLE | LV_OBJ_FLAG_SCROLL_ON_FOCUS);
+        lv_group_add_obj(focusGroup(), object);
+    }
     _rebuilding_focus_group = false;
     updateMessageTextPresentation(false);
     return true;
@@ -676,7 +698,7 @@ _lv_obj_t *QuickPingOverlay::createDropdownRow(_lv_obj_t *parent, const char *la
     }
 
     _lv_obj_t *label =
-        ht_label_create(&lv_label_class, caption, label_text ? label_text : "");
+        ht_label_create(&ht_quick_ping_label_class, caption, label_text ? label_text : "");
     if (label)
     {
         lv_obj_set_width(label, has_icon ? LV_SIZE_CONTENT : kRowLabelWidth);
@@ -687,16 +709,15 @@ _lv_obj_t *QuickPingOverlay::createDropdownRow(_lv_obj_t *parent, const char *la
         lv_label_set_long_mode(label, has_icon ? LV_LABEL_LONG_CLIP : LV_LABEL_LONG_DOT);
     }
 
-    _lv_obj_t *dropdown = lv_dropdown_create(row);
+    _lv_obj_t *dropdown = ht_class_create(&ht_quick_ping_dropdown_class, row);
     if (!dropdown)
         return row;
+    ht_dropdown_set_viewport(dropdown, _root);
     const lv_coord_t control_x = has_icon ? kIconDropdownControlX : kDropdownControlX;
     const lv_coord_t control_width = has_icon ? kIconDropdownControlWidth : kDropdownControlWidth;
     lv_obj_set_size(dropdown, control_width, kDropdownControlHeight);
     lv_obj_align(dropdown, LV_ALIGN_TOP_LEFT, control_x, kDropdownControlY);
-    ui_theme_center_dropdown_value(dropdown);
     lv_dropdown_set_dir(dropdown, LV_DIR_BOTTOM);
-    lv_dropdown_set_selected_highlight(dropdown, true);
     lv_obj_add_event_cb(dropdown, onDropdownConfirmPreprocess,
                         static_cast<lv_event_code_t>(LV_EVENT_KEY | LV_EVENT_PREPROCESS), this);
     lv_obj_add_event_cb(dropdown, onDropdownConfirmPreprocess,
@@ -735,7 +756,8 @@ _lv_obj_t *QuickPingOverlay::createMessageRow(_lv_obj_t *parent)
                               LV_FLEX_ALIGN_CENTER);
         lv_obj_clear_flag(caption, LV_OBJ_FLAG_SCROLLABLE | LV_OBJ_FLAG_CLICKABLE);
         createFieldIcon(caption, &quick_ping_message_img);
-        _lv_obj_t *caption_label = ht_label_create(&lv_label_class, caption, "message:");
+        _lv_obj_t *caption_label =
+            ht_label_create(&ht_quick_ping_label_class, caption, "message:");
         if (caption_label)
         {
             lv_obj_set_width(caption_label, LV_SIZE_CONTENT);
@@ -756,9 +778,10 @@ _lv_obj_t *QuickPingOverlay::createMessageRow(_lv_obj_t *parent)
                       LV_OBJ_FLAG_SCROLLABLE | LV_OBJ_FLAG_CLICKABLE | LV_OBJ_FLAG_CLICK_FOCUSABLE);
     lv_obj_move_foreground(caption);
 
-    _ta_message = lv_textarea_create(controls);
+    _ta_message = ht_class_create(&ht_quick_ping_message_editor_class, controls);
     if (_ta_message)
     {
+        lv_obj_add_flag(_ta_message, LV_OBJ_FLAG_CLICKABLE | LV_OBJ_FLAG_CLICK_FOCUSABLE);
         lv_textarea_set_one_line(_ta_message, true);
         // set_one_line() changes the height to LV_SIZE_CONTENT, so restore the
         // intended fixed control height afterwards.
@@ -766,7 +789,6 @@ _lv_obj_t *QuickPingOverlay::createMessageRow(_lv_obj_t *parent)
         lv_obj_align(_ta_message, LV_ALIGN_TOP_LEFT, kIconDropdownControlX, kDropdownControlY);
         lv_obj_set_scroll_dir(_ta_message, LV_DIR_HOR);
         lv_obj_clear_flag(_ta_message, LV_OBJ_FLAG_SCROLL_CHAIN_HOR);
-        ui_theme_center_single_line_textarea(_ta_message);
         lv_textarea_set_max_length(_ta_message, kMaxMessageLength);
         lv_textarea_set_text_buffer(_ta_message, _message_text, sizeof(_message_text));
         lv_textarea_set_cursor_click_pos(_ta_message, true);
@@ -782,18 +804,18 @@ _lv_obj_t *QuickPingOverlay::createMessageRow(_lv_obj_t *parent)
         lv_obj_add_event_cb(_ta_message, syncControlFocusToRow, LV_EVENT_DEFOCUSED, nullptr);
     }
 
-    _dd_message = lv_dropdown_create(controls);
+    _dd_message = ht_class_create(&ht_quick_ping_message_dropdown_class, controls);
     if (_dd_message)
     {
+        lv_obj_add_flag(_dd_message, LV_OBJ_FLAG_CLICKABLE | LV_OBJ_FLAG_CLICK_FOCUSABLE);
+        ht_dropdown_set_viewport(_dd_message, _root);
         lv_obj_set_size(_dd_message, kMessageDropdownWidth, kDropdownControlHeight);
         lv_obj_align(_dd_message, LV_ALIGN_TOP_LEFT, kIconDropdownControlX + kMessageInputWidth,
                      kDropdownControlY);
-        ui_theme_center_dropdown_value(_dd_message);
         lv_dropdown_set_options_static(_dd_message, "-");
         lv_dropdown_set_text(_dd_message, LV_SYMBOL_DOWN);
         lv_dropdown_set_symbol(_dd_message, nullptr);
         lv_dropdown_set_dir(_dd_message, LV_DIR_BOTTOM);
-        lv_dropdown_set_selected_highlight(_dd_message, true);
         lv_obj_add_event_cb(_dd_message, onDropdownConfirmPreprocess,
                             static_cast<lv_event_code_t>(LV_EVENT_KEY | LV_EVENT_PREPROCESS), this);
         lv_obj_add_event_cb(_dd_message, onDropdownConfirmPreprocess,
@@ -808,7 +830,7 @@ _lv_obj_t *QuickPingOverlay::createMessageRow(_lv_obj_t *parent)
 
 _lv_obj_t *QuickPingOverlay::createKeyboard(_lv_obj_t *parent)
 {
-    _lv_obj_t *keyboard = lv_keyboard_create(parent);
+    _lv_obj_t *keyboard = ht_class_create(&ht_quick_ping_keyboard_class, parent);
     if (!keyboard)
         return nullptr;
     lv_obj_set_size(keyboard, lv_pct(100), lv_pct(100));
@@ -837,7 +859,6 @@ _lv_obj_t *QuickPingOverlay::createKeyboard(_lv_obj_t *parent)
     lv_textarea_set_text_buffer(_keyboard_editor, _message_text, sizeof(_message_text));
     lv_textarea_set_cursor_click_pos(_keyboard_editor, true);
     lv_textarea_set_placeholder_text(_keyboard_editor, "Message");
-    ui_theme_center_single_line_textarea(_keyboard_editor);
     lv_textarea_set_cursor_pos(_keyboard_editor, LV_TEXTAREA_CURSOR_LAST);
     lv_obj_add_event_cb(_keyboard_editor, onKeyboardEditorEvent, LV_EVENT_VALUE_CHANGED, this);
 
@@ -1120,7 +1141,7 @@ void QuickPingOverlay::moveContactSelection(int delta)
     if (_contact_window_start != old_start)
     {
         syncRecipientDropdown();
-        syncDropdownListLayout(_dd_recipient);
+        ht_dropdown_realign(_dd_recipient);
     }
     else if (_dd_recipient)
     {
@@ -1269,29 +1290,6 @@ bool QuickPingOverlay::closeDropdown(_lv_obj_t *dropdown)
         clearRepeatSelection();
     lv_dropdown_close(dropdown);
     return true;
-}
-
-void QuickPingOverlay::syncDropdownListLayout(_lv_obj_t *dropdown)
-{
-    if (!dropdown)
-        return;
-    _lv_obj_t *const list = lv_dropdown_get_list(dropdown);
-    if (!list)
-        return;
-    if (dropdown == _dd_message)
-    {
-        ui_theme_apply_quick_ping_message_dropdown_list(list);
-    }
-    lv_coord_t list_w = lv_obj_get_width(dropdown);
-    const lv_coord_t min_list_w = lv_obj_get_style_min_width(list, LV_PART_MAIN);
-    if (dropdown == _dd_message && list_w < min_list_w)
-    {
-        list_w = min_list_w;
-    }
-    lv_obj_set_width(list, list_w);
-    lv_obj_set_scrollbar_mode(list, LV_SCROLLBAR_MODE_OFF);
-    ui_theme_match_dropdown_list_padding(dropdown, list);
-    ui_dropdown_fit_list_to_viewport(dropdown, _root);
 }
 
 void QuickPingOverlay::updateMessageTextPresentation(bool editing)
@@ -1512,6 +1510,24 @@ void QuickPingOverlay::handleDropdownRow(_lv_obj_t *target)
     else if (targetInside(target, _row_recipient))
     {
         dropdown = _dd_recipient;
+    }
+    else if (targetInside(target, _row_message))
+    {
+        lv_indev_t *const indev = lv_indev_get_act();
+        lv_point_t point{};
+        if (indev)
+        {
+            lv_indev_get_point(indev, &point);
+        }
+        if (indev && _dd_message && lv_obj_hit_test(_dd_message, &point))
+        {
+            dropdown = _dd_message;
+        }
+        else
+        {
+            handleMessageInput();
+            return;
+        }
     }
     if (!focus_object_available(dropdown))
         return;
@@ -1900,7 +1916,6 @@ void QuickPingOverlay::onDropdownEvent(lv_event_t *e)
 
     if (code == LV_EVENT_READY)
     {
-        self->syncDropdownListLayout(dropdown);
         return;
     }
     if (code != LV_EVENT_VALUE_CHANGED)
@@ -2155,4 +2170,4 @@ void QuickPingOverlay::onOutsideEvent(lv_event_t *e)
 
 } // namespace heltec::meshcore::ui
 
-#endif // HELTEC_V4_R8_TFT && HELTEC_HAS_TOUCH
+#endif // HELTEC_HAS_TOUCH

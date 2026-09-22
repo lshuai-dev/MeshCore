@@ -1,6 +1,6 @@
 #include "touch_send_message_overlay.hpp"
 
-#if defined(HELTEC_V4_R8_TFT) && defined(HELTEC_HAS_TOUCH) && HELTEC_HAS_TOUCH
+#if HELTEC_HAS_TOUCH
 
 #include "heltec/ui/core/biz_facade.hpp"
 #include "keyboard_overlay.hpp"
@@ -229,8 +229,9 @@ _lv_obj_t *SendMessageOverlay::createTouchRow(uint8_t index, const char *text)
 {
     if (!_list)
         return nullptr;
-    lv_obj_t *row =
-        ht_container_create(_list, reinterpret_cast<void *>(static_cast<uintptr_t>(index)));
+    lv_obj_t *row = ht_class_create(
+        &ht_send_message_touch_row_class, _list,
+        reinterpret_cast<void *>(static_cast<uintptr_t>(index)));
     if (!row)
         return nullptr;
     lv_obj_set_size(row, lv_pct(100), sendRowHeight());
@@ -240,24 +241,12 @@ _lv_obj_t *SendMessageOverlay::createTouchRow(uint8_t index, const char *text)
     lv_obj_set_scrollbar_mode(row, LV_SCROLLBAR_MODE_OFF);
     lv_obj_add_flag(row, LV_OBJ_FLAG_CLICKABLE);
 
-    lv_obj_t *label = ht_label_create(&lv_label_class, row, text ? text : "");
+    lv_obj_t *label = ht_label_create(&ht_send_message_label_class, row, text ? text : "");
     if (!label)
         return nullptr;
     lv_obj_set_width(label, lv_pct(100));
     lv_obj_set_flex_grow(label, 1);
     lv_label_set_long_mode(label, LV_LABEL_LONG_DOT);
-    lv_obj_set_style_text_color(label, ui_color_overlay_fg(), LV_PART_MAIN);
-    static const lv_state_t active_states[] = {
-        LV_STATE_FOCUSED,
-        LV_STATE_FOCUS_KEY,
-        LV_STATE_CHECKED,
-        LV_STATE_PRESSED,
-        LV_STATE_FOCUSED | LV_STATE_FOCUS_KEY,
-    };
-    for (const lv_state_t state : active_states)
-    {
-        lv_obj_set_style_text_color(label, ui_color_highlight_fg(), LV_PART_MAIN | state);
-    }
 
     lv_obj_add_event_cb(
         row,
@@ -626,4 +615,4 @@ void SendMessageOverlay::hideVisual()
 
 } // namespace heltec::meshcore::ui
 
-#endif // HELTEC_V4_R8_TFT && HELTEC_HAS_TOUCH
+#endif // HELTEC_HAS_TOUCH

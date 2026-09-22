@@ -1,6 +1,6 @@
 #pragma once
 
-#if !defined(HELTEC_V4_R8_TFT) || !defined(HELTEC_HAS_TOUCH) || !HELTEC_HAS_TOUCH
+#if !defined(HELTEC_HAS_TOUCH) || !HELTEC_HAS_TOUCH
 
 #include "heltec/ui/core/surface.hpp"
 

@@ -102,7 +102,7 @@ bool ConfirmOverlay::buildSurface()
     }
 #else
     _lv_obj_t *const key_hint = ht_label_create(
-        &ht_overlay_bar_class, actionsHost(), operation_hint::kDestructiveConfirm);
+        &ht_overlay_footer_class, actionsHost(), operation_hint::kDestructiveConfirm);
     if (key_hint)
     {
         lv_obj_set_width(key_hint, lv_pct(100));

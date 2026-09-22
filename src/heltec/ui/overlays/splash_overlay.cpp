@@ -3,7 +3,7 @@
 #include "heltec/app/HeltecMesh.h"
 #include "heltec/ui/images.h"
 #include "ui/core/widget_classes.hpp"
-#if defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213
+#if defined(HELTEC_HAS_KEY_FRAME) && HELTEC_HAS_KEY_FRAME
 #include "heltec/drivers/display/e213_port.hpp"
 #endif
 
@@ -39,38 +39,30 @@ bool SplashOverlay::create(_lv_obj_t *parent)
     lv_obj_set_flex_flow(_root, LV_FLEX_FLOW_COLUMN);
     lv_obj_set_flex_align(_root, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
     lv_obj_clear_flag(_root, LV_OBJ_FLAG_SCROLLABLE);
-#if defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213
-    lv_obj_set_style_bg_color(_root, lv_color_white(), LV_PART_MAIN);
-    lv_obj_set_style_bg_opa(_root, LV_OPA_COVER, LV_PART_MAIN);
-#endif
-
-    _logo = lv_img_create(_root);
+    _logo = ht_class_create(&ht_splash_logo_class, _root);
     if (!_logo)
         return false;
-#if defined(HELTEC_V4_R8_TFT)
+#if !HELTEC_UI_DISPLAY_MONO && \
+    !(defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213)
     lv_img_set_src(_logo, &icon_meshcore_logo_alpha_img);
     lv_img_set_antialias(_logo, false);
     lv_img_set_zoom(_logo, LV_IMG_ZOOM_NONE);
 #else
     lv_img_set_src(_logo, &icon_meshcore_log_img);
 #endif
-#if defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213
-    lv_obj_set_style_img_recolor_opa(_logo, LV_OPA_TRANSP, LV_PART_MAIN);
-#endif
-
-    _ver = lv_label_create(_root);
+    _ver = ht_label_create(&ht_splash_label_class, _root);
     if (!_ver)
         return false;
     lv_obj_set_width(_ver, lv_pct(100));
     lv_label_set_long_mode(_ver, LV_LABEL_LONG_CLIP);
 
-    _date = lv_label_create(_root);
+    _date = ht_label_create(&ht_splash_label_class, _root);
     if (!_date)
         return false;
     lv_obj_set_width(_date, lv_pct(100));
     lv_label_set_long_mode(_date, LV_LABEL_LONG_CLIP);
 
-    _attribution = lv_label_create(_root);
+    _attribution = ht_label_create(&ht_splash_label_class, _root);
     if (!_attribution)
         return false;
     lv_obj_set_width(_attribution, lv_pct(100));
@@ -84,10 +76,10 @@ bool SplashOverlay::create(_lv_obj_t *parent)
     lv_disp_t *disp = lv_disp_get_default();
     if (disp)
     {
-#if defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213
+#if defined(HELTEC_HAS_KEY_FRAME) && HELTEC_HAS_KEY_FRAME
         lv_obj_update_layout(_root);
         lv_obj_invalidate(_root);
-        heltec::meshcore::dal::e213::commitBootFrame("splash", true);
+        heltec::meshcore::dal::e213::commitBootFrame(nullptr, true);
 #else
         lv_timer_handler();
         lv_refr_now(disp);

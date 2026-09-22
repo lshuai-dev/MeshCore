@@ -1,16 +1,10 @@
-/**
- * @file    ht_container.hpp
- * @brief   Common UI container type and layout factory.
- */
 #ifndef HELTEC_UI_CORE_HT_CONTAINER_HPP
 #define HELTEC_UI_CORE_HT_CONTAINER_HPP
 #include <lvgl.h>
 
-namespace heltec::meshcore::ui
-{
+namespace heltec::meshcore::ui {
 
-typedef struct
-{
+typedef struct {
     lv_obj_t obj;
 } ht_container_t;
 

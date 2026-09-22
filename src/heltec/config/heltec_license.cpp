@@ -658,7 +658,7 @@ static void heltecLicenseShowUnauthorizedUi(const char *display_id)
 
     lv_obj_clear_flag(s_gate_root, LV_OBJ_FLAG_SCROLLABLE);
 
-    s_gate_title = lv_label_create(s_gate_root);
+    s_gate_title = ht_label_create(&ht_license_gate_label_class, s_gate_root);
     if (s_gate_title)
     {
         lv_label_set_text(s_gate_title, "Not Authorized");
@@ -682,6 +682,10 @@ static void heltecLicenseHideUnauthorizedUi()
     s_gate_root = nullptr;
     s_gate_title = nullptr;
     s_gate_chip = nullptr;
+    if (lv_disp_t *display = lv_disp_get_default())
+    {
+        lv_refr_now(display);
+    }
 }
 
 void heltecLicenseUiTick()

@@ -1,7 +1,6 @@
 #include "ui/app/app.hpp"
 
 #include "heltec/drivers/input/touch_input.hpp"
-#include "heltec/drivers/input/touch_port.hpp"
 #include "heltec/ui/images.h"
 #include "ui/app/theme.hpp"
 #include "ui/core/app_state_notifier.hpp"
@@ -18,7 +17,7 @@
 #include "ui/navigation/grid_navigator.hpp"
 #include "ui/overlays/splash_overlay.hpp"
 #include "ui/theme/widget_theme.hpp"
-#if defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213
+#if defined(HELTEC_HAS_KEY_FRAME) && HELTEC_HAS_KEY_FRAME
 #include "heltec/drivers/display/e213_port.hpp"
 #endif
 
@@ -85,7 +84,7 @@ UiApp::UiApp(biz::IBizFacade &biz, heltec::meshcore::power::PowerMgr &power)
       _scrTracker(_biz, "Tracker", &icon_map_img),
 #endif
       _scrSystem(_biz, "System", &icon_system_img)
-#if !defined(HELTEC_V4_R8_TFT) || !defined(HELTEC_HAS_TOUCH) || !HELTEC_HAS_TOUCH
+#if !defined(HELTEC_HAS_TOUCH) || !HELTEC_HAS_TOUCH
       ,
       _ctxRadioMenu(_biz)
 #if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
@@ -93,7 +92,7 @@ UiApp::UiApp(biz::IBizFacade &biz, heltec::meshcore::power::PowerMgr &power)
       _ctxCompassMenu(_biz)
 #endif
 #endif
-#if defined(HELTEC_V4_R8_TFT) && defined(HELTEC_HAS_TOUCH) && HELTEC_HAS_TOUCH
+#if HELTEC_HAS_TOUCH
       ,
       _quickPingOverlay(_biz)
 #endif
@@ -108,7 +107,7 @@ UiApp::UiApp(biz::IBizFacade &biz, heltec::meshcore::power::PowerMgr &power)
       ,
       _calibrationOvl(_biz)
 #endif
-#if !defined(HELTEC_V4_R8_TFT) || !defined(HELTEC_HAS_TOUCH) || !HELTEC_HAS_TOUCH
+#if !defined(HELTEC_HAS_TOUCH) || !HELTEC_HAS_TOUCH
       ,
       _contextMenu(_biz)
 #endif
@@ -166,26 +165,6 @@ void UiApp::setTopPaneTitle(const char *title) {
     if (title) _top_pane.setTitle(title);
 }
 
-#if defined(HELTEC_TOPBAR_TOUCH_SHELL) && HELTEC_TOPBAR_TOUCH_SHELL
-
-void UiApp::onTopPaneShortPress() {
-    if (!_inited) return;
-    notifyDisplayActivity(millis());
-    if (_surfaces.isVisible(&_navigation)) {
-        closeNavigationPane();
-        return;
-    }
-    if (!inputOnActiveScreen()) return;
-    openNavigationPane();
-}
-
-void UiApp::onTopPaneLongPress() {
-    if (!_inited) return;
-    notifyDisplayActivity(millis());
-}
-
-#endif
-
 void UiApp::init() {
     _inited = false;
     ht_event_init();
@@ -211,12 +190,10 @@ void UiApp::init() {
         }
         return !app.isDisplayOn();
     };
-#if defined(HELTEC_TOUCH_GESTURE_INPUT) && HELTEC_TOUCH_GESTURE_INPUT
+#if HELTEC_HAS_TOUCH && defined(HELTEC_TOUCH_GESTURE) && HELTEC_TOUCH_GESTURE
     touch_hooks.block_long_enter = UiApp::touchGestureBlockLongPress;
-#if defined(HELTEC_V4_R8_TFT) && defined(HELTEC_HAS_TOUCH) && HELTEC_HAS_TOUCH
     touch_hooks.raw_pointer_passthrough = UiApp::touchGestureRawPointerPassthrough;
     touch_hooks.block_double_tap = UiApp::touchGestureBlockQuickPingDoubleTap;
-#endif
 #endif
     heltec::meshcore::dal::touch_input::bindUi(touch_hooks);
 #endif
@@ -239,7 +216,7 @@ void UiApp::init() {
 
     lv_obj_clear_flag(scr, LV_OBJ_FLAG_SCROLLABLE);
     ui_app_active_screen_apply_theme(scr);
-#if defined(HELTEC_V4_R8_TFT)
+#if HELTEC_HAS_TOUCH
     lv_obj_t *bg = ht_class_create(&ht_app_background_class, scr);
     if (bg) {
         lv_obj_set_pos(bg, 0, 0);
@@ -279,20 +256,6 @@ void UiApp::init() {
     }
     _top_pane.setBatteryStatus(_power.snapshot().battery_mv, _power.snapshot().battery_percent);
     lv_obj_set_flex_grow(_top_pane.root(), 0);
-#if defined(HELTEC_TOPBAR_TOUCH_SHELL) && HELTEC_TOPBAR_TOUCH_SHELL
-    _top_pane.enableTouchShell(
-        [](lv_event_t *e) {
-            if (lv_event_get_code(e) != LV_EVENT_SHORT_CLICKED) return;
-            UiApp::instance().onTopPaneShortPress();
-        },
-        [](lv_event_t *e) {
-            if (lv_event_get_code(e) != LV_EVENT_LONG_PRESSED) return;
-            heltec::meshcore::dal::touch_port::requestReleaseBarrier();
-            UiApp::instance().onTopPaneLongPress();
-        },
-        this);
-#endif
-
     lv_obj_t *content = ht_class_create(&ht_app_content_class, layout);
     if (!content) {
         return;
@@ -346,23 +309,23 @@ void UiApp::init() {
 #endif
 #if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
 #endif
-#if defined(HELTEC_V4_R8_TFT) && defined(HELTEC_HAS_TOUCH) && HELTEC_HAS_TOUCH
+#if HELTEC_HAS_TOUCH
 #else
 #if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
 #endif
 #endif
 
-#if defined(HELTEC_V4_R8_TFT) && defined(HELTEC_HAS_TOUCH) && HELTEC_HAS_TOUCH && \
-    defined(HELTEC_TOUCH_GESTURE_INPUT) && HELTEC_TOUCH_GESTURE_INPUT
+#if HELTEC_HAS_TOUCH && \
+    defined(HELTEC_TOUCH_GESTURE) && HELTEC_TOUCH_GESTURE
     lv_obj_add_event_cb(scr, nativeTouchGestureEvent, LV_EVENT_GESTURE, this);
     if (lv_obj_t *const top_layer = lv_layer_top()) {
         lv_obj_add_event_cb(top_layer, nativeTouchGestureEvent, LV_EVENT_GESTURE, this);
     }
 #endif
     _inited = true;
-#if defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213
+#if defined(HELTEC_HAS_KEY_FRAME) && HELTEC_HAS_KEY_FRAME
     splash.hide();
-    heltec::meshcore::dal::e213::requestRefresh("initial-frame");
+    heltec::meshcore::dal::e213::requestRefresh();
 #endif
     if (_tileview) {
         lv_obj_t *tile = lv_tileview_get_tile_act(_tileview);
@@ -446,7 +409,7 @@ void UiApp::handleFrameEvent(lv_event_t *e) {
         }
         break;
     }
-#if !defined(HELTEC_V4_R8_TFT) || !defined(HELTEC_HAS_TOUCH) || !HELTEC_HAS_TOUCH
+#if !defined(HELTEC_HAS_TOUCH) || !HELTEC_HAS_TOUCH
     case EventType::ContextOpen:
         (void)lv_async_call(
             +[](void *user_data) {
@@ -471,7 +434,7 @@ void UiApp::handleFrameEvent(lv_event_t *e) {
         break;
 #endif
     case EventType::SendMessageOpen:
-#if defined(HELTEC_V4_R8_TFT) && defined(HELTEC_HAS_TOUCH) && HELTEC_HAS_TOUCH
+#if HELTEC_HAS_TOUCH
         _quickPingOverlay.prepareTarget(static_cast<const UiSendMessageTarget *>(event->payload));
         if (lv_async_call(
                 +[](void *user_data) {
@@ -501,7 +464,7 @@ void UiApp::handleFrameEvent(lv_event_t *e) {
     case EventType::RepeatModeOpen:
         openRepeatModeOverlay();
         break;
-#if defined(HELTEC_V4_R8_TFT) && defined(HELTEC_HAS_TOUCH) && HELTEC_HAS_TOUCH
+#if HELTEC_HAS_TOUCH
     case EventType::QuickPingClose:
         if (!_quickPingOverlay.requestCloseAnimation()) {
             (void)_surfaces.show(&_quickPingOverlay, false);
@@ -540,7 +503,7 @@ void UiApp::handleFrameEvent(lv_event_t *e) {
         closeSendMessageOverlay();
         break;
     case EventType::MessageKeyboardOpen: {
-#if defined(HELTEC_V4_R8_TFT) && defined(HELTEC_HAS_TOUCH) && HELTEC_HAS_TOUCH
+#if HELTEC_HAS_TOUCH
         auto *preset_req = static_cast<const UiMessageKeyboardRequest *>(event->payload);
         if (preset_req && preset_req->purpose == UiMessageKeyboardPurpose::EditPreset &&
             activeScreen() == &_scrSystem &&
@@ -599,7 +562,7 @@ void UiApp::handleFrameEvent(lv_event_t *e) {
     default:
         break;
     }
-#if defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213
+#if defined(HELTEC_HAS_KEY_FRAME) && HELTEC_HAS_KEY_FRAME
     switch (event->type) {
     case EventType::NavOpen:
     case EventType::NavClose:
@@ -607,7 +570,7 @@ void UiApp::handleFrameEvent(lv_event_t *e) {
         // Navigation owns a refresh session and coalesces rapid selection changes.
         break;
     default:
-        heltec::meshcore::dal::e213::requestRefresh("surface-change");
+        heltec::meshcore::dal::e213::requestRefresh();
         break;
     }
 #endif
@@ -617,8 +580,8 @@ void UiApp::handleAppStateEvent(const AppStateEvent &event) {
     if (event.type == AppStateEventType::BatteryChanged) {
         _top_pane.setBatteryStatus(event.battery.millivolts, event.battery.percent);
     }
-#if defined(HELTEC_DISPLAY_E213) && HELTEC_DISPLAY_E213
-    heltec::meshcore::dal::e213::requestDeferredRefresh("app-state");
+#if defined(HELTEC_HAS_KEY_FRAME) && HELTEC_HAS_KEY_FRAME
+    heltec::meshcore::dal::e213::requestDeferredRefresh();
 #endif
 }
 
@@ -730,7 +693,7 @@ bool UiApp::initTimers() {
         lv_timer_set_repeat_count(_nav_auto_commit_timer, -1);
         lv_timer_pause(_nav_auto_commit_timer);
     }
-#if defined(HELTEC_V4_R8_TFT) && defined(HELTEC_HAS_TOUCH) && HELTEC_HAS_TOUCH
+#if HELTEC_HAS_TOUCH
     if (!_deferred_touch_timer) {
         _deferred_touch_timer = lv_timer_create(deferredTouchActionTimerCb, 40U, this);
         if (!_deferred_touch_timer) return false;

@@ -20,7 +20,7 @@ class RadioParamSyncOverlay : public FramedOverlay
     void onExit() override;
 
     void stepSelection(int8_t dir);
-#if defined(HELTEC_V4_R8_TFT)
+#if HELTEC_HAS_TOUCH
     bool hitRoller(int16_t x, int16_t y) const;
 #endif
 
@@ -33,12 +33,12 @@ class RadioParamSyncOverlay : public FramedOverlay
     void configureListLayout();
     void renderRows();
     void applySelection();
-#if defined(HELTEC_V4_R8_TFT)
+#if HELTEC_HAS_TOUCH
     void rebuildRollerOptions();
 #endif
 
     _lv_obj_t *_list = nullptr;
-#if defined(HELTEC_V4_R8_TFT)
+#if HELTEC_HAS_TOUCH
     _lv_obj_t *_roller = nullptr;
     uint8_t _roller_press_selected = 0;
     int8_t _rendered_current_index = -1;

@@ -21,8 +21,6 @@ static lv_style_t s_widget_radius;
 static lv_style_t s_cascading_page_style;
 static lv_style_t s_cascading_item_style;
 static lv_style_t s_cascading_item_selected_style;
-static lv_style_t s_cascading_label_style;
-static lv_style_t s_cascading_label_selected_style;
 static bool s_styles_ready = false;
 
 static lv_color_t s_color_fg;
@@ -140,16 +138,9 @@ static void initWidgetStyles()
     lv_style_set_bg_opa(&s_cascading_item_selected_style, LV_OPA_COVER);
     lv_style_set_text_color(&s_cascading_item_selected_style, ui_color_highlight_fg());
 
-    lv_style_init(&s_cascading_label_style);
-    lv_style_set_text_color(&s_cascading_label_style, ui_color_fg());
-
-    lv_style_init(&s_cascading_label_selected_style);
-    lv_style_set_text_color(&s_cascading_label_selected_style, ui_color_highlight_fg());
-
     ui_widget_theme_set_cascading_menu_styles(
         {&s_cascading_page_style, &s_cascading_item_style,
-         &s_cascading_item_selected_style, &s_cascading_label_style,
-         &s_cascading_label_selected_style});
+         &s_cascading_item_selected_style});
 
     lv_style_init(&s_switch_main);
     styleSetBorderFrame(&s_switch_main);

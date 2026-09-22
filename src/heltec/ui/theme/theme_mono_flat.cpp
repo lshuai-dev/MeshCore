@@ -32,8 +32,6 @@ static lv_style_t s_switch_knob_checked;
 static lv_style_t s_cascading_page_style;
 static lv_style_t s_cascading_item_style;
 static lv_style_t s_cascading_item_selected_style;
-static lv_style_t s_cascading_label_style;
-static lv_style_t s_cascading_label_selected_style;
 
 
 static const heltec::meshcore::ui::UiThemeColors kMonoFlatColors = {
@@ -154,16 +152,9 @@ static void init_widget_styles(bool ssd1306)
     lv_style_set_bg_opa(&s_cascading_item_selected_style, LV_OPA_COVER);
     lv_style_set_text_color(&s_cascading_item_selected_style, s_color_bg);
 
-    lv_style_init(&s_cascading_label_style);
-    lv_style_set_text_color(&s_cascading_label_style, s_color_fg);
-
-    lv_style_init(&s_cascading_label_selected_style);
-    lv_style_set_text_color(&s_cascading_label_selected_style, s_color_bg);
-
     heltec::meshcore::ui::ui_widget_theme_set_cascading_menu_styles(
         {&s_cascading_page_style, &s_cascading_item_style,
-         &s_cascading_item_selected_style, &s_cascading_label_style,
-         &s_cascading_label_selected_style});
+         &s_cascading_item_selected_style});
     lv_style_set_bg_opa(&s_mono_reset_style, LV_OPA_TRANSP);
     lv_style_set_border_opa(&s_mono_reset_style, LV_OPA_TRANSP);
     lv_style_set_shadow_width(&s_mono_reset_style, 0);

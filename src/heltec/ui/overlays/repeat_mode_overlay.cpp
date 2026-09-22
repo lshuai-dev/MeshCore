@@ -73,21 +73,22 @@ bool RepeatModeOverlay::buildSurface() {
     lv_obj_clear_flag(list, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_add_flag(list, LV_OBJ_FLAG_EVENT_BUBBLE);
 
-#if defined(HELTEC_V4_R8_TFT)
+#if HELTEC_HAS_TOUCH
 #if LV_USE_ROLLER == 0
-#error "HELTEC_V4_R8_TFT repeat mode overlay requires LV_USE_ROLLER=1"
+#error "Touch repeat mode overlay requires LV_USE_ROLLER=1"
 #endif
     _touch_roller = lv_roller_create(list);
     if (!_touch_roller) return false;
     lv_obj_set_width(_touch_roller, lv_pct(100));
     lv_obj_add_event_cb(_touch_roller, onRollerEvent, LV_EVENT_CLICKED, this);
 #else
-    if (!_roller.create(list, group(), &ht_repeat_mode_roller_class)) return false;
+    if (!_roller.create(list, group(), &ht_repeat_mode_roller_class,
+                        &ht_repeat_mode_item_class, &ht_repeat_mode_label_class)) return false;
     lv_obj_add_flag(_roller.root(), LV_OBJ_FLAG_EVENT_BUBBLE);
 #endif
 
     char label[kFrequencyLabelCapacity]{};
-#if defined(HELTEC_V4_R8_TFT)
+#if HELTEC_HAS_TOUCH
     size_t options_used = 0;
 #endif
     const int available = _biz.forwardingFrequencyCount();
@@ -96,7 +97,7 @@ bool RepeatModeOverlay::buildSurface() {
             continue;
         }
 
-#if defined(HELTEC_V4_R8_TFT)
+#if HELTEC_HAS_TOUCH
         const int written = lv_snprintf(_roller_options + options_used,
                                         sizeof(_roller_options) - options_used, "%s%s",
                                         options_used > 0 ? "\n" : "", label);
@@ -117,7 +118,7 @@ bool RepeatModeOverlay::buildSurface() {
         ++_frequency_count;
     }
 
-#if defined(HELTEC_V4_R8_TFT)
+#if HELTEC_HAS_TOUCH
     if (_frequency_count == 0) {
         lv_snprintf(_roller_options, sizeof(_roller_options), "No frequency");
     }
@@ -131,7 +132,7 @@ bool RepeatModeOverlay::buildSurface() {
 }
 
 _lv_obj_t *RepeatModeOverlay::focusTarget() const {
-#if defined(HELTEC_V4_R8_TFT)
+#if HELTEC_HAS_TOUCH
     return _touch_roller;
 #else
     return nullptr;
@@ -151,7 +152,7 @@ void RepeatModeOverlay::onEnter() {
         }
     }
     if (_frequency_count > 0) {
-#if defined(HELTEC_V4_R8_TFT)
+#if HELTEC_HAS_TOUCH
         if (_touch_roller) {
             lv_roller_set_selected(_touch_roller, static_cast<uint16_t>(selected_item),
                                    LV_ANIM_OFF);
@@ -160,7 +161,7 @@ void RepeatModeOverlay::onEnter() {
         (void)_roller.focusItem(static_cast<uint8_t>(selected_item), true);
 #endif
     } else {
-#if !defined(HELTEC_V4_R8_TFT)
+#if !HELTEC_HAS_TOUCH
         (void)_roller.focusItem(0, true);
 #endif
     }
@@ -172,7 +173,7 @@ bool RepeatModeOverlay::onKey(uint32_t key) {
     return true;
 }
 
-#if defined(HELTEC_V4_R8_TFT)
+#if HELTEC_HAS_TOUCH
 
 bool RepeatModeOverlay::hitRoller(int16_t x, int16_t y) const {
     if (!_touch_roller || !lv_obj_is_valid(_touch_roller) ||
@@ -240,7 +241,7 @@ void RepeatModeOverlay::cancelSelection() {
 
 void RepeatModeOverlay::setApplying(bool applying) {
     _applying = applying;
-#if defined(HELTEC_V4_R8_TFT)
+#if HELTEC_HAS_TOUCH
     if (_touch_roller) {
         if (applying || _frequency_count == 0) {
             lv_obj_add_state(_touch_roller, LV_STATE_DISABLED);

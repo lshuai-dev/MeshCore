@@ -8,7 +8,8 @@ class FramedOverlay : public AbstractOverlay {
     void setToolTip(const char *text);
 
   protected:
-    FramedOverlay(biz::IBizFacade &biz, const lv_obj_class_t &root_class);
+    FramedOverlay(biz::IBizFacade &biz, const lv_obj_class_t &root_class,
+                  const lv_obj_class_t *content_class = nullptr);
 
     bool buildSurface() override;
     virtual bool buildHeader();
@@ -18,6 +19,7 @@ class FramedOverlay : public AbstractOverlay {
     _lv_obj_t *_header = nullptr;
     _lv_obj_t *_content = nullptr;
     _lv_obj_t *_footer = nullptr;
+    const lv_obj_class_t *_content_class = nullptr;
 };
 
 } // namespace heltec::meshcore::ui

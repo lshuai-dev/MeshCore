@@ -17,7 +17,7 @@ class RepeatModeOverlay : public FramedOverlay
     explicit RepeatModeOverlay(biz::IBizFacade &biz);
 
     void onEnter() override;
-#if defined(HELTEC_V4_R8_TFT)
+#if HELTEC_HAS_TOUCH
     bool hitRoller(int16_t x, int16_t y) const;
 #endif
 
@@ -34,13 +34,13 @@ class RepeatModeOverlay : public FramedOverlay
     void applySelection(uint8_t item_index);
     void cancelSelection();
     void setApplying(bool applying);
-#if defined(HELTEC_V4_R8_TFT)
+#if HELTEC_HAS_TOUCH
     static void onRollerEvent(lv_event_t *event);
 #else
     static void onItemClicked(lv_event_t *event);
 #endif
 
-#if defined(HELTEC_V4_R8_TFT)
+#if HELTEC_HAS_TOUCH
     _lv_obj_t *_touch_roller = nullptr;
     char _roller_options[kMaxFrequencyItems * kFrequencyLabelCapacity]{};
 #else

@@ -7,7 +7,7 @@
 namespace heltec::meshcore::ui::operation_hint
 {
 
-#if defined(HELTEC_V4_R8_TFT) && defined(HELTEC_HAS_TOUCH) && HELTEC_HAS_TOUCH
+#if HELTEC_HAS_TOUCH
 
 constexpr const char *kRecentDetail = "Swipe:msg Tap:reply";
 constexpr const char *kMessageSelect = "Tap:select";
