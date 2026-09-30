@@ -97,16 +97,10 @@ static void initDeviceStyles(lv_disp_t *disp)
 
 static void styleSetBorderFrame(lv_style_t *st)
 {
-#if HELTEC_HAS_TOUCH
-    lv_style_set_border_width(st, 0);
-    lv_style_set_border_opa(st, LV_OPA_TRANSP);
-    lv_style_set_border_side(st, LV_BORDER_SIDE_NONE);
-#else
+#if !HELTEC_HAS_TOUCH
     lv_style_set_border_width(st, 1);
     lv_style_set_border_color(st, s_color_border);
-    lv_style_set_border_opa(st, LV_OPA_COVER);
 #endif
-    lv_style_set_outline_width(st, 0);
     lv_style_set_radius(st, ui_widget_radius_px());
 }
 
@@ -131,7 +125,6 @@ static void initWidgetStyles()
     lv_style_set_height(&s_cascading_item_style, 12);
     lv_style_set_pad_hor(&s_cascading_item_style, 4);
     lv_style_set_pad_ver(&s_cascading_item_style, 2);
-    lv_style_set_bg_opa(&s_cascading_item_style, LV_OPA_TRANSP);
 
     lv_style_init(&s_cascading_item_selected_style);
     lv_style_set_bg_color(&s_cascading_item_selected_style, ui_color_highlight_bg());
@@ -163,9 +156,7 @@ static void initWidgetStyles()
     lv_style_set_bg_opa(&s_switch_main_focus, LV_OPA_COVER);
 
     lv_style_init(&s_switch_indicator);
-    styleSetBorderFrame(&s_switch_indicator);
-    lv_style_set_border_width(&s_switch_indicator, 0);
-    lv_style_set_border_opa(&s_switch_indicator, LV_OPA_TRANSP);
+    lv_style_set_radius(&s_switch_indicator, ui_widget_radius_px());
     lv_style_set_bg_color(&s_switch_indicator, ui_color_switch_indicator());
     lv_style_set_bg_opa(&s_switch_indicator, LV_OPA_COVER);
 
@@ -177,11 +168,7 @@ static void initWidgetStyles()
     lv_style_init(&s_switch_knob);
     lv_style_set_bg_color(&s_switch_knob, s_color_border);
     lv_style_set_bg_opa(&s_switch_knob, LV_OPA_COVER);
-#if HELTEC_HAS_TOUCH
-    lv_style_set_border_width(&s_switch_knob, 0);
-    lv_style_set_border_opa(&s_switch_knob, LV_OPA_TRANSP);
-    lv_style_set_border_side(&s_switch_knob, LV_BORDER_SIDE_NONE);
-#else
+#if !HELTEC_HAS_TOUCH
     lv_style_set_border_width(&s_switch_knob, 1);
     lv_style_set_border_color(&s_switch_knob, s_color_fg);
 #endif
@@ -190,10 +177,6 @@ static void initWidgetStyles()
 
     lv_style_init(&s_widget_radius);
     lv_style_set_radius(&s_widget_radius, ui_widget_radius_px());
-    lv_style_set_bg_opa(&s_widget_radius, LV_OPA_TRANSP);
-    lv_style_set_border_width(&s_widget_radius, 0);
-    lv_style_set_outline_width(&s_widget_radius, 0);
-    lv_style_set_shadow_width(&s_widget_radius, 0);
     lv_style_set_text_color(&s_widget_radius, ui_color_fg());
 
     s_styles_ready = true;

@@ -75,19 +75,10 @@ void init_radial_icon_styles()
         return;
 
     lv_style_init(&s_radial_icon_style);
-    lv_style_set_bg_opa(&s_radial_icon_style, LV_OPA_TRANSP);
-    lv_style_set_border_width(&s_radial_icon_style, 0);
-    lv_style_set_outline_width(&s_radial_icon_style, 0);
-    lv_style_set_shadow_width(&s_radial_icon_style, 0);
-    lv_style_set_pad_all(&s_radial_icon_style, 0);
 
     lv_style_init(&s_radial_icon_focus_style);
-    lv_style_set_border_width(&s_radial_icon_focus_style, 0);
-    lv_style_set_shadow_width(&s_radial_icon_focus_style, 0);
-    lv_style_set_pad_all(&s_radial_icon_focus_style, 0);
 
 #if defined(UI_EINK_DISPLAY) && UI_EINK_DISPLAY
-    lv_style_set_bg_opa(&s_radial_icon_focus_style, LV_OPA_TRANSP);
     lv_style_set_outline_color(&s_radial_icon_focus_style, lv_color_black());
     lv_style_set_outline_width(&s_radial_icon_focus_style, 1);
     lv_style_set_outline_pad(&s_radial_icon_focus_style, 1);
@@ -96,11 +87,6 @@ void init_radial_icon_styles()
     (defined(HELTEC_DISPLAY_NV3001B) && HELTEC_DISPLAY_NV3001B)
     lv_style_set_img_recolor(&s_radial_icon_style, lv_color_white());
     lv_style_set_img_recolor_opa(&s_radial_icon_style, LV_OPA_COVER);
-    lv_style_set_bg_opa(&s_radial_icon_focus_style, LV_OPA_TRANSP);
-    lv_style_set_border_width(&s_radial_icon_focus_style, 0);
-    lv_style_set_border_opa(&s_radial_icon_focus_style, LV_OPA_TRANSP);
-    lv_style_set_outline_width(&s_radial_icon_focus_style, 0);
-    lv_style_set_outline_opa(&s_radial_icon_focus_style, LV_OPA_TRANSP);
     lv_style_set_img_recolor(&s_radial_icon_focus_style, lv_color_hex(0x00C853));
     lv_style_set_img_recolor_opa(&s_radial_icon_focus_style, LV_OPA_COVER);
 #elif (defined(HELTEC_DISPLAY_SSD1306) && HELTEC_DISPLAY_SSD1306) || LV_COLOR_DEPTH == 1
@@ -115,8 +101,6 @@ void init_radial_icon_styles()
 #else
     lv_style_set_img_recolor(&s_radial_icon_style, lv_color_white());
     lv_style_set_img_recolor_opa(&s_radial_icon_style, LV_OPA_COVER);
-    lv_style_set_bg_opa(&s_radial_icon_focus_style, LV_OPA_TRANSP);
-    lv_style_set_outline_width(&s_radial_icon_focus_style, 0);
     lv_style_set_img_recolor(&s_radial_icon_focus_style, lv_color_hex(0x00C853));
     lv_style_set_img_recolor_opa(&s_radial_icon_focus_style, LV_OPA_COVER);
 #endif
@@ -156,26 +140,16 @@ void init_roller_styles(lv_coord_t pad = 2, lv_coord_t button_height = 12)
         return;
 
     lv_style_init(&s_roller_root_style);
-    lv_style_set_border_width(&s_roller_root_style, 0);
     lv_style_set_pad_all(&s_roller_root_style, pad);
-    lv_style_set_bg_opa(&s_roller_root_style, LV_OPA_TRANSP);
 
     lv_style_init(&s_roller_button_style);
     lv_style_set_height(&s_roller_button_style, button_height);
     lv_style_set_pad_all(&s_roller_button_style, pad);
-    lv_style_set_border_width(&s_roller_button_style, 0);
-    lv_style_set_bg_opa(&s_roller_button_style, LV_OPA_TRANSP);
     lv_style_set_text_color(&s_roller_button_style, ui_color_fg());
     lv_style_set_text_line_space(&s_roller_button_style, 0);
     lv_style_set_text_letter_space(&s_roller_button_style, 0);
-    lv_style_set_shadow_width(&s_roller_button_style, 0);
-    lv_style_set_radius(&s_roller_button_style, 0);
 
     lv_style_init(&s_roller_button_selected_style);
-    lv_style_set_border_width(&s_roller_button_selected_style, 0);
-    lv_style_set_outline_width(&s_roller_button_selected_style, 0);
-    lv_style_set_shadow_width(&s_roller_button_selected_style, 0);
-    lv_style_set_radius(&s_roller_button_selected_style, 0);
     lv_style_set_bg_color(&s_roller_button_selected_style, ui_color_highlight_bg());
     lv_style_set_bg_opa(&s_roller_button_selected_style, LV_OPA_COVER);
     lv_style_set_text_color(&s_roller_button_selected_style, ui_color_highlight_fg());
@@ -212,20 +186,13 @@ static lv_style_t s_map_toolbar_label_style;
 static lv_style_t s_map_toolbar_label_checked_style;
 static lv_style_t s_map_toolbar_label_pressed_style;
 static lv_style_t s_map_toolbar_label_disabled_style;
-static lv_style_t s_map_transparent_layer_style;
 static lv_style_t s_map_marker_style;
+static lv_style_t s_map_marker_alarm_style;
 static lv_style_t s_map_range_ring_style;
 static lv_style_t s_map_tile_placeholder_style;
 static lv_style_t s_map_marker_label_style;
 static lv_style_t s_map_range_label_style;
 static bool s_map_styles_ready = false;
-
-struct MapColorStyleSlot
-{
-    bool ready = false;
-    uint32_t color = 0;
-    lv_style_t style;
-};
 
 struct MapOpaStyleSlot
 {
@@ -234,8 +201,8 @@ struct MapOpaStyleSlot
     lv_style_t style;
 };
 
-static MapColorStyleSlot s_map_marker_color_styles[8];
-static MapOpaStyleSlot s_map_range_opa_styles[8];
+static constexpr size_t kMapRangeOpaStyleCount = 4;
+static MapOpaStyleSlot s_map_range_opa_styles[kMapRangeOpaStyleCount];
 
 void init_map_styles()
 {
@@ -248,17 +215,12 @@ void init_map_styles()
 
     lv_style_init(&s_map_opaque_surface_style);
     lv_style_set_bg_opa(&s_map_opaque_surface_style, LV_OPA_COVER);
-    lv_style_set_border_width(&s_map_opaque_surface_style, 0);
-    lv_style_set_pad_all(&s_map_opaque_surface_style, 0);
 
     lv_style_init(&s_map_viewport_layout_style);
     lv_style_set_min_height(&s_map_viewport_layout_style, 140);
 
     lv_style_init(&s_map_toolbar_style);
     lv_style_set_radius(&s_map_toolbar_style, 4);
-    lv_style_set_bg_opa(&s_map_toolbar_style, LV_OPA_TRANSP);
-    lv_style_set_border_width(&s_map_toolbar_style, 0);
-    lv_style_set_shadow_width(&s_map_toolbar_style, 0);
     lv_style_set_pad_all(&s_map_toolbar_style, 3);
     lv_style_set_pad_column(&s_map_toolbar_style, 3);
 
@@ -266,26 +228,18 @@ void init_map_styles()
     lv_style_set_radius(&s_map_toolbar_button_style, 3);
     lv_style_set_border_width(&s_map_toolbar_button_style, 1);
     lv_style_set_border_color(&s_map_toolbar_button_style, ui_color_accent());
-    lv_style_set_border_opa(&s_map_toolbar_button_style, LV_OPA_COVER);
-    lv_style_set_shadow_width(&s_map_toolbar_button_style, 0);
-    lv_style_set_bg_opa(&s_map_toolbar_button_style, LV_OPA_TRANSP);
-    lv_style_set_pad_all(&s_map_toolbar_button_style, 0);
 
     lv_style_init(&s_map_toolbar_button_checked_style);
     lv_style_set_border_color(&s_map_toolbar_button_checked_style, ui_color_success());
-    lv_style_set_bg_opa(&s_map_toolbar_button_checked_style, LV_OPA_TRANSP);
 
     lv_style_init(&s_map_toolbar_button_pressed_style);
     lv_style_set_border_color(&s_map_toolbar_button_pressed_style, ui_color_error());
-    lv_style_set_bg_opa(&s_map_toolbar_button_pressed_style, LV_OPA_TRANSP);
 
     lv_style_init(&s_map_toolbar_button_disabled_style);
     lv_style_set_border_opa(&s_map_toolbar_button_disabled_style, ui_effective_opa(LV_OPA_50));
-    lv_style_set_bg_opa(&s_map_toolbar_button_disabled_style, LV_OPA_TRANSP);
 
     lv_style_init(&s_map_toolbar_label_style);
     lv_style_set_text_color(&s_map_toolbar_label_style, ui_color_accent());
-    lv_style_set_text_font(&s_map_toolbar_label_style, LV_FONT_DEFAULT);
 
     lv_style_init(&s_map_toolbar_label_checked_style);
     lv_style_set_text_color(&s_map_toolbar_label_checked_style, ui_color_success());
@@ -296,11 +250,6 @@ void init_map_styles()
     lv_style_init(&s_map_toolbar_label_disabled_style);
     lv_style_set_text_color(&s_map_toolbar_label_disabled_style, lv_color_hex(0x607080));
 
-    lv_style_init(&s_map_transparent_layer_style);
-    lv_style_set_bg_opa(&s_map_transparent_layer_style, LV_OPA_TRANSP);
-    lv_style_set_border_width(&s_map_transparent_layer_style, 0);
-    lv_style_set_pad_all(&s_map_transparent_layer_style, 0);
-
     lv_style_init(&s_map_marker_style);
     lv_style_set_radius(&s_map_marker_style, LV_RADIUS_CIRCLE);
     lv_style_set_bg_color(&s_map_marker_style, ui_color_success());
@@ -308,9 +257,11 @@ void init_map_styles()
     lv_style_set_border_width(&s_map_marker_style, 1);
     lv_style_set_border_color(&s_map_marker_style, ui_color_fg());
 
+    lv_style_init(&s_map_marker_alarm_style);
+    lv_style_set_bg_color(&s_map_marker_alarm_style, ui_color_error());
+
     lv_style_init(&s_map_range_ring_style);
     lv_style_set_radius(&s_map_range_ring_style, LV_RADIUS_CIRCLE);
-    lv_style_set_bg_opa(&s_map_range_ring_style, LV_OPA_TRANSP);
     lv_style_set_border_width(&s_map_range_ring_style, 1);
     lv_style_set_border_color(&s_map_range_ring_style, ui_color_fg());
 
@@ -323,31 +274,8 @@ void init_map_styles()
 
     lv_style_init(&s_map_range_label_style);
     lv_style_set_text_color(&s_map_range_label_style, ui_color_fg());
-    lv_style_set_bg_opa(&s_map_range_label_style, LV_OPA_TRANSP);
-    lv_style_set_pad_all(&s_map_range_label_style, 0);
 
     s_map_styles_ready = true;
-}
-
-lv_style_t *marker_color_style(lv_color_t color)
-{
-    const uint32_t color32 = lv_color_to32(color);
-    for (MapColorStyleSlot &slot : s_map_marker_color_styles)
-    {
-        if (slot.ready && slot.color == color32)
-            return &slot.style;
-    }
-    for (MapColorStyleSlot &slot : s_map_marker_color_styles)
-    {
-        if (slot.ready)
-            continue;
-        slot.ready = true;
-        slot.color = color32;
-        lv_style_init(&slot.style);
-        lv_style_set_bg_color(&slot.style, color);
-        return &slot.style;
-    }
-    return nullptr;
 }
 
 lv_style_t *range_opa_style(lv_opa_t opa)
@@ -599,7 +527,6 @@ bool ui_map_widget_apply_theme(_lv_obj_t *obj)
     }
     if (lv_obj_check_type(obj, &ht_map_layer_class))
     {
-        lv_obj_add_style(obj, &s_map_transparent_layer_style, LV_PART_MAIN);
         return true;
     }
     if (lv_obj_check_type(obj, &ht_map_tile_class))
@@ -610,6 +537,8 @@ bool ui_map_widget_apply_theme(_lv_obj_t *obj)
     if (lv_obj_check_type(obj, &ht_map_marker_class))
     {
         lv_obj_add_style(obj, &s_map_marker_style, LV_PART_MAIN);
+        lv_obj_add_style(obj, &s_map_marker_alarm_style,
+                         LV_PART_MAIN | LV_STATE_USER_1);
         return true;
     }
 
@@ -636,16 +565,6 @@ bool ui_map_widget_apply_theme(_lv_obj_t *obj)
     return false;
 }
 
-void ui_map_marker_apply_color(_lv_obj_t *obj, lv_color_t color)
-{
-    if (!obj)
-        return;
-    if (lv_style_t *style = marker_color_style(color))
-    {
-        lv_obj_add_style(obj, style, LV_PART_MAIN);
-    }
-}
-
 void ui_map_range_ring_apply_opa(_lv_obj_t *obj, lv_opa_t opa)
 {
     if (!obj)
@@ -660,12 +579,6 @@ bool ui_map_widget_apply_theme(_lv_obj_t *obj)
 {
     (void)obj;
     return false;
-}
-
-void ui_map_marker_apply_color(_lv_obj_t *obj, lv_color_t color)
-{
-    (void)obj;
-    (void)color;
 }
 
 void ui_map_range_ring_apply_opa(_lv_obj_t *obj, lv_opa_t opa)

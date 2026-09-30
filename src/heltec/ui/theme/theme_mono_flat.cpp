@@ -114,8 +114,6 @@ static void style_set_border_frame(lv_style_t *st)
 {
     lv_style_set_border_width(st, 1);
     lv_style_set_border_color(st, s_color_border);
-    lv_style_set_border_opa(st, LV_OPA_COVER);
-    lv_style_set_outline_width(st, 0);
 }
 
 static void init_widget_styles(bool ssd1306)
@@ -145,7 +143,6 @@ static void init_widget_styles(bool ssd1306)
                         ssd1306 ? 10 : kContextMenuItemHeight);
     lv_style_set_pad_hor(&s_cascading_item_style, 4);
     lv_style_set_pad_ver(&s_cascading_item_style, ssd1306 ? 0 : 2);
-    lv_style_set_bg_opa(&s_cascading_item_style, LV_OPA_TRANSP);
 
     lv_style_init(&s_cascading_item_selected_style);
     lv_style_set_bg_color(&s_cascading_item_selected_style, s_color_fg);
@@ -197,14 +194,7 @@ static void init_widget_styles(bool ssd1306)
     lv_style_set_bg_opa(&s_switch_main_focus, LV_OPA_COVER);
 
     lv_style_init(&s_switch_indicator);
-#if LV_COLOR_DEPTH == 1
-    // Avoid a second border inside the main frame. OFF is a black track.
-    lv_style_set_border_width(&s_switch_indicator, 0);
-    lv_style_set_border_opa(&s_switch_indicator, LV_OPA_TRANSP);
-#else
-    style_set_border_frame(&s_switch_indicator);
-    lv_style_set_border_width(&s_switch_indicator, 0);
-    lv_style_set_border_opa(&s_switch_indicator, LV_OPA_TRANSP);
+#if LV_COLOR_DEPTH != 1
     lv_style_set_bg_color(&s_switch_indicator, s_color_switch_indicator);
 #endif
     lv_style_set_bg_opa(&s_switch_indicator, LV_OPA_COVER);
@@ -224,8 +214,6 @@ static void init_widget_styles(bool ssd1306)
 #endif
     lv_style_set_bg_opa(&s_switch_indicator_checked, LV_OPA_COVER);
 #if LV_COLOR_DEPTH == 1
-    lv_style_set_border_width(&s_switch_indicator_checked, 0);
-    lv_style_set_border_opa(&s_switch_indicator_checked, LV_OPA_TRANSP);
     lv_style_set_radius(&s_switch_indicator_checked, LV_RADIUS_CIRCLE);
 #else
     lv_style_set_radius(&s_switch_indicator_checked, 8);
@@ -234,10 +222,7 @@ static void init_widget_styles(bool ssd1306)
     lv_style_init(&s_switch_knob);
     lv_style_set_bg_color(&s_switch_knob, s_color_fg);
     lv_style_set_bg_opa(&s_switch_knob, LV_OPA_COVER);
-#if LV_COLOR_DEPTH == 1
-    lv_style_set_border_width(&s_switch_knob, 0);
-    lv_style_set_border_opa(&s_switch_knob, LV_OPA_TRANSP);
-#else
+#if LV_COLOR_DEPTH != 1
     lv_style_set_border_width(&s_switch_knob, 1);
     lv_style_set_border_color(&s_switch_knob, s_color_border);
 #endif
@@ -248,8 +233,6 @@ static void init_widget_styles(bool ssd1306)
     lv_style_init(&s_switch_knob_checked);
     lv_style_set_bg_color(&s_switch_knob_checked, s_color_bg);
     lv_style_set_bg_opa(&s_switch_knob_checked, LV_OPA_COVER);
-    lv_style_set_border_width(&s_switch_knob_checked, 0);
-    lv_style_set_border_opa(&s_switch_knob_checked, LV_OPA_TRANSP);
     lv_style_set_pad_all(&s_switch_knob_checked, -2);
     lv_style_set_radius(&s_switch_knob_checked, LV_RADIUS_CIRCLE);
 #endif

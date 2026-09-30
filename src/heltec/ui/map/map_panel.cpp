@@ -71,7 +71,7 @@ int32_t wrapped_tile_delta(uint32_t tile, uint32_t start, uint32_t world_tiles)
     return (int32_t)forward;
 }
 
-lv_obj_t *make_pin(lv_obj_t *parent, const char *text, lv_color_t color)
+lv_obj_t *make_pin(lv_obj_t *parent, const char *text)
 {
     lv_obj_t *o = ht_class_create(&ht_map_marker_class, parent);
     if (!o)
@@ -81,7 +81,6 @@ lv_obj_t *make_pin(lv_obj_t *parent, const char *text, lv_color_t color)
     // must not become LVGL touch targets over the map.
     lv_obj_clear_flag(o, LV_OBJ_FLAG_SCROLLABLE | LV_OBJ_FLAG_CLICKABLE);
     lv_obj_add_flag(o, LV_OBJ_FLAG_HIDDEN);
-    ui_map_marker_apply_color(o, color);
     if (lv_obj_t *label = ht_label_create(&ht_map_marker_label_class, o, text))
     {
         lv_obj_align(label, LV_ALIGN_CENTER, 0, 0);
@@ -365,7 +364,7 @@ void MapPanel::attach(_lv_obj_t *viewport)
         }
     }
 
-    _gps_pin = make_pin(_marker_layer, "G", ui_color_success());
+    _gps_pin = make_pin(_marker_layer, "G");
     markDirty(DirtyTiles | DirtyMarkers | DirtyRings | DirtyGpsPin | DirtyViewport);
 }
 
@@ -696,9 +695,14 @@ void MapPanel::layout_markers()
         if (m.alarm_active != src.alarm_active)
         {
             m.alarm_active = src.alarm_active;
-            lv_obj_set_style_bg_color(m.root,
-                                      src.alarm_active ? ui_color_error() : ui_color_success(),
-                                      LV_PART_MAIN);
+            if (src.alarm_active)
+            {
+                lv_obj_add_state(m.root, LV_STATE_USER_1);
+            }
+            else
+            {
+                lv_obj_clear_state(m.root, LV_STATE_USER_1);
+            }
         }
         ++slot;
     }
