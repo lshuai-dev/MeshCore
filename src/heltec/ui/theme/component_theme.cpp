@@ -701,13 +701,13 @@ void ui_theme_set_compass_info_layout(_lv_obj_t *obj, lv_coord_t pad_left, lv_co
     lv_obj_set_style_pad_row(obj, pad_row, LV_PART_MAIN);
 }
 
-void ui_theme_set_compass_dial_row_layout(_lv_obj_t *obj, lv_coord_t pad_right)
+void ui_theme_set_compass_dial_row_layout(_lv_obj_t *obj, lv_coord_t pad_column)
 {
     if (!obj)
         return;
     lv_obj_set_style_pad_all(obj, 0, LV_PART_MAIN);
-    lv_obj_set_style_pad_right(obj, pad_right, LV_PART_MAIN);
-    lv_obj_set_style_pad_column(obj, 0, LV_PART_MAIN);
+    lv_obj_set_style_pad_right(obj, 0, LV_PART_MAIN);
+    lv_obj_set_style_pad_column(obj, pad_column, LV_PART_MAIN);
 }
 
 bool ui_compass_apply_theme(_lv_obj_t *obj)
@@ -738,10 +738,10 @@ void ui_theme_set_compass_info_layout(_lv_obj_t *obj, lv_coord_t pad_left, lv_co
     (void)pad_row;
 }
 
-void ui_theme_set_compass_dial_row_layout(_lv_obj_t *obj, lv_coord_t pad_right)
+void ui_theme_set_compass_dial_row_layout(_lv_obj_t *obj, lv_coord_t pad_column)
 {
     (void)obj;
-    (void)pad_right;
+    (void)pad_column;
 }
 
 bool ui_compass_apply_theme(_lv_obj_t *obj)

@@ -200,19 +200,26 @@ static RAK12500LocationProvider RAK12500_provider;
  * @param[in] address Seven-bit I2C address.
  * @return true when a device acknowledges the address.
  */
-static bool isI2cDevicePresent(TwoWire *wire, uint8_t address)
+static bool isI2cDevicePresent(const char *name, TwoWire *wire, uint8_t address)
 {
+    MESH_DEBUG_PRINTLN("[env] probe begin %s address=0x%02X t=%lu", name, address,
+                       (unsigned long)millis());
     if (wire == nullptr)
     {
+        MESH_DEBUG_PRINTLN("[env] probe end %s wire=null", name);
         return false;
     }
 
     wire->beginTransmission(address);
-    return wire->endTransmission() == 0;
+    const uint8_t result = wire->endTransmission();
+    MESH_DEBUG_PRINTLN("[env] probe end %s result=%u ack=%u t=%lu", name, result,
+                       result == 0 ? 1U : 0U, (unsigned long)millis());
+    return result == 0;
 }
 
 bool HeltecEnvironmentSensorManager::begin()
 {
+    MESH_DEBUG_PRINTLN("[env] manager begin t=%lu", (unsigned long)millis());
 #if ENV_INCLUDE_GPS
 #ifdef RAK_WISBLOCK_GPS
     rakGPSInit(); // probe base board/sockets for GPS
@@ -222,7 +229,7 @@ bool HeltecEnvironmentSensorManager::begin()
 #endif
 
 #if ENV_INCLUDE_AHTX0
-    if (isI2cDevicePresent(TELEM_WIRE, TELEM_AHTX_ADDRESS) &&
+    if (isI2cDevicePresent("AHTX0", TELEM_WIRE, TELEM_AHTX_ADDRESS) &&
         AHTX0.begin(TELEM_WIRE, 0, TELEM_AHTX_ADDRESS))
     {
         MESH_DEBUG_PRINTLN("Found AHT10/AHT20 at address: %02X", TELEM_AHTX_ADDRESS);
@@ -236,7 +243,7 @@ bool HeltecEnvironmentSensorManager::begin()
 #endif
 
 #if ENV_INCLUDE_BME680
-    if (isI2cDevicePresent(TELEM_WIRE, TELEM_BME680_ADDRESS) &&
+    if (isI2cDevicePresent("BME680", TELEM_WIRE, TELEM_BME680_ADDRESS) &&
         BME680.begin(TELEM_BME680_ADDRESS))
     {
         MESH_DEBUG_PRINTLN("Found BME680 at address: %02X", TELEM_BME680_ADDRESS);
@@ -250,7 +257,7 @@ bool HeltecEnvironmentSensorManager::begin()
 #endif
 
 #if ENV_INCLUDE_BME280
-    if (isI2cDevicePresent(TELEM_WIRE, TELEM_BME280_ADDRESS) &&
+    if (isI2cDevicePresent("BME280", TELEM_WIRE, TELEM_BME280_ADDRESS) &&
         BME280.begin(TELEM_BME280_ADDRESS, TELEM_WIRE))
     {
         MESH_DEBUG_PRINTLN("Found BME280 at address: %02X", TELEM_BME280_ADDRESS);
@@ -271,7 +278,7 @@ bool HeltecEnvironmentSensorManager::begin()
 #endif
 
 #if ENV_INCLUDE_BMP280
-    if (isI2cDevicePresent(TELEM_WIRE, TELEM_BMP280_ADDRESS) &&
+    if (isI2cDevicePresent("BMP280", TELEM_WIRE, TELEM_BMP280_ADDRESS) &&
         BMP280.begin(TELEM_BMP280_ADDRESS))
     {
         MESH_DEBUG_PRINTLN("Found BMP280 at address: %02X", TELEM_BMP280_ADDRESS);
@@ -286,7 +293,7 @@ bool HeltecEnvironmentSensorManager::begin()
 #endif
 
 #if ENV_INCLUDE_SHTC3
-    if (isI2cDevicePresent(TELEM_WIRE, 0x70) && SHTC3.begin(TELEM_WIRE))
+    if (isI2cDevicePresent("SHTC3", TELEM_WIRE, 0x70) && SHTC3.begin(TELEM_WIRE))
     {
         MESH_DEBUG_PRINTLN("Found sensor: SHTC3");
         SHTC3_initialized = true;
@@ -300,7 +307,8 @@ bool HeltecEnvironmentSensorManager::begin()
 
 #if ENV_INCLUDE_SHT4X
     uint32_t serialNumber = 0;
-    const bool sht4x_present = isI2cDevicePresent(TELEM_WIRE, TELEM_SHT4X_ADDRESS);
+    const bool sht4x_present =
+        isI2cDevicePresent("SHT4X", TELEM_WIRE, TELEM_SHT4X_ADDRESS);
     if (sht4x_present)
     {
         SHT4X.begin(*TELEM_WIRE, TELEM_SHT4X_ADDRESS);
@@ -321,7 +329,7 @@ bool HeltecEnvironmentSensorManager::begin()
 #if defined(MESH_DEBUG) && MESH_DEBUG
     MESH_DEBUG_PRINTLN("[env] probing LPS22HB @0x5C t=%lu", (unsigned long)millis());
 #endif
-    if (isI2cDevicePresent(TELEM_WIRE, 0x5C) && LPS22HB.begin())
+    if (isI2cDevicePresent("LPS22HB", TELEM_WIRE, 0x5C) && LPS22HB.begin())
     {
         MESH_DEBUG_PRINTLN("Found sensor: LPS22HB");
         LPS22HB_initialized = true;
@@ -334,7 +342,7 @@ bool HeltecEnvironmentSensorManager::begin()
 #endif
 
 #if ENV_INCLUDE_INA3221
-    if (isI2cDevicePresent(TELEM_WIRE, TELEM_INA3221_ADDRESS) &&
+    if (isI2cDevicePresent("INA3221", TELEM_WIRE, TELEM_INA3221_ADDRESS) &&
         INA3221.begin(TELEM_INA3221_ADDRESS, TELEM_WIRE))
     {
         MESH_DEBUG_PRINTLN("Found INA3221 at address: %02X", TELEM_INA3221_ADDRESS);
@@ -354,7 +362,8 @@ bool HeltecEnvironmentSensorManager::begin()
 #endif
 
 #if ENV_INCLUDE_INA219
-    if (isI2cDevicePresent(TELEM_WIRE, TELEM_INA219_ADDRESS) && INA219.begin(TELEM_WIRE))
+    if (isI2cDevicePresent("INA219", TELEM_WIRE, TELEM_INA219_ADDRESS) &&
+        INA219.begin(TELEM_WIRE))
     {
         MESH_DEBUG_PRINTLN("Found INA219 at address: %02X", TELEM_INA219_ADDRESS);
         INA219_initialized = true;
@@ -367,7 +376,7 @@ bool HeltecEnvironmentSensorManager::begin()
 #endif
 
 #if ENV_INCLUDE_INA260
-    if (isI2cDevicePresent(TELEM_WIRE, TELEM_INA260_ADDRESS) &&
+    if (isI2cDevicePresent("INA260", TELEM_WIRE, TELEM_INA260_ADDRESS) &&
         INA260.begin(TELEM_INA260_ADDRESS, TELEM_WIRE))
     {
         MESH_DEBUG_PRINTLN("Found INA260 at address: %02X", TELEM_INA260_ADDRESS);
@@ -381,7 +390,7 @@ bool HeltecEnvironmentSensorManager::begin()
 #endif
 
 #if ENV_INCLUDE_INA226
-    if (isI2cDevicePresent(TELEM_WIRE, TELEM_INA226_ADDRESS) && INA226.begin())
+    if (isI2cDevicePresent("INA226", TELEM_WIRE, TELEM_INA226_ADDRESS) && INA226.begin())
     {
         MESH_DEBUG_PRINTLN("Found INA226 at address: %02X", TELEM_INA226_ADDRESS);
         INA226.setMaxCurrentShunt(TELEM_INA226_MAX_AMP, TELEM_INA226_SHUNT_VALUE);
@@ -395,7 +404,7 @@ bool HeltecEnvironmentSensorManager::begin()
 #endif
 
 #if ENV_INCLUDE_MLX90614
-    if (isI2cDevicePresent(TELEM_WIRE, TELEM_MLX90614_ADDRESS) &&
+    if (isI2cDevicePresent("MLX90614", TELEM_WIRE, TELEM_MLX90614_ADDRESS) &&
         MLX90614.begin(TELEM_MLX90614_ADDRESS, TELEM_WIRE))
     {
         MESH_DEBUG_PRINTLN("Found MLX90614 at address: %02X", TELEM_MLX90614_ADDRESS);
@@ -412,7 +421,7 @@ bool HeltecEnvironmentSensorManager::begin()
     MESH_DEBUG_PRINTLN("[env] probing VL53L0X @0x%02X t=%lu", TELEM_VL53L0X_ADDRESS,
                        (unsigned long)millis());
 #endif
-    if (isI2cDevicePresent(TELEM_WIRE, TELEM_VL53L0X_ADDRESS) &&
+    if (isI2cDevicePresent("VL53L0X", TELEM_WIRE, TELEM_VL53L0X_ADDRESS) &&
         VL53L0X.begin(TELEM_VL53L0X_ADDRESS, false, TELEM_WIRE))
     {
         MESH_DEBUG_PRINTLN("Found VL53L0X at address: %02X", TELEM_VL53L0X_ADDRESS);
@@ -428,7 +437,7 @@ bool HeltecEnvironmentSensorManager::begin()
 #if ENV_INCLUDE_BMP085
     // First argument is  MODE (aka oversampling)
     // choose ULTRALOWPOWER
-    if (isI2cDevicePresent(TELEM_WIRE, 0x77) && BMP085.begin(0, TELEM_WIRE))
+    if (isI2cDevicePresent("BMP085", TELEM_WIRE, 0x77) && BMP085.begin(0, TELEM_WIRE))
     {
         MESH_DEBUG_PRINTLN("Found sensor BMP085");
         BMP085_initialized = true;
@@ -451,6 +460,7 @@ bool HeltecEnvironmentSensorManager::begin()
     //   heltec::meshcore::dal::touch_port::reinitAfterI2cProbe();
     // #endif
 
+    MESH_DEBUG_PRINTLN("[env] manager end t=%lu", (unsigned long)millis());
     return true;
 }
 

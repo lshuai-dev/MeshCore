@@ -3,6 +3,7 @@
 #include <Arduino.h>
 #include <helpers/ESP32Board.h>
 #include <helpers/RefCountedDigitalPin.h>
+#include "RadioCoreTCA6408A.h"
 
 class HeltecRadioCoreRC32Board : public ESP32Board
 {
@@ -17,4 +18,5 @@ class HeltecRadioCoreRC32Board : public ESP32Board
     const char *getManufacturerName() const override;
 
     RefCountedDigitalPin periph_power;
+    RadioCoreTCA6408A io_expander;
 };

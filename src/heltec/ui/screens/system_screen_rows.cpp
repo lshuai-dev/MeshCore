@@ -311,7 +311,8 @@ _lv_obj_t *SystemScreen::addBuzzerVolumeRow(_lv_obj_t *scroll)
                             LV_OBJ_FLAG_SCROLL_ON_FOCUS);
 
     _lv_obj_t *title = lv_label_create(row);
-    if(title) lv_label_set_text(title, "Volume");
+    if (title)
+        lv_label_set_text_static(title, "Volume");
     configure_system_label(title, lv_pct(100));
 
     _lv_obj_t *controls = ht_class_create(&ht_volume_controls_class, row);
@@ -357,7 +358,7 @@ void SystemScreen::addBuzzerVolumeButton(_lv_obj_t *parent, const char *text,
     _lv_obj_t *const label = lv_label_create(button);
     if (label)
     {
-        lv_label_set_text(label, text ? text : "");
+        lv_label_set_text_static(label, text ? text : "");
         lv_obj_center(label);
     }
     bindWidget(button);

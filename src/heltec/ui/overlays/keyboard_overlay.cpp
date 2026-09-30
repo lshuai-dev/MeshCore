@@ -35,31 +35,45 @@ constexpr lv_coord_t kTouchCoordinateLabelWidth = 72;
 
 #if !HELTEC_HAS_TOUCH
 static const char *kMessageCompactKbMap[] = {
-    "1",          "2", "3", "4", "5",  "6", "7", "8",   "9",  "0",
-    "\n",         "a", "b", "c", "d",  "e", "f", "g",   "h",  "i",
-    "j",          "k", "l", "m", "\n", "n", "o", "p",   "q",  "r",
-    "s",          "t", "u", "v", "w",  "x", "y", "z",   "\n", ".",
-    ",",          "-", "/", "@", "#",  "?", "!", "ABC", "SP", LV_SYMBOL_BACKSPACE,
-    LV_SYMBOL_OK, "",
+    "q", "w", "e", "r", "t", "y", "u", "i", "o", "p", "\n",
+    "a", "s", "d", "f", "g", "h", "j", "k", "l", "\n",
+    "z", "x", "c", "v", "b", "n", "m", "\n",
+    "ABC", "123", "SP", LV_SYMBOL_BACKSPACE, LV_SYMBOL_CLOSE, LV_SYMBOL_OK, "",
 };
 
 static const lv_btnmatrix_ctrl_t kMessageCompactKbCtrl[] = {
-    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 3, 3, 2, 2,
+    1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+    1, 1, 1, 1, 1, 1, 1, 1, 1,
+    1, 1, 1, 1, 1, 1, 1,
+    2, 2, 3, 2, 2, 2,
 };
 
 static const char *kMessageCompactUpperKbMap[] = {
-    "1",          "2", "3", "4", "5",  "6", "7", "8",   "9",  "0",
-    "\n",         "A", "B", "C", "D",  "E", "F", "G",   "H",  "I",
-    "J",          "K", "L", "M", "\n", "N", "O", "P",   "Q",  "R",
-    "S",          "T", "U", "V", "W",  "X", "Y", "Z",   "\n", ".",
-    ",",          "-", "/", "@", "#",  "?", "!", "abc", "SP", LV_SYMBOL_BACKSPACE,
-    LV_SYMBOL_OK, "",
+    "Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P", "\n",
+    "A", "S", "D", "F", "G", "H", "J", "K", "L", "\n",
+    "Z", "X", "C", "V", "B", "N", "M", "\n",
+    "abc", "123", "SP", LV_SYMBOL_BACKSPACE, LV_SYMBOL_CLOSE, LV_SYMBOL_OK, "",
 };
 
 static const lv_btnmatrix_ctrl_t kMessageCompactUpperKbCtrl[] = {
-    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 3, 3, 2, 2,
+    1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+    1, 1, 1, 1, 1, 1, 1, 1, 1,
+    1, 1, 1, 1, 1, 1, 1,
+    2, 2, 3, 2, 2, 2,
+};
+
+static const char *kMessageSymbolsKbMap[] = {
+    "1", "2", "3", "4", "5", "6", "7", "8", "9", "0", "\n",
+    "!", "@", "#", "$", "%", "^", "&", "*", "(", ")", "\n",
+    "-", "_", "=", "+", "[", "]", "?", "/", "\n",
+    "abc", "SP", LV_SYMBOL_BACKSPACE, LV_SYMBOL_CLOSE, LV_SYMBOL_OK, "",
+};
+
+static const lv_btnmatrix_ctrl_t kMessageSymbolsKbCtrl[] = {
+    1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+    1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+    1, 1, 1, 1, 1, 1, 1, 1,
+    2, 3, 2, 2, 2,
 };
 
 void install_message_compact_keyboard_map(lv_obj_t *kb)
@@ -69,6 +83,8 @@ void install_message_compact_keyboard_map(lv_obj_t *kb)
     lv_keyboard_set_map(kb, LV_KEYBOARD_MODE_USER_2, kMessageCompactKbMap, kMessageCompactKbCtrl);
     lv_keyboard_set_map(kb, LV_KEYBOARD_MODE_USER_3, kMessageCompactUpperKbMap,
                         kMessageCompactUpperKbCtrl);
+    lv_keyboard_set_map(kb, LV_KEYBOARD_MODE_SPECIAL, kMessageSymbolsKbMap,
+                        kMessageSymbolsKbCtrl);
 }
 #else
 void install_message_compact_keyboard_map(lv_obj_t *)
@@ -162,7 +178,20 @@ lv_keyboard_mode_t waypoint_keyboard_mode()
 
 lv_keyboard_mode_t message_keyboard_mode()
 {
+#if defined(HELTEC_HAS_TOUCH) && HELTEC_HAS_TOUCH
     return compact_keyboard_display() ? LV_KEYBOARD_MODE_USER_2 : LV_KEYBOARD_MODE_TEXT_LOWER;
+#else
+    return LV_KEYBOARD_MODE_USER_2;
+#endif
+}
+
+lv_keyboard_mode_t message_upper_keyboard_mode()
+{
+#if defined(HELTEC_HAS_TOUCH) && HELTEC_HAS_TOUCH
+    return compact_keyboard_display() ? LV_KEYBOARD_MODE_USER_3 : LV_KEYBOARD_MODE_TEXT_UPPER;
+#else
+    return LV_KEYBOARD_MODE_USER_3;
+#endif
 }
 
 void set_keyboard_layout_state(lv_obj_t *root, lv_obj_t *kb, lv_obj_t *latitude,
@@ -324,8 +353,7 @@ void KeyboardOverlay::on_keyboard_value_pre(lv_event_t *e)
     {
         if (strcmp(txt, "ABC") == 0)
         {
-            lv_keyboard_set_mode(kb, compact_keyboard_display() ? LV_KEYBOARD_MODE_USER_3
-                                                                  : LV_KEYBOARD_MODE_TEXT_UPPER);
+            lv_keyboard_set_mode(kb, message_upper_keyboard_mode());
             label_message_space_key(kb);
             reset_keyboard_interaction(kb);
 #if defined(HELTEC_HAS_KEY_FRAME) && HELTEC_HAS_KEY_FRAME
@@ -335,9 +363,17 @@ void KeyboardOverlay::on_keyboard_value_pre(lv_event_t *e)
         }
         else if (strcmp(txt, "abc") == 0)
         {
-            lv_keyboard_set_mode(kb, compact_keyboard_display() ? LV_KEYBOARD_MODE_USER_2
-                                                                  : LV_KEYBOARD_MODE_TEXT_LOWER);
+            lv_keyboard_set_mode(kb, message_keyboard_mode());
             label_message_space_key(kb);
+            reset_keyboard_interaction(kb);
+#if defined(HELTEC_HAS_KEY_FRAME) && HELTEC_HAS_KEY_FRAME
+            request_keyboard_refresh(self->_root);
+#endif
+            lv_event_stop_processing(e);
+        }
+        else if (strcmp(txt, "123") == 0)
+        {
+            lv_keyboard_set_mode(kb, LV_KEYBOARD_MODE_SPECIAL);
             reset_keyboard_interaction(kb);
 #if defined(HELTEC_HAS_KEY_FRAME) && HELTEC_HAS_KEY_FRAME
             request_keyboard_refresh(self->_root);
@@ -353,6 +389,13 @@ void KeyboardOverlay::on_keyboard_value_pre(lv_event_t *e)
             request_keyboard_refresh(self->_root);
 #endif
             lv_event_stop_processing(e);
+        }
+        else if (strcmp(txt, LV_SYMBOL_CLOSE) == 0)
+        {
+            reset_keyboard_interaction(kb);
+            self->emitEvent(EventType::KeyboardClose);
+            lv_event_stop_processing(e);
+            lv_event_stop_bubbling(e);
         }
         return;
     }
@@ -523,6 +566,22 @@ void KeyboardOverlay::on_keyboard_key_pre(lv_event_t *e)
     if (!self)
         return;
     const uint32_t key = lv_event_get_key(e);
+    if (key == LV_KEY_ENTER)
+    {
+        const uint16_t btn_id = self->_keyboard ? lv_btnmatrix_get_selected_btn(self->_keyboard)
+                                                : LV_BTNMATRIX_BTN_NONE;
+        const char *btn_txt = (self->_keyboard && btn_id != LV_BTNMATRIX_BTN_NONE)
+                                  ? lv_btnmatrix_get_btn_text(self->_keyboard, btn_id)
+                                  : nullptr;
+        if (btn_txt && strcmp(btn_txt, LV_SYMBOL_CLOSE) == 0)
+        {
+            reset_keyboard_interaction(self->_keyboard);
+            self->emitEvent(EventType::KeyboardClose);
+            lv_event_stop_processing(e);
+            lv_event_stop_bubbling(e);
+            return;
+        }
+    }
     if (self->_compose_mode == ComposeMode::Waypoint && key == LV_KEY_ENTER)
     {
         const uint16_t btn_id = self->_keyboard ? lv_btnmatrix_get_selected_btn(self->_keyboard)
@@ -543,7 +602,6 @@ void KeyboardOverlay::on_keyboard_key_pre(lv_event_t *e)
     }
     if (key == LV_KEY_ESC)
     {
-        self->emitEvent(EventType::KeyboardClose);
         lv_event_stop_processing(e);
         lv_event_stop_bubbling(e);
     }
@@ -914,10 +972,27 @@ bool KeyboardOverlay::onKey(uint32_t key)
 {
     if (key == LV_KEY_ESC)
     {
-        emitEvent(EventType::KeyboardClose);
         return true;
     }
+    if (key == LV_KEY_ENTER && _keyboard)
+    {
+        const uint16_t btn_id = lv_btnmatrix_get_selected_btn(_keyboard);
+        const char *btn_txt = btn_id != LV_BTNMATRIX_BTN_NONE
+                                  ? lv_btnmatrix_get_btn_text(_keyboard, btn_id)
+                                  : nullptr;
+        if (btn_txt && strcmp(btn_txt, LV_SYMBOL_CLOSE) == 0)
+        {
+            reset_keyboard_interaction(_keyboard);
+            emitEvent(EventType::KeyboardClose);
+            return true;
+        }
+    }
     return false;
+}
+
+bool KeyboardOverlay::handleInputKey(uint32_t key)
+{
+    return onKey(key);
 }
 
 void KeyboardOverlay::submitMessageInput()
@@ -1029,6 +1104,11 @@ void KeyboardOverlay::onExit()
 }
 
 bool KeyboardOverlay::onKey(uint32_t /*key*/)
+{
+    return false;
+}
+
+bool KeyboardOverlay::handleInputKey(uint32_t /*key*/)
 {
     return false;
 }

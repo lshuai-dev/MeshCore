@@ -191,9 +191,24 @@ lv_obj_t *ht_class_create(const lv_obj_class_t *class_p, lv_obj_t *parent, void 
 lv_obj_t *ht_label_create(const lv_obj_class_t *class_p, lv_obj_t *parent, const char *text, void *user_data) {
     lv_obj_t *const label = ht_class_create(class_p, parent, user_data);
     if (label && text) {
-        lv_label_set_text(label, text);
+        ht_label_set_text_copy(label, text);
     }
     return label;
+}
+
+lv_obj_t *ht_label_create_static(const lv_obj_class_t *class_p, lv_obj_t *parent,
+                                 const char *text, void *user_data) {
+    lv_obj_t *const label = ht_class_create(class_p, parent, user_data);
+    if (label) {
+        lv_label_set_text_static(label, text ? text : "");
+    }
+    return label;
+}
+
+void ht_label_set_text_copy(lv_obj_t *label, const char *text) {
+    if (label) {
+        lv_label_set_text(label, text ? text : "");
+    }
 }
 
 lv_obj_t *ht_btn_create(const lv_obj_class_t *class_p, lv_obj_t *parent, void *user_data) {

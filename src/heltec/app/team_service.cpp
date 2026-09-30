@@ -26,6 +26,7 @@ const uint8_t kJoinSecret[32] = {
     0x52, 0xEC, 0x5B, 0x99, 0x70, 0x0E, 0xAF, 0x3E, 0x18, 0xDD, 0x79,
     0x13, 0x65, 0x4A, 0xC0, 0x2F, 0x87, 0x9C, 0xB4, 0x56, 0xDA
 };
+constexpr uint32_t kStatusRetryMs = 5000UL;
 
 bool deadline_passed(uint32_t now, uint32_t deadline)
 {
@@ -177,6 +178,7 @@ bool TeamService::installTeam(const TeamCredentials &credentials)
     _credentials.name[_credentials.name_len] = '\0';
     _enabled = true;
     clearMembers();
+    _last_leader_seen_ms = millis();
     _sync_request_tx_seen = false;
     _last_sync_request_tx_ms = 0;
     installSystemChannels();
@@ -189,6 +191,7 @@ bool TeamService::leaveTeam()
     memset(&_credentials, 0, sizeof(_credentials));
     _enabled = false;
     _sent_valid_location = false;
+    _last_leader_seen_ms = 0;
     _sync_request_tx_seen = false;
     _last_sync_request_tx_ms = 0;
     clearMembers();
@@ -203,13 +206,16 @@ bool TeamService::setEnabled(bool enabled)
     _enabled = enabled;
     if (!enabled)
     {
-        _next_status_ms = 0;
+        _status_due_ms = 0;
         _startup_sync_ms = 0;
         _startup_sync_attempts = 0;
-        _pending_status_ms = 0;
     }
     else
     {
+        if (_role == TeamRole::Member)
+        {
+            _last_leader_seen_ms = millis();
+        }
         scheduleInitialFrames();
     }
     return true;
@@ -218,12 +224,26 @@ bool TeamService::setEnabled(bool enabled)
 void TeamService::scheduleInitialFrames()
 {
     if (!enabled() || !_mesh)
+    {
         return;
+    }
     _last_status_sent_ms = 0;
-    _next_status_ms = millis() + _mesh->getRNG()->nextInt(1000, 5001);
+    _status_due_ms = millis() + _mesh->getRNG()->nextInt(1000, 5001);
     // Publish our identity before requesting the other members; all TX stays in poll().
-    _startup_sync_ms = _next_status_ms + 1000UL;
+    _startup_sync_ms = _status_due_ms + 1000UL;
     _startup_sync_attempts = 0;
+}
+
+void TeamService::scheduleStatus(uint32_t due_ms)
+{
+    if (due_ms == 0)
+    {
+        due_ms = 1;
+    }
+    if (_status_due_ms == 0 || static_cast<int32_t>(due_ms - _status_due_ms) < 0)
+    {
+        _status_due_ms = due_ms;
+    }
 }
 
 CommonHeader TeamService::makeHeader(uint8_t flags, uint16_t sequence) const
@@ -250,28 +270,12 @@ bool TeamService::sendFrame(const uint8_t *data, size_t length)
     return sent;
 }
 
-bool TeamService::sendStatus(bool force_update)
+bool TeamService::sendStatus()
 {
     HeltecMesh::StableGpsFixSnapshot gps{};
     const NodePrefs *prefs = _mesh->getNodePrefs();
     const bool valid = prefs && prefs->gps_enabled != 0 &&
                        _mesh->getStableGpsFix(gps) && gps.valid;
-    const uint32_t now = millis();
-    if (!force_update && _last_status_sent_ms != 0 && valid == _sent_valid_location)
-    {
-        const bool moved = valid &&
-            (abs(static_cast<int32_t>(gps.lat_micro) - _last_sent_latitude_e6) >=
-                 HELTEC_TEAM_LOCATION_MOVE_THRESHOLD_E6 ||
-             abs(static_cast<int32_t>(gps.lon_micro) - _last_sent_longitude_e6) >=
-                 HELTEC_TEAM_LOCATION_MOVE_THRESHOLD_E6);
-        const uint32_t period = valid ? HELTEC_TEAM_LOCATION_IDLE_PERIOD_SEC :
-                                        HELTEC_TEAM_PRESENCE_PERIOD_SEC;
-        if (!moved && now - _last_status_sent_ms < period * 1000UL)
-        {
-            return true;
-        }
-    }
-
     StatusFrame frame{};
     frame.battery_mv = _mesh->currentBatteryMilliVolts();
     frame.header = makeHeader((frame.battery_mv ? kStatusBatteryValid : 0) |
@@ -299,7 +303,7 @@ bool TeamService::sendStatus(bool force_update)
     }
     ++_status_sequence;
     _sent_valid_location = valid;
-    _last_status_sent_ms = now;
+    _last_status_sent_ms = millis();
     _last_sent_latitude_e6 = frame.latitude_e6;
     _last_sent_longitude_e6 = frame.longitude_e6;
     return true;
@@ -308,22 +312,30 @@ bool TeamService::sendStatus(bool force_update)
 void TeamService::poll()
 {
     if (!enabled())
-        return;
-    const uint32_t now = millis();
-    if (deadline_passed(now, _pending_status_ms))
     {
-        const bool sent = sendStatus(true);
-        ++_sync_status_attempts;
-        _pending_status_ms = !sent && _sync_status_attempts < 3 ? now + 1000UL : 0;
+        return;
+    }
+    const uint32_t now = millis();
+    if (_role == TeamRole::Member &&
+        now - _last_leader_seen_ms >= HELTEC_TEAM_LEADER_TIMEOUT_SEC * 1000UL)
+    {
+        (void)leaveTeam();
+        return;
+    }
+    if (deadline_passed(now, _status_due_ms))
+    {
+        _status_due_ms = 0;
+        const bool sent = sendStatus();
+        uint32_t delay_ms = kStatusRetryMs;
         if (sent)
         {
-            _next_status_ms = now + HELTEC_TEAM_LOCATION_PERIOD_SEC * 1000UL;
+            const uint32_t heartbeat_sec = _role == TeamRole::Leader ?
+                HELTEC_TEAM_LEADER_HEARTBEAT_SEC :
+                (_sent_valid_location ? HELTEC_TEAM_LOCATION_IDLE_PERIOD_SEC :
+                                        HELTEC_TEAM_PRESENCE_PERIOD_SEC);
+            delay_ms = heartbeat_sec * 1000UL;
         }
-    }
-    else if (_pending_status_ms == 0 && deadline_passed(now, _next_status_ms))
-    {
-        _next_status_ms = now + (sendStatus() ?
-            HELTEC_TEAM_LOCATION_PERIOD_SEC * 1000UL : 5000UL);
+        scheduleStatus(now + delay_ms);
     }
     if (_last_status_sent_ms != 0 && deadline_passed(now, _startup_sync_ms))
     {
@@ -333,6 +345,37 @@ void TeamService::poll()
         if (!sent && _startup_sync_attempts < 3)
             _startup_sync_ms = now + 5000UL;
     }
+}
+
+void TeamService::notifyLocationChanged(bool valid, int32_t latitude_e6,
+                                        int32_t longitude_e6)
+{
+    if (!enabled())
+    {
+        return;
+    }
+
+    const bool validity_changed = valid != _sent_valid_location;
+    const bool moved = valid && _sent_valid_location &&
+        (abs(latitude_e6 - _last_sent_latitude_e6) >= HELTEC_TEAM_LOCATION_MOVE_THRESHOLD_E6 ||
+         abs(longitude_e6 - _last_sent_longitude_e6) >= HELTEC_TEAM_LOCATION_MOVE_THRESHOLD_E6);
+    if (!validity_changed && !moved)
+    {
+        return;
+    }
+
+    const uint32_t now = millis();
+    uint32_t due = now + 1U;
+    if (_last_status_sent_ms != 0)
+    {
+        const uint32_t earliest = _last_status_sent_ms +
+            HELTEC_TEAM_LOCATION_EVENT_MIN_PERIOD_SEC * 1000UL;
+        if (static_cast<int32_t>(earliest - due) > 0)
+        {
+            due = earliest;
+        }
+    }
+    scheduleStatus(due);
 }
 
 TeamMember *TeamService::findMember(const uint8_t public_key[kPublicKeySize])
@@ -368,6 +411,12 @@ TeamMember *TeamService::allocateMember(const uint8_t public_key[kPublicKeySize]
         increment(_stats.member_table_full);
         return nullptr;
     }
+#if defined(HELTEC_GEOFENCE) && HELTEC_GEOFENCE
+    const size_t slot = static_cast<size_t>(oldest - _members);
+    const uint32_t slot_mask = 1UL << slot;
+    _geofence_alarm_started_mask &= ~slot_mask;
+    _geofence_alarm_cleared_mask &= ~slot_mask;
+#endif
     *oldest = TeamMember{};
     oldest->occupied = true;
     memcpy(oldest->public_key, public_key, kPublicKeySize);
@@ -426,11 +475,18 @@ void TeamService::receiveStatus(const uint8_t *data, size_t length)
     member->longitude_e6 = frame.longitude_e6;
     member->fix_age_sec = frame.fix_age_sec;
     member->last_seen_ms = millis();
+    if (leader_key)
+    {
+        _last_leader_seen_ms = member->last_seen_ms;
+    }
     if (member_changed)
     {
         ++_member_revision;
     }
     (void)_mesh->syncTeamMemberContact(frame.public_key, frame.name, frame.name_len);
+#if defined(HELTEC_GEOFENCE) && HELTEC_GEOFENCE
+    evaluateGeofenceMember(*member);
+#endif
     ++_change_sequence;
     increment(_stats.rx_status);
 }
@@ -478,15 +534,7 @@ void TeamService::receiveSyncRequest(const uint8_t *data, size_t length)
     jitter ^= jitter << 5;
     const uint32_t delay_ms = 1UL + jitter % window_ms;
     // Coalesce requests without postponing an already pending reply.
-    if (_pending_status_ms == 0)
-    {
-        _sync_status_attempts = 0;
-        _pending_status_ms = now + delay_ms;
-        if (_pending_status_ms == 0)
-        {
-            _pending_status_ms = 1;
-        }
-    }
+    scheduleStatus(now + delay_ms);
     increment(_stats.rx_sync_request);
 }
 
@@ -580,21 +628,167 @@ void TeamService::pinMember(const uint8_t public_key[kPublicKeySize])
     memcpy(_pinned_member_id, public_key, sizeof(_pinned_member_id));
 }
 
+#if defined(HELTEC_GEOFENCE) && HELTEC_GEOFENCE
+bool TeamService::beginGeofenceEdit()
+{
+    if (!enabled() || _role != TeamRole::Leader)
+    {
+        return false;
+    }
+    if (!_geofence.beginEdit())
+    {
+        return false;
+    }
+    resetGeofenceMemberStates();
+    return true;
+}
+
+void TeamService::cancelGeofenceEdit()
+{
+    if (_geofence.state() == GeofenceState::Editing)
+    {
+        _geofence.cancelEdit();
+        resetGeofenceMemberStates();
+    }
+}
+
+void TeamService::deleteGeofence()
+{
+    _geofence.deleteFence();
+    resetGeofenceMemberStates();
+}
+
+GeofenceAddResult TeamService::addGeofencePoint(int32_t latitude_e7, int32_t longitude_e7)
+{
+    if (!enabled() || _role != TeamRole::Leader)
+    {
+        return GeofenceAddResult::Invalid;
+    }
+    const GeofenceAddResult result = _geofence.addPoint(latitude_e7, longitude_e7);
+    if (result == GeofenceAddResult::Completed)
+    {
+        for (TeamMember &member : _members)
+        {
+            if (member.occupied)
+            {
+                evaluateGeofenceMember(member);
+            }
+        }
+    }
+    return result;
+}
+
+bool TeamService::geofenceMemberAlarm(const uint8_t member_id[kSenderIdSize]) const
+{
+    if (!member_id)
+    {
+        return false;
+    }
+    for (const TeamMember &member : _members)
+    {
+        if (member.occupied && member.geofence_alarm_active &&
+            memcmp(member.public_key, member_id, kSenderIdSize) == 0)
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool TeamService::popGeofenceAlert(GeofenceAlert &alert)
+{
+    if ((_geofence_alarm_started_mask | _geofence_alarm_cleared_mask) == 0)
+    {
+        return false;
+    }
+    for (size_t slot = 0; slot < HELTEC_TEAM_MAX_MEMBERS; ++slot)
+    {
+        const uint32_t slot_mask = 1UL << slot;
+        GeofenceMemberResult result = GeofenceMemberResult::Unchanged;
+        if ((_geofence_alarm_started_mask & slot_mask) != 0)
+        {
+            _geofence_alarm_started_mask &= ~slot_mask;
+            result = GeofenceMemberResult::AlarmStarted;
+        }
+        else if ((_geofence_alarm_cleared_mask & slot_mask) != 0)
+        {
+            _geofence_alarm_cleared_mask &= ~slot_mask;
+            result = GeofenceMemberResult::AlarmCleared;
+        }
+        if (result == GeofenceMemberResult::Unchanged || !_members[slot].occupied)
+        {
+            continue;
+        }
+        alert = GeofenceAlert{};
+        alert.result = result;
+        alert.name_len = _members[slot].name_len;
+        memcpy(alert.name, _members[slot].name, alert.name_len + 1U);
+        return true;
+    }
+    return false;
+}
+
+void TeamService::evaluateGeofenceMember(TeamMember &member)
+{
+    constexpr uint32_t kMemberTimeoutMs = HELTEC_TEAM_MEMBER_TIMEOUT_SEC * 1000UL;
+    const uint32_t received_age_ms = millis() - member.last_seen_ms;
+    const bool fresh = member.location_valid && received_age_ms <= kMemberTimeoutMs &&
+        member.fix_age_sec <= (kMemberTimeoutMs - received_age_ms) / 1000UL;
+    if (_role != TeamRole::Leader || _geofence.state() != GeofenceState::Active ||
+        !fresh)
+    {
+        return;
+    }
+    const bool outside = !_geofence.contains(member.latitude_e6 * 10, member.longitude_e6 * 10);
+    if (outside == member.geofence_alarm_active)
+    {
+        return;
+    }
+    member.geofence_alarm_active = outside;
+    const size_t slot = static_cast<size_t>(&member - _members);
+    const uint32_t slot_mask = 1UL << slot;
+    if (outside)
+    {
+        _geofence_alarm_cleared_mask &= ~slot_mask;
+        _geofence_alarm_started_mask |= slot_mask;
+    }
+    else
+    {
+        _geofence_alarm_started_mask &= ~slot_mask;
+        _geofence_alarm_cleared_mask |= slot_mask;
+    }
+}
+
+void TeamService::resetGeofenceMemberStates()
+{
+    for (TeamMember &member : _members)
+    {
+        member.geofence_alarm_active = false;
+    }
+    _geofence_alarm_started_mask = 0;
+    _geofence_alarm_cleared_mask = 0;
+}
+#endif
+
 void TeamService::clearMembers()
 {
-    _next_status_ms = 0;
-    _pending_status_ms = 0;
+    _status_due_ms = 0;
     _startup_sync_ms = 0;
     _startup_sync_attempts = 0;
-    _sync_status_attempts = 0;
     _last_status_sent_ms = 0;
     _last_sent_latitude_e6 = 0;
     _last_sent_longitude_e6 = 0;
     _sent_valid_location = false;
+    _last_leader_seen_ms = 0;
     memset(_members, 0, sizeof(_members));
     memset(_sync_seen, 0, sizeof(_sync_seen));
     memset(_pinned_member_id, 0, sizeof(_pinned_member_id));
     _last_sync_request_rx_ms = 0;
+#if defined(HELTEC_GEOFENCE) && HELTEC_GEOFENCE
+    _geofence.deleteFence();
+    _geofence_alarm_started_mask = 0;
+    _geofence_alarm_cleared_mask = 0;
+#endif
     ++_member_revision;
     ++_change_sequence;
 }

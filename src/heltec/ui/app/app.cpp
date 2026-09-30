@@ -165,6 +165,15 @@ void UiApp::setTopPaneTitle(const char *title) {
     if (title) _top_pane.setTitle(title);
 }
 
+void UiApp::refreshTopPaneStatus(bool force) {
+    const uint32_t epoch_seconds = _biz.currentTimeSeconds();
+    const uint32_t minute = epoch_seconds / 60U;
+    if (force || minute != _top_pane_minute) {
+        _top_pane_minute = minute;
+        _top_pane.setTime(epoch_seconds);
+    }
+}
+
 void UiApp::init() {
     _inited = false;
     ht_event_init();
@@ -255,6 +264,7 @@ void UiApp::init() {
         return;
     }
     _top_pane.setBatteryStatus(_power.snapshot().battery_mv, _power.snapshot().battery_percent);
+    refreshTopPaneStatus(true);
     lv_obj_set_flex_grow(_top_pane.root(), 0);
     lv_obj_t *content = ht_class_create(&ht_app_content_class, layout);
     if (!content) {
@@ -580,6 +590,9 @@ void UiApp::handleAppStateEvent(const AppStateEvent &event) {
     if (event.type == AppStateEventType::BatteryChanged) {
         _top_pane.setBatteryStatus(event.battery.millivolts, event.battery.percent);
     }
+    if (event.type == AppStateEventType::ConfigChanged) {
+        refreshTopPaneStatus(true);
+    }
 #if defined(HELTEC_HAS_KEY_FRAME) && HELTEC_HAS_KEY_FRAME
     heltec::meshcore::dal::e213::requestDeferredRefresh();
 #endif
@@ -599,6 +612,7 @@ void UiApp::handlePowerChanged(heltec::meshcore::power::PowerChangeMask changes,
 void UiApp::tick() {
     if (!_inited) return;
     lv_timer_handler();
+    refreshTopPaneStatus();
     // Shared approval UI also serves leaders without a Tracker screen.
     // A join request is a device-level Team event. Do not gate it on the
     // currently focused screen; Tracker and Find Friend must both receive it.

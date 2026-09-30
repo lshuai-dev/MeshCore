@@ -107,8 +107,8 @@ bool SendMessageOverlay::buildSurface()
 
     fitToDisplay(_root);
     lv_obj_add_flag(_root, LV_OBJ_FLAG_CLICKABLE);
-    setTitle("send message");
-    setToolTip(operation_hint::kMessageSelect);
+    setStaticTitle("send message");
+    setStaticToolTip(operation_hint::kMessageSelect);
 
     _list_mid = ht_class_create(&ht_send_message_list_class, _content);
     if (!_list_mid)
@@ -375,8 +375,8 @@ void SendMessageOverlay::renderRows()
     {
         title = (_model.listKind() == 1) ? "group" : "personal";
     }
-    setTitle(title);
-    setToolTip(footer_text);
+    setStaticTitle(title);
+    setStaticToolTip(footer_text);
 
     renderTouchList();
 }

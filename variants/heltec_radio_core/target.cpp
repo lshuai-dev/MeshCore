@@ -1,7 +1,8 @@
 #include <Arduino.h>
 #include <helpers/ArduinoHelpers.h>
 #include "target.h"
-#if defined(RADIOCORE_BOARD_RC52) && defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
+#if (defined(RADIOCORE_BOARD_RC32) || defined(RADIOCORE_BOARD_RC52)) && \
+    defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
 #include <heltec/sensors/ICMCompassProvider.h>
 ICMCompassProvider compassProvider;
 #endif
@@ -123,6 +124,7 @@ AutoDiscoverRTCClock rtc_clock(fallback_clock);
   #include <helpers/sensors/MicroNMEALocationProvider.h>
   #include <heltec/sensors/GpsRmcSpeedStream.h>
 
+#if !defined(RADIOCORE_BOARD_RC32) && !defined(RADIOCORE_BOARD_RC52)
   namespace {
   class TrackerV2LocationProvider final : public MicroNMEALocationProvider {
    public:
@@ -149,18 +151,27 @@ AutoDiscoverRTCClock rtc_clock(fallback_clock);
     bool _running = false;
   };
   }  // namespace
+#endif
 
   heltec::gps::GpsRmcSpeedStream gps_serial(Serial1);
+#if defined(RADIOCORE_BOARD_RC32) || defined(RADIOCORE_BOARD_RC52)
+  MicroNMEALocationProvider nmea(gps_serial, &rtc_clock, PIN_GPS_RESET, PIN_GPS_EN);
+#else
   TrackerV2LocationProvider nmea(gps_serial, &rtc_clock, GPS_RESET,
                                  &board.periph_power);
+#endif
   #if defined(HELTEC_SENSOR_MANAGER) && HELTEC_SENSOR_MANAGER
+  #if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
+  HeltecEnvironmentSensorManager sensors(nmea, compassProvider);
+  #else
   HeltecEnvironmentSensorManager sensors(nmea);
+  #endif
   #else
   EnvironmentSensorManager sensors = EnvironmentSensorManager(nmea);
   #endif
 #else
   #if defined(HELTEC_SENSOR_MANAGER) && HELTEC_SENSOR_MANAGER
-  #if defined(RADIOCORE_BOARD_RC52) && defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
+  #if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
   HeltecEnvironmentSensorManager sensors(compassProvider);
   #else
   HeltecEnvironmentSensorManager sensors;
@@ -181,12 +192,23 @@ bool radio_init() {
   fallback_clock.begin();
 #endif
 #if !defined(RADIOCORE_BOARD_RCC6)
+#if defined(RADIOCORE_BOARD_RC52)
+  MESH_DEBUG_PRINTLN("[radio] I2C state SDA pin=%u level=%u SCL pin=%u level=%u",
+                     PIN_WIRE_SDA, digitalRead(PIN_WIRE_SDA),
+                     PIN_WIRE_SCL, digitalRead(PIN_WIRE_SCL));
+#endif
+  MESH_DEBUG_PRINTLN("[radio] RTC begin");
   rtc_clock.begin(Wire);
+  MESH_DEBUG_PRINTLN("[radio] RTC end");
 #endif
   
 #if defined(RADIOCORE_BOARD_RC52)
+  MESH_DEBUG_PRINTLN("[radio] SPI pins begin");
   SPI.setPins(P_LORA_MISO, P_LORA_SCLK, P_LORA_MOSI);
-  return radio.std_init(&SPI);
+  MESH_DEBUG_PRINTLN("[radio] SPI pins end; SX1262 begin");
+  const bool initialized = radio.std_init(&SPI);
+  MESH_DEBUG_PRINTLN("[radio] SX1262 end ready=%u", initialized ? 1U : 0U);
+  return initialized;
 #elif defined(P_LORA_SCLK)
   MESH_DEBUG_PRINTLN("[radio] SX1262 begin");
 #if defined(RADIOCORE_BOARD_RCC6)

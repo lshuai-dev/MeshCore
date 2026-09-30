@@ -8,12 +8,32 @@
 namespace heltec::meshcore::biz
 {
 
+MeshAppUi::MeshAppUi(heltec::meshcore::power::PowerMgr &power) : _power(power)
+{
+    heltec::meshcore::ui::app_state_notifier().bind(handleAppStateEvent, this);
+}
+
+void MeshAppUi::handleAppStateEvent(void *user_data,
+                                    const heltec::meshcore::ui::AppStateEvent &event)
+{
+    auto *const app = static_cast<MeshAppUi *>(user_data);
+    if (!app || event.type != heltec::meshcore::ui::AppStateEventType::GpsChanged)
+    {
+        return;
+    }
+#if defined(ENV_INCLUDE_GPS) && ENV_INCLUDE_GPS
+    the_mesh.teamService().notifyLocationChanged(event.gps.fix_valid,
+        static_cast<int32_t>(event.gps.lat_micro),
+        static_cast<int32_t>(event.gps.lon_micro));
+#endif
+}
+
 void MeshAppUi::pollRuntime()
 {
     pollGpsTrack();
     pollRadioStatus();
 #if defined(HELTEC_GEOFENCE) && HELTEC_GEOFENCE
-    pollTeamGeofence();
+    pollTeamGeofenceAlerts();
 #endif
 #if defined(ENV_INCLUDE_GPS) && ENV_INCLUDE_GPS
     // Non-overlapping fields: simultaneous changes must not cancel each other.

@@ -157,7 +157,12 @@ extern const lv_obj_class_t ht_splash_label_class;
 
 lv_obj_t *ht_class_create(const lv_obj_class_t *class_p, lv_obj_t *parent, void *user_data = nullptr);
 lv_obj_t *ht_label_create(const lv_obj_class_t *class_p, lv_obj_t *parent, const char *text = nullptr, void *user_data = nullptr);
+lv_obj_t *ht_label_create_static(const lv_obj_class_t *class_p, lv_obj_t *parent,
+                                 const char *text, void *user_data = nullptr);
 lv_obj_t *ht_btn_create(const lv_obj_class_t *class_p, lv_obj_t *parent, void *user_data = nullptr);
+
+/** Copies text into LVGL-owned storage. Use only while constructing fixed UI objects. */
+void ht_label_set_text_copy(lv_obj_t *label, const char *text);
 
 inline lv_obj_t *ht_obj_create(lv_obj_t *parent) {
     return ht_class_create(&lv_obj_class, parent);
@@ -168,9 +173,7 @@ inline lv_obj_t *ht_label_create(lv_obj_t *parent, const char *text = nullptr) {
 }
 
 inline lv_obj_t *ht_label_create_static(lv_obj_t *parent, const char *text) {
-    lv_obj_t *const label = lv_label_create(parent);
-    if (label) lv_label_set_text_static(label, text);
-    return label;
+    return ht_label_create_static(&lv_label_class, parent, text);
 }
 
 } // namespace heltec::meshcore::ui

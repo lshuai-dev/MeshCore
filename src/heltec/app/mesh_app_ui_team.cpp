@@ -7,6 +7,7 @@
 #include "HeltecMesh.h"
 #include "mesh_app_ui.hpp"
 #include "ui/core/ht_event.h"
+#include "ui/core/task.hpp"
 
 #include <string.h>
 #include <stdio.h>
@@ -64,97 +65,71 @@ int MeshAppUi::teamOnlineCount() const
 #if defined(HELTEC_GEOFENCE) && HELTEC_GEOFENCE
 team::GeofenceState MeshAppUi::teamGeofenceState() const
 {
-    return _team_geofence.state();
+    return the_mesh.teamService().geofenceState();
 }
 
 uint8_t MeshAppUi::teamGeofencePointCount() const
 {
-    return _team_geofence.pointCount();
+    return the_mesh.teamService().geofencePointCount();
 }
 
 bool MeshAppUi::teamGeofencePoint(uint8_t index, team::GeofencePoint &point) const
 {
-    if (index >= _team_geofence.pointCount())
+    const auto &service = the_mesh.teamService();
+    if (index >= service.geofencePointCount())
         return false;
-    point = _team_geofence.points()[index];
+    point = service.geofencePoints()[index];
     return true;
 }
 
 bool MeshAppUi::beginTeamGeofenceEdit()
 {
-    const TeamStatus status = teamStatus();
-    return status.has_team && status.is_leader && _team_geofence.beginEdit();
+    return the_mesh.teamService().beginGeofenceEdit();
 }
 
 void MeshAppUi::cancelTeamGeofenceEdit()
 {
-    if (_team_geofence.state() == team::GeofenceState::Editing)
-        _team_geofence.cancelEdit();
+    if (the_mesh.teamService().geofenceState() == team::GeofenceState::Editing)
+        the_mesh.teamService().cancelGeofenceEdit();
 }
 
 void MeshAppUi::deleteTeamGeofence()
 {
-    _team_geofence.deleteFence();
+    the_mesh.teamService().deleteGeofence();
 }
 
 team::GeofenceAddResult MeshAppUi::addTeamGeofencePoint(int32_t latitude_e7,
                                                         int32_t longitude_e7)
 {
-    return _team_geofence.addPoint(latitude_e7, longitude_e7);
+    return the_mesh.teamService().addGeofencePoint(latitude_e7, longitude_e7);
 }
 
 bool MeshAppUi::teamGeofenceMemberAlarm(const uint8_t member_id[6]) const
 {
-    return _team_geofence.memberAlarmActive(member_id);
+    return the_mesh.teamService().geofenceMemberAlarm(member_id);
 }
 
-void MeshAppUi::pollTeamGeofence()
+void MeshAppUi::pollTeamGeofenceAlerts()
 {
 #if defined(ENV_INCLUDE_GPS) && ENV_INCLUDE_GPS
-    const auto &service = the_mesh.teamService();
-    const bool eligible = service.hasTeam() && service.enabled() &&
-                          service.role() == team::TeamRole::Leader;
-    const uint64_t team_id = eligible ? service.credentials().team_id : 0;
-    if (!eligible || (_geofence_team_id != 0 && _geofence_team_id != team_id))
-    {
-        _team_geofence.deleteFence();
-        _geofence_change_sequence = 0;
-    }
-    _geofence_team_id = team_id;
-    if (!eligible || _team_geofence.state() != team::GeofenceState::Active ||
-        _geofence_change_sequence == service.changeSequence())
+    team::GeofenceAlert alert{};
+    if (!the_mesh.teamService().popGeofenceAlert(alert))
         return;
-
-    _geofence_change_sequence = service.changeSequence();
-    _team_geofence.beginMemberSweep();
-    const uint32_t now_ms = millis();
-    constexpr uint32_t kTimeoutMs = HELTEC_TEAM_MEMBER_TIMEOUT_SEC * 1000UL;
-    for (size_t slot = 0; slot < HELTEC_TEAM_MAX_MEMBERS; ++slot)
+    char message[64] = {};
+    if (alert.result == team::GeofenceMemberResult::AlarmStarted)
     {
-        const team::TeamMember *const member = service.memberSlot(slot);
-        if (!member)
-            continue;
-        const uint32_t received_age_ms = now_ms - member->last_seen_ms;
-        const bool fresh = member->location_valid && received_age_ms <= kTimeoutMs &&
-                           member->fix_age_sec <= (kTimeoutMs - received_age_ms) / 1000UL;
-        const team::GeofenceMemberResult result = _team_geofence.updateMember(
-            member->public_key, fresh, member->latitude_e6 * 10, member->longitude_e6 * 10);
-        if (result == team::GeofenceMemberResult::AlarmStarted)
-        {
-            char message[64] = {};
-            snprintf(message, sizeof(message), "%.*s outside fence",
-                     static_cast<int>(member->name_len), member->name);
-            showAlert(message, 3000);
-        }
-        else if (result == team::GeofenceMemberResult::AlarmCleared)
-        {
-            char message[64] = {};
-            snprintf(message, sizeof(message), "%.*s back inside",
-                     static_cast<int>(member->name_len), member->name);
-            showAlert(message, 1800);
-        }
+        snprintf(message, sizeof(message), "%.*s outside fence",
+                 static_cast<int>(alert.name_len), alert.name);
+        showAlert(message, 3000);
+        heltec::meshcore::ui::ui_task().playAlertFeedback();
     }
-    _team_geofence.endMemberSweep();
+    else if (alert.result == team::GeofenceMemberResult::AlarmCleared)
+    {
+        snprintf(message, sizeof(message), "%.*s back inside",
+                 static_cast<int>(alert.name_len), alert.name);
+        showAlert(message, 1800);
+        heltec::meshcore::ui::ui_task().playAlertFeedback();
+    }
 #endif
 }
 #endif

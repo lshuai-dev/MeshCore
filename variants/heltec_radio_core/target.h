@@ -4,13 +4,13 @@
 #include <RadioLib.h>
 #include <helpers/radiolib/RadioLibWrappers.h>
 #if defined(RADIOCORE_BOARD_RC52)
-#include <HeltecRadioCoreRC52Board.h>
+#include <RC52Board.h>
 using HeltecRadioCoreTargetBoard = HeltecRadioCoreRC52Board;
 #elif defined(RADIOCORE_BOARD_RC32)
-#include <HeltecRadioCoreRC32Board.h>
+#include <RC32Board.h>
 using HeltecRadioCoreTargetBoard = HeltecRadioCoreRC32Board;
 #elif defined(RADIOCORE_BOARD_RCC6)
-#include <HeltecRadioCoreRCC6Board.h>
+#include <RCC6Board.h>
 using HeltecRadioCoreTargetBoard = HeltecRadioCoreRCC6Board;
 #else
 #error "A RadioCore board type must be selected"

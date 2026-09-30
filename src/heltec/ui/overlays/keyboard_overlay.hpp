@@ -19,6 +19,7 @@ class KeyboardOverlay : public AbstractOverlay
 
     bool prepareMessageInput(const UiMessageKeyboardRequest &request);
     bool prepareWaypointInput();
+    bool handleInputKey(uint32_t key);
     bool isWaypointCompose() const
     {
         return _compose_mode == ComposeMode::Waypoint;

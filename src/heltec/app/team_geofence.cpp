@@ -1,7 +1,6 @@
 #include "team_geofence.hpp"
 
 #include <math.h>
-#include <string.h>
 
 namespace heltec::meshcore::team
 {
@@ -36,7 +35,6 @@ bool TeamGeofence::beginEdit()
     if (_state == GeofenceState::Active)
         return false;
     _point_count = 0;
-    clearMembers();
     _state = GeofenceState::Editing;
     return true;
 }
@@ -45,7 +43,6 @@ void TeamGeofence::cancelEdit()
 {
     _point_count = 0;
     _state = GeofenceState::Empty;
-    clearMembers();
 }
 
 void TeamGeofence::deleteFence()
@@ -113,91 +110,6 @@ bool TeamGeofence::contains(int32_t latitude_e7, int32_t longitude_e7) const
             inside = !inside;
     }
     return inside;
-}
-
-void TeamGeofence::clearMembers()
-{
-    memset(_members, 0, sizeof(_members));
-}
-
-GeofenceMemberState *TeamGeofence::findMember(const uint8_t member_id[6], bool allocate)
-{
-    if (!member_id)
-        return nullptr;
-    GeofenceMemberState *free_slot = nullptr;
-    for (GeofenceMemberState &member : _members)
-    {
-        if (member.occupied && memcmp(member.member_id, member_id, sizeof(member.member_id)) == 0)
-            return &member;
-        if (!member.occupied && !free_slot)
-            free_slot = &member;
-    }
-    if (!allocate || !free_slot)
-        return nullptr;
-    free_slot->occupied = true;
-    memcpy(free_slot->member_id, member_id, sizeof(free_slot->member_id));
-    return free_slot;
-}
-
-const GeofenceMemberState *TeamGeofence::findMember(const uint8_t member_id[6]) const
-{
-    if (!member_id)
-        return nullptr;
-    for (const GeofenceMemberState &member : _members)
-    {
-        if (member.occupied && memcmp(member.member_id, member_id, sizeof(member.member_id)) == 0)
-            return &member;
-    }
-    return nullptr;
-}
-
-GeofenceMemberResult TeamGeofence::updateMember(const uint8_t member_id[6], bool location_known,
-                                                 int32_t latitude_e7, int32_t longitude_e7)
-{
-    if (_state != GeofenceState::Active || !member_id)
-        return GeofenceMemberResult::Unchanged;
-    GeofenceMemberState *const member = findMember(member_id, location_known);
-    if (!member)
-        return GeofenceMemberResult::Unchanged;
-    member->seen = true;
-    if (!location_known || !validPoint(latitude_e7, longitude_e7))
-        return GeofenceMemberResult::Unchanged;
-    if (contains(latitude_e7, longitude_e7))
-    {
-        const bool was_active = member->alarm_active;
-        member->outside_count = 0;
-        member->alarm_active = false;
-        return was_active ? GeofenceMemberResult::AlarmCleared : GeofenceMemberResult::Unchanged;
-    }
-    if (member->outside_count < UINT8_MAX)
-        ++member->outside_count;
-    if (!member->alarm_active && member->outside_count >= kOutsideSamplesBeforeAlarm)
-    {
-        member->alarm_active = true;
-        return GeofenceMemberResult::AlarmStarted;
-    }
-    return GeofenceMemberResult::Unchanged;
-}
-
-bool TeamGeofence::memberAlarmActive(const uint8_t member_id[6]) const
-{
-    const GeofenceMemberState *const member = findMember(member_id);
-    return member && member->alarm_active;
-}
-
-void TeamGeofence::beginMemberSweep()
-{
-    for (GeofenceMemberState &member : _members)
-        member.seen = false;
-}
-
-void TeamGeofence::endMemberSweep()
-{
-    for (GeofenceMemberState &member : _members)
-    {
-        if (member.occupied && !member.seen)
-            member = GeofenceMemberState{};
-    }
 }
 
 } // namespace heltec::meshcore::team

@@ -193,6 +193,7 @@ class IBizFacade : public ui::IFeedback {
     }
     virtual bool companionLinkEnabled() const = 0;
     virtual void formatNodeIdLine(char *buf, size_t buf_len) const = 0;
+    virtual uint32_t currentTimeSeconds() const = 0;
     virtual int messageCount() const = 0;
     virtual bool hasCompanionConnection() const = 0;
     virtual uint32_t companionPairingPin() const = 0;

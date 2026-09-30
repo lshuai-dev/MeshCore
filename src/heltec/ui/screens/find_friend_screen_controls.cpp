@@ -96,9 +96,10 @@ _lv_obj_t *FindFriendScreen::addDropdownRow(ChoiceRow &choice, const char *title
     if (!choice.row)
         return nullptr;
     configure_row(choice.row, LV_FLEX_ALIGN_START);
+    lv_obj_set_width(choice.row, lv_pct(100));
     choice.label = lv_label_create(choice.row);
     if (choice.label)
-        lv_label_set_text(choice.label, title);
+        lv_label_set_text_static(choice.label, title ? title : "");
     configure_label(choice.label, LV_SIZE_CONTENT);
     choice.dropdown = ht_dropdown_create(choice.row);
     if (!choice.dropdown)
@@ -140,7 +141,8 @@ _lv_obj_t *FindFriendScreen::addActionRow(const char *title, Action action)
         return nullptr;
     configure_row(row, LV_FLEX_ALIGN_START);
     _lv_obj_t *label = lv_label_create(row);
-    if(label) lv_label_set_text(label, title);
+    if (label)
+        lv_label_set_text_static(label, title ? title : "");
     configure_label(label, lv_pct(100));
     lv_obj_add_flag(row, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_set_style_opa(row, LV_OPA_40, LV_STATE_DISABLED);
@@ -176,7 +178,7 @@ void FindFriendScreen::createControls()
 #endif
     addDropdownRow(_choice_friend, "member", "(none)");
 #if defined(ENV_INCLUDE_GPS) && ENV_INCLUDE_GPS
-    _row_team_message = addActionRow("> Message", Action::TeamMessage);
+    _row_team_message = addActionRow("> message", Action::TeamMessage);
 #endif
     addActionRow("> set waypoint coordinates", Action::WaypointManual);
 }
@@ -324,7 +326,9 @@ void FindFriendScreen::setDropdownIndex(_lv_obj_t *dropdown, uint16_t index, boo
 
 void FindFriendScreen::syncControls(bool force_friend_options)
 {
-    const bool enabled = _biz.findFriendEnabled();
+    const bool gps_available = _biz.gpsStatus().available;
+    const bool configured_enabled = _biz.findFriendEnabled();
+    const bool enabled = configured_enabled && gps_available;
     const bool compass_available = _biz.findFriendUi().compass_hw;
     const biz::IBizFacade::TeamStatus team = _biz.teamStatus();
     if (_choice_role.dropdown && _open_dropdown != _choice_role.dropdown)
@@ -333,7 +337,8 @@ void FindFriendScreen::syncControls(bool force_friend_options)
     }
     if (_open_dropdown != _choice_mode.dropdown)
     {
-        const uint16_t mode = enabled ? static_cast<uint16_t>(_biz.findFriendMode()) : 2U;
+        const uint16_t mode = configured_enabled ?
+            static_cast<uint16_t>(_biz.findFriendMode()) : 2U;
         setDropdownIndex(_choice_mode.dropdown, mode);
     }
     if (enabled && compass_available && _biz.findFriendMode() == 0 &&
@@ -412,7 +417,8 @@ void FindFriendScreen::syncControls(bool force_friend_options)
 
 void FindFriendScreen::updateConditionalVisibility()
 {
-    const bool enabled = _biz.findFriendEnabled();
+    const bool gps_available = _biz.gpsStatus().available;
+    const bool enabled = _biz.findFriendEnabled() && gps_available;
     const bool friend_mode = _biz.findFriendMode() == 0;
     const bool compass_available = _biz.findFriendUi().compass_hw;
     const biz::IBizFacade::TeamStatus team = _biz.teamStatus();
@@ -452,6 +458,17 @@ void FindFriendScreen::updateConditionalVisibility()
         }
     }
     set_hidden(_choice_mode.row, false);
+    if (_choice_mode.dropdown)
+    {
+        if (gps_available)
+        {
+            lv_obj_clear_state(_choice_mode.dropdown, LV_STATE_DISABLED);
+        }
+        else
+        {
+            lv_obj_add_state(_choice_mode.dropdown, LV_STATE_DISABLED);
+        }
+    }
     set_hidden(_choice_friend.row, !team_mode || !has_team || !compass_available);
     set_hidden(_row_team_message, !team_mode || !has_team);
     if (_row_team_message)
@@ -470,7 +487,9 @@ void FindFriendScreen::updateConditionalVisibility()
     if (group())
     {
         _lv_obj_t *const focused = lv_group_get_focused(group());
-        if (focused && !focus_object_available(focused) && _choice_mode.dropdown)
+        if (focused && !focus_object_available(focused) &&
+            focus_object_available(_choice_mode.dropdown) &&
+            lv_obj_get_group(_choice_mode.dropdown) == group())
         {
             lv_group_focus_obj(_choice_mode.dropdown);
             scrollFocusedIntoView(_choice_mode.dropdown);

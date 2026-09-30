@@ -26,8 +26,8 @@ bool MeshAppUi::applyGpsPowerPolicy()
         return false;
 
     const uint32_t now_ms = millis();
-    // Team uses its own Location schedule, not the retired Advert timer.
-    const bool team_share = locationShareEnabled();
+    const auto &team_service = the_mesh.teamService();
+    const bool team_share = team_service.enabled();
     const bool gps_enabled = p->gps_enabled != 0;
 
     const bool track_active = gpsTrackRecording();

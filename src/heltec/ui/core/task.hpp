@@ -72,6 +72,7 @@ class UiTask final : public AbstractUITask
 
     // Alert state (compatible with legacy overlay behavior)
     void showAlert(const char *text, int duration_millis);
+    void playAlertFeedback();
     bool isAlertActive() const;
     const char *getAlertText() const
     {
@@ -95,7 +96,7 @@ class UiTask final : public AbstractUITask
     {
         uint32_t received_ms = 0;
         char origin[62] = {};
-        char text[78] = {};
+        char text[161] = {};
     };
     PreviewEntry _preview_entries[kPreviewCapacity]{};
     uint8_t _preview_head = kPreviewCapacity - 1;

@@ -68,7 +68,7 @@ void ui_map_marker_apply_color(_lv_obj_t *obj, lv_color_t color);
 void ui_map_range_ring_apply_opa(_lv_obj_t *obj, lv_opa_t opa);
 bool ui_map_widget_apply_theme(_lv_obj_t *obj);
 void ui_theme_set_compass_info_layout(_lv_obj_t *obj, lv_coord_t pad_left, lv_coord_t pad_row);
-void ui_theme_set_compass_dial_row_layout(_lv_obj_t *obj, lv_coord_t pad_right);
+void ui_theme_set_compass_dial_row_layout(_lv_obj_t *obj, lv_coord_t pad_column);
 bool ui_button_roller_apply_theme(_lv_obj_t *obj);
 bool ui_license_gate_apply_theme(_lv_obj_t *obj);
 bool ui_radial_navigation_icon_apply_theme(_lv_obj_t *icon);

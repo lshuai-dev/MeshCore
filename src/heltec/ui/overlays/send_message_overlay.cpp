@@ -94,8 +94,8 @@ bool SendMessageOverlay::buildSurface()
         },
         LV_EVENT_CLICKED, this);
 
-    setTitle("Send message");
-    setToolTip(operation_hint::kMessageSelect);
+    setStaticTitle("Send message");
+    setStaticToolTip(operation_hint::kMessageSelect);
 
     _list_mid = ht_class_create(&ht_send_message_list_class, _content);
     if (!_list_mid)
@@ -278,8 +278,8 @@ void SendMessageOverlay::renderRows()
         title = (_model.listKind() == 1) ? "group" : "personal";
         footer_text = footerForPage(true);
     }
-    setTitle(title);
-    setToolTip(footer_text);
+    setStaticTitle(title);
+    setStaticToolTip(footer_text);
 
     if (!ensureRowPool())
         return;

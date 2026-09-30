@@ -10,25 +10,6 @@
 #define NUM_ANALOG_INPUTS 8
 #define NUM_ANALOG_OUTPUTS 0
 
-#define WIRE_INTERFACES_COUNT       (1)
-#if defined(RADIOCORE_BOARD_RC52)
-#define PIN_BOARD_SDA               (21)
-#define PIN_BOARD_SCL               (18)
-#else
-#define PIN_WIRE_SDA 5
-#define PIN_WIRE_SCL 15
-#endif
-
-#define SPI_INTERFACES_COUNT 1
-#define SPI_32MHZ_INTERFACE 1
-#define PIN_SPI_MISO P_LORA_MISO
-#define PIN_SPI_MOSI P_LORA_MOSI
-#define PIN_SPI_SCK P_LORA_SCLK
-#define PIN_SPI_NSS P_LORA_NSS
-
-#define PIN_SERIAL1_RX 8
-#define PIN_SERIAL1_TX 7
-
 #define LED_BUILTIN (-1)
 #define LED_RED (-1)
 #define LED_BLUE (-1)

@@ -3,6 +3,7 @@
 #include <Arduino.h>
 #include <helpers/NRF52Board.h>
 #include <helpers/RefCountedDigitalPin.h>
+#include "RadioCoreTCA6408A.h"
 
 class HeltecRadioCoreRC52Board : public NRF52BoardDCDC
 {
@@ -16,4 +17,5 @@ class HeltecRadioCoreRC52Board : public NRF52BoardDCDC
     const char *getManufacturerName() const override;
 
     RefCountedDigitalPin display_power;
+    RadioCoreTCA6408A io_expander;
 };

@@ -43,7 +43,11 @@ void dispatchAdapted(InputHost &host, const InputEvent &event, const AdaptedInpu
 
     if (input.lv_key != 0)
     {
-        uint32_t key = FocusKeyMapper::translate(input.lv_key);
+        const uint32_t key = FocusKeyMapper::translate(input.lv_key);
+        if (host.interceptInputKey(key))
+        {
+            return;
+        }
         emitKey(key, pulse);
     }
 }

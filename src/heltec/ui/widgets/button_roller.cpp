@@ -154,7 +154,9 @@ lv_obj_t *ButtonRoller::addItem(const char *label)
     lv_obj_t *const lbl = ht_label_create(_label_class, btn);
     if (lbl)
     {
-        lv_label_set_text(lbl, label ? label : "");
+        // Menu builders may pass a temporary formatting buffer. Copy it once
+        // while constructing the fixed roller item pool.
+        ht_label_set_text_copy(lbl, label);
         lv_obj_set_size(lbl, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
         lv_obj_align(lbl, LV_ALIGN_LEFT_MID, 0, 0);
     }

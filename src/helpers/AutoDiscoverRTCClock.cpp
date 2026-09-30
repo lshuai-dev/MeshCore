@@ -20,38 +20,51 @@ static bool rtc_8130_success = false;
 #define PCF8563_ADDRESS  0x51
 #define RX8130CE_ADDRESS 0x32
 
-bool AutoDiscoverRTCClock::i2c_probe(TwoWire& wire, uint8_t addr) {
-  wire.beginTransmission(addr);
-  uint8_t error = wire.endTransmission();
-  return (error == 0);
+bool AutoDiscoverRTCClock::i2c_probe(TwoWire& wire, uint8_t addr)
+{
+    MESH_DEBUG_PRINTLN("[rtc] probe begin address=0x%02X", addr);
+    wire.beginTransmission(addr);
+    const uint8_t error = wire.endTransmission();
+    MESH_DEBUG_PRINTLN("[rtc] probe end address=0x%02X error=%u", addr, error);
+    return error == 0U;
 }
 
-void AutoDiscoverRTCClock::begin(TwoWire& wire) {
-  #if !defined(DISABLE_DS3231_PROBE)
-  if (i2c_probe(wire, DS3231_ADDRESS)) {
-    ds3231_success = rtc_3231.begin(&wire);
-  }
-  #endif
+void AutoDiscoverRTCClock::begin(TwoWire& wire)
+{
+#if !defined(DISABLE_DS3231_PROBE)
+    if (i2c_probe(wire, DS3231_ADDRESS))
+    {
+        MESH_DEBUG_PRINTLN("[rtc] DS3231 init begin");
+        ds3231_success = rtc_3231.begin(&wire);
+        MESH_DEBUG_PRINTLN("[rtc] DS3231 init end ready=%u", ds3231_success ? 1U : 0U);
+    }
+#endif
 
-  if (i2c_probe(wire, RV3028_ADDRESS)) {
-    rtc_rv3028.initI2C(wire);
-    rtc_rv3028.writeToRegister(0x35, 0x00);
-    rtc_rv3028.writeToRegister(0x37, 0xB4); // Direct Switching Mode (DSM): when VDD < VBACKUP, switchover occurs from VDD to VBACKUP
-    rtc_rv3028.set24HourMode(); // Set the device to use the 24hour format (default) instead of the 12 hour format
-    rv3028_success = true;
-  }
+    if (i2c_probe(wire, RV3028_ADDRESS))
+    {
+        MESH_DEBUG_PRINTLN("[rtc] RV3028 init begin");
+        rtc_rv3028.initI2C(wire);
+        rtc_rv3028.writeToRegister(0x35, 0x00);
+        rtc_rv3028.writeToRegister(0x37, 0xB4);
+        rtc_rv3028.set24HourMode();
+        rv3028_success = true;
+        MESH_DEBUG_PRINTLN("[rtc] RV3028 init end ready=1");
+    }
 
-  if (i2c_probe(wire, PCF8563_ADDRESS)) {
-    MESH_DEBUG_PRINTLN("PCF8563: Found");
-    rtc_8563_success = rtc_8563.begin(&wire);
-  }
+    if (i2c_probe(wire, PCF8563_ADDRESS))
+    {
+        MESH_DEBUG_PRINTLN("[rtc] PCF8563 init begin");
+        rtc_8563_success = rtc_8563.begin(&wire);
+        MESH_DEBUG_PRINTLN("[rtc] PCF8563 init end ready=%u", rtc_8563_success ? 1U : 0U);
+    }
 
-  if (i2c_probe(wire, RX8130CE_ADDRESS)) {
-    MESH_DEBUG_PRINTLN("RX8130CE: Found");
-    rtc_8130.begin(&wire);
-    rtc_8130_success = true;
-    MESH_DEBUG_PRINTLN("RX8130CE: Initialized");
-  }
+    if (i2c_probe(wire, RX8130CE_ADDRESS))
+    {
+        MESH_DEBUG_PRINTLN("[rtc] RX8130CE init begin");
+        rtc_8130.begin(&wire);
+        rtc_8130_success = true;
+        MESH_DEBUG_PRINTLN("[rtc] RX8130CE init end ready=1");
+    }
 }
 
 uint32_t AutoDiscoverRTCClock::getCurrentTime() {

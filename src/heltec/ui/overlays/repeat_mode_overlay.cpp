@@ -61,8 +61,8 @@ RepeatModeOverlay::RepeatModeOverlay(biz::IBizFacade &biz)
 bool RepeatModeOverlay::buildSurface() {
     if (!FramedOverlay::buildSurface()) return false;
 
-    setTitle("Repeat frequency");
-    setToolTip(operation_hint::kRepeatMode);
+    setStaticTitle("Repeat frequency");
+    setStaticToolTip(operation_hint::kRepeatMode);
 
     _lv_obj_t *const list = ht_class_create(&ht_repeat_mode_list_class, _content);
     if (!list) return false;

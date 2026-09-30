@@ -282,7 +282,7 @@ void NavigationPane::setLabel(uint8_t id, const char *label)
         return;
     _lv_obj_t *lbl = lv_obj_get_child(bar, 0);
     if (lbl)
-        lv_label_set_text(lbl, label ? label : "");
+        lv_label_set_text_static(lbl, label ? label : "");
 }
 
 void NavigationPane::setFooterSlot(uint8_t id)
@@ -669,8 +669,8 @@ void NavigationPane::setIcon(uint8_t id, const lv_img_dsc_t *img)
     lv_obj_add_flag(bar, LV_OBJ_FLAG_EVENT_BUBBLE);
 
     _lv_obj_t *lbl =
-        ht_label_create(&ht_navigation_title_label_class, bar,
-                        _labels[id] ? _labels[id] : "");
+        ht_label_create_static(&ht_navigation_title_label_class, bar,
+                               _labels[id] ? _labels[id] : "");
     if (!lbl)
     {
         lv_obj_del(cell);

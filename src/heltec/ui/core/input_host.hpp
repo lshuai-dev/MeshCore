@@ -18,6 +18,8 @@ class InputHost
     virtual void notifyDisplayActivity(uint32_t now_ms) = 0;
     virtual void reconcileInput() = 0;
     virtual void ensureTileKeypadFocus() = 0;
+    virtual bool blocksCloseTopLayer() const = 0;
+    virtual bool interceptInputKey(uint32_t key) = 0;
     virtual lv_obj_t *frameRoot() const = 0;
 };
 

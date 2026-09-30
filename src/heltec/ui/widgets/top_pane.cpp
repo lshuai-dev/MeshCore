@@ -7,6 +7,20 @@ namespace heltec::meshcore::ui
 namespace
 {
 
+#if HELTEC_HAS_TOUCH
+constexpr lv_coord_t kRightSlotGap = 0;
+constexpr lv_coord_t kTopPaneEdgeInset = 8;
+constexpr lv_coord_t kBatteryPadRight = 4;
+#else
+constexpr lv_coord_t kRightSlotGap = 0;
+constexpr lv_coord_t kTopPaneEdgeInset = 3;
+constexpr lv_coord_t kBatteryPadRight = 3;
+#endif
+
+constexpr uint8_t kTopPaneSideWidthPercent = 30;
+constexpr uint8_t kTopPaneCenterWidthPercent = 40;
+constexpr uint16_t kTitleScrollSpeed = 12;
+
 #if !HELTEC_UI_DISPLAY_MONO
 lv_color_t battery_fill_color(uint8_t pct)
 {
@@ -119,6 +133,8 @@ bool TopPane::create(_lv_obj_t *parent)
     if (!_root)
         return false;
     lv_obj_set_width(_root, lv_pct(100));
+    lv_obj_set_style_pad_left(_root, LV_DPX(kTopPaneEdgeInset), LV_PART_MAIN);
+    lv_obj_set_style_pad_right(_root, LV_DPX(kTopPaneEdgeInset), LV_PART_MAIN);
     lv_obj_set_flex_flow(_root, LV_FLEX_FLOW_ROW);
     lv_obj_set_flex_align(_root, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
     lv_obj_clear_flag(_root, LV_OBJ_FLAG_SCROLLABLE);
@@ -131,8 +147,23 @@ bool TopPane::create(_lv_obj_t *parent)
         return false;
     }
     lv_obj_set_height(left_slot, lv_pct(100));
-    lv_obj_set_flex_grow(left_slot, 1);
+    lv_obj_set_width(left_slot, lv_pct(kTopPaneSideWidthPercent));
+    lv_obj_set_flex_grow(left_slot, 0);
+    lv_obj_set_flex_flow(left_slot, LV_FLEX_FLOW_ROW);
+    lv_obj_set_flex_align(left_slot, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER,
+                          LV_FLEX_ALIGN_CENTER);
+    lv_obj_set_style_pad_column(left_slot, 0, LV_PART_MAIN);
     lv_obj_clear_flag(left_slot, LV_OBJ_FLAG_SCROLLABLE);
+
+    _time = ht_label_create(&ht_top_pane_title_class, left_slot, _time_text);
+    if (!_time)
+    {
+        lv_obj_del(_root);
+        _root = nullptr;
+        return false;
+    }
+    lv_obj_set_width(_time, LV_SIZE_CONTENT);
+    lv_obj_clear_flag(_time, LV_OBJ_FLAG_SCROLLABLE | LV_OBJ_FLAG_SCROLL_ON_FOCUS);
 
     _lv_obj_t *center_slot = lv_obj_create(_root);
     if (!center_slot)
@@ -142,10 +173,13 @@ bool TopPane::create(_lv_obj_t *parent)
         return false;
     }
     lv_obj_set_height(center_slot, lv_pct(100));
-    lv_obj_set_flex_grow(center_slot, 2);
+    lv_obj_set_width(center_slot, lv_pct(kTopPaneCenterWidthPercent));
+    lv_obj_set_flex_grow(center_slot, 0);
     lv_obj_set_flex_flow(center_slot, LV_FLEX_FLOW_ROW);
     lv_obj_set_flex_align(center_slot, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER,
                           LV_FLEX_ALIGN_CENTER);
+    lv_obj_align(center_slot, LV_ALIGN_CENTER, 0, 0);
+    lv_obj_clear_flag(center_slot, LV_OBJ_FLAG_CLICKABLE | LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_clear_flag(center_slot, LV_OBJ_FLAG_SCROLLABLE);
 
     _title = ht_label_create(&ht_top_pane_title_class, center_slot);
@@ -155,10 +189,12 @@ bool TopPane::create(_lv_obj_t *parent)
         _root = nullptr;
         return false;
     }
-    lv_label_set_text(_title, "");
-    lv_obj_set_size(_title, lv_pct(100), LV_SIZE_CONTENT);
+    lv_label_set_text_static(_title, "");
+    lv_obj_set_width(_title, lv_pct(100));
+    lv_obj_set_height(_title, LV_SIZE_CONTENT);
     lv_obj_align(_title, LV_ALIGN_CENTER, 0, 0);
     lv_obj_clear_flag(_title, LV_OBJ_FLAG_SCROLLABLE | LV_OBJ_FLAG_SCROLL_ON_FOCUS);
+    lv_obj_set_style_anim_speed(_title, kTitleScrollSpeed, LV_PART_MAIN);
     lv_label_set_long_mode(_title, LV_LABEL_LONG_SCROLL_CIRCULAR);
     lv_obj_add_flag(_title, LV_OBJ_FLAG_EVENT_BUBBLE);
 
@@ -170,11 +206,25 @@ bool TopPane::create(_lv_obj_t *parent)
         return false;
     }
     lv_obj_set_height(right_slot, lv_pct(100));
-    lv_obj_set_flex_grow(right_slot, 1);
+    lv_obj_set_width(right_slot, lv_pct(kTopPaneSideWidthPercent));
+    lv_obj_set_flex_grow(right_slot, 0);
     lv_obj_set_flex_flow(right_slot, LV_FLEX_FLOW_ROW);
     lv_obj_set_flex_align(right_slot, LV_FLEX_ALIGN_END, LV_FLEX_ALIGN_CENTER,
                           LV_FLEX_ALIGN_CENTER);
+    lv_obj_set_style_pad_column(right_slot, LV_DPX(kRightSlotGap), LV_PART_MAIN);
+    lv_obj_set_style_pad_right(right_slot, LV_DPX(kBatteryPadRight), LV_PART_MAIN);
     lv_obj_clear_flag(right_slot, LV_OBJ_FLAG_SCROLLABLE);
+
+    _bat_percent_label = ht_label_create(&ht_top_pane_title_class, right_slot, "");
+    if (!_bat_percent_label)
+    {
+        lv_obj_del(_root);
+        _root = nullptr;
+        return false;
+    }
+    lv_obj_set_width(_bat_percent_label, LV_SIZE_CONTENT);
+    lv_obj_clear_flag(_bat_percent_label,
+                      LV_OBJ_FLAG_SCROLLABLE | LV_OBJ_FLAG_SCROLL_ON_FOCUS);
 
     _bat_cont = ht_class_create(&ht_top_pane_battery_class, right_slot);
     if (!_bat_cont)
@@ -239,10 +289,26 @@ void TopPane::setTitle(const char *text)
         lv_label_set_text_static(_title, text ? text : "");
 }
 
+void TopPane::setTime(uint32_t epoch_seconds)
+{
+    const uint32_t minute_of_day = (epoch_seconds / 60U) % (24U * 60U);
+    lv_snprintf(_time_text, sizeof(_time_text), "%02lu:%02lu",
+                static_cast<unsigned long>(minute_of_day / 60U),
+                static_cast<unsigned long>(minute_of_day % 60U));
+    if (_time)
+        lv_label_set_text_static(_time, _time_text);
+}
+
 void TopPane::setBatteryStatus(uint16_t millivolts, uint8_t percent)
 {
     _bat_present = millivolts > 0;
     _bat_percent = percent > 100 ? 100 : percent;
+    if (_bat_present)
+        lv_snprintf(_battery_text, sizeof(_battery_text), "%u%%", _bat_percent);
+    else
+        lv_snprintf(_battery_text, sizeof(_battery_text), "--%%");
+    if (_bat_percent_label)
+        lv_label_set_text_static(_bat_percent_label, _battery_text);
     renderBattery();
 }
 

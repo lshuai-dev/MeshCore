@@ -8,6 +8,18 @@
 
 namespace heltec::meshcore::ui {
 
+namespace {
+
+constexpr uint16_t kMessageScrollSpeed = 18;
+constexpr uint16_t kMessageScrollDelayMs = 2000;
+
+void setMessageScrollY(void *object, int32_t value)
+{
+    lv_obj_set_y(static_cast<lv_obj_t *>(object), static_cast<lv_coord_t>(value));
+}
+
+} // namespace
+
 PreviewOverlay::PreviewOverlay(biz::IBizFacade &biz)
     : FramedOverlay(biz, ht_preview_overlay_class) {
 }
@@ -38,17 +50,26 @@ bool PreviewOverlay::buildSurface() {
     lv_label_set_text_static(_age_label, _age_text);
 
     _origin_label = ht_label_create(&ht_preview_origin_class, _content);
-    _message_label = ht_label_create(&ht_preview_text_class, _content);
-    if (!_origin_label || !_message_label) return false;
+    _message_viewport = lv_obj_create(_content);
+    if (!_origin_label || !_message_viewport) return false;
+
+    lv_obj_remove_style_all(_message_viewport);
+    lv_obj_set_width(_message_viewport, lv_pct(100));
+    lv_obj_set_flex_grow(_message_viewport, 1);
+    lv_obj_clear_flag(_message_viewport, LV_OBJ_FLAG_SCROLLABLE);
+
+    _message_label = ht_label_create(&ht_preview_text_class, _message_viewport);
+    if (!_message_label) return false;
     lv_label_set_text_static(_origin_label, _origin_text);
     lv_label_set_text_static(_message_label, _message_text);
     lv_obj_set_width(_origin_label, lv_pct(100));
     lv_label_set_long_mode(_origin_label, LV_LABEL_LONG_DOT);
     lv_obj_set_width(_message_label, lv_pct(100));
-    lv_obj_set_flex_grow(_message_label, 1);
+    lv_obj_set_height(_message_label, LV_SIZE_CONTENT);
+    lv_obj_align(_message_label, LV_ALIGN_TOP_LEFT, 0, 0);
     lv_label_set_long_mode(_message_label, LV_LABEL_LONG_WRAP);
 
-    setToolTip(operation_hint::kPreviewClose);
+    setStaticToolTip(operation_hint::kPreviewClose);
 
     _age_timer = lv_timer_create(ageTimerCallback, 1000U, this);
     if (!_age_timer) return false;
@@ -64,10 +85,11 @@ bool PreviewOverlay::onKey(uint32_t key) {
         emitEvent(EventType::PreviewNext);
         return true;
     }
-    if (key == LV_KEY_ESC) {
+    if (key == LV_KEY_ENTER) {
         emitEvent(EventType::PreviewClose);
         return true;
     }
+    if (key == LV_KEY_ESC) return true;
     return false;
 }
 
@@ -98,6 +120,31 @@ void PreviewOverlay::applyContent(uint8_t unread, uint32_t received_ms, const ch
     lv_label_set_text_static(_message_label, _message_text);
 }
 
+void PreviewOverlay::updateMessageScroll()
+{
+    if (!_root || !_message_viewport || !_message_label) return;
+
+    lv_anim_del(_message_label, setMessageScrollY);
+    lv_obj_set_y(_message_label, 0);
+    lv_obj_update_layout(_root);
+
+    const lv_coord_t overflow = lv_obj_get_height(_message_label) -
+                                lv_obj_get_content_height(_message_viewport);
+    if (overflow <= 0) return;
+
+    lv_anim_t animation;
+    lv_anim_init(&animation);
+    lv_anim_set_var(&animation, _message_label);
+    lv_anim_set_exec_cb(&animation, setMessageScrollY);
+    lv_anim_set_values(&animation, 0, -overflow);
+    lv_anim_set_time(&animation, lv_anim_speed_to_time(kMessageScrollSpeed, 0, overflow));
+    lv_anim_set_playback_time(&animation, animation.time);
+    lv_anim_set_playback_delay(&animation, kMessageScrollDelayMs);
+    lv_anim_set_repeat_delay(&animation, kMessageScrollDelayMs);
+    lv_anim_set_repeat_count(&animation, LV_ANIM_REPEAT_INFINITE);
+    lv_anim_start(&animation);
+}
+
 void PreviewOverlay::updateAge() {
     const uint32_t age_sec = (lv_tick_get() - _received_ms) / 1000U;
     char age_text[sizeof(_age_text)] = {};
@@ -117,6 +164,7 @@ void PreviewOverlay::updateAge() {
 
 void PreviewOverlay::onEnter() {
     updateAge();
+    updateMessageScroll();
     if (_age_timer) {
         lv_timer_reset(_age_timer);
         lv_timer_resume(_age_timer);
@@ -125,6 +173,10 @@ void PreviewOverlay::onEnter() {
 }
 
 void PreviewOverlay::onExit() {
+    if (_message_label) {
+        lv_anim_del(_message_label, setMessageScrollY);
+        lv_obj_set_y(_message_label, 0);
+    }
     if (_age_timer) lv_timer_pause(_age_timer);
 }
 

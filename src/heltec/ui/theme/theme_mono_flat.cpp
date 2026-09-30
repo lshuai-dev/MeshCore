@@ -28,7 +28,9 @@ static lv_style_t s_switch_main_focus;
 static lv_style_t s_switch_indicator;
 static lv_style_t s_switch_indicator_checked;
 static lv_style_t s_switch_knob;
+#if LV_COLOR_DEPTH == 1
 static lv_style_t s_switch_knob_checked;
+#endif
 static lv_style_t s_cascading_page_style;
 static lv_style_t s_cascading_item_style;
 static lv_style_t s_cascading_item_selected_style;
@@ -122,8 +124,6 @@ static void init_widget_styles(bool ssd1306)
         return;
 
     lv_style_init(&s_mono_reset_style);
-    lv_style_set_border_width(&s_mono_reset_style, 0);
-    lv_style_set_outline_width(&s_mono_reset_style, 0);
 
     s_color_fg = heltec::meshcore::ui::ui_color_fg();
     s_color_bg = heltec::meshcore::ui::ui_color_bg();
@@ -155,11 +155,6 @@ static void init_widget_styles(bool ssd1306)
     heltec::meshcore::ui::ui_widget_theme_set_cascading_menu_styles(
         {&s_cascading_page_style, &s_cascading_item_style,
          &s_cascading_item_selected_style});
-    lv_style_set_bg_opa(&s_mono_reset_style, LV_OPA_TRANSP);
-    lv_style_set_border_opa(&s_mono_reset_style, LV_OPA_TRANSP);
-    lv_style_set_shadow_width(&s_mono_reset_style, 0);
-    lv_style_set_radius(&s_mono_reset_style, 0);
-    lv_style_set_pad_all(&s_mono_reset_style, 0);
     lv_style_set_text_color(&s_mono_reset_style, s_color_fg);
 
     lv_style_init(&s_switch_main);
@@ -249,8 +244,8 @@ static void init_widget_styles(bool ssd1306)
     lv_style_set_pad_all(&s_switch_knob, -2);
     lv_style_set_radius(&s_switch_knob, LV_RADIUS_CIRCLE);
 
-    lv_style_init(&s_switch_knob_checked);
 #if LV_COLOR_DEPTH == 1
+    lv_style_init(&s_switch_knob_checked);
     lv_style_set_bg_color(&s_switch_knob_checked, s_color_bg);
     lv_style_set_bg_opa(&s_switch_knob_checked, LV_OPA_COVER);
     lv_style_set_border_width(&s_switch_knob_checked, 0);

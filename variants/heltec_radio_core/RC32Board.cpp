@@ -1,6 +1,6 @@
 #if defined(RADIOCORE_BOARD_RC32)
 
-#include "HeltecRadioCoreRC32Board.h"
+#include "RC32Board.h"
 
 #include <Arduino.h>
 #include <driver/rtc_io.h>
@@ -10,11 +10,37 @@
 #include <lvgl.h>
 #include "heltec/drivers/display/display_port.hpp"
 #include "heltec/drivers/input/momentary_button.hpp"
+#include "heltec/ui/core/input_pipeline.hpp"
 #endif
 
 namespace
 {
-void initializeUserInterface(RefCountedDigitalPin &display_power)
+#if defined(HELTEC_MESH_UI) && HELTEC_MESH_UI
+constexpr uint32_t kIoExpanderPollMs = 20U;
+RadioCoreTCA6408A *s_navigation_expander = nullptr;
+
+void pollNavigationExpander(lv_timer_t *timer)
+{
+    (void)timer;
+    if (s_navigation_expander == nullptr)
+    {
+        return;
+    }
+
+    const uint8_t pressed_edges = s_navigation_expander->pollPressedEdges();
+    if ((pressed_edges & 0x01U) != 0U)
+    {
+        heltec::meshcore::ui::InputPipeline::onSyntheticKey(LV_KEY_PREV, true);
+    }
+    if ((pressed_edges & 0x02U) != 0U)
+    {
+        heltec::meshcore::ui::InputPipeline::onSyntheticKey(LV_KEY_NEXT, true);
+    }
+}
+#endif
+
+void initializeUserInterface(RefCountedDigitalPin &display_power,
+                             RadioCoreTCA6408A &io_expander)
 {
 #if defined(HELTEC_MESH_UI) && HELTEC_MESH_UI
     display_power.claim();
@@ -33,14 +59,21 @@ void initializeUserInterface(RefCountedDigitalPin &display_power)
     config.buttons[0].map = KeyMap(LV_KEY_NEXT, LV_KEY_ESC, LV_KEY_PREV, LV_KEY_ENTER);
     heltec::meshcore::dal::momentary_button::configure(config);
     heltec::meshcore::dal::momentary_button::initialize();
+    if (io_expander.isReady())
+    {
+        s_navigation_expander = &io_expander;
+        (void)lv_timer_create(pollNavigationExpander, kIoExpanderPollMs, nullptr);
+    }
 #else
     (void)display_power;
+    (void)io_expander;
 #endif
 }
 } // namespace
 
 HeltecRadioCoreRC32Board::HeltecRadioCoreRC32Board()
-    : periph_power(PIN_TFT_VDD_CTL, PIN_TFT_VDD_CTL_ACTIVE)
+    : periph_power(PIN_TFT_VDD_CTL, PIN_TFT_VDD_CTL_ACTIVE),
+      io_expander(Wire)
 {
 }
 
@@ -48,11 +81,22 @@ void HeltecRadioCoreRC32Board::begin()
 {
     ESP32Board::begin();
     periph_power.begin();
+#if defined(PIN_SENSOR_EN) && (PIN_SENSOR_EN >= 0) && defined(PIN_SENSOR_EN_ACTIVE)
+    pinMode(PIN_SENSOR_EN, OUTPUT);
+    digitalWrite(PIN_SENSOR_EN, PIN_SENSOR_EN_ACTIVE);
+    delay(5);
+#endif
+#if defined(PIN_SENSOR_RST) && defined(PIN_SENSOR_INT)
+    const bool io_expander_ready = io_expander.begin(PIN_SENSOR_RST, PIN_SENSOR_INT);
+    MESH_DEBUG_PRINTLN("[boot][rc32] TCA6408A ready=%u dip=0x%02X",
+                       io_expander_ready ? 1U : 0U,
+                       static_cast<unsigned int>(io_expander.getDipSwitchState()));
+#endif
 #if defined(PIN_LORA_POWER) && (PIN_LORA_POWER >= 0)
     pinMode(PIN_LORA_POWER, OUTPUT);
     digitalWrite(PIN_LORA_POWER, PIN_LORA_POWER_ACTIVE);
 #endif
-    initializeUserInterface(periph_power);
+    initializeUserInterface(periph_power, io_expander);
 }
 
 void HeltecRadioCoreRC32Board::onBeforeTransmit()

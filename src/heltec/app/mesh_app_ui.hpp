@@ -21,9 +21,7 @@ namespace heltec::meshcore::biz
 class MeshAppUi final : public IBizFacade
 {
   public:
-    explicit MeshAppUi(heltec::meshcore::power::PowerMgr &power) : _power(power)
-    {
-    }
+    explicit MeshAppUi(heltec::meshcore::power::PowerMgr &power);
 
     void pollRuntime();
     void reconcileGpsPower();
@@ -86,6 +84,7 @@ class MeshAppUi final : public IBizFacade
     void setCompanionLinkEnabled(bool enabled) override;
 
     void formatNodeIdLine(char *buf, size_t buf_len) const override;
+    uint32_t currentTimeSeconds() const override;
     int messageCount() const override;
     bool hasCompanionConnection() const override;
     uint32_t companionPairingPin() const override;
@@ -161,6 +160,8 @@ class MeshAppUi final : public IBizFacade
     mutable MessagePresetStore _message_presets{};
     static void notifyAppState(heltec::meshcore::ui::AppStateEventType type);
     static void notifyCompanionChanged();
+    static void handleAppStateEvent(void *user_data,
+                                    const heltec::meshcore::ui::AppStateEvent &event);
     void notifyRadioChanged();
     bool applyGpsPowerPolicy();
     void notifyGpsChanged();
@@ -172,7 +173,7 @@ class MeshAppUi final : public IBizFacade
     void resetFindFriendNavState() const;
     void syncFindFriendTeamPin() const;
 #if defined(HELTEC_GEOFENCE) && HELTEC_GEOFENCE
-    void pollTeamGeofence();
+    void pollTeamGeofenceAlerts();
 #endif
     bool findFriendMemberLabel(int index, char *buf, size_t buf_len) const;
     bool findFriendMemberHasGps(int index) const;
@@ -207,12 +208,6 @@ class MeshAppUi final : public IBizFacade
     bool _find_friend_foreground_active = false;
     uint32_t _team_runtime_fingerprint = 0;
     bool _team_runtime_fingerprint_valid = false;
-#if defined(HELTEC_GEOFENCE) && HELTEC_GEOFENCE
-    team::TeamGeofence _team_geofence{};
-    uint64_t _geofence_team_id = 0;
-    uint16_t _geofence_change_sequence = 0;
-#endif
-
 #if defined(ENV_INCLUDE_MAP) && ENV_INCLUDE_MAP
     mutable MapPlotUi _map_plot_cache{};
 #endif

@@ -1,6 +1,6 @@
 #if defined(RADIOCORE_BOARD_RCC6)
 
-#include "HeltecRadioCoreRCC6Board.h"
+#include "RCC6Board.h"
 
 #include <Arduino.h>
 #include <esp_sleep.h>

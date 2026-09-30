@@ -20,6 +20,12 @@ void MeshAppUi::formatNodeIdLine(char *buf, size_t buf_len) const
     snprintf(buf, buf_len, "ID: %s", name);
 }
 
+uint32_t MeshAppUi::currentTimeSeconds() const
+{
+    mesh::RTCClock *const rtc = the_mesh.getRTCClock();
+    return rtc ? rtc->getCurrentTime() : 0;
+}
+
 int MeshAppUi::messageCount() const
 {
     return heltec::meshcore::ui::ui_task().msgCount();

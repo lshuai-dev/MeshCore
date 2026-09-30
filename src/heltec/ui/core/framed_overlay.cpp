@@ -34,6 +34,7 @@ bool FramedOverlay::buildHeader() {
 
     lv_obj_set_width(_header, lv_pct(100));
     lv_label_set_long_mode(_header, LV_LABEL_LONG_CLIP);
+    lv_label_set_text_static(_header, _title_text);
     return true;
 }
 
@@ -62,18 +63,29 @@ bool FramedOverlay::buildFooter() {
 
     lv_obj_set_width(_footer, lv_pct(100));
     lv_label_set_long_mode(_footer, LV_LABEL_LONG_CLIP);
+    lv_label_set_text_static(_footer, _tool_tip_text);
     return true;
 }
 
-void FramedOverlay::setTitle(const char *text) {
+void FramedOverlay::setStaticTitle(const char *text) {
+    const char *const value = text ? text : "";
+    if (_title_text == value) {
+        return;
+    }
+    _title_text = value;
     if (_header) {
-        lv_label_set_text(_header, text ? text : "");
+        lv_label_set_text_static(_header, _title_text);
     }
 }
 
-void FramedOverlay::setToolTip(const char *text) {
+void FramedOverlay::setStaticToolTip(const char *text) {
+    const char *const value = text ? text : "";
+    if (_tool_tip_text == value) {
+        return;
+    }
+    _tool_tip_text = value;
     if (_footer) {
-        lv_label_set_text(_footer, text ? text : "");
+        lv_label_set_text_static(_footer, _tool_tip_text);
     }
 }
 

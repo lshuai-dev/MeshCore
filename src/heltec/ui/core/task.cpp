@@ -376,6 +376,14 @@ void UiTask::showAlert(const char *text, int duration_millis) {
     }
 }
 
+void UiTask::playAlertFeedback() {
+#ifdef PIN_BUZZER
+    if (!_buzzer.isQuiet()) {
+        _buzzer.play("alert:d=8,o=6,b=180: c,c");
+    }
+#endif
+}
+
 bool UiTask::isAlertActive() const {
     return _alert_expiry_ms != 0 && (int32_t)(millis() - _alert_expiry_ms) < 0 && _alert[0] != '\0';
 }

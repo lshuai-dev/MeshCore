@@ -11,20 +11,40 @@ AppStateNotifier &app_state_notifier()
 
 void AppStateNotifier::bind(AppStateSink sink, void *user_data)
 {
-    _sink = sink;
-    _user_data = user_data;
+    if (!sink)
+    {
+        return;
+    }
+    for (Binding &binding : _bindings)
+    {
+        if (binding.sink == sink && binding.user_data == user_data)
+        {
+            return;
+        }
+        if (!binding.sink)
+        {
+            binding.sink = sink;
+            binding.user_data = user_data;
+            return;
+        }
+    }
 }
 
 void AppStateNotifier::clear()
 {
-    _sink = nullptr;
-    _user_data = nullptr;
+    for (Binding &binding : _bindings)
+    {
+        binding = Binding{};
+    }
 }
 
 void AppStateNotifier::notify(const AppStateEvent &event)
 {
-    if (_sink)
-        _sink(_user_data, event);
+    for (const Binding &binding : _bindings)
+    {
+        if (binding.sink)
+            binding.sink(binding.user_data, event);
+    }
 }
 
 } // namespace heltec::meshcore::ui

@@ -104,6 +104,26 @@ class UiApp final : public IUiHost, public InputHost {
     void onBacklightTurnedOn() override;
     void reconcileInput() override;
     void ensureTileKeypadFocus() override;
+    bool blocksCloseTopLayer() const override
+    {
+#if UI_INCLUDE_KEYBOARD_OVERLAY
+        return _surfaces.isActive(&_keyboardOvl);
+#else
+        return false;
+#endif
+    }
+    bool interceptInputKey(uint32_t key) override
+    {
+#if UI_INCLUDE_KEYBOARD_OVERLAY
+        if (_surfaces.isActive(&_keyboardOvl))
+        {
+            return _keyboardOvl.handleInputKey(key);
+        }
+#else
+        (void)key;
+#endif
+        return false;
+    }
     lv_obj_t *frameRoot() const override {
         return _frame_root;
     }
@@ -141,6 +161,7 @@ class UiApp final : public IUiHost, public InputHost {
 #endif
     uint8_t activeTileIndex() const;
     void setTopPaneTitle(const char *title);
+    void refreshTopPaneStatus(bool force = false);
     bool inputOnActiveScreen() const;
     void notifyNavActivity(uint32_t now_ms);
     void openNavigationPane();
@@ -189,6 +210,7 @@ class UiApp final : public IUiHost, public InputHost {
     AppStateUiDispatcher _app_state_dispatcher;
     SurfaceManager _surfaces;
     TopPane _top_pane;
+    uint32_t _top_pane_minute = UINT32_MAX;
     AppNavigation _navigation;
     uint32_t _nav_last_activity_ms = 0;
     uint8_t _scheduled_nav_tile = kNoScheduledTile;

@@ -32,7 +32,7 @@ constexpr uint8_t kCommandAddressMode = 0x36;
 constexpr uint8_t kMadctlMy = 0x80;
 constexpr uint8_t kMadctlMx = 0x40;
 constexpr uint8_t kMadctlMv = 0x20;
-constexpr uint8_t kMadctlBgr = 0x08;
+constexpr uint8_t kMadctlRgb = 0x00;
 
 struct InitCommand
 {
@@ -259,7 +259,7 @@ void initialize_panel()
 
 void set_panel_rotation_and_color_order()
 {
-    uint8_t madctl = kMadctlBgr;
+    uint8_t madctl = kMadctlRgb;
     switch (kDisplayRotation & 3U)
     {
     case 1:

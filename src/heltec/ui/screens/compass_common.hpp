@@ -32,20 +32,23 @@ inline lv_obj_t *compass_create_info_column(lv_obj_t *parent, lv_coord_t width_p
     lv_obj_set_size(info, lv_pct(width_pct), lv_pct(100));
     lv_obj_set_flex_grow(info, 0);
     lv_obj_set_flex_flow(info, LV_FLEX_FLOW_COLUMN);
-    lv_obj_set_flex_align(info, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_START);
+    // Rows in the information column must use the full cross-axis width.
+    // Center alignment makes content-sized children leave a visible gap at
+    // the right edge on narrow displays.
+    lv_obj_set_flex_align(info, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_START);
     ui_theme_set_compass_info_layout(info, pad_left, pad_row);
     lv_obj_clear_flag(info, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_add_flag(info, LV_OBJ_FLAG_OVERFLOW_VISIBLE);
     return info;
 }
 
-inline void compass_init_dial_row(lv_obj_t *root, lv_coord_t pad_right)
+inline void compass_init_dial_row(lv_obj_t *root, lv_coord_t pad_column)
 {
     if (!root)
         return;
     lv_obj_set_flex_flow(root, LV_FLEX_FLOW_ROW);
     lv_obj_set_flex_align(root, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
-    ui_theme_set_compass_dial_row_layout(root, pad_right);
+    ui_theme_set_compass_dial_row_layout(root, pad_column);
     lv_obj_clear_flag(root, LV_OBJ_FLAG_SCROLLABLE);
 }
 

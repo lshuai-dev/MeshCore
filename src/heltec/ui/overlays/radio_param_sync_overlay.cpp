@@ -42,8 +42,8 @@ bool RadioParamSyncOverlay::buildSurface()
         return false;
 
 
-    setTitle("Radio param preset");
-    setToolTip(operation_hint::kRadioPreset);
+    setStaticTitle("Radio param preset");
+    setStaticToolTip(operation_hint::kRadioPreset);
 
     _list = ht_class_create(&ht_radio_sync_list_class, _content);
     if (!_list)

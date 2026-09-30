@@ -18,18 +18,16 @@
 #define FF_INFO_COL_PAD_LEFT 2
 #endif
 
+#ifndef DISPLAY_ORIENTATION_PORTRAIT
+#define DISPLAY_ORIENTATION_PORTRAIT 0
+#endif
+
 namespace heltec::meshcore::ui {
 
 namespace {
-#if defined(HELTEC_HAS_TOUCH) && HELTEC_HAS_TOUCH
+#if DISPLAY_ORIENTATION_PORTRAIT
 constexpr lv_coord_t kTouchFindFriendDialHeight = 144;
 constexpr lv_coord_t kTouchFindFriendDialEdgeMargin = 16;
-#endif
-#if defined(HELTEC_T1)
-// T1: 80px panel height - 12px top pane - 2px tile padding on each side.
-constexpr lv_coord_t kT1FindFriendContentHeight = 64;
-constexpr lv_coord_t kT1FindFriendDialPadding = 4;
-constexpr lv_coord_t kT1FindFriendDialColumnWidth = kT1FindFriendContentHeight;
 #endif
 
 void set_static_text(lv_obj_t *label, char *buffer, size_t capacity, const char *text) {
@@ -183,12 +181,8 @@ bool FindFriendScreen::createDial() {
     lv_obj_set_scrollbar_mode(_root, LV_SCROLLBAR_MODE_OFF);
     lv_obj_set_size(_dial_row, lv_pct(100), lv_pct(100));
     lv_obj_set_flex_grow(_dial_row, 1);
-#if defined(HELTEC_T1)
-    compass_init_dial_row(_dial_row, 0);
-#else
     compass_init_dial_row(_dial_row, (lv_coord_t)FF_INFO_COL_MARGIN_RIGHT);
-#endif
-#if defined(HELTEC_HAS_TOUCH) && HELTEC_HAS_TOUCH
+#if DISPLAY_ORIENTATION_PORTRAIT
     lv_obj_set_flex_flow(_dial_row, LV_FLEX_FLOW_COLUMN);
     lv_obj_set_flex_align(_dial_row, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER,
                           LV_FLEX_ALIGN_CENTER);
@@ -197,21 +191,16 @@ bool FindFriendScreen::createDial() {
 #endif
 
     _dial.min_side = 16;
-#if defined(HELTEC_HAS_TOUCH) && HELTEC_HAS_TOUCH
+#if DISPLAY_ORIENTATION_PORTRAIT
     // Reserve enough space for the cardinal labels drawn outside the dial.
     _dial.edge_margin = kTouchFindFriendDialEdgeMargin;
-#elif defined(HELTEC_T1)
-    // 64px column minus 4px padding on every side gives a 56px dial.
-    _dial.edge_margin = kT1FindFriendDialPadding;
 #endif
     _dial.needle_kind = CompassDialNeedleKind::FriendTurn;
     if (!_dial.create(_dial_row)) return false;
     // The left column is a square matching the available content height. The
     // right column receives every remaining horizontal pixel.
-#if defined(HELTEC_HAS_TOUCH) && HELTEC_HAS_TOUCH
+#if DISPLAY_ORIENTATION_PORTRAIT
     lv_obj_set_size(_dial.center_col, lv_pct(100), kTouchFindFriendDialHeight);
-#elif defined(HELTEC_T1)
-    lv_obj_set_width(_dial.center_col, kT1FindFriendDialColumnWidth);
 #else
     lv_obj_set_width(_dial.center_col, _dial.min_side);
 #endif
@@ -222,7 +211,7 @@ bool FindFriendScreen::createDial() {
                                                0
     );
     if (!_right_column) return false;
-#if defined(HELTEC_HAS_TOUCH) && HELTEC_HAS_TOUCH
+#if DISPLAY_ORIENTATION_PORTRAIT
     lv_obj_set_size(_right_column, lv_pct(100), 0);
     lv_obj_set_flex_grow(_right_column, 1);
     ui_theme_set_compass_info_layout(_right_column, LV_DPX(4), LV_DPX(2));
@@ -241,12 +230,12 @@ void FindFriendScreen::layoutDialColumns() {
     if (!_dial_row || !_dial.center_col || !_right_column) return;
 
     lv_obj_update_layout(_dial_row);
-#if defined(HELTEC_HAS_TOUCH) && HELTEC_HAS_TOUCH
+#if DISPLAY_ORIENTATION_PORTRAIT
     if (lv_obj_get_height(_dial.center_col) != kTouchFindFriendDialHeight) {
         lv_obj_set_height(_dial.center_col, kTouchFindFriendDialHeight);
         lv_obj_update_layout(_dial_row);
     }
-#elif !defined(HELTEC_T1)
+#else
     const lv_coord_t content_width = lv_obj_get_content_width(_dial_row);
     const lv_coord_t content_height = lv_obj_get_content_height(_dial_row);
     const lv_coord_t column_gap = lv_obj_get_style_pad_column(_dial_row, LV_PART_MAIN);
@@ -266,7 +255,7 @@ void FindFriendScreen::layoutDialColumns() {
 void FindFriendScreen::createInfoRows() {
     if (!_right_column) return;
 
-#if defined(HELTEC_HAS_TOUCH) && HELTEC_HAS_TOUCH
+#if DISPLAY_ORIENTATION_PORTRAIT
     lv_obj_t *const spacer = lv_obj_create(_right_column);
     if (spacer)
     {
@@ -499,8 +488,12 @@ void FindFriendScreen::onAppStateChanged(const AppStateEvent &event) {
         refreshNavigation();
         return;
     }
-    if (event.type == AppStateEventType::CompassChanged ||
-        event.type == AppStateEventType::GpsChanged)
+    if (event.type == AppStateEventType::GpsChanged)
+    {
+        refresh();
+        return;
+    }
+    if (event.type == AppStateEventType::CompassChanged)
     {
         refreshNavigation();
         return;

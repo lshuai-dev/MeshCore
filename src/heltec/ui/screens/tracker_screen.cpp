@@ -431,6 +431,10 @@ void TrackerScreen::syncFenceTools()
     const bool can_edit = team.has_team && team.is_leader;
     if (_btn_fence)
     {
+        if (can_edit)
+            lv_obj_clear_flag(_btn_fence, LV_OBJ_FLAG_HIDDEN);
+        else
+            lv_obj_add_flag(_btn_fence, LV_OBJ_FLAG_HIDDEN);
         if (can_edit && state != heltec::meshcore::team::GeofenceState::Active)
             lv_obj_clear_state(_btn_fence, LV_STATE_DISABLED);
         else
@@ -447,11 +451,16 @@ void TrackerScreen::syncFenceTools()
     }
     if (_btn_fence_delete)
     {
+        if (can_edit)
+            lv_obj_clear_flag(_btn_fence_delete, LV_OBJ_FLAG_HIDDEN);
+        else
+            lv_obj_add_flag(_btn_fence_delete, LV_OBJ_FLAG_HIDDEN);
         if (can_edit && state == heltec::meshcore::team::GeofenceState::Active)
             lv_obj_clear_state(_btn_fence_delete, LV_STATE_DISABLED);
         else
             lv_obj_add_state(_btn_fence_delete, LV_STATE_DISABLED);
     }
+    raiseMapToolbar();
 }
 
 void TrackerScreen::syncFenceOverlay()
@@ -588,11 +597,6 @@ void TrackerScreen::syncMapToolbarVisibility()
     {
         lv_obj_clear_flag(_btn_gps, LV_OBJ_FLAG_HIDDEN);
         lv_obj_add_state(_btn_gps, LV_STATE_DISABLED);
-    }
-    if (_toolbar)
-    {
-        const int visible_buttons = 5;
-        lv_obj_set_width(_toolbar, map_toolbar_width(visible_buttons));
     }
     raiseMapToolbar();
 }

@@ -32,6 +32,10 @@ bool InputDispatcher::dispatch(InputHost &host, InputCommand command, uint32_t n
         return true;
 
     case InputCommand::CloseTopLayer:
+        if (host.blocksCloseTopLayer())
+        {
+            return true;
+        }
         // Let the active LVGL focused object decide what ESC means for its local state.
         return false;
 
