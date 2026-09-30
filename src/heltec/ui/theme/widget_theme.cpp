@@ -178,7 +178,6 @@ static lv_style_t s_splash_root_layout_style;
 static lv_style_t s_plain_container_style;
 static lv_style_t s_no_chrome_style;
 static lv_style_t s_hidden_scrollbar_style;
-static lv_style_t s_top_pane_slot_style;
 static lv_style_t s_top_pane_right_slot_style;
 #if HELTEC_HAS_TOUCH
 static lv_style_t s_touch_reset_style;
@@ -234,7 +233,6 @@ static lv_style_t s_splash_overlay_text_style;
 #if !HELTEC_HAS_TOUCH
 static lv_style_t s_context_menu_root_style;
 #endif
-static lv_style_t s_app_overlay_layer_style;
 static lv_style_t s_app_frame_layout_style;
 static lv_style_t s_app_content_style;
 static lv_style_t s_app_screen_root_style;
@@ -296,12 +294,9 @@ static lv_style_t s_confirm_overlay_button_style;
 static lv_style_t s_confirm_overlay_button_pressed_style;
 static bool s_screen_system_styles_ready = false;
 
-static lv_style_t s_nav_content_host_style;
-static lv_style_t s_nav_panel_base_style;
-static lv_style_t s_nav_root_base_style;
-static lv_style_t s_visibility_visible_style;
 static lv_style_t s_visibility_hidden_style;
 #if defined(UI_NAVIGATION_GRID) && UI_NAVIGATION_GRID
+static lv_style_t s_nav_content_host_style;
 static lv_style_t s_nav_grid_cell_style;
 static lv_style_t s_nav_grid_cell_focus_style;
 static lv_style_t s_nav_grid_icon_area_style;
@@ -313,7 +308,6 @@ static lv_style_t s_nav_root_grid_style;
 static lv_style_t s_nav_footer_bar_style;
 static lv_style_t s_nav_footer_label_style;
 #else
-static lv_style_t s_nav_panel_ring_style;
 static lv_style_t s_nav_root_ring_style;
 static lv_style_t s_nav_ring_style;
 #endif
@@ -352,14 +346,6 @@ static lv_style_t *cached_label_style(lv_color_t color, lv_text_align_t align)
         lv_style_init(&slot.style);
         lv_style_set_text_color(&slot.style, color);
         lv_style_set_text_align(&slot.style, align);
-        lv_style_set_bg_opa(&slot.style, LV_OPA_TRANSP);
-        lv_style_set_border_width(&slot.style, 0);
-        lv_style_set_border_opa(&slot.style, LV_OPA_TRANSP);
-        lv_style_set_border_side(&slot.style, LV_BORDER_SIDE_NONE);
-        lv_style_set_outline_width(&slot.style, 0);
-        lv_style_set_outline_opa(&slot.style, LV_OPA_TRANSP);
-        lv_style_set_shadow_width(&slot.style, 0);
-        lv_style_set_shadow_opa(&slot.style, LV_OPA_TRANSP);
         return &slot.style;
     }
     return nullptr;
@@ -624,7 +610,6 @@ static void init_send_message_styles()
     lv_style_init(&s_send_content_style);
     lv_style_set_bg_opa(&s_send_content_style, LV_OPA_COVER);
     lv_style_set_bg_color(&s_send_content_style, ui_color_bg());
-    lv_style_set_text_color(&s_send_content_style, ui_color_fg());
 #endif
 
     lv_style_init(&s_send_list_style);
@@ -652,9 +637,7 @@ static void init_send_message_styles()
     lv_style_set_shadow_width(&s_send_row_main_style, 0);
     lv_style_set_border_width(&s_send_row_main_style, 0);
     lv_style_set_outline_width(&s_send_row_main_style, 0);
-#if HELTEC_UI_DISPLAY_MONO
-    lv_style_set_text_color(&s_send_row_main_style, ui_color_fg());
-#else
+#if !HELTEC_UI_DISPLAY_MONO
     lv_style_set_text_color(&s_send_row_main_style, ui_color_overlay_fg());
 #endif
     lv_style_set_text_align(&s_send_row_main_style, LV_TEXT_ALIGN_CENTER);
@@ -715,7 +698,6 @@ static void init_radio_sync_styles()
     lv_style_set_radius(&s_overlay_roller_selected_style, LV_DPX(4));
 #else
     lv_style_init(&s_radio_sync_row_main_style);
-    lv_style_set_text_color(&s_radio_sync_row_main_style, ui_color_overlay_fg());
     lv_style_set_text_align(&s_radio_sync_row_main_style, LV_TEXT_ALIGN_CENTER);
     set_overlay_text_spacing(&s_radio_sync_row_main_style);
     lv_style_set_bg_opa(&s_radio_sync_row_main_style, LV_OPA_TRANSP);
@@ -749,7 +731,6 @@ static void init_repeat_mode_styles()
     lv_style_init(&s_repeat_item_style);
     lv_style_set_bg_opa(&s_repeat_item_style, LV_OPA_TRANSP);
     lv_style_set_border_width(&s_repeat_item_style, 0);
-    lv_style_set_text_color(&s_repeat_item_style, ui_color_overlay_fg());
 
     lv_style_init(&s_repeat_item_selected_style);
     lv_style_set_bg_color(&s_repeat_item_selected_style, ui_color_highlight_bg());
@@ -808,9 +789,7 @@ static void init_keyboard_child_styles()
     lv_style_set_pad_row(&s_keyboard_root_waypoint_layout_style, compact ? 1 : 2);
 
     lv_style_init(&s_keyboard_textarea_style);
-#if HELTEC_UI_DISPLAY_MONO
-    lv_style_set_text_color(&s_keyboard_textarea_style, ui_color_fg());
-#else
+#if !HELTEC_UI_DISPLAY_MONO
     lv_style_set_text_color(&s_keyboard_textarea_style, ui_color_overlay_fg());
 #endif
     lv_style_set_bg_opa(&s_keyboard_textarea_style, LV_OPA_TRANSP);
@@ -849,7 +828,6 @@ static void init_keyboard_child_styles()
 #endif
 #if HELTEC_UI_DISPLAY_MONO
     lv_style_set_bg_color(&s_keyboard_title_style, ui_color_bg());
-    lv_style_set_text_color(&s_keyboard_title_style, ui_color_fg());
 #else
     lv_style_set_bg_color(&s_keyboard_title_style, ui_color_highlight_bg());
     lv_style_set_text_color(&s_keyboard_title_style, ui_color_highlight_fg());
@@ -941,12 +919,9 @@ static void init_keyboard_child_styles()
     lv_style_set_outline_width(&s_keyboard_items_base_style, 0);
     lv_style_set_shadow_width(&s_keyboard_items_base_style, 0);
     lv_style_set_bg_opa(&s_keyboard_items_base_style, LV_OPA_TRANSP);
-#if HELTEC_UI_DISPLAY_MONO
-    lv_style_set_text_color(&s_keyboard_items_base_style, ui_color_fg());
-#else
+#if !HELTEC_UI_DISPLAY_MONO
     lv_style_set_text_color(&s_keyboard_items_base_style, ui_color_overlay_fg());
 #endif
-    lv_style_set_text_font(&s_keyboard_items_base_style, LV_FONT_DEFAULT);
 
     lv_style_init(&s_keyboard_waypoint_items_style);
     lv_style_set_text_font(&s_keyboard_waypoint_items_style, waypoint_font);
@@ -1023,8 +998,7 @@ static void init_common_widget_styles()
         return;
 
     lv_style_init(&s_surface_root_common_style);
-    lv_style_set_bg_opa(&s_surface_root_common_style, LV_OPA_TRANSP);
-    lv_style_set_pad_all(&s_surface_root_common_style, 0);
+    lv_style_set_text_color(&s_surface_root_common_style, ui_color_fg());
 
     lv_style_init(&s_screen_root_layout_style);
     lv_style_set_pad_row(&s_screen_root_layout_style, reference_card_gap());
@@ -1063,36 +1037,12 @@ static void init_common_widget_styles()
 
     lv_style_init(&s_no_chrome_style);
     lv_style_set_border_width(&s_no_chrome_style, 0);
-    lv_style_set_border_opa(&s_no_chrome_style, LV_OPA_TRANSP);
-    lv_style_set_border_side(&s_no_chrome_style, LV_BORDER_SIDE_NONE);
     lv_style_set_outline_width(&s_no_chrome_style, 0);
-    lv_style_set_outline_opa(&s_no_chrome_style, LV_OPA_TRANSP);
     lv_style_set_shadow_width(&s_no_chrome_style, 0);
-    lv_style_set_shadow_opa(&s_no_chrome_style, LV_OPA_TRANSP);
 
     lv_style_init(&s_hidden_scrollbar_style);
     lv_style_set_width(&s_hidden_scrollbar_style, 0);
-    lv_style_set_pad_all(&s_hidden_scrollbar_style, 0);
     lv_style_set_bg_opa(&s_hidden_scrollbar_style, LV_OPA_TRANSP);
-    lv_style_set_border_width(&s_hidden_scrollbar_style, 0);
-    lv_style_set_border_opa(&s_hidden_scrollbar_style, LV_OPA_TRANSP);
-    lv_style_set_border_side(&s_hidden_scrollbar_style, LV_BORDER_SIDE_NONE);
-    lv_style_set_outline_width(&s_hidden_scrollbar_style, 0);
-    lv_style_set_outline_opa(&s_hidden_scrollbar_style, LV_OPA_TRANSP);
-    lv_style_set_shadow_width(&s_hidden_scrollbar_style, 0);
-    lv_style_set_shadow_opa(&s_hidden_scrollbar_style, LV_OPA_TRANSP);
-    lv_style_set_opa(&s_hidden_scrollbar_style, LV_OPA_TRANSP);
-
-    lv_style_init(&s_top_pane_slot_style);
-    lv_style_set_bg_opa(&s_top_pane_slot_style, LV_OPA_TRANSP);
-    lv_style_set_border_width(&s_top_pane_slot_style, 0);
-    lv_style_set_border_opa(&s_top_pane_slot_style, LV_OPA_TRANSP);
-    lv_style_set_border_side(&s_top_pane_slot_style, LV_BORDER_SIDE_NONE);
-    lv_style_set_outline_width(&s_top_pane_slot_style, 0);
-    lv_style_set_outline_opa(&s_top_pane_slot_style, LV_OPA_TRANSP);
-    lv_style_set_shadow_width(&s_top_pane_slot_style, 0);
-    lv_style_set_shadow_opa(&s_top_pane_slot_style, LV_OPA_TRANSP);
-    lv_style_set_radius(&s_top_pane_slot_style, 0);
 
 #if HELTEC_HAS_TOUCH
     lv_style_init(&s_touch_reset_style);
@@ -1130,13 +1080,6 @@ static void init_top_pane_styles(lv_obj_t *obj)
     lv_style_set_bg_opa(&s_top_pane_root_style, ui_top_pane_bg_opa());
     lv_style_set_bg_color(&s_top_pane_root_style, ui_color_top_pane_bg());
     lv_style_set_text_color(&s_top_pane_root_style, bar_fg);
-    lv_style_set_border_width(&s_top_pane_root_style, 0);
-    lv_style_set_border_opa(&s_top_pane_root_style, LV_OPA_TRANSP);
-    lv_style_set_border_side(&s_top_pane_root_style, LV_BORDER_SIDE_NONE);
-    lv_style_set_outline_width(&s_top_pane_root_style, 0);
-    lv_style_set_outline_opa(&s_top_pane_root_style, LV_OPA_TRANSP);
-    lv_style_set_shadow_width(&s_top_pane_root_style, 0);
-    lv_style_set_shadow_opa(&s_top_pane_root_style, LV_OPA_TRANSP);
     lv_style_set_height(&s_top_pane_root_style, theme_profile().app_frame.bar_height);
     lv_style_set_pad_hor(&s_top_pane_root_style, geometry.pad_horizontal);
     lv_style_set_pad_top(&s_top_pane_root_style, geometry.pad_top);
@@ -1148,29 +1091,11 @@ static void init_top_pane_styles(lv_obj_t *obj)
     lv_style_set_pad_right(&s_top_pane_right_slot_style, geometry.battery_pad_right);
 
     lv_style_init(&s_top_pane_battery_style);
-    lv_style_set_bg_opa(&s_top_pane_battery_style, LV_OPA_TRANSP);
-    lv_style_set_pad_all(&s_top_pane_battery_style, 0);
     lv_style_set_width(&s_top_pane_battery_style, bat_w);
     lv_style_set_height(&s_top_pane_battery_style, bat_h);
-    lv_style_set_border_width(&s_top_pane_battery_style, 0);
-    lv_style_set_border_opa(&s_top_pane_battery_style, LV_OPA_TRANSP);
-    lv_style_set_border_color(&s_top_pane_battery_style, battery_chrome);
-    lv_style_set_pad_all(&s_top_pane_battery_style, 0);
-    lv_style_set_outline_width(&s_top_pane_battery_style, 0);
-    lv_style_set_shadow_width(&s_top_pane_battery_style, 0);
-    lv_style_set_radius(&s_top_pane_battery_style, 0);
-    lv_style_set_clip_corner(&s_top_pane_battery_style, false);
 
     lv_style_init(&s_top_pane_title_style);
-    lv_style_set_bg_opa(&s_top_pane_title_style, LV_OPA_TRANSP);
     lv_style_set_text_align(&s_top_pane_title_style, LV_TEXT_ALIGN_CENTER);
-    lv_style_set_border_width(&s_top_pane_title_style, 0);
-    lv_style_set_border_opa(&s_top_pane_title_style, LV_OPA_TRANSP);
-    lv_style_set_border_side(&s_top_pane_title_style, LV_BORDER_SIDE_NONE);
-    lv_style_set_outline_width(&s_top_pane_title_style, 0);
-    lv_style_set_outline_opa(&s_top_pane_title_style, LV_OPA_TRANSP);
-    lv_style_set_shadow_width(&s_top_pane_title_style, 0);
-    lv_style_set_shadow_opa(&s_top_pane_title_style, LV_OPA_TRANSP);
 
     lv_style_init(&s_top_pane_battery_outline_style);
 #if HELTEC_HAS_TOUCH
@@ -1180,42 +1105,18 @@ static void init_top_pane_styles(lv_obj_t *obj)
 #endif
     lv_style_set_width(&s_top_pane_battery_outline_style, body_w);
     lv_style_set_height(&s_top_pane_battery_outline_style, bat_h);
-    lv_style_set_bg_opa(&s_top_pane_battery_outline_style, LV_OPA_TRANSP);
     lv_style_set_border_width(&s_top_pane_battery_outline_style, 1);
     lv_style_set_border_color(&s_top_pane_battery_outline_style, battery_chrome);
-    lv_style_set_border_opa(&s_top_pane_battery_outline_style, LV_OPA_COVER);
-    lv_style_set_radius(&s_top_pane_battery_outline_style, 0);
-    lv_style_set_outline_width(&s_top_pane_battery_outline_style, 0);
-    lv_style_set_outline_opa(&s_top_pane_battery_outline_style, LV_OPA_TRANSP);
-    lv_style_set_shadow_width(&s_top_pane_battery_outline_style, 0);
-    lv_style_set_shadow_opa(&s_top_pane_battery_outline_style, LV_OPA_TRANSP);
 
     lv_style_init(&s_top_pane_battery_cap_style);
-    lv_style_set_pad_all(&s_top_pane_battery_cap_style, 0);
     lv_style_set_width(&s_top_pane_battery_cap_style, cap_px);
     lv_style_set_height(&s_top_pane_battery_cap_style, cap_h);
     lv_style_set_bg_opa(&s_top_pane_battery_cap_style, LV_OPA_COVER);
     lv_style_set_bg_color(&s_top_pane_battery_cap_style, battery_chrome);
-    lv_style_set_border_width(&s_top_pane_battery_cap_style, 0);
-    lv_style_set_border_opa(&s_top_pane_battery_cap_style, LV_OPA_TRANSP);
-    lv_style_set_outline_width(&s_top_pane_battery_cap_style, 0);
-    lv_style_set_outline_opa(&s_top_pane_battery_cap_style, LV_OPA_TRANSP);
-    lv_style_set_shadow_width(&s_top_pane_battery_cap_style, 0);
-    lv_style_set_shadow_opa(&s_top_pane_battery_cap_style, LV_OPA_TRANSP);
-    lv_style_set_radius(&s_top_pane_battery_cap_style, 0);
 
     lv_style_init(&s_top_pane_battery_fill_style);
-    lv_style_set_pad_all(&s_top_pane_battery_fill_style, 0);
-    lv_style_set_border_width(&s_top_pane_battery_fill_style, 0);
-    lv_style_set_border_opa(&s_top_pane_battery_fill_style, LV_OPA_TRANSP);
-    lv_style_set_outline_width(&s_top_pane_battery_fill_style, 0);
-    lv_style_set_outline_opa(&s_top_pane_battery_fill_style, LV_OPA_TRANSP);
-    lv_style_set_shadow_width(&s_top_pane_battery_fill_style, 0);
-    lv_style_set_shadow_opa(&s_top_pane_battery_fill_style, LV_OPA_TRANSP);
-    lv_style_set_radius(&s_top_pane_battery_fill_style, 0);
     lv_style_set_width(&s_top_pane_battery_fill_style, 0);
     lv_style_set_height(&s_top_pane_battery_fill_style, LV_MAX(0, bat_h - 2));
-    lv_style_set_bg_opa(&s_top_pane_battery_fill_style, LV_OPA_TRANSP);
 
     lv_style_init(&s_top_pane_battery_fill_low_style);
     lv_style_set_bg_opa(&s_top_pane_battery_fill_low_style, LV_OPA_COVER);
@@ -1265,8 +1166,6 @@ static void init_surface_app_styles(lv_obj_t *obj = nullptr)
 
     lv_style_init(&s_alert_overlay_root_style);
     lv_style_set_bg_opa(&s_alert_overlay_root_style, LV_OPA_TRANSP);
-    lv_style_set_border_width(&s_alert_overlay_root_style, 0);
-    lv_style_set_outline_width(&s_alert_overlay_root_style, 0);
 
     lv_style_init(&s_calibration_overlay_root_style);
     lv_style_set_bg_color(&s_calibration_overlay_root_style, ui_color_overlay_bg());
@@ -1300,12 +1199,6 @@ static void init_surface_app_styles(lv_obj_t *obj = nullptr)
     lv_style_set_x(&s_context_menu_root_style, kContextMenuFrameInsetX);
     lv_style_set_y(&s_context_menu_root_style, context_config.frame_inset_y);
 #endif
-
-    lv_style_init(&s_app_overlay_layer_style);
-    lv_style_set_bg_opa(&s_app_overlay_layer_style, LV_OPA_TRANSP);
-    lv_style_set_border_width(&s_app_overlay_layer_style, 0);
-    lv_style_set_radius(&s_app_overlay_layer_style, 0);
-    lv_style_set_pad_all(&s_app_overlay_layer_style, 0);
 
     lv_style_init(&s_app_frame_layout_style);
     lv_style_set_border_width(&s_app_frame_layout_style, 0);
@@ -1764,11 +1657,6 @@ static void init_screen_system_styles()
     lv_style_init(&s_confirm_overlay_text_style);
     lv_style_set_text_align(&s_confirm_overlay_text_style, LV_TEXT_ALIGN_CENTER);
     lv_style_set_pad_hor(&s_confirm_overlay_text_style, compact_dialog ? 4 : LV_DPX(12));
-#if HELTEC_UI_DISPLAY_MONO
-    lv_style_set_text_color(&s_confirm_overlay_text_style, ui_color_fg());
-#else
-    lv_style_set_text_color(&s_confirm_overlay_text_style, ui_color_overlay_fg());
-#endif
 
     lv_style_init(&s_confirm_overlay_button_row_style);
     lv_style_set_bg_opa(&s_confirm_overlay_button_row_style, LV_OPA_TRANSP);
@@ -1789,7 +1677,6 @@ static void init_screen_system_styles()
     lv_style_set_border_width(&s_confirm_overlay_button_style, 1);
     lv_style_set_radius(&s_confirm_overlay_button_style, compact_dialog ? 1 : LV_DPX(5));
     lv_style_set_pad_all(&s_confirm_overlay_button_style, 0);
-    lv_style_set_text_color(&s_confirm_overlay_button_style, ui_color_overlay_fg());
 
     lv_style_init(&s_confirm_overlay_button_pressed_style);
     lv_style_set_bg_color(&s_confirm_overlay_button_pressed_style, ui_color_highlight_bg());
@@ -1806,11 +1693,8 @@ static void init_navigation_styles(lv_obj_t *obj = nullptr)
     const NavigationStyleConfig &config = kNavigationStyleConfig;
     const lv_coord_t panel_radius = theme_profile().app_frame.content_radius;
 
-    lv_style_init(&s_nav_content_host_style);
-    lv_style_set_bg_opa(&s_nav_content_host_style, LV_OPA_TRANSP);
-    lv_style_set_border_width(&s_nav_content_host_style, 0);
-
 #if defined(UI_NAVIGATION_GRID) && UI_NAVIGATION_GRID
+    lv_style_init(&s_nav_content_host_style);
     lv_style_set_pad_all(&s_nav_content_host_style, config.grid_pad);
     lv_style_set_pad_column(&s_nav_content_host_style, config.grid_gap);
     lv_style_set_pad_row(&s_nav_content_host_style, config.grid_gap);
@@ -1863,10 +1747,6 @@ static void init_navigation_styles(lv_obj_t *obj = nullptr)
     lv_style_set_text_align(&s_nav_grid_title_label_style, LV_TEXT_ALIGN_CENTER);
     lv_style_set_text_color(&s_nav_grid_title_label_style, ui_color_fg_inv());
 
-    lv_style_init(&s_nav_panel_base_style);
-    lv_style_set_border_width(&s_nav_panel_base_style, 0);
-    lv_style_set_outline_width(&s_nav_panel_base_style, 0);
-
     lv_style_init(&s_nav_panel_grid_style);
     lv_style_set_opa(&s_nav_panel_grid_style, LV_OPA_TRANSP);
     lv_style_set_bg_color(&s_nav_panel_grid_style, lv_color_hex(0x001765));
@@ -1877,10 +1757,6 @@ static void init_navigation_styles(lv_obj_t *obj = nullptr)
     lv_style_set_radius(&s_nav_panel_grid_style, panel_radius);
     lv_style_set_clip_corner(&s_nav_panel_grid_style, panel_radius > 0);
 #endif
-
-    lv_style_init(&s_nav_root_base_style);
-    lv_style_set_border_width(&s_nav_root_base_style, 0);
-    lv_style_set_pad_all(&s_nav_root_base_style, 0);
 
 #if defined(UI_NAVIGATION_GRID) && UI_NAVIGATION_GRID
     lv_style_init(&s_nav_root_grid_style);
@@ -1895,24 +1771,13 @@ static void init_navigation_styles(lv_obj_t *obj = nullptr)
     lv_style_init(&s_nav_footer_label_style);
     lv_style_set_text_color(&s_nav_footer_label_style, ui_color_fg());
 #else
-    lv_style_init(&s_nav_panel_ring_style);
-    lv_style_set_opa(&s_nav_panel_ring_style, LV_OPA_COVER);
-    lv_style_set_bg_opa(&s_nav_panel_ring_style, LV_OPA_TRANSP);
-
     lv_style_init(&s_nav_root_ring_style);
     lv_style_set_bg_color(&s_nav_root_ring_style, ui_color_bg());
     lv_style_set_bg_opa(&s_nav_root_ring_style, ui_effective_opa(LV_OPA_50));
 
     lv_style_init(&s_nav_ring_style);
-    lv_style_set_border_width(&s_nav_ring_style, 0);
-    lv_style_set_outline_width(&s_nav_ring_style, 0);
-    lv_style_set_opa(&s_nav_ring_style, LV_OPA_COVER);
-    lv_style_set_bg_opa(&s_nav_ring_style, LV_OPA_TRANSP);
     lv_style_set_pad_all(&s_nav_ring_style, config.ring_edge_pad);
 #endif
-
-    lv_style_init(&s_visibility_visible_style);
-    lv_style_set_opa(&s_visibility_visible_style, LV_OPA_COVER);
 
     lv_style_init(&s_visibility_hidden_style);
     lv_style_set_opa(&s_visibility_hidden_style, LV_OPA_TRANSP);
@@ -1927,14 +1792,7 @@ static lv_style_t *overlay_root_chrome_style()
         lv_style_init(&s_overlay_root_chrome_style);
         lv_style_set_bg_opa(&s_overlay_root_chrome_style, LV_OPA_COVER);
         lv_style_set_bg_color(&s_overlay_root_chrome_style, ui_color_overlay_bg());
-        lv_style_set_border_width(&s_overlay_root_chrome_style, 0);
-        lv_style_set_border_opa(&s_overlay_root_chrome_style, LV_OPA_TRANSP);
-        lv_style_set_border_side(&s_overlay_root_chrome_style, LV_BORDER_SIDE_NONE);
-        lv_style_set_outline_width(&s_overlay_root_chrome_style, 0);
-        lv_style_set_outline_opa(&s_overlay_root_chrome_style, LV_OPA_TRANSP);
-        lv_style_set_shadow_width(&s_overlay_root_chrome_style, 0);
-        lv_style_set_shadow_opa(&s_overlay_root_chrome_style, LV_OPA_TRANSP);
-        lv_style_set_radius(&s_overlay_root_chrome_style, 0);
+        lv_style_set_text_color(&s_overlay_root_chrome_style, ui_color_overlay_fg());
         s_overlay_root_chrome_style_ready = true;
     }
     return &s_overlay_root_chrome_style;
@@ -1985,15 +1843,6 @@ static void style_plain_container(_lv_obj_t *obj)
         return;
     init_common_widget_styles();
     lv_obj_add_style(obj, &s_plain_container_style, LV_PART_MAIN);
-}
-
-static void style_top_pane_slot(_lv_obj_t *obj)
-{
-    if (!obj)
-        return;
-    init_common_widget_styles();
-    lv_obj_add_style(obj, &s_top_pane_slot_style, LV_PART_MAIN);
-    lv_obj_add_style(obj, &s_top_pane_slot_style, LV_PART_MAIN | LV_STATE_FOCUS_KEY);
 }
 
 #if HELTEC_HAS_TOUCH
@@ -2181,7 +2030,6 @@ static bool apply_top_pane_direct_child(_lv_obj_t *obj, _lv_obj_t *parent)
     if (!parent || !lv_obj_check_type(parent, &ht_top_pane_class))
         return false;
 
-    style_top_pane_slot(obj);
     if (lv_obj_check_type(obj, &ht_top_pane_right_slot_class))
     {
         init_top_pane_styles(parent);
@@ -2404,8 +2252,6 @@ static bool apply_app_frame_theme(_lv_obj_t *obj)
 
     if (lv_obj_check_type(obj, &ht_app_overlay_layer_class))
     {
-        init_surface_app_styles(obj);
-        lv_obj_add_style(obj, &s_app_overlay_layer_style, LV_PART_MAIN);
         return true;
     }
 
@@ -3193,7 +3039,9 @@ static void style_navigator_content_host(lv_obj_t *content)
         return;
     init_navigation_styles(content);
     lv_obj_remove_style_all(content);
+#if defined(UI_NAVIGATION_GRID) && UI_NAVIGATION_GRID
     lv_obj_add_style(content, &s_nav_content_host_style, LV_PART_MAIN);
+#endif
 }
 
 #if defined(UI_NAVIGATION_GRID) && UI_NAVIGATION_GRID
@@ -3266,15 +3114,9 @@ static void apply_navigator_panel_chrome(lv_obj_t *obj)
         return;
     init_navigation_styles(obj);
 
-    lv_obj_add_style(obj, &s_nav_panel_base_style, LV_PART_MAIN);
-    lv_obj_add_style(obj, &s_nav_panel_base_style, LV_PART_MAIN | LV_STATE_FOCUS_KEY);
-
 #if defined(UI_NAVIGATION_GRID) && UI_NAVIGATION_GRID
     lv_obj_add_style(obj, &s_nav_panel_grid_style, LV_PART_MAIN);
-#else
-    lv_obj_add_style(obj, &s_nav_panel_ring_style, LV_PART_MAIN);
 #endif
-    lv_obj_add_style(obj, &s_visibility_visible_style, LV_PART_MAIN);
     lv_obj_add_style(obj, &s_visibility_hidden_style, LV_PART_MAIN | LV_STATE_USER_4);
 }
 
@@ -3517,7 +3359,6 @@ static bool apply_navigation_theme(_lv_obj_t *obj)
     if (lv_obj_check_type(obj, &ht_navigation_root_class))
     {
         init_navigation_styles(obj);
-        lv_obj_add_style(obj, &s_nav_root_base_style, LV_PART_MAIN);
 #if defined(UI_NAVIGATION_GRID) && UI_NAVIGATION_GRID
         lv_obj_add_style(obj, &s_nav_root_grid_style, LV_PART_MAIN);
 #else
@@ -3568,8 +3409,6 @@ static bool apply_navigation_ring_theme(_lv_obj_t *obj)
         return false;
     init_navigation_styles(obj);
     lv_obj_add_style(obj, &s_nav_ring_style, LV_PART_MAIN);
-    lv_obj_add_style(obj, &s_nav_ring_style, LV_PART_MAIN | LV_STATE_FOCUS_KEY);
-    lv_obj_add_style(obj, &s_visibility_visible_style, LV_PART_MAIN);
     lv_obj_add_style(obj, &s_visibility_hidden_style, LV_PART_MAIN | LV_STATE_USER_4);
     return true;
 #else

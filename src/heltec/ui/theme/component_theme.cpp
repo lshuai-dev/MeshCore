@@ -23,7 +23,6 @@ void init_license_gate_styles()
     lv_style_init(&s_license_gate_root_style);
     lv_style_set_width(&s_license_gate_root_style, lv_pct(100));
     lv_style_set_height(&s_license_gate_root_style, lv_pct(100));
-    lv_style_set_radius(&s_license_gate_root_style, 0);
 #if HELTEC_HAS_TOUCH
     lv_style_set_pad_all(&s_license_gate_root_style, 0);
     lv_style_set_border_width(&s_license_gate_root_style, 0);
@@ -33,6 +32,7 @@ void init_license_gate_styles()
 #endif
     lv_style_set_bg_color(&s_license_gate_root_style, lv_color_black());
     lv_style_set_bg_opa(&s_license_gate_root_style, LV_OPA_COVER);
+    lv_style_set_text_color(&s_license_gate_root_style, lv_color_white());
     lv_style_set_layout(&s_license_gate_root_style, LV_LAYOUT_FLEX);
     lv_style_set_flex_flow(&s_license_gate_root_style, LV_FLEX_FLOW_COLUMN);
     lv_style_set_flex_main_place(&s_license_gate_root_style, LV_FLEX_ALIGN_CENTER);
@@ -46,7 +46,6 @@ void init_license_gate_styles()
 #endif
 
     lv_style_init(&s_license_gate_label_style);
-    lv_style_set_text_color(&s_license_gate_label_style, lv_color_white());
     lv_style_set_text_align(&s_license_gate_label_style, LV_TEXT_ALIGN_CENTER);
 #if HELTEC_HAS_TOUCH
     lv_style_set_pad_all(&s_license_gate_label_style, 0);
@@ -374,7 +373,6 @@ lv_style_t *range_opa_style(lv_opa_t opa)
 
 #if (defined(ENV_INCLUDE_GPS) && ENV_INCLUDE_GPS) || \
     (defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS)
-static lv_style_t s_compass_plain_overlay_style;
 static lv_style_t s_compass_hub_style;
 static lv_style_t s_compass_needle_style;
 static lv_style_t s_compass_label_style;
@@ -384,11 +382,6 @@ void init_compass_styles()
 {
     if (s_compass_styles_ready)
         return;
-
-    lv_style_init(&s_compass_plain_overlay_style);
-    lv_style_set_bg_opa(&s_compass_plain_overlay_style, LV_OPA_TRANSP);
-    lv_style_set_border_width(&s_compass_plain_overlay_style, 0);
-    lv_style_set_pad_all(&s_compass_plain_overlay_style, 0);
 
     lv_style_init(&s_compass_hub_style);
     lv_style_set_bg_color(&s_compass_hub_style, ui_color_panel_dark_bg());
@@ -404,19 +397,12 @@ void init_compass_styles()
     lv_style_set_border_color(&s_compass_hub_style, ui_color_fg_on_dark());
     lv_style_set_clip_corner(&s_compass_hub_style, true);
 #endif
-    lv_style_set_border_opa(&s_compass_hub_style, LV_OPA_COVER);
-    lv_style_set_pad_all(&s_compass_hub_style, 0);
 
     lv_style_init(&s_compass_needle_style);
-    lv_style_set_bg_opa(&s_compass_needle_style, LV_OPA_TRANSP);
-    lv_style_set_border_width(&s_compass_needle_style, 0);
-    lv_style_set_outline_width(&s_compass_needle_style, 0);
     lv_style_set_radius(&s_compass_needle_style, LV_RADIUS_CIRCLE);
     lv_style_set_clip_corner(&s_compass_needle_style, true);
-    lv_style_set_pad_all(&s_compass_needle_style, 0);
 
     lv_style_init(&s_compass_label_style);
-    lv_style_set_text_color(&s_compass_label_style, ui_color_fg());
     lv_style_set_text_align(&s_compass_label_style, LV_TEXT_ALIGN_LEFT);
 
     s_compass_styles_ready = true;
@@ -424,8 +410,7 @@ void init_compass_styles()
 
 void style_compass_plain_overlay(_lv_obj_t *obj)
 {
-    init_compass_styles();
-    lv_obj_add_style(obj, &s_compass_plain_overlay_style, LV_PART_MAIN);
+    (void)obj;
 }
 #endif
 
