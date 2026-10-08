@@ -165,7 +165,8 @@ bool UiApp::initNavigationPane(_lv_obj_t *parent)
                                       _scrFindFriend.title(), _scrFindFriend.icon(), true };
 #endif
 
-    _navigation.configure(items, static_cast<uint8_t>(sizeof(items) / sizeof(items[0])));
+    const uint8_t item_count = static_cast<uint8_t>(sizeof(items) / sizeof(items[0]));
+    _navigation.configure(items, item_count);
 #if defined(UI_NAVIGATION_GRID) && UI_NAVIGATION_GRID && defined(ENV_INCLUDE_GPS) && \
     ENV_INCLUDE_GPS
     _navigation.configure(&footer, 1);

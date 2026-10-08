@@ -80,17 +80,17 @@ static const heltec::meshcore::ui::UiBehaviorProfile kMonoBehaviorProfile = {
 static const heltec::meshcore::ui::UiThemeProfile kMonoNarrowThemeProfile = {
     { 2, 0, 0, 0, 12, 4 },
     { 12, 1, 3, 6 },
-    { 4, 0, 18, 8, 4 },
+    { 0, 18, 8 },
 };
 static const heltec::meshcore::ui::UiThemeProfile kMonoWideThemeProfile = {
     { 2, 0, 0, 0, 18, 4 },
     { 12, 1, 3, 6 },
-    { 4, 0, 24, 13, 6 },
+    { 0, 24, 13 },
 };
 static const heltec::meshcore::ui::UiThemeProfile kSsd1306ThemeProfile = {
     { 2, 0, 0, 0, 10, 2 },
     { static_cast<lv_coord_t>(icon_home_img.header.w), 0, 2, 6 },
-    { 2, 0, 15, 7, 4 },
+    { 0, 15, 7 },
 };
 
 static void init_device_styles(lv_disp_t *disp, bool ssd1306)

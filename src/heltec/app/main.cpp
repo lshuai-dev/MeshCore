@@ -250,15 +250,10 @@ void setup()
 #endif
     lv_init();
     board.begin();
-    MESH_DEBUG_PRINTLN("[boot] backlight begin");
     heltec::meshcore::dal::display_port::setBacklightOn(true);
-    MESH_DEBUG_PRINTLN("[boot] backlight end");
     ApplicationRuntime &runtime = applicationRuntime();
-    MESH_DEBUG_PRINTLN("[boot] runtime ui init begin");
     runtime.ui.init();
-    MESH_DEBUG_PRINTLN("[boot] runtime ui init end");
     const bool hasDisplay = runtime.ui.isReady();
-    MESH_DEBUG_PRINTLN("[boot] display refresh begin ready=%u", hasDisplay ? 1U : 0U);
     if (hasDisplay)
     {
         for (uint8_t i = 0; i < 8; ++i)
@@ -270,13 +265,9 @@ void setup()
             }
         }
     }
-    MESH_DEBUG_PRINTLN("[boot] display refresh end");
 #if defined(NRF52_PLATFORM) || defined(STM32_PLATFORM)
-    MESH_DEBUG_PRINTLN("[boot] InternalFS begin");
     InternalFS.begin();
-    MESH_DEBUG_PRINTLN("[boot] InternalFS end");
 #if defined(QSPIFLASH)
-    MESH_DEBUG_PRINTLN("[boot] QSPIFlash begin");
     if (!QSPIFlash.begin())
     {
         MESH_DEBUG_PRINTLN("CustomLFS_QSPIFlash: failed to initialize");
@@ -285,7 +276,6 @@ void setup()
     {
         MESH_DEBUG_PRINTLN("CustomLFS_QSPIFlash: initialized successfully");
     }
-    MESH_DEBUG_PRINTLN("[boot] QSPIFlash end");
 #else
 #if defined(EXTRAFS)
     ExtraFS.begin();
@@ -312,36 +302,23 @@ void setup()
     }
 #endif
 #endif
-    MESH_DEBUG_PRINTLN("[boot] radio init begin");
     if (!radio_init())
     {
-        MESH_DEBUG_PRINTLN("[boot] radio init failed");
         halt();
     }
-    MESH_DEBUG_PRINTLN("[boot] radio init end");
-    MESH_DEBUG_PRINTLN("[boot] RNG begin");
     fast_rng.begin(radio_get_rng_seed());
-    MESH_DEBUG_PRINTLN("[boot] RNG end");
 #if defined(NRF52_PLATFORM) || defined(STM32_PLATFORM)
-    MESH_DEBUG_PRINTLN("[boot] store begin");
     store.begin();
-    MESH_DEBUG_PRINTLN("[boot] store end");
-    MESH_DEBUG_PRINTLN("[boot] mesh begin");
     the_mesh.begin(hasDisplay);
-    MESH_DEBUG_PRINTLN("[boot] mesh end");
     // request_radio_preset_overlay_if_unconfigured(hasDisplay);
 
 #ifdef BLE_PIN_CODE
-    MESH_DEBUG_PRINTLN("[boot] BLE interface begin");
     serial_interface.begin(BLE_NAME_PREFIX, the_mesh.getNodePrefs()->node_name,
                            the_mesh.getBLEPin());
-    MESH_DEBUG_PRINTLN("[boot] BLE interface end");
 #else
     serial_interface.begin(Serial);
 #endif
-    MESH_DEBUG_PRINTLN("[boot] mesh interface start");
     the_mesh.startInterface(serial_interface);
-    MESH_DEBUG_PRINTLN("[boot] mesh interface ready");
     if (NodePrefs *p = the_mesh.getNodePrefs())
     {
         if (0 == p->companion_link_enabled)
@@ -422,10 +399,7 @@ void setup()
         }
     }
 #endif
-    MESH_DEBUG_PRINTLN("[boot] sensors begin t=%lu", (unsigned long)millis());
-    const bool sensors_ready = sensors.begin();
-    MESH_DEBUG_PRINTLN("[boot] sensors end ready=%u t=%lu", sensors_ready ? 1U : 0U,
-                       (unsigned long)millis());
+    sensors.begin();
     {
         heltec::meshcore::power::PowerConfig power_config =
             heltec::meshcore::power::defaultPowerConfig();

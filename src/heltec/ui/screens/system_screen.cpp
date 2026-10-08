@@ -3,8 +3,25 @@
 #include "config/LoRaBandPresets.h"
 #include "ui/app/theme.hpp"
 #include "ui/core/ht_event.h"
+#include "ui/core/ht_scroll_view.hpp"
 
 namespace heltec::meshcore::ui {
+
+const lv_obj_class_t ht_system_screen_root_class = {
+    &ht_scroll_view_class,
+    nullptr,
+    nullptr,
+#if LV_USE_USER_DATA
+    nullptr,
+#endif
+    nullptr,
+    LV_SIZE_CONTENT,
+    LV_SIZE_CONTENT,
+    LV_OBJ_CLASS_EDITABLE_INHERIT,
+    LV_OBJ_CLASS_GROUP_DEF_INHERIT,
+    sizeof(ht_scroll_view_t),
+};
+
 namespace {
 
 char s_region_options[kRadioParamPresetUiScratchSize + 32];

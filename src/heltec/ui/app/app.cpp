@@ -55,11 +55,6 @@ static void relayout_tileview_tiles(lv_obj_t *tileview) {
     }
 }
 
-static void tileview_size_changed_cb(lv_event_t *e) {
-    if (lv_event_get_code(e) != LV_EVENT_SIZE_CHANGED) return;
-    relayout_tileview_tiles(lv_event_get_target(e));
-}
-
 } // namespace
 
 UiApp &UiApp::instance() {
@@ -234,7 +229,6 @@ void UiApp::init() {
         lv_img_set_src(bg, &ui_background_img);
     }
 #endif
-
     _layerOverlay = ht_class_create(&ht_app_overlay_layer_class, lv_layer_top());
     if (!_layerOverlay) {
         return;
@@ -246,7 +240,6 @@ void UiApp::init() {
     if (!splash.create(_layerOverlay)) {
         return;
     }
-
     lv_obj_t *layout = ht_class_create(&ht_app_frame_class, scr);
     if (!layout) {
         return;
@@ -259,7 +252,6 @@ void UiApp::init() {
     if (!initOverlay()) {
         return;
     }
-
     if (!_top_pane.create(layout)) {
         return;
     }
@@ -655,7 +647,6 @@ bool UiApp::initScreens(_lv_obj_t *content) {
     if (!_tileview) return false;
     lv_obj_set_size(_tileview, lv_pct(100), lv_pct(100));
     lv_obj_set_scrollbar_mode(_tileview, LV_SCROLLBAR_MODE_OFF);
-    lv_obj_add_event_cb(_tileview, tileview_size_changed_cb, LV_EVENT_SIZE_CHANGED, nullptr);
     if (_frame_root) lv_obj_update_layout(_frame_root);
     lv_obj_update_layout(_tileview);
 

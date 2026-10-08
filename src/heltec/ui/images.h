@@ -14,9 +14,9 @@ extern const lv_img_dsc_t icon_system_img;
 extern const lv_img_dsc_t icon_map_img;
 #endif
 extern const lv_img_dsc_t icon_meshcore_log_img;
+extern const lv_img_dsc_t icon_meshcore_logo_alpha_img;
 
 #if HELTEC_HAS_TOUCH
-extern const lv_img_dsc_t icon_meshcore_logo_alpha_img;
 extern const lv_img_dsc_t ui_background_img;
 extern const lv_img_dsc_t quick_ping_target_img;
 extern const lv_img_dsc_t quick_ping_message_img;

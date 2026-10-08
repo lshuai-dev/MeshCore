@@ -11,10 +11,12 @@ class IBizFacade;
 
 namespace heltec::meshcore::ui {
 
+extern const lv_obj_class_t ht_system_screen_root_class;
+
 class SystemScreen : public AbstractScreen {
   public:
     SystemScreen(biz::IBizFacade &biz, const char *title, const lv_img_dsc_t *icon)
-        : AbstractScreen(biz, title, icon), _feedback(biz) {
+        : AbstractScreen(biz, title, icon, ht_system_screen_root_class), _feedback(biz) {
     }
     void onEnter() override;
     void onExit() override;

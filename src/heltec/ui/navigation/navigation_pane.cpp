@@ -37,12 +37,15 @@ static void layoutGridTitleBar(_lv_obj_t *bar)
     _lv_obj_t *lbl = lv_obj_get_child(bar, 0);
     if (!lbl)
         return;
-    lv_label_set_long_mode(lbl, LV_LABEL_LONG_DOT);
     lv_obj_set_width(lbl, lv_pct(100));
 }
 
 static constexpr lv_coord_t kGridIconTitleGapPx = 3;
 static constexpr lv_coord_t kGridTitleBottomMarginPx = 4;
+static constexpr uint8_t kGridColumns = 2;
+static constexpr uint8_t kGridRows = 3;
+static constexpr lv_coord_t kGridGapPx = 6;
+static constexpr lv_coord_t kGridFooterHeightPx = 36;
 
 static uint16_t gridNavOpenAnimMs(const lv_obj_t *obj)
 {
@@ -71,35 +74,6 @@ static _lv_obj_t *gridCellTitleBar(_lv_obj_t *cell)
     return cell ? lv_obj_get_child(cell, 1) : nullptr;
 }
 
-static void layoutGridIconImage(_lv_obj_t *icon, lv_coord_t max_w, lv_coord_t max_h)
-{
-    if (!icon || max_w < 2 || max_h < 2)
-        return;
-    const void *src = lv_img_get_src(icon);
-    if (!src)
-        return;
-    lv_img_header_t hdr;
-    if (lv_img_decoder_get_info(src, &hdr) != LV_RES_OK)
-        return;
-    if (hdr.w < 1 || hdr.h < 1)
-        return;
-
-    const uint32_t zw = (static_cast<uint32_t>(max_w) * 256U) / static_cast<uint32_t>(hdr.w);
-    const uint32_t zh = (static_cast<uint32_t>(max_h) * 256U) / static_cast<uint32_t>(hdr.h);
-    uint32_t zoom = zw < zh ? zw : zh;
-    if (zoom > LV_IMG_ZOOM_NONE)
-        zoom = LV_IMG_ZOOM_NONE;
-    if (zoom < 1)
-        zoom = 1;
-    lv_img_set_zoom(icon, static_cast<uint16_t>(zoom));
-
-    const lv_coord_t disp_w = static_cast<lv_coord_t>((static_cast<uint32_t>(hdr.w) * zoom) / 256U);
-    const lv_coord_t disp_h = static_cast<lv_coord_t>((static_cast<uint32_t>(hdr.h) * zoom) / 256U);
-    lv_obj_set_size(icon, disp_w, disp_h);
-    lv_obj_set_flex_grow(icon, 0);
-    lv_obj_clear_flag(icon, LV_OBJ_FLAG_SCROLLABLE);
-}
-
 static void layoutGridCellIcon(_lv_obj_t *cell, lv_coord_t cell_w, lv_coord_t cell_h)
 {
     _lv_obj_t *icon_area = gridCellIconArea(cell);
@@ -115,20 +89,12 @@ static void layoutGridCellIcon(_lv_obj_t *cell, lv_coord_t cell_w, lv_coord_t ce
     const lv_coord_t area_w = cell_w;
     const lv_coord_t bar_y = LV_MAX(0, cell_h - bar_h - kGridTitleBottomMarginPx);
     const lv_coord_t max_area_h = LV_MAX(2, bar_y - kGridIconTitleGapPx);
-    const lv_coord_t icon_pad = lv_obj_get_style_pad_left(icon_area, LV_PART_MAIN);
-    lv_obj_set_flex_grow(icon_area, 0);
     lv_obj_set_layout(icon_area, 0);
     lv_obj_set_height(bar, bar_h);
     lv_obj_set_pos(bar, 0, bar_y);
-    const lv_coord_t icon_max_h = LV_MAX(2, max_area_h - icon_pad * 2);
-    layoutGridIconImage(icon, area_w - icon_pad * 2, icon_max_h);
     lv_obj_set_size(icon_area, area_w, max_area_h);
     lv_obj_set_pos(icon_area, 0, 0);
-    const lv_coord_t icon_w = lv_obj_get_width(icon);
-    const lv_coord_t icon_h = lv_obj_get_height(icon);
-    const lv_coord_t icon_x = LV_MAX(0, (area_w - icon_w) / 2);
-    const lv_coord_t icon_y = LV_MAX(0, (max_area_h - icon_h) / 2);
-    lv_obj_set_pos(icon, icon_x, icon_y);
+    lv_obj_center(icon);
 }
 
 static bool isNavStepKey(uint32_t key)
@@ -156,6 +122,45 @@ static bool navTouchMovedBeyondThreshold(const lv_point_t &origin, const lv_poin
 static uint8_t navCellId(_lv_obj_t *cell)
 {
     return static_cast<uint8_t>(reinterpret_cast<uintptr_t>(lv_obj_get_user_data(cell)));
+}
+
+static void layoutNavigationGrid(_lv_obj_t *host, _lv_obj_t *footer_cell)
+{
+    const lv_coord_t width = lv_obj_get_width(host);
+    const lv_coord_t height = lv_obj_get_height(host);
+    const lv_coord_t footer_height = footer_cell ? kGridFooterHeightPx : 0;
+    const lv_coord_t footer_gap = footer_cell ? kGridGapPx : 0;
+    const lv_coord_t grid_height_limit = height - footer_height - footer_gap;
+    const lv_coord_t cell_width =
+        LV_MAX(2, (width - kGridGapPx * (kGridColumns - 1)) / kGridColumns);
+    const lv_coord_t cell_height =
+        LV_MAX(2, (grid_height_limit - kGridGapPx * (kGridRows - 1)) / kGridRows);
+    const lv_coord_t grid_width = kGridColumns * cell_width + kGridGapPx;
+    const lv_coord_t grid_height = kGridRows * cell_height + kGridGapPx * (kGridRows - 1);
+    const lv_coord_t origin_x = (width - grid_width) / 2;
+    const lv_coord_t origin_y = (height - grid_height - footer_height - footer_gap) / 2;
+
+    uint8_t grid_index = 0;
+    const uint32_t count = lv_obj_get_child_cnt(host);
+    for (uint32_t i = 0; i < count; ++i)
+    {
+        _lv_obj_t *cell = lv_obj_get_child(host, i);
+        if (!cell)
+            continue;
+        lv_obj_set_layout(cell, 0);
+        if (cell == footer_cell)
+        {
+            lv_obj_set_size(cell, width, footer_height);
+            lv_obj_set_pos(cell, 0, origin_y + grid_height + footer_gap);
+            continue;
+        }
+        const uint8_t column = grid_index % kGridColumns;
+        const uint8_t row = grid_index / kGridColumns;
+        ++grid_index;
+        lv_obj_set_size(cell, cell_width, cell_height);
+        lv_obj_set_pos(cell, origin_x + column * (cell_width + kGridGapPx),
+                       origin_y + row * (cell_height + kGridGapPx));
+    }
 }
 
 static void layoutRootToTileView(_lv_obj_t *root, _lv_obj_t *tileview)
@@ -291,7 +296,6 @@ void NavigationPane::setFooterSlot(uint8_t id)
         return;
     _footer_id = id;
     _geometry_valid = false;
-    _cached_tile_radius_valid = false;
     if (_lv_obj_t *cell = findCellById(id))
     {
         lv_obj_set_flex_align(cell, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER,
@@ -302,10 +306,10 @@ void NavigationPane::setFooterSlot(uint8_t id)
         }
         if (_lv_obj_t *bar = gridCellTitleBar(cell))
         {
+            lv_obj_add_state(bar, LV_STATE_USER_1);
             if (_lv_obj_t *label = lv_obj_get_child(bar, 0))
                 lv_obj_center(label);
         }
-        ui_navigator_apply_footer_cell_theme(cell);
     }
     if (panelVisible())
         layoutNav(false);
@@ -327,7 +331,7 @@ void NavigationPane::layoutGrid(bool update_emphasis)
     _lv_obj_t *footer_cell = nullptr;
     if (has_footer)
         footer_cell = findCellById(_footer_id);
-    ui_theme_layout_navigation_grid(host, footer_cell);
+    layoutNavigationGrid(host, footer_cell);
     lv_obj_update_layout(host);
 
     const uint8_t focus = focusedIndex();
@@ -514,15 +518,6 @@ void NavigationPane::updateGeometry()
             _cached_nav_w = nw;
             _cached_nav_h = nh;
         }
-        const lv_coord_t radius = (_tileview && lv_obj_is_valid(_tileview))
-                                      ? lv_obj_get_style_radius(_tileview, LV_PART_MAIN)
-                                      : 0;
-        if (!_cached_tile_radius_valid || _cached_tile_radius != radius)
-        {
-            ui_theme_sync_navigation_radius(_nav, _tileview);
-            _cached_tile_radius = radius;
-            _cached_tile_radius_valid = true;
-        }
         if (!panelVisible())
         {
             _emphasis_index = focusedIndex();
@@ -538,7 +533,6 @@ void NavigationPane::setTileView(_lv_obj_t *tileview)
 {
     _tileview = tileview;
     _geometry_valid = false;
-    _cached_tile_radius_valid = false;
     updateGeometry();
 }
 
@@ -639,10 +633,6 @@ void NavigationPane::setIcon(uint8_t id, const lv_img_dsc_t *img)
         return;
     }
     lv_obj_set_width(icon_area, lv_pct(100));
-    lv_obj_set_flex_grow(icon_area, 1);
-    lv_obj_set_flex_flow(icon_area, LV_FLEX_FLOW_ROW);
-    lv_obj_set_flex_align(icon_area, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER,
-                          LV_FLEX_ALIGN_CENTER);
     lv_obj_clear_flag(icon_area, LV_OBJ_FLAG_SCROLLABLE | LV_OBJ_FLAG_CLICKABLE);
     lv_obj_add_flag(icon_area, LV_OBJ_FLAG_EVENT_BUBBLE);
 
@@ -653,6 +643,9 @@ void NavigationPane::setIcon(uint8_t id, const lv_img_dsc_t *img)
         return;
     }
     lv_img_set_src(icon, img);
+    lv_img_set_zoom(icon, LV_IMG_ZOOM_NONE);
+    lv_img_set_size_mode(icon, LV_IMG_SIZE_MODE_REAL);
+    lv_obj_set_size(icon, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
     lv_img_set_antialias(icon, false);
     lv_obj_clear_flag(icon, LV_OBJ_FLAG_CLICKABLE | LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_add_flag(icon, LV_OBJ_FLAG_EVENT_BUBBLE);
@@ -676,8 +669,9 @@ void NavigationPane::setIcon(uint8_t id, const lv_img_dsc_t *img)
         lv_obj_del(cell);
         return;
     }
+
     lv_obj_set_width(lbl, lv_pct(100));
-    lv_label_set_long_mode(lbl, LV_LABEL_LONG_DOT);
+
     layoutGridTitleBar(bar);
 
     if (panelVisible() && !_ring_fade_busy)

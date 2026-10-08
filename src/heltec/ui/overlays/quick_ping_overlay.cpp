@@ -123,7 +123,7 @@ constexpr lv_coord_t kKeyboardEditorHeight = 40;
 constexpr lv_coord_t kKeyboardEditorInset = 4;
 
 #ifndef QUICK_PING_SLIDE_ANIM_MS
-#define QUICK_PING_SLIDE_ANIM_MS 220
+#define QUICK_PING_SLIDE_ANIM_MS 420
 #endif
 
 static const char *kMessageCompactKbMap[] = {
@@ -514,7 +514,6 @@ void QuickPingOverlay::onEnter()
     }
     _message_submit_handled = false;
     _close_animating = false;
-    _close_animation_ready = false;
     closeDropdowns();
     syncLists();
     rebuildMessagePresetOptions();
@@ -538,15 +537,11 @@ void QuickPingOverlay::onExit()
     {
         lv_obj_add_flag(_backdrop, LV_OBJ_FLAG_HIDDEN);
     }
-    if (_root)
-    {
-        ui_motion_cancel(_root, slideYExec);
-        lv_obj_set_y(_root, kPaneInset);
-    }
+    ui_motion_cancel(this, slideExec);
+    slideExec(this, kPaneInset);
     (void)lv_async_call_cancel(openPendingKeyboardAsync, this);
     clearRepeatSelection();
     _close_animating = false;
-    _close_animation_ready = false;
     _keyboard_open_pending = false;
     _message_submit_handled = false;
     _preset_edit_active = false;
@@ -555,76 +550,94 @@ void QuickPingOverlay::onExit()
     AbstractOverlay::onExit();
 }
 
-void QuickPingOverlay::slideYExec(void *var, int32_t value)
+void QuickPingOverlay::slideExec(void *var, int32_t value)
 {
-    auto *obj = static_cast<_lv_obj_t *>(var);
-    if (obj && lv_obj_is_valid(obj))
-        lv_obj_set_y(obj, static_cast<lv_coord_t>(value));
+    auto *self = static_cast<QuickPingOverlay *>(var);
+    if (!self || !self->_root || !lv_obj_is_valid(self->_root))
+        return;
+
+    const lv_coord_t y = static_cast<lv_coord_t>(value);
+    lv_obj_set_y(self->_root, y);
+    if (!self->_backdrop || !lv_obj_is_valid(self->_backdrop))
+        return;
+
+    lv_obj_set_y(self->_backdrop, y - kPaneInset);
+    lv_obj_set_style_opa(self->_backdrop, LV_OPA_COVER, LV_PART_MAIN);
+}
+
+lv_coord_t QuickPingOverlay::paneHeight() const
+{
+    if (!_root || !lv_obj_is_valid(_root))
+    {
+        return 0;
+    }
+
+    lv_coord_t height = lv_obj_get_height(_root);
+    if (height <= 0)
+    {
+        lv_obj_t *const parent = lv_obj_get_parent(_root);
+        if (parent && lv_obj_is_valid(parent))
+        {
+            height = lv_obj_get_height(parent);
+        }
+    }
+    return height;
 }
 
 void QuickPingOverlay::startOpenAnimation()
 {
     if (!_root || !lv_obj_is_valid(_root))
         return;
-    ui_motion_cancel(_root, slideYExec);
+    ui_motion_cancel(this, slideExec);
     lv_obj_update_layout(_root);
-    lv_coord_t height = lv_obj_get_height(_root);
-    if (height <= 0)
-    {
-        if (_lv_obj_t *parent = lv_obj_get_parent(_root))
-            height = lv_obj_get_height(parent);
-    }
+    const lv_coord_t height = paneHeight();
     if (height <= 0 || QUICK_PING_SLIDE_ANIM_MS == 0)
     {
-        lv_obj_set_y(_root, kPaneInset);
+        slideExec(this, kPaneInset);
         return;
     }
 
     UiMotionSpec motion;
-    motion.target = _root;
-    motion.exec = slideYExec;
-    motion.start_value = -height;
+    motion.target = this;
+    motion.exec = slideExec;
+    motion.start_value = -height - kPaneInset;
     motion.end_value = kPaneInset;
     motion.duration_ms = QUICK_PING_SLIDE_ANIM_MS;
-    motion.path = UiMotionPath::EaseOut;
+    motion.path = UiMotionPath::EaseInOut;
     if (!ui_motion_start(motion))
-        lv_obj_set_y(_root, kPaneInset);
+    {
+        slideExec(this, kPaneInset);
+    }
 }
 
 bool QuickPingOverlay::requestCloseAnimation()
 {
     if (!_root || !lv_obj_is_valid(_root))
         return false;
-    if (_close_animation_ready)
-    {
-        _close_animation_ready = false;
-        return false;
-    }
     if (_close_animating)
         return true;
 
     closeDropdowns();
     clearRepeatSelection();
-    ui_motion_cancel(_root, slideYExec);
+    ui_motion_cancel(this, slideExec);
     lv_obj_update_layout(_root);
-    lv_coord_t height = lv_obj_get_height(_root);
-    if (height <= 0)
-    {
-        if (_lv_obj_t *parent = lv_obj_get_parent(_root))
-            height = lv_obj_get_height(parent);
-    }
+    const lv_coord_t height = paneHeight();
     if (height <= 0 || QUICK_PING_SLIDE_ANIM_MS == 0)
+        return false;
+    const lv_coord_t current_y = lv_obj_get_y(_root);
+    const lv_coord_t hidden_y = -height - kPaneInset;
+    if (current_y <= hidden_y)
         return false;
 
     UiMotionSpec motion;
-    motion.target = _root;
-    motion.exec = slideYExec;
+    motion.target = this;
+    motion.exec = slideExec;
     motion.ready = closeAnimationReady;
     motion.ready_data = this;
-    motion.start_value = lv_obj_get_y(_root);
-    motion.end_value = -height;
+    motion.start_value = current_y;
+    motion.end_value = hidden_y;
     motion.duration_ms = QUICK_PING_SLIDE_ANIM_MS;
-    motion.path = UiMotionPath::EaseIn;
+    motion.path = UiMotionPath::EaseInOut;
     if (!ui_motion_start(motion))
         return false;
     _close_animating = true;
@@ -637,7 +650,6 @@ void QuickPingOverlay::closeAnimationReady(void *user_data)
     if (!self)
         return;
     self->_close_animating = false;
-    self->_close_animation_ready = true;
     (void)self->emitEvent(EventType::QuickPingClose);
 }
 

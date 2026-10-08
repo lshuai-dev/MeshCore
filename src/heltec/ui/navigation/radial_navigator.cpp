@@ -36,7 +36,7 @@ static void layoutRootToTileView(_lv_obj_t *root, _lv_obj_t *tileview) {
     if (!parent) return;
 
     lv_obj_update_layout(parent);
-    if (tileview && lv_obj_is_valid(tileview)) {
+    if (tileview) {
         lv_obj_update_layout(tileview);
         lv_area_t target;
         lv_area_t parent_content;

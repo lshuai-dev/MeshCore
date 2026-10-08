@@ -136,9 +136,10 @@ class QuickPingOverlay final : public AbstractOverlay
     static void onKeyboardEvent(lv_event_t *e);
     static void onKeyboardValuePre(lv_event_t *e);
     static void onOutsideEvent(lv_event_t *e);
-    static void slideYExec(void *var, int32_t value);
+    static void slideExec(void *var, int32_t value);
     static void closeAnimationReady(void *user_data);
 
+    lv_coord_t paneHeight() const;
     void startOpenAnimation();
 
     _lv_obj_t *_title_bar = nullptr;
@@ -177,7 +178,6 @@ class QuickPingOverlay final : public AbstractOverlay
     bool _preset_edit_active = false;
     uint8_t _preset_edit_index = 0;
     bool _close_animating = false;
-    bool _close_animation_ready = false;
     bool _repeat_pending = false;
     bool _pending_target_valid = false;
     bool _pending_target_direct = false;

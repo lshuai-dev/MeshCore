@@ -66,18 +66,18 @@ static const UiBehaviorProfile kPixelBehaviorProfile = {
 static const UiThemeProfile kPixelThemeProfile = {
     { 8, 10, 22, 8, 32, 12 },
     { 8, 1, 3, 18 },
-    { 10, 5, 24, 14, 10 },
+    { 5, 24, 14 },
 };
 #else
 static const UiThemeProfile kPixelNarrowThemeProfile = {
     { 6, 8, 22, 0, 25, 0 },
     { 12, 1, 3, 6 },
-    { 8, 5, 22, 12, 4 },
+    { 5, 22, 12 },
 };
 static const UiThemeProfile kPixelWideThemeProfile = {
     { 6, 8, 22, 0, 25, 0 },
     { 10, 1, 3, 18 },
-    { 8, 5, 22, 12, 4 },
+    { 5, 22, 12 },
 };
 #endif
 

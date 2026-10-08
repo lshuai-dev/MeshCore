@@ -146,3 +146,9 @@ const lv_img_dsc_t icon_meshcore_log_img = {
     sizeof(meshcore_logo_i1),
     meshcore_logo_i1,
 };
+
+const lv_img_dsc_t icon_meshcore_logo_alpha_img = {
+    {LV_IMG_CF_ALPHA_1BIT, 0, 0, MESHCORE_LOGO_W, MESHCORE_LOGO_H},
+    sizeof(meshcore_logo_i1) - sizeof(HELTEC_IMG_PALETTE_BW_I1),
+    meshcore_logo_i1 + sizeof(HELTEC_IMG_PALETTE_BW_I1),
+};

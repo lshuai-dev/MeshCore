@@ -27,11 +27,9 @@ struct UiContextMenuStyleConfig
 // initialization. Shared application-bar geometry lives in UiAppFrameStyleConfig.
 struct UiTopPaneStyleConfig
 {
-    lv_coord_t pad_horizontal;
     lv_coord_t pad_top;
     lv_coord_t battery_width;
     lv_coord_t battery_height;
-    lv_coord_t battery_pad_right;
 };
 
 struct UiThemeProfile
@@ -72,9 +70,5 @@ bool ui_button_roller_apply_theme(_lv_obj_t *obj);
 bool ui_license_gate_apply_theme(_lv_obj_t *obj);
 bool ui_radial_navigation_icon_apply_theme(_lv_obj_t *icon);
 void ui_context_menu_title_apply_theme(_lv_obj_t *title);
-void ui_theme_layout_navigation_grid(_lv_obj_t *host, _lv_obj_t *footer_cell);
-void ui_theme_sync_navigation_radius(_lv_obj_t *pane, _lv_obj_t *reference);
-
-void ui_navigator_apply_footer_cell_theme(_lv_obj_t *cell);
 
 } // namespace heltec::meshcore::ui

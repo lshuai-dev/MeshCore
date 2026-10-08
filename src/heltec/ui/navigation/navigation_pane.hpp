@@ -88,8 +88,6 @@ class NavigationPane : public UiSurface
     lv_coord_t _cached_nav_y = 0;
     lv_coord_t _cached_nav_w = 0;
     lv_coord_t _cached_nav_h = 0;
-    lv_coord_t _cached_tile_radius = 0;
-    bool _cached_tile_radius_valid = false;
     const char *_labels[kMaxButtons] = {};
     uint8_t _footer_id = static_cast<uint8_t>(eScreenId::None);
 };

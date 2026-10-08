@@ -7,16 +7,6 @@ namespace heltec::meshcore::ui
 namespace
 {
 
-#if HELTEC_HAS_TOUCH
-constexpr lv_coord_t kRightSlotGap = 0;
-constexpr lv_coord_t kTopPaneEdgeInset = 8;
-constexpr lv_coord_t kBatteryPadRight = 4;
-#else
-constexpr lv_coord_t kRightSlotGap = 0;
-constexpr lv_coord_t kTopPaneEdgeInset = 3;
-constexpr lv_coord_t kBatteryPadRight = 3;
-#endif
-
 constexpr uint8_t kTopPaneSideWidthPercent = 30;
 constexpr uint8_t kTopPaneCenterWidthPercent = 40;
 constexpr uint16_t kTitleScrollSpeed = 12;
@@ -133,8 +123,6 @@ bool TopPane::create(_lv_obj_t *parent)
     if (!_root)
         return false;
     lv_obj_set_width(_root, lv_pct(100));
-    lv_obj_set_style_pad_left(_root, LV_DPX(kTopPaneEdgeInset), LV_PART_MAIN);
-    lv_obj_set_style_pad_right(_root, LV_DPX(kTopPaneEdgeInset), LV_PART_MAIN);
     lv_obj_set_flex_flow(_root, LV_FLEX_FLOW_ROW);
     lv_obj_set_flex_align(_root, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
     lv_obj_clear_flag(_root, LV_OBJ_FLAG_SCROLLABLE);
@@ -211,8 +199,7 @@ bool TopPane::create(_lv_obj_t *parent)
     lv_obj_set_flex_flow(right_slot, LV_FLEX_FLOW_ROW);
     lv_obj_set_flex_align(right_slot, LV_FLEX_ALIGN_END, LV_FLEX_ALIGN_CENTER,
                           LV_FLEX_ALIGN_CENTER);
-    lv_obj_set_style_pad_column(right_slot, LV_DPX(kRightSlotGap), LV_PART_MAIN);
-    lv_obj_set_style_pad_right(right_slot, LV_DPX(kBatteryPadRight), LV_PART_MAIN);
+    lv_obj_set_style_pad_column(right_slot, 0, LV_PART_MAIN);
     lv_obj_clear_flag(right_slot, LV_OBJ_FLAG_SCROLLABLE);
 
     _bat_percent_label = ht_label_create(&ht_top_pane_title_class, right_slot, "");

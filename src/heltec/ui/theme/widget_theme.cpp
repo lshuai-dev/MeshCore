@@ -25,6 +25,7 @@
 #include "ui/overlays/repeat_mode_overlay.hpp"
 #include "ui/overlays/splash_overlay.hpp"
 #include "ui/screens/compass_dial_widget.hpp"
+#include "ui/screens/system_screen.hpp"
 #if defined(ENV_INCLUDE_MAP) && ENV_INCLUDE_MAP
 #include "ui/screens/tracker_screen.hpp"
 #endif
@@ -169,6 +170,7 @@ static bool s_overlay_feedback_styles_ready = false;
 
 static lv_style_t s_surface_root_common_style;
 static lv_style_t s_screen_root_layout_style;
+static lv_style_t s_system_screen_root_layout_style;
 static lv_style_t s_container_layout_style;
 #if defined(ENV_INCLUDE_MAP) && ENV_INCLUDE_MAP && defined(HELTEC_HAS_TOUCH) && HELTEC_HAS_TOUCH
 static lv_style_t s_tracker_root_layout_style;
@@ -178,7 +180,6 @@ static lv_style_t s_splash_root_layout_style;
 static lv_style_t s_plain_container_style;
 static lv_style_t s_no_chrome_style;
 static lv_style_t s_hidden_scrollbar_style;
-static lv_style_t s_top_pane_right_slot_style;
 #if HELTEC_HAS_TOUCH
 #endif
 static bool s_common_widget_styles_ready = false;
@@ -196,24 +197,19 @@ static bool s_top_pane_styles_ready = false;
 
 struct NavigationStyleConfig
 {
-    uint8_t grid_cols;
-    uint8_t grid_rows;
-    lv_coord_t grid_gap;
-    lv_coord_t grid_pad;
     lv_coord_t grid_label_height;
     lv_coord_t grid_cell_radius;
-    lv_coord_t grid_footer_height;
     lv_coord_t ring_edge_pad;
 };
 
 static const UiThemeProfile kDefaultThemeProfile = {
     { 2, 0, 0, 2, 12, 4 },
     { 12, 0, 3, 1 },
-    { 4, 0, 14, 8, 4 },
+    { 0, 14, 8 },
 };
 static const UiThemeProfile *s_theme_profile = &kDefaultThemeProfile;
 static constexpr NavigationStyleConfig kNavigationStyleConfig = {
-    2, 3, 6, 0, 18, 8, 36, 2,
+    18, 8, 2,
 };
 #if !HELTEC_HAS_TOUCH
 static constexpr lv_coord_t kContextMenuBorderWidth = 1;
@@ -270,6 +266,7 @@ static lv_style_t s_quick_ping_icon_badge_style;
 static bool s_quick_ping_styles_ready = false;
 #endif
 static lv_style_t s_settings_row_layout_style;
+static lv_style_t s_system_row_layout_style;
 static lv_style_t s_screen_info_label_layout_style;
 static lv_style_t s_container_focus_style;
 static lv_style_t s_find_friend_dial_layout_style;
@@ -299,7 +296,6 @@ static lv_style_t s_nav_grid_cell_focus_style;
 #if !HELTEC_HAS_TOUCH
 static lv_style_t s_nav_grid_icon_area_style;
 #endif
-static lv_style_t s_nav_grid_icon_style;
 static lv_style_t s_nav_grid_title_bar_style;
 static lv_style_t s_nav_grid_title_label_style;
 static lv_style_t s_nav_panel_grid_style;
@@ -1073,14 +1069,11 @@ static void init_top_pane_styles(lv_obj_t *obj)
     lv_style_set_bg_color(&s_top_pane_root_style, ui_color_top_pane_bg());
     lv_style_set_text_color(&s_top_pane_root_style, bar_fg);
     lv_style_set_height(&s_top_pane_root_style, theme_profile().app_frame.bar_height);
-    lv_style_set_pad_hor(&s_top_pane_root_style, geometry.pad_horizontal);
+    lv_style_set_pad_hor(&s_top_pane_root_style, top_radius);
     lv_style_set_pad_top(&s_top_pane_root_style, geometry.pad_top);
     lv_style_set_pad_bottom(&s_top_pane_root_style, 0);
     lv_style_set_radius(&s_top_pane_root_style, top_radius);
     lv_style_set_clip_corner(&s_top_pane_root_style, top_radius > 0);
-
-    lv_style_init(&s_top_pane_right_slot_style);
-    lv_style_set_pad_right(&s_top_pane_right_slot_style, geometry.battery_pad_right);
 
     lv_style_init(&s_top_pane_battery_style);
     lv_style_set_width(&s_top_pane_battery_style, bat_w);
@@ -1429,6 +1422,13 @@ static void init_screen_system_styles()
     lv_style_set_pad_ver(&s_settings_row_layout_style,
                          ui_layout_metrics().row_padding_vertical);
 
+    lv_style_init(&s_system_row_layout_style);
+    lv_style_set_pad_hor(&s_system_row_layout_style, 0);
+
+    lv_style_init(&s_system_screen_root_layout_style);
+    lv_style_set_pad_hor(&s_system_screen_root_layout_style,
+                         ui_layout_metrics().row_padding_horizontal);
+
     lv_style_init(&s_screen_info_label_layout_style);
     lv_style_set_pad_hor(&s_screen_info_label_layout_style,
                          ui_layout_metrics().row_padding_horizontal);
@@ -1636,11 +1636,9 @@ static void init_navigation_styles(lv_obj_t *obj = nullptr)
 
 #if defined(UI_NAVIGATION_GRID) && UI_NAVIGATION_GRID
     lv_style_init(&s_nav_content_host_style);
-    lv_style_set_pad_column(&s_nav_content_host_style, config.grid_gap);
-    lv_style_set_pad_row(&s_nav_content_host_style, config.grid_gap);
+    lv_style_set_pad_all(&s_nav_content_host_style, 0);
 
     const lv_coord_t nav_radius = config.grid_cell_radius;
-    const lv_coord_t icon_radius = panel_radius;
     const lv_coord_t title_radius = panel_radius;
     lv_style_init(&s_nav_grid_cell_style);
     lv_style_set_bg_color(&s_nav_grid_cell_style, lv_color_white());
@@ -1656,10 +1654,6 @@ static void init_navigation_styles(lv_obj_t *obj = nullptr)
     lv_style_init(&s_nav_grid_icon_area_style);
     lv_style_set_pad_all(&s_nav_grid_icon_area_style, 4);
 #endif
-
-    lv_style_init(&s_nav_grid_icon_style);
-    lv_style_set_radius(&s_nav_grid_icon_style, icon_radius);
-    lv_style_set_clip_corner(&s_nav_grid_icon_style, icon_radius > 0);
 
     lv_style_init(&s_nav_grid_title_bar_style);
     lv_style_set_width(&s_nav_grid_title_bar_style, lv_pct(100));
@@ -1846,6 +1840,18 @@ static bool is_screen_tree_object(_lv_obj_t *obj)
     return false;
 }
 
+static bool is_system_screen_child(const _lv_obj_t *obj)
+{
+    for (const lv_obj_t *current = obj; current; current = lv_obj_get_parent(current))
+    {
+        if (lv_obj_check_type(current, &ht_system_screen_root_class))
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
 static bool apply_screen_class_theme(_lv_obj_t *obj)
 {
     if (!obj || !is_screen_tree_object(obj))
@@ -1889,6 +1895,10 @@ static bool apply_screen_class_theme(_lv_obj_t *obj)
         style_plain_container(obj);
         init_screen_system_styles();
         lv_obj_add_style(obj, &s_settings_row_layout_style, LV_PART_MAIN);
+        if (is_system_screen_child(obj))
+        {
+            lv_obj_add_style(obj, &s_system_row_layout_style, LV_PART_MAIN);
+        }
         return true;
     }
 
@@ -1950,12 +1960,7 @@ static bool apply_top_pane_direct_child(_lv_obj_t *obj, _lv_obj_t *parent)
 {
     if (!parent || !lv_obj_check_type(parent, &ht_top_pane_class))
         return false;
-
-    if (lv_obj_check_type(obj, &ht_top_pane_right_slot_class))
-    {
-        init_top_pane_styles(parent);
-        lv_obj_add_style(obj, &s_top_pane_right_slot_style, LV_PART_MAIN);
-    }
+    (void)obj;
     return true;
 }
 
@@ -2050,6 +2055,11 @@ static bool apply_surface_root_theme(_lv_obj_t *obj)
         apply_surface_root_common(obj);
         init_common_widget_styles();
         lv_obj_add_style(obj, &s_screen_root_layout_style, LV_PART_MAIN);
+        if (lv_obj_check_type(obj, &ht_system_screen_root_class))
+        {
+            init_screen_system_styles();
+            lv_obj_add_style(obj, &s_system_screen_root_layout_style, LV_PART_MAIN);
+        }
 #if defined(ENV_INCLUDE_MAP) && ENV_INCLUDE_MAP && defined(HELTEC_HAS_TOUCH) && HELTEC_HAS_TOUCH
         if (lv_obj_check_type(obj, &ht_tracker_screen_root_class))
         {
@@ -2976,20 +2986,13 @@ static void apply_navigator_grid_icon_area_theme(lv_obj_t *area)
 #endif
 }
 
-static void apply_navigator_grid_icon_theme(lv_obj_t *icon)
-{
-    if (!icon)
-        return;
-    init_navigation_styles(icon);
-    lv_obj_add_style(icon, &s_nav_grid_icon_style, LV_PART_MAIN);
-}
-
 static void apply_navigator_grid_title_bar_theme(lv_obj_t *bar)
 {
     if (!bar)
         return;
     init_navigation_styles(bar);
     lv_obj_add_style(bar, &s_nav_grid_title_bar_style, LV_PART_MAIN);
+    lv_obj_add_style(bar, &s_nav_footer_bar_style, LV_PART_MAIN | LV_STATE_USER_1);
 }
 
 static void apply_navigator_grid_title_label_theme(lv_obj_t *label)
@@ -3081,112 +3084,6 @@ void ui_theme_set_waypoint_keyboard_active(_lv_obj_t *keyboard, _lv_obj_t *latit
 #endif
 }
 
-#if defined(UI_NAVIGATION_GRID) && UI_NAVIGATION_GRID
-static _lv_obj_t *find_direct_child_by_class(_lv_obj_t *parent,
-                                              const lv_obj_class_t *class_p);
-#endif
-
-void ui_theme_layout_navigation_grid(_lv_obj_t *host, _lv_obj_t *footer_cell)
-{
-#if defined(UI_NAVIGATION_GRID) && UI_NAVIGATION_GRID
-    if (!host)
-        return;
-    init_navigation_styles(host);
-    const NavigationStyleConfig &config = kNavigationStyleConfig;
-    const uint8_t cols = LV_MAX(1, config.grid_cols);
-    const uint8_t rows = LV_MAX(1, config.grid_rows);
-    const lv_coord_t gap = config.grid_gap;
-    const lv_coord_t pad = config.grid_pad;
-    const lv_coord_t width = lv_obj_get_width(host);
-    const lv_coord_t height = lv_obj_get_height(host);
-    if (width < 8 || height < 8)
-        return;
-
-    const bool has_footer = footer_cell != nullptr;
-    const lv_coord_t footer_height = has_footer ? config.grid_footer_height : 0;
-    const lv_coord_t footer_gap = has_footer ? gap : 0;
-    const lv_coord_t available_width = width - pad * 2;
-    const lv_coord_t available_height = height - pad * 2;
-    const lv_coord_t footer_block = footer_height + footer_gap;
-    const lv_coord_t grid_height_limit = available_height - footer_block;
-    const lv_coord_t cell_width =
-        LV_MAX(2, (available_width - gap * (static_cast<lv_coord_t>(cols) - 1)) / cols);
-    const lv_coord_t cell_height =
-        LV_MAX(2, (grid_height_limit - gap * (static_cast<lv_coord_t>(rows) - 1)) / rows);
-    const lv_coord_t grid_width = cols * cell_width + gap * (static_cast<lv_coord_t>(cols) - 1);
-    const lv_coord_t grid_height = rows * cell_height + gap * (static_cast<lv_coord_t>(rows) - 1);
-    const lv_coord_t block_height = grid_height + footer_block;
-    const lv_coord_t origin_x = pad + (available_width - grid_width) / 2;
-    const lv_coord_t origin_y = pad + (available_height - block_height) / 2;
-
-    uint8_t grid_index = 0;
-    const uint32_t count = lv_obj_get_child_cnt(host);
-    for (uint32_t i = 0; i < count; ++i)
-    {
-        _lv_obj_t *cell = lv_obj_get_child(host, i);
-        if (!cell)
-            continue;
-        if (cell == footer_cell)
-        {
-            lv_obj_set_size(cell, available_width, footer_height);
-            lv_obj_set_pos(cell, pad, origin_y + grid_height + footer_gap);
-            continue;
-        }
-        const uint8_t column = grid_index % cols;
-        const uint8_t row = grid_index / cols;
-        ++grid_index;
-        lv_obj_set_size(cell, cell_width, cell_height);
-        lv_obj_set_pos(cell, origin_x + column * (cell_width + gap),
-                       origin_y + row * (cell_height + gap));
-    }
-#else
-    (void)host;
-    (void)footer_cell;
-#endif
-}
-
-void ui_theme_sync_navigation_radius(_lv_obj_t *pane, _lv_obj_t *reference)
-{
-#if defined(UI_NAVIGATION_GRID) && UI_NAVIGATION_GRID
-    if (!pane || !reference || !lv_obj_is_valid(reference))
-        return;
-    const lv_coord_t radius = lv_obj_get_style_radius(reference, LV_PART_MAIN);
-    lv_obj_set_style_radius(pane, radius, LV_PART_MAIN);
-    lv_obj_set_style_clip_corner(pane, radius > 0, LV_PART_MAIN);
-
-    _lv_obj_t *host = ui_navigator_content(pane);
-    if (!host)
-        return;
-    const uint32_t count = lv_obj_get_child_cnt(host);
-    for (uint32_t i = 0; i < count; ++i)
-    {
-        _lv_obj_t *cell = lv_obj_get_child(host, i);
-        if (!cell)
-            continue;
-        _lv_obj_t *icon_area =
-            find_direct_child_by_class(cell, &ht_navigation_icon_area_class);
-        _lv_obj_t *icon = find_direct_child_by_class(icon_area, &lv_img_class);
-        if (icon)
-        {
-            lv_obj_set_style_radius(icon, radius, LV_PART_MAIN);
-            lv_obj_set_style_clip_corner(icon, radius > 0, LV_PART_MAIN);
-        }
-        _lv_obj_t *bar =
-            find_direct_child_by_class(cell, &ht_navigation_title_bar_class);
-        if (bar)
-        {
-            lv_obj_set_style_radius(bar, radius, LV_PART_MAIN);
-            lv_obj_set_style_clip_corner(bar, radius > 0, LV_PART_MAIN);
-            lv_obj_set_style_radius(bar, radius, LV_PART_MAIN | LV_STATE_PRESSED);
-            lv_obj_set_style_clip_corner(bar, radius > 0, LV_PART_MAIN | LV_STATE_PRESSED);
-        }
-    }
-#else
-    (void)pane;
-    (void)reference;
-#endif
-}
-
 void ui_widget_theme_configure(const UiThemeProfile &profile)
 {
     if (s_surface_app_styles_ready || s_navigation_styles_ready || s_top_pane_styles_ready)
@@ -3274,11 +3171,6 @@ static bool apply_navigation_theme(_lv_obj_t *obj)
         apply_navigator_grid_icon_area_theme(obj);
         return true;
     }
-    if (lv_obj_check_type(obj, &ht_navigation_grid_icon_class))
-    {
-        apply_navigator_grid_icon_theme(obj);
-        return true;
-    }
     if (lv_obj_check_type(obj, &ht_navigation_title_bar_class))
     {
         apply_navigator_grid_title_bar_theme(obj);
@@ -3305,38 +3197,6 @@ static bool apply_navigation_ring_theme(_lv_obj_t *obj)
 #else
     (void)obj;
     return false;
-#endif
-}
-
-#if defined(UI_NAVIGATION_GRID) && UI_NAVIGATION_GRID
-static _lv_obj_t *find_direct_child_by_class(_lv_obj_t *parent, const lv_obj_class_t *class_p)
-{
-    if (!parent)
-        return nullptr;
-    const uint32_t n = lv_obj_get_child_cnt(parent);
-    for (uint32_t i = 0; i < n; ++i)
-    {
-        _lv_obj_t *child = lv_obj_get_child(parent, i);
-        if (child && lv_obj_check_type(child, class_p))
-            return child;
-    }
-    return nullptr;
-}
-#endif
-
-void ui_navigator_apply_footer_cell_theme(_lv_obj_t *cell)
-{
-#if defined(UI_NAVIGATION_GRID) && UI_NAVIGATION_GRID
-    if (!cell)
-        return;
-
-    _lv_obj_t *bar = find_direct_child_by_class(cell, &ht_navigation_title_bar_class);
-    if (!bar)
-        return;
-    init_navigation_styles(cell);
-    lv_obj_add_style(bar, &s_nav_footer_bar_style, LV_PART_MAIN);
-#else
-    (void)cell;
 #endif
 }
 
