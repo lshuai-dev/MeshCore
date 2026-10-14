@@ -27,11 +27,11 @@ class PowerMgr;
 #define FIRMWARE_VER_CODE 10
 
 #ifndef FIRMWARE_BUILD_DATE
-#define FIRMWARE_BUILD_DATE "15 Feb 2026"
+#define FIRMWARE_BUILD_DATE "14 Oct 2026"
 #endif
 
 #ifndef FIRMWARE_VERSION
-#define FIRMWARE_VERSION "v1.16.0.3_beta"
+#define FIRMWARE_VERSION "v1.17.1.1_alpha"
 #endif
 
 /* ---------------------------------- CONFIGURATION ------------------------------------- */
