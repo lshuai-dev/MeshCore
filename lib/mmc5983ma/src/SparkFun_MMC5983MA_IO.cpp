@@ -48,6 +48,8 @@ bool SFE_MMC5983MA_IO::begin()
 {
   useSPI = false;
   _i2cPort = getI2CBus();
+  if (_i2cPort == nullptr)
+    return false;
   return isConnected();
 }
 
@@ -99,6 +101,8 @@ bool SFE_MMC5983MA_IO::isConnected()
     }
     else
     {
+        if (_i2cPort == nullptr)
+            return false;
         _i2cPort->beginTransmission(I2C_ADDR);
         result = (_i2cPort->endTransmission() == 0);
         if (result)

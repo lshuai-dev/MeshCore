@@ -1416,6 +1416,11 @@ bool QuickPingOverlay::keyboardVisible() const
            !lv_obj_has_flag(_keyboard, LV_OBJ_FLAG_HIDDEN);
 }
 
+bool QuickPingOverlay::acceptsKeyboardCycle() const
+{
+    return keyboardVisible();
+}
+
 bool QuickPingOverlay::hitVisibleKeyboard(int16_t x, int16_t y) const
 {
     if (!keyboardVisible())

@@ -1080,11 +1080,9 @@ void DataStore::savePrefs(const NodePrefs &_prefs, double node_lat, double node_
     }
 #endif
     File file = openWrite(_fs, "/new_prefs");
-    bool usingSecondary = false;
     if (!file && _fsExtra)
     {
         file = openWrite(_fsExtra, "/new_prefs");
-        usingSecondary = (bool)file;
     }
     if (file)
     {
@@ -1400,14 +1398,20 @@ void DataStore::migrateToSecondaryFS()
         }
         File oldFile = openRead(_fsExtra, "/_main.id");
         File newFile = openWrite(_fs, "/_main.id");
+        bool copy_succeeded = false;
 
         if (oldFile && newFile)
         {
             uint8_t buf[64];
             int n;
+            copy_succeeded = true;
             while ((n = oldFile.read(buf, sizeof(buf))) > 0)
             {
-                newFile.write(buf, n);
+                if (newFile.write(buf, n) != (size_t)n)
+                {
+                    copy_succeeded = false;
+                    break;
+                }
             }
         }
         if (oldFile)
@@ -1415,7 +1419,7 @@ void DataStore::migrateToSecondaryFS()
         if (newFile)
             newFile.close();
         // Only remove from secondary if copy to primary succeeded.
-        if (oldFile && newFile)
+        if (copy_succeeded)
         {
             _fsExtra->remove("/_main.id");
         }
@@ -1428,14 +1432,20 @@ void DataStore::migrateToSecondaryFS()
         }
         File oldFile = openRead(_fsExtra, "/new_prefs");
         File newFile = openWrite(_fs, "/new_prefs");
+        bool copy_succeeded = false;
 
         if (oldFile && newFile)
         {
             uint8_t buf[64];
             int n;
+            copy_succeeded = true;
             while ((n = oldFile.read(buf, sizeof(buf))) > 0)
             {
-                newFile.write(buf, n);
+                if (newFile.write(buf, n) != (size_t)n)
+                {
+                    copy_succeeded = false;
+                    break;
+                }
             }
         }
         if (oldFile)
@@ -1443,7 +1453,7 @@ void DataStore::migrateToSecondaryFS()
         if (newFile)
             newFile.close();
         // Only remove from secondary if copy to primary succeeded.
-        if (oldFile && newFile)
+        if (copy_succeeded)
         {
             _fsExtra->remove("/new_prefs");
         }

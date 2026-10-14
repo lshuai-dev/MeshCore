@@ -106,7 +106,7 @@ void HeltecRadioCoreRC52Board::begin()
     pinMode(PIN_LORA_POWER, OUTPUT);
     digitalWrite(PIN_LORA_POWER, PIN_LORA_POWER_ACTIVE);
 #endif
-#if defined(PIN_SENSOR_EN) && (PIN_SENSOR_EN >= 0) && defined(PIN_SENSOR_EN_ACTIVE) 
+#if defined(PIN_SENSOR_EN) && (PIN_SENSOR_EN >= 0) && defined(PIN_SENSOR_EN_ACTIVE)
     pinMode(PIN_SENSOR_EN, OUTPUT);
     digitalWrite(PIN_SENSOR_EN, PIN_SENSOR_EN_ACTIVE);
     MESH_DEBUG_PRINTLN("[boot][rc52] sensor power enabled pin=%d level=%d", PIN_SENSOR_EN,

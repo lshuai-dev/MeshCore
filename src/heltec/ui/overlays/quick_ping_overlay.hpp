@@ -45,6 +45,7 @@ class QuickPingOverlay final : public AbstractOverlay
     bool hitVisibleKeyboard(int16_t x, int16_t y) const;
     bool hitVerticalSwipeControl(int16_t x, int16_t y) const;
     bool hitSwipeDismissRegion(int16_t x, int16_t y) const;
+    bool acceptsKeyboardCycle() const;
     /** Start the slide-out animation. Returns false when SurfaceManager should dismiss now. */
     bool requestCloseAnimation();
 

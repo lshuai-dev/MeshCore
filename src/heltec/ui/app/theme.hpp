@@ -49,12 +49,6 @@ struct UiTheme
     lv_theme_t theme;
 };
 
-struct UiLayoutMetrics
-{
-    lv_coord_t row_padding_horizontal;
-    lv_coord_t row_padding_vertical;
-};
-
 UiThemeColors make_ui_theme_colors();
 const UiThemeColors &ui_theme_colors();
 void ui_set_active_theme_colors(const UiThemeColors *colors);
@@ -181,14 +175,6 @@ constexpr lv_coord_t ui_settings_row_height()
     return 32;
 #else
     return LV_SIZE_CONTENT;
-#endif
-}
-constexpr UiLayoutMetrics ui_layout_metrics()
-{
-#if HELTEC_HAS_TOUCH
-    return {2, 2};
-#else
-    return {0, 1};
 #endif
 }
 inline lv_color_t ui_navigation_idle_color()

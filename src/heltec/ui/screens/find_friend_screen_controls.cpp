@@ -19,8 +19,7 @@ using heltec::meshcore::team::JoinState;
 
 #if HELTEC_HAS_TOUCH
 constexpr lv_coord_t kFindFriendRowHeight = 28;
-constexpr lv_coord_t kFindFriendRowPadVer = 1;
-constexpr lv_coord_t kDropdownHeight = kFindFriendRowHeight - 2 * kFindFriendRowPadVer;
+constexpr lv_coord_t kDropdownHeight = kFindFriendRowHeight;
 #else
 constexpr lv_coord_t kFindFriendRowHeight = ui_settings_row_height();
 #endif

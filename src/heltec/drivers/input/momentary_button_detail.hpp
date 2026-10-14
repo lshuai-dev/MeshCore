@@ -17,6 +17,7 @@ enum class ButtonGesture : uint8_t
     Double,
     Triple,
     Long,
+    LongRepeat,
 };
 
 using GestureEmitFn = void (*)(uint8_t slot, ButtonGesture gesture);

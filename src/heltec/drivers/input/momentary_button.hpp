@@ -33,6 +33,7 @@ struct ButtonConfig
     int8_t pin = -1;
     uint8_t pin_mode = 0;
     uint8_t active_level = 1;
+    uint16_t long_repeat_ms = 0;
     KeyMap map;
 };
 

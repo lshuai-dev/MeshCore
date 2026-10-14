@@ -112,6 +112,21 @@ class UiApp final : public IUiHost, public InputHost {
         return false;
 #endif
     }
+    bool acceptsKeyboardCycle() const override
+    {
+#if UI_INCLUDE_KEYBOARD_OVERLAY
+        if (_surfaces.isActive(&_keyboardOvl))
+        {
+            return true;
+        }
+#endif
+#if HELTEC_HAS_TOUCH
+        return _surfaces.isActive(&_quickPingOverlay) &&
+               _quickPingOverlay.acceptsKeyboardCycle();
+#else
+        return false;
+#endif
+    }
     bool interceptInputKey(uint32_t key) override
     {
 #if UI_INCLUDE_KEYBOARD_OVERLAY

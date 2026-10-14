@@ -15,7 +15,7 @@
     ],
     "usb_product": "HT-n5262T1",
     "mcu": "nrf52840",
-    "variant": "heltec_t1",
+    "variant": "heltec_radio_core",
     "bsp": {
       "name": "adafruit"
     },

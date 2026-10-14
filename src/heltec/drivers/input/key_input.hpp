@@ -19,6 +19,7 @@ enum class KeyDelivery : uint8_t
 {
     Tracked,
     Pulse,
+    IndependentPulse,
 };
 
 bool initialize();

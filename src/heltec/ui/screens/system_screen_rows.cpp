@@ -27,9 +27,11 @@ void request_dropdown_refresh()
 #endif
 
 #if HELTEC_HAS_TOUCH
-constexpr lv_coord_t kSystemDropdownHeight =
-    ui_settings_row_height() - 2 * ui_layout_metrics().row_padding_vertical;
+constexpr lv_coord_t kSystemDropdownHeight = 28;
+#else
+constexpr lv_coord_t kSystemDropdownHeight = 16;
 #endif
+constexpr lv_coord_t kSystemSwitchHeight = 16;
 void configure_system_row(_lv_obj_t *row, lv_flex_flow_t flow, lv_flex_align_t main,
                           lv_flex_align_t cross, bool single_line = true,
                           bool event_bubble = true)
@@ -107,6 +109,7 @@ _lv_obj_t *SystemScreen::addSwitchRow(_lv_obj_t *scroll, const char *title, _lv_
     *out_sw = lv_switch_create(row);
     if (!*out_sw)
         return row;
+    lv_obj_set_height(*out_sw, kSystemSwitchHeight);
     lv_obj_clear_flag(*out_sw, LV_OBJ_FLAG_SCROLLABLE);
     bindWidget(*out_sw);
     lv_obj_add_event_cb(*out_sw, onSwitchValueChanged, LV_EVENT_VALUE_CHANGED, this);
@@ -138,15 +141,7 @@ _lv_obj_t *SystemScreen::addDropdownRow(_lv_obj_t *scroll, ChoiceRow &choice, co
     // left after the label.
     lv_obj_set_width(dd, 0);
     lv_obj_set_flex_grow(dd, 1);
-#if LV_COLOR_DEPTH == 1
-    lv_obj_set_height(dd, 12);
-#else
-#if HELTEC_HAS_TOUCH
     lv_obj_set_height(dd, kSystemDropdownHeight);
-#else
-    lv_obj_set_height(dd, LV_SIZE_CONTENT);
-#endif
-#endif
     lv_obj_clear_flag(dd, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_set_scrollbar_mode(dd, LV_SCROLLBAR_MODE_OFF);
     lv_dropdown_set_dir(dd, LV_DIR_BOTTOM);
@@ -320,7 +315,7 @@ _lv_obj_t *SystemScreen::addBuzzerVolumeRow(_lv_obj_t *scroll)
         return row;
     lv_obj_set_size(controls, lv_pct(100), 26);
     lv_obj_set_flex_flow(controls, LV_FLEX_FLOW_ROW);
-    lv_obj_set_flex_align(controls, LV_FLEX_ALIGN_SPACE_BETWEEN, LV_FLEX_ALIGN_CENTER,
+    lv_obj_set_flex_align(controls, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER,
                           LV_FLEX_ALIGN_CENTER);
     lv_obj_clear_flag(controls, LV_OBJ_FLAG_SCROLLABLE | LV_OBJ_FLAG_CLICKABLE |
                                LV_OBJ_FLAG_CLICK_FOCUSABLE | LV_OBJ_FLAG_SCROLL_ON_FOCUS);

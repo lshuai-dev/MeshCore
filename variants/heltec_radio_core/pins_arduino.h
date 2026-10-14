@@ -10,8 +10,13 @@ static const uint8_t LED_BUILTIN = 18;
 static const uint8_t TX = 43;
 static const uint8_t RX = 44;
 
+#if defined(ARDUINO_ARCH_NRF52)
+static const uint8_t SDA = 43;
+static const uint8_t SCL = 2;
+#else
 static const uint8_t SDA = 5;
 static const uint8_t SCL = 6;
+#endif
 
 static const uint8_t SS    = 8;
 static const uint8_t MOSI  = 10;

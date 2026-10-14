@@ -217,14 +217,45 @@ static bool isI2cDevicePresent(const char *name, TwoWire *wire, uint8_t address)
     return result == 0;
 }
 
+#if defined(RADIOCORE_BOARD_RC52)
+static void logRc52SensorPins(const char *stage)
+{
+#if defined(PIN_WIRE_SDA) && defined(PIN_WIRE_SCL)
+    MESH_DEBUG_PRINTLN("[env][rc52] %s I2C SDA pin=%d level=%d SCL pin=%d level=%d", stage,
+                       PIN_WIRE_SDA, digitalRead(PIN_WIRE_SDA), PIN_WIRE_SCL,
+                       digitalRead(PIN_WIRE_SCL));
+#endif
+
+#if defined(PIN_SENSOR_EN)
+    MESH_DEBUG_PRINTLN("[env][rc52] %s VSENSOR_CTRL pin=%d level=%d", stage, PIN_SENSOR_EN,
+                       digitalRead(PIN_SENSOR_EN));
+#endif
+
+#if defined(PIN_GPS_EN) && defined(PIN_GPS_RESET) && defined(PIN_GPS_TX) && \
+    defined(PIN_GPS_RX)
+    MESH_DEBUG_PRINTLN(
+        "[env][rc52] %s GPS EN pin=%d level=%d RESET pin=%d level=%d TX pin=%d RX pin=%d",
+        stage, PIN_GPS_EN, digitalRead(PIN_GPS_EN), PIN_GPS_RESET,
+        digitalRead(PIN_GPS_RESET), PIN_GPS_TX, PIN_GPS_RX);
+#endif
+}
+#endif
+
 bool HeltecEnvironmentSensorManager::begin()
 {
     MESH_DEBUG_PRINTLN("[env] manager begin t=%lu", (unsigned long)millis());
+#if defined(RADIOCORE_BOARD_RC52)
+    logRc52SensorPins("manager begin");
+#endif
 #if ENV_INCLUDE_GPS
 #ifdef RAK_WISBLOCK_GPS
     rakGPSInit(); // probe base board/sockets for GPS
 #else
     initBasicGPS();
+#endif
+
+#if defined(RADIOCORE_BOARD_RC52)
+    logRc52SensorPins("GPS init end");
 #endif
 #endif
 
@@ -451,7 +482,15 @@ bool HeltecEnvironmentSensorManager::begin()
 
 #if ENV_INCLUDE_COMPASS
     if (_compass)
+    {
+#if defined(RADIOCORE_BOARD_RC52)
+        logRc52SensorPins("compass begin");
+#endif
         _compass->begin();
+#if defined(RADIOCORE_BOARD_RC52)
+        logRc52SensorPins("compass end");
+#endif
+    }
 #endif
 
     // #if defined(HELTEC_HAS_TOUCH) && HELTEC_HAS_TOUCH && defined(ENV_PIN_SDA) && ENV_PIN_SDA && \

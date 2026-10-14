@@ -39,9 +39,11 @@ struct ButtonState
     unsigned long candidate_since = 0;
 #endif
     unsigned long down_at = 0;
+    unsigned long next_repeat_at = 0;
     unsigned long last_edge_at = 0;
     uint8_t clicks = 0;
     unsigned long last_release = 0;
+    bool long_fired = false;
     KeyMap map;
     volatile uint8_t edge_head = 0;
     volatile uint8_t edge_tail = 0;
@@ -85,6 +87,9 @@ static void emit_gesture(uint8_t slot, ButtonGesture gesture)
         s_gesture_emit(slot, gesture);
         return;
     }
+
+    if (gesture == ButtonGesture::LongRepeat)
+        return;
 
     const ButtonState &button = s_buttons[slot];
     const uint32_t key = (gesture == ButtonGesture::Long)
@@ -208,11 +213,14 @@ static void accept_level(ButtonState &button, uint8_t slot, uint8_t level,
     if (is_pressed(level, button.active_level))
     {
         button.down_at = now;
+        button.next_repeat_at = 0;
+        button.long_fired = false;
     }
     else if (button.down_at > 0)
     {
         const unsigned long held = now - button.down_at;
-        if (s_cfg.long_press_ms == 0 || held < s_cfg.long_press_ms)
+        if (!button.long_fired &&
+            (s_cfg.long_press_ms == 0 || held < s_cfg.long_press_ms))
         {
             ++button.clicks;
             if (HELTEC_BUTTON_MAX_CLICKS >= 3 && button.clicks >= 3)
@@ -232,7 +240,7 @@ static void accept_level(ButtonState &button, uint8_t slot, uint8_t level,
                 button.last_release = now;
             }
         }
-        else if (button.clicks == 0)
+        else if (!button.long_fired && button.clicks == 0)
         {
             // A complete long press can occur while an E-paper refresh blocks
             // the UI task. Reconstruct it from the timestamped ISR edges.
@@ -244,6 +252,8 @@ static void accept_level(ButtonState &button, uint8_t slot, uint8_t level,
             button.last_release = 0;
         }
         button.down_at = 0;
+        button.next_repeat_at = 0;
+        button.long_fired = false;
     }
 
     button.prev = level;
@@ -324,9 +334,10 @@ static void tick_button(ButtonState &button, uint8_t slot, unsigned long now)
     drain_edges(button, slot, now);
 #endif
 
-    if (s_cfg.long_press_ms > 0 && button.down_at > 0 &&
+    if (s_cfg.long_press_ms > 0 && button.down_at > 0 && !button.long_fired &&
         (now - button.down_at) >= s_cfg.long_press_ms)
     {
+        const bool emit_long = button.clicks == 0;
         if (button.clicks > 0)
         {
             button.clicks = 0;
@@ -336,8 +347,19 @@ static void tick_button(ButtonState &button, uint8_t slot, unsigned long now)
         {
             emit_gesture(slot, ButtonGesture::Long);
         }
-        button.down_at = 0;
+        button.long_fired = true;
+        if (emit_long && s_cfg.buttons[slot].long_repeat_ms > 0)
+        {
+            button.next_repeat_at = now + s_cfg.buttons[slot].long_repeat_ms;
+        }
         return;
+    }
+
+    if (button.long_fired && button.next_repeat_at > 0 &&
+        static_cast<int32_t>(now - button.next_repeat_at) >= 0)
+    {
+        emit_gesture(slot, ButtonGesture::LongRepeat);
+        button.next_repeat_at = now + s_cfg.buttons[slot].long_repeat_ms;
     }
 
     if (button.clicks > 0 && button.down_at == 0 &&

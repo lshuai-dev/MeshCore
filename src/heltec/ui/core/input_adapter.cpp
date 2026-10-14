@@ -20,7 +20,13 @@ AdaptedInput dualKeyButton(uint8_t slot, ButtonGesture gesture) {
             out.command = InputCommand::OpenAction;
         }
     } else if (gesture == ButtonGesture::Long) {
-        out.lv_key = LV_KEY_ENTER;
+        if (slot == 0) {
+            out.lv_key = LV_KEY_ENTER;
+        } else {
+            out.command = InputCommand::CycleKeyboardNext;
+        }
+    } else if (gesture == ButtonGesture::LongRepeat && slot == 1) {
+        out.command = InputCommand::CycleKeyboardNext;
     }
     return out;
 }

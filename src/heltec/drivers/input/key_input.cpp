@@ -36,6 +36,7 @@ enum class DeliveryState : uint8_t
 static DeliveryState s_state = DeliveryState::Idle;
 static uint32_t s_current_key = LV_KEY_ENTER;
 static bool s_release_wait_requested = false;
+static bool s_pulse_waits_for_physical_release = true;
 
 static bool is_down()
 {
@@ -50,6 +51,7 @@ static void reset_state()
     s_state = DeliveryState::Idle;
     s_current_key = LV_KEY_ENTER;
     s_release_wait_requested = false;
+    s_pulse_waits_for_physical_release = true;
 }
 
 static bool enqueue_key(uint32_t key, KeyDelivery delivery)
@@ -95,8 +97,16 @@ static void read_cb(lv_indev_drv_t *drv, lv_indev_data_t *data)
     if (s_state == DeliveryState::PulseRelease)
     {
         data->state = LV_INDEV_STATE_RELEASED;
-        s_release_wait_requested = true;
-        s_state = DeliveryState::WaitPhysicalRelease;
+        if (s_pulse_waits_for_physical_release)
+        {
+            s_release_wait_requested = true;
+            s_state = DeliveryState::WaitPhysicalRelease;
+        }
+        else
+        {
+            s_state = DeliveryState::Idle;
+            data->continue_reading = s_queue_count > 0;
+        }
         return;
     }
 
@@ -131,8 +141,10 @@ static void read_cb(lv_indev_drv_t *drv, lv_indev_data_t *data)
             s_current_key = queued.key;
             data->key = s_current_key;
             data->state = LV_INDEV_STATE_PRESSED;
-            if (queued.delivery == KeyDelivery::Pulse)
+            if (queued.delivery != KeyDelivery::Tracked)
             {
+                s_pulse_waits_for_physical_release =
+                    queued.delivery == KeyDelivery::Pulse;
                 s_state = DeliveryState::PulseRelease;
                 data->continue_reading = true;
             }

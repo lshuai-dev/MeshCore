@@ -11,11 +11,26 @@
 #include <Arduino.h> // needed for PlatformIO
 #include <Mesh.h>
 #include <helpers/sensors/LocationProvider.h>
+#if defined(RADIOCORE_BOARD_RC52)
+#include <nrf_gpio.h>
+#endif
 #if defined(HELTEC_MESH_UI) && HELTEC_MESH_UI
 #include "config/heltec_license.h"
 #endif
 #if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
 #include <heltec/sensors/ICMCompassProvider.h>
+#endif
+
+#if defined(RADIOCORE_BOARD_RC52) && defined(PIN_SENSOR_EN)
+static void logRc52SensorPowerState(const char *stage)
+{
+    const uint32_t pin = static_cast<uint32_t>(PIN_SENSOR_EN);
+    MESH_DEBUG_PRINTLN("[boot][rc52] %s VSENSOR_CTRL pin=%lu dir=%lu out=%lu in=%lu",
+                       stage, static_cast<unsigned long>(pin),
+                       static_cast<unsigned long>(nrf_gpio_pin_dir_get(pin)),
+                       static_cast<unsigned long>(nrf_gpio_pin_out_read(pin)),
+                       static_cast<unsigned long>(nrf_gpio_pin_read(pin)));
+}
 #endif
 
 static uint32_t _atoi(const char *sp)
@@ -238,7 +253,6 @@ void halt()
 void setup()
 {
     Serial.begin(115200);
-    delay(3000);
 #if defined(MESH_DEBUG) && MESH_DEBUG
     {
         unsigned long start_time = millis();
@@ -250,9 +264,15 @@ void setup()
 #endif
     lv_init();
     board.begin();
+#if defined(RADIOCORE_BOARD_RC52) && defined(PIN_SENSOR_EN)
+    logRc52SensorPowerState("after board.begin");
+#endif
     heltec::meshcore::dal::display_port::setBacklightOn(true);
     ApplicationRuntime &runtime = applicationRuntime();
     runtime.ui.init();
+#if defined(RADIOCORE_BOARD_RC52) && defined(PIN_SENSOR_EN)
+    logRc52SensorPowerState("after UI init");
+#endif
     const bool hasDisplay = runtime.ui.isReady();
     if (hasDisplay)
     {
@@ -265,8 +285,12 @@ void setup()
             }
         }
     }
+
 #if defined(NRF52_PLATFORM) || defined(STM32_PLATFORM)
     InternalFS.begin();
+#if defined(RADIOCORE_BOARD_RC52) && defined(PIN_SENSOR_EN)
+    logRc52SensorPowerState("after InternalFS.begin");
+#endif
 #if defined(QSPIFLASH)
     if (!QSPIFlash.begin())
     {
@@ -279,6 +303,9 @@ void setup()
 #else
 #if defined(EXTRAFS)
     ExtraFS.begin();
+#if defined(RADIOCORE_BOARD_RC52) && defined(PIN_SENSOR_EN)
+    logRc52SensorPowerState("after ExtraFS.begin");
+#endif
 #endif
 #endif
 #endif
@@ -306,11 +333,20 @@ void setup()
     {
         halt();
     }
+#if defined(RADIOCORE_BOARD_RC52) && defined(PIN_SENSOR_EN)
+    logRc52SensorPowerState("after radio_init");
+#endif
+
     fast_rng.begin(radio_get_rng_seed());
 #if defined(NRF52_PLATFORM) || defined(STM32_PLATFORM)
     store.begin();
+#if defined(RADIOCORE_BOARD_RC52) && defined(PIN_SENSOR_EN)
+    logRc52SensorPowerState("after store.begin");
+#endif
     the_mesh.begin(hasDisplay);
-    // request_radio_preset_overlay_if_unconfigured(hasDisplay);
+#if defined(RADIOCORE_BOARD_RC52) && defined(PIN_SENSOR_EN)
+    logRc52SensorPowerState("after the_mesh.begin");
+#endif
 
 #ifdef BLE_PIN_CODE
     serial_interface.begin(BLE_NAME_PREFIX, the_mesh.getNodePrefs()->node_name,
@@ -389,6 +425,9 @@ void setup()
     }
 #endif
     store.notifyBootRegionMapStorageDone();
+#if defined(RADIOCORE_BOARD_RC52) && defined(PIN_SENSOR_EN)
+    logRc52SensorPowerState("before sensors.begin");
+#endif
 #if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
     {
         extern ICMCompassProvider compassProvider;

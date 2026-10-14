@@ -100,15 +100,14 @@ void SystemScreen::onSwitchValueChanged(lv_event_t *e)
         app.setCompanionLinkEnabled(on);
         self->_feedback.showAlert(on ? "Bluetooth: ON" : "Bluetooth: OFF", 800);
 #ifdef PIN_BUZZER
+#if !defined(HAS_BUZZER_VOLUME_CONTROL) || !HAS_BUZZER_VOLUME_CONTROL
     }
     else if (sw == self->_swBuzzer)
     {
         app.setBuzzerEnabled(on);
-#if defined(HAS_BUZZER_VOLUME_CONTROL) && HAS_BUZZER_VOLUME_CONTROL
-        self->setBuzzerVolumeSlider(app.buzzerVolumeLevel());
-#endif
         self->setSwitchState(self->_swBuzzer, app.buzzerEnabled());
         self->_feedback.showAlert(on ? "Buzzer: ON" : "Buzzer: OFF", 800);
+#endif
 #endif
     }
 }
@@ -268,7 +267,9 @@ void SystemScreen::syncSwitchesFromApp(const biz::IBizFacade &app)
     setSwitchState(_swForwarding, app.forwardingEnabled());
     setSwitchState(_swBle, app.companionLinkEnabled());
 #ifdef PIN_BUZZER
+#if !defined(HAS_BUZZER_VOLUME_CONTROL) || !HAS_BUZZER_VOLUME_CONTROL
     setSwitchState(_swBuzzer, app.buzzerEnabled());
+#endif
 #endif
 #if defined(HAS_BUZZER_VOLUME_CONTROL) && HAS_BUZZER_VOLUME_CONTROL
     setBuzzerVolumeSlider(app.buzzerVolumeLevel());
@@ -326,7 +327,6 @@ void SystemScreen::setBuzzerVolumeLevel(uint8_t level, bool show_feedback)
         level = 3;
     setBuzzerVolumeSlider(level);
     _biz.setBuzzerVolumeLevel(level);
-    setSwitchState(_swBuzzer, _biz.buzzerEnabled());
     if (!show_feedback)
         return;
 

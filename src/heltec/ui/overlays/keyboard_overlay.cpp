@@ -29,8 +29,8 @@ namespace
 constexpr lv_btnmatrix_ctrl_t kWaypointActionCtrl =
     static_cast<lv_btnmatrix_ctrl_t>(2U | LV_BTNMATRIX_CTRL_CLICK_TRIG);
 #if defined(HELTEC_HAS_TOUCH) && HELTEC_HAS_TOUCH
-constexpr lv_coord_t kTouchCoordinateRowHeight = 28;
-constexpr lv_coord_t kTouchCoordinateLabelWidth = 72;
+constexpr lv_coord_t kTouchCoordinateRowHeight = 32;
+constexpr lv_coord_t kTouchCoordinateLabelWidth = 88;
 #endif
 
 #if !HELTEC_HAS_TOUCH
@@ -511,17 +511,14 @@ void KeyboardOverlay::selectWaypointEditor(lv_obj_t *editor)
         if (!item)
             continue;
         const bool active = item == editor;
-        if (tiny_keyboard_display())
-        {
-            if (active)
-                lv_obj_clear_flag(item, LV_OBJ_FLAG_HIDDEN);
-            else
-                lv_obj_add_flag(item, LV_OBJ_FLAG_HIDDEN);
-        }
-        else
-        {
+#if defined(HELTEC_HAS_TOUCH) && HELTEC_HAS_TOUCH
+        lv_obj_clear_flag(item, LV_OBJ_FLAG_HIDDEN);
+#else
+        if (active)
             lv_obj_clear_flag(item, LV_OBJ_FLAG_HIDDEN);
-        }
+        else
+            lv_obj_add_flag(item, LV_OBJ_FLAG_HIDDEN);
+#endif
         if (active)
             lv_obj_add_state(item, LV_STATE_CHECKED);
         else
@@ -702,7 +699,7 @@ bool KeyboardOverlay::ensureContent()
         if (!row)
             return nullptr;
         lv_obj_set_width(row, lv_pct(94));
-        lv_obj_set_height(row, LV_DPX(kTouchCoordinateRowHeight));
+        lv_obj_set_height(row, kTouchCoordinateRowHeight);
         lv_obj_set_flex_flow(row, LV_FLEX_FLOW_ROW);
         lv_obj_set_flex_align(row, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER,
                               LV_FLEX_ALIGN_CENTER);
@@ -718,7 +715,9 @@ bool KeyboardOverlay::ensureContent()
     if (!_latitude_label)
         return false;
     lv_label_set_text_static(_latitude_label, "Latitude");
-    lv_obj_set_width(_latitude_label, LV_DPX(kTouchCoordinateLabelWidth));
+    lv_label_set_long_mode(_latitude_label, LV_LABEL_LONG_CLIP);
+    lv_obj_set_width(_latitude_label, kTouchCoordinateLabelWidth);
+    lv_obj_set_height(_latitude_label, LV_SIZE_CONTENT);
     lv_obj_add_flag(_latitude_label, LV_OBJ_FLAG_HIDDEN);
     lv_obj_t *const latitude_parent = _latitude_row;
 #else
@@ -729,7 +728,6 @@ bool KeyboardOverlay::ensureContent()
         return false;
 #if defined(HELTEC_HAS_TOUCH) && HELTEC_HAS_TOUCH
     lv_obj_set_width(_textarea, 0);
-    lv_obj_set_height(_textarea, lv_pct(100));
     lv_obj_set_flex_grow(_textarea, 1);
 #endif
     lv_textarea_set_one_line(_textarea, false);
@@ -745,7 +743,9 @@ bool KeyboardOverlay::ensureContent()
     if (!_longitude_label)
         return false;
     lv_label_set_text_static(_longitude_label, "Longitude");
-    lv_obj_set_width(_longitude_label, LV_DPX(kTouchCoordinateLabelWidth));
+    lv_label_set_long_mode(_longitude_label, LV_LABEL_LONG_CLIP);
+    lv_obj_set_width(_longitude_label, kTouchCoordinateLabelWidth);
+    lv_obj_set_height(_longitude_label, LV_SIZE_CONTENT);
     lv_obj_add_flag(_longitude_label, LV_OBJ_FLAG_HIDDEN);
     lv_obj_t *const longitude_parent = _longitude_row;
 #else
@@ -756,7 +756,6 @@ bool KeyboardOverlay::ensureContent()
         return false;
 #if defined(HELTEC_HAS_TOUCH) && HELTEC_HAS_TOUCH
     lv_obj_set_width(_longitude_textarea, 0);
-    lv_obj_set_height(_longitude_textarea, lv_pct(100));
     lv_obj_set_flex_grow(_longitude_textarea, 1);
 #endif
     lv_textarea_set_one_line(_longitude_textarea, true);
@@ -806,8 +805,8 @@ void KeyboardOverlay::applyTouchCoordinateLayout(bool waypoint)
         lv_obj_clear_flag(_latitude_label, LV_OBJ_FLAG_HIDDEN);
         lv_obj_clear_flag(_longitude_label, LV_OBJ_FLAG_HIDDEN);
         lv_obj_clear_flag(_longitude_row, LV_OBJ_FLAG_HIDDEN);
-        lv_obj_set_height(_latitude_row, LV_DPX(kTouchCoordinateRowHeight));
-        lv_obj_set_height(_longitude_row, LV_DPX(kTouchCoordinateRowHeight));
+        lv_obj_set_height(_latitude_row, kTouchCoordinateRowHeight);
+        lv_obj_set_height(_longitude_row, kTouchCoordinateRowHeight);
         lv_obj_set_flex_grow(_latitude_row, 0);
         lv_obj_set_flex_grow(_longitude_row, 0);
         lv_obj_set_width(_textarea, 0);
@@ -820,11 +819,11 @@ void KeyboardOverlay::applyTouchCoordinateLayout(bool waypoint)
         lv_obj_t *const longitude_text = lv_textarea_get_label(_longitude_textarea);
         if (latitude_text)
         {
-            lv_obj_set_style_text_color(latitude_text, lv_color_black(), LV_PART_MAIN);
+            lv_obj_remove_local_style_prop(latitude_text, LV_STYLE_TEXT_COLOR, LV_PART_MAIN);
         }
         if (longitude_text)
         {
-            lv_obj_set_style_text_color(longitude_text, lv_color_black(), LV_PART_MAIN);
+            lv_obj_remove_local_style_prop(longitude_text, LV_STYLE_TEXT_COLOR, LV_PART_MAIN);
         }
         return;
     }

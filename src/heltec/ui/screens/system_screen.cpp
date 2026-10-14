@@ -82,7 +82,9 @@ bool SystemScreen::buildSurface() {
 
     addSwitchRow(_root, "Bluetooth", &_swBle);
 #ifdef PIN_BUZZER
+#if !defined(HAS_BUZZER_VOLUME_CONTROL) || !HAS_BUZZER_VOLUME_CONTROL
     addSwitchRow(_root, "Buzzer", &_swBuzzer);
+#endif
 #endif
 #if defined(HAS_BUZZER_VOLUME_CONTROL) && HAS_BUZZER_VOLUME_CONTROL
     addBuzzerVolumeRow(_root);
@@ -98,7 +100,9 @@ bool SystemScreen::buildSurface() {
 #endif
     addFocusableObject(_swBle, _swBle ? lv_obj_get_parent(_swBle) : nullptr);
 #ifdef PIN_BUZZER
+#if !defined(HAS_BUZZER_VOLUME_CONTROL) || !HAS_BUZZER_VOLUME_CONTROL
     addFocusableObject(_swBuzzer, _swBuzzer ? lv_obj_get_parent(_swBuzzer) : nullptr);
+#endif
 #endif
 #if defined(HAS_BUZZER_VOLUME_CONTROL) && HAS_BUZZER_VOLUME_CONTROL
     addFocusableObject(_btnBuzzerVolumeDown, nullptr, false);

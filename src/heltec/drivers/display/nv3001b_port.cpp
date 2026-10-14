@@ -23,7 +23,8 @@ constexpr bool kIsLandscape = (kDisplayRotation & 1U) != 0U;
 constexpr uint16_t kDisplayWidth = kIsLandscape ? kNativePanelHeight : kNativePanelWidth;
 constexpr uint16_t kDisplayHeight = kIsLandscape ? kNativePanelWidth : kNativePanelHeight;
 constexpr uint32_t kSpiFrequency = RADIOCORE_NV3001B_SPI_FREQUENCY;
-constexpr uint16_t kDrawBufferLines = 12;
+// Use one 1/10-height line buffer; pixels are byte-swapped while transmitting.
+constexpr uint16_t kDrawBufferLines = 22;
 constexpr size_t kDrawBufferPixels = kDisplayWidth * kDrawBufferLines;
 constexpr uint8_t kCommandColumnAddress = 0x2A;
 constexpr uint8_t kCommandRowAddress = 0x2B;
@@ -99,6 +100,8 @@ SPIClass s_display_spi(FSPI);
 constexpr uint8_t kNrf52SpiUnusedMisoPlaceholder = 12U;
 static_assert(PIN_TFT_MISO < 0,
               "The RC52 NV3001B display must not configure a MISO pin");
+static_assert(kNrf52SpiUnusedMisoPlaceholder == PIN_SENSOR_EN,
+              "Update the RC52 write-only SPI cleanup when the placeholder changes");
 SPIClass s_display_spi(NRF_SPIM3, kNrf52SpiUnusedMisoPlaceholder,
                        PIN_TFT_SCL, PIN_TFT_SDA);
 #elif defined(ARDUINO_ARCH_ESP32) && defined(RADIOCORE_NV3001B_SPI_HOST)
@@ -108,8 +111,6 @@ SPIClass s_display_spi;
 #endif
 LV_ATTRIBUTE_FAST_MEM LV_ATTRIBUTE_MEM_ALIGN static lv_color_t
     s_draw_buffer[kDrawBufferPixels];
-LV_ATTRIBUTE_FAST_MEM LV_ATTRIBUTE_MEM_ALIGN static uint8_t
-    s_transfer_buffer[kDrawBufferPixels * sizeof(lv_color_t)];
 static lv_disp_draw_buf_t s_draw_buf;
 static lv_disp_drv_t s_disp_drv;
 static bool s_hw_inited = false;
@@ -137,26 +138,19 @@ bool write_transport_bytes(const uint8_t *data, size_t data_length)
 
 void write_rgb565_pixels(const lv_color_t *pixels, size_t pixel_count)
 {
-    size_t source_offset = 0U;
-    while (source_offset < pixel_count)
+    if (pixels == nullptr || pixel_count == 0U)
     {
-        const size_t remaining = pixel_count - source_offset;
-        const size_t transfer_pixels = remaining < kDrawBufferPixels
-                                           ? remaining
-                                           : kDrawBufferPixels;
-        for (size_t index = 0U; index < transfer_pixels; ++index)
-        {
-            uint16_t color = pixels[source_offset + index].full;
+        return;
+    }
+
+    for (size_t index = 0U; index < pixel_count; ++index)
+    {
+        uint16_t color = pixels[index].full;
 #if defined(LV_COLOR_16_SWAP) && (LV_COLOR_16_SWAP != 0)
-            color = static_cast<uint16_t>((color << 8) | (color >> 8));
+        color = static_cast<uint16_t>((color << 8) | (color >> 8));
 #endif
-            const size_t transfer_offset = index * sizeof(color);
-            s_transfer_buffer[transfer_offset] = static_cast<uint8_t>(color >> 8);
-            s_transfer_buffer[transfer_offset + 1U] = static_cast<uint8_t>(color);
-        }
-        s_display_spi.transfer(s_transfer_buffer,
-                               transfer_pixels * sizeof(uint16_t));
-        source_offset += transfer_pixels;
+        write_transport_byte(static_cast<uint8_t>(color >> 8));
+        write_transport_byte(static_cast<uint8_t>(color));
     }
 }
 
@@ -212,6 +206,14 @@ void begin_transport()
     s_display_spi.begin(PIN_TFT_SCL, PIN_TFT_MISO, PIN_TFT_SDA, PIN_TFT_CS);
 #elif defined(RADIOCORE_BOARD_RC52)
     s_display_spi.begin();
+    /*
+     * SPIClass requires a valid Arduino pin for MISO and configures it as an
+     * input. The NV3001B is write-only, so disconnect MISO from SPIM3 and
+     * restore GPIO12 to its actual RC52 function: VSENSOR_CTRL.
+     */
+    NRF_SPIM3->PSEL.MISO = 0xFFFFFFFFUL;
+    pinMode(PIN_SENSOR_EN, OUTPUT);
+    digitalWrite(PIN_SENSOR_EN, PIN_SENSOR_EN_ACTIVE);
 #else
     s_display_spi.setPins(PIN_TFT_MISO, PIN_TFT_SCL, PIN_TFT_SDA);
     s_display_spi.begin();

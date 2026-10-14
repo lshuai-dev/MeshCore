@@ -21,6 +21,7 @@ enum class ButtonGesture : uint8_t
     Double,
     Triple,
     Long,
+    LongRepeat,
     LongLong,
     kCount,
 };
@@ -34,6 +35,7 @@ enum class InputCommand : uint8_t
     GoHome,
     ToggleBacklight,
     WakeBacklight,
+    CycleKeyboardNext,
     kCount,
 };
 

@@ -83,7 +83,8 @@ void HeltecV4R8Board::begin() {
   cnf.buttons[1].pin = PIN_USER_BTN;
   cnf.buttons[1].pin_mode = INPUT_PULLUP;
   cnf.buttons[1].active_level = HIGH;
-  cnf.buttons[1].map = KeyMap(LV_KEY_NEXT, LV_KEY_ESC, LV_KEY_RIGHT, LV_KEY_ENTER);
+  cnf.buttons[1].long_repeat_ms = 220;
+  cnf.buttons[1].map = KeyMap(LV_KEY_NEXT, LV_KEY_ESC, LV_KEY_RIGHT, 0);
 #endif
   heltec::meshcore::dal::momentary_button::configure(cnf);
   heltec::meshcore::dal::momentary_button::initialize();

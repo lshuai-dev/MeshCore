@@ -90,6 +90,15 @@ void format_arrival_distance(char *buf, size_t len, const biz::FindFriendUi &u) 
     format_nav_distance(distance, sizeof(distance), u);
     lv_snprintf(buf, len, "arrived %s", distance);
 }
+
+void append_status_line(char *buf, size_t len, const char *text) {
+    if (!buf || len == 0 || !text || text[0] == '\0') return;
+
+    const size_t used = strlen(buf);
+    if (used >= len - 1) return;
+
+    lv_snprintf(buf + used, len - used, "%s%s", used == 0 ? "" : "\n", text);
+}
 } // namespace
 
 void FindFriendScreen::setInfoText(const char *info) {
@@ -310,28 +319,37 @@ void FindFriendScreen::render(const biz::FindFriendUi &u) {
         return;
     }
 
-    char gps_age[12];
-    format_age_short(gps_age, sizeof(gps_age), u.gps_fix, u.gps_age_ms);
-    const char *compass_status = !u.compass_hw ? " north-up" :
-        (u.compass_quality < 2 ? " calibrate" :
-         (u.compass_quality == 2 ? " compass low" : ""));
-    const char *gps_status = u.gps_low_accuracy ? " GPS low" : "";
-    const char *target_status =
-        u.target_freshness == biz::FindFriendTargetFreshness::Aging ? " target aging" : "";
-    const char *declination_status = !u.compass_hw || u.declination_configured ?
-        "" : " declination unset";
-    if (u.mode == 0 && u.target_selected) {
-        char target_age[12];
-        format_age_short(target_age, sizeof(target_age), u.target_age_known, u.target_age_ms);
-        lv_snprintf(_status_text, sizeof(_status_text), "GPS %s %usat\nfriend %s\nQ%d%s%s%s%s",
-                    gps_age, (unsigned)u.gps_satellites, target_age, u.compass_quality,
-                    compass_status, gps_status, target_status, declination_status);
-    } else {
-        lv_snprintf(_status_text, sizeof(_status_text), "GPS %s %usat\nQ%d%s%s%s", gps_age,
-                    (unsigned)u.gps_satellites, u.compass_quality, compass_status, gps_status,
-                    declination_status);
+    char status[sizeof(_status_text)] = {};
+    if (u.mode == 0) {
+        char gps_age[12] = {};
+        char gps_summary[28] = {};
+        format_age_short(gps_age, sizeof(gps_age), u.gps_fix, u.gps_age_ms);
+        lv_snprintf(gps_summary, sizeof(gps_summary), "GPS %s %usat", gps_age,
+                    static_cast<unsigned>(u.gps_satellites));
+        append_status_line(status, sizeof(status), gps_summary);
+
+        if (u.target_selected) {
+            char target_age[12] = {};
+            char target_summary[24] = {};
+            format_age_short(target_age, sizeof(target_age), u.target_age_known, u.target_age_ms);
+            lv_snprintf(target_summary, sizeof(target_summary), "Friend %s", target_age);
+            append_status_line(status, sizeof(status), target_summary);
+        }
+
+        if (u.target_freshness == biz::FindFriendTargetFreshness::Aging) {
+            append_status_line(status, sizeof(status), "Target aging");
+        }
     }
-    setStatusText(_status_text);
+
+    if (u.gps_fix && u.gps_low_accuracy) {
+        append_status_line(status, sizeof(status), "GPS low accuracy");
+    }
+    if (!u.compass_hw) {
+        append_status_line(status, sizeof(status), "North-up mode");
+    } else if (u.compass_quality == 2) {
+        append_status_line(status, sizeof(status), "Compass low accuracy");
+    }
+    setStatusText(status);
 
     if (!u.compass_hw) {
         if (!u.target_selected) {

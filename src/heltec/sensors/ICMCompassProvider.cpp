@@ -213,8 +213,7 @@ bool ICMCompassProvider::fillUiSnapshot(heltec::meshcore::biz::CompassUi &ui) co
     const bool sample_fresh =
         _last_good_sample_ms != 0 &&
         (uint32_t)(millis() - _last_good_sample_ms) <= (uint32_t)ICM_COMPASS_HEADING_MAX_AGE_MS;
-    ui.heading_valid =
-        sample_fresh && ui.quality >= 2 && std::isfinite(_lastResult.fFilteredHeadingDegrees);
+    ui.heading_valid = sample_fresh && std::isfinite(_lastResult.fFilteredHeadingDegrees);
     ui.heading_deg = _lastResult.fFilteredHeadingDegrees;
     ui.azimuth_deg = _lastResult.fAzimuth;
     ui.mag_xyz[0] = _lastResult.coordinates[0];
@@ -383,8 +382,16 @@ void ICMCompassProvider::loop()
 
 bool ICMCompassProvider::probeI2CAddress(TwoWire &wire, uint8_t address)
 {
+#if defined(RADIOCORE_BOARD_RC52)
+    MESH_DEBUG_PRINTLN("[compass][rc52] probe begin address=0x%02X", address);
+#endif
     wire.beginTransmission(address);
-    return (wire.endTransmission() == 0);
+    const uint8_t error = wire.endTransmission();
+#if defined(RADIOCORE_BOARD_RC52)
+    MESH_DEBUG_PRINTLN("[compass][rc52] probe end address=0x%02X error=%u", address,
+                       static_cast<unsigned int>(error));
+#endif
+    return error == 0;
 }
 
 bool ICMCompassProvider::detectIcm42607Address(TwoWire &wire, uint8_t &outAddress)
@@ -404,6 +411,9 @@ bool ICMCompassProvider::detectIcm42607Address(TwoWire &wire, uint8_t &outAddres
 
 bool ICMCompassProvider::initAccelerometer()
 {
+#if defined(RADIOCORE_BOARD_RC52)
+    MESH_DEBUG_PRINTLN("[compass][rc52] accelerometer init begin");
+#endif
     TwoWire *wire = &Wire;
     uint8_t addr = ICM42607_I2C_ADDR_LOW;
     if (!detectIcm42607Address(Wire, addr))
@@ -425,18 +435,29 @@ bool ICMCompassProvider::initAccelerometer()
     _icmAddress = addr;
 
     uint8_t who = 0x00;
+#if defined(RADIOCORE_BOARD_RC52)
+    MESH_DEBUG_PRINTLN("[compass][rc52] WHO_AM_I read begin address=0x%02X", _icmAddress);
+#endif
     if (!readIcmRegisters(ICM42607_REG_WHO_AM_I, &who, 1))
     {
         MESH_DEBUG_PRINTLN("ICM42607 WHO_AM_I read failed");
         return false;
     }
+#if defined(RADIOCORE_BOARD_RC52)
+    MESH_DEBUG_PRINTLN("[compass][rc52] WHO_AM_I read end value=0x%02X", who);
+#endif
     if (who != ICM42607_WHO_AM_I_VALUE)
     {
         MESH_DEBUG_PRINTLN("ICM42607 unexpected WHO_AM_I=0x%02x", who);
         return false;
     }
 
-    return configureAccelerometer();
+    const bool configured = configureAccelerometer();
+#if defined(RADIOCORE_BOARD_RC52)
+    MESH_DEBUG_PRINTLN("[compass][rc52] accelerometer init end ready=%u",
+                       configured ? 1U : 0U);
+#endif
+    return configured;
 }
 
 bool ICMCompassProvider::configureAccelerometer()
@@ -464,12 +485,32 @@ bool ICMCompassProvider::configureAccelerometer()
 
 bool ICMCompassProvider::initMagnetometer()
 {
+#if defined(RADIOCORE_BOARD_RC52)
+    MESH_DEBUG_PRINTLN("[compass][rc52] magnetometer begin");
+#endif
     _mag.setErrorCallback(&ICMCompassProvider::handleError);
     if (!_mag.begin())
+    {
+#if defined(RADIOCORE_BOARD_RC52)
+        MESH_DEBUG_PRINTLN("[compass][rc52] magnetometer device begin failed");
+#endif
         return false;
+    }
+#if defined(RADIOCORE_BOARD_RC52)
+    MESH_DEBUG_PRINTLN("[compass][rc52] magnetometer soft reset begin");
+#endif
     if (!_mag.softReset())
+    {
+#if defined(RADIOCORE_BOARD_RC52)
+        MESH_DEBUG_PRINTLN("[compass][rc52] magnetometer soft reset failed");
+#endif
         return false;
-    return configureMagnetometer();
+    }
+    const bool configured = configureMagnetometer();
+#if defined(RADIOCORE_BOARD_RC52)
+    MESH_DEBUG_PRINTLN("[compass][rc52] magnetometer end ready=%u", configured ? 1U : 0U);
+#endif
+    return configured;
 }
 
 bool ICMCompassProvider::configureMagnetometer()

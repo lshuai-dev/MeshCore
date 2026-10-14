@@ -1,6 +1,7 @@
 #include "input_dispatcher.hpp"
 
 #include "input_host.hpp"
+#include "heltec/drivers/input/key_input.hpp"
 #include "ui/core/ht_event.h"
 
 #include <lvgl.h>
@@ -38,6 +39,15 @@ bool InputDispatcher::dispatch(InputHost &host, InputCommand command, uint32_t n
         }
         // Let the active LVGL focused object decide what ESC means for its local state.
         return false;
+
+    case InputCommand::CycleKeyboardNext:
+        if (!host.acceptsKeyboardCycle())
+        {
+            return true;
+        }
+        return heltec::meshcore::dal::key_input::post(
+            LV_KEY_RIGHT,
+            heltec::meshcore::dal::key_input::KeyDelivery::IndependentPulse);
 
     default:
         return false;
