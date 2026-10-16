@@ -153,7 +153,15 @@ void UiApp::closeAlertOverlay()
     const bool was_present = _surfaces.isVisible(&_alertOvl);
     const bool dismissed = _surfaces.show(&_alertOvl, false);
     if (!was_present || dismissed)
+    {
         ui_task().dismissAlert();
+#if defined(HELTEC_HAS_KEY_FRAME) && HELTEC_HAS_KEY_FRAME
+        if (was_present && dismissed)
+        {
+            heltec::meshcore::dal::e213::requestRefresh("alert-close");
+        }
+#endif
+    }
 }
 
 bool UiApp::openSendMessageOverlay()

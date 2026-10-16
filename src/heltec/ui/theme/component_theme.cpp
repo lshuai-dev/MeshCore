@@ -398,12 +398,13 @@ bool ui_radial_navigation_icon_apply_theme(_lv_obj_t *icon)
 #endif
 }
 
-void ui_component_theme_configure(lv_coord_t bar_height)
+void ui_component_theme_configure()
 {
     if (s_roller_styles_ready)
         return;
-    const lv_coord_t button_height = LV_MIN(bar_height, 12);
-    const lv_coord_t pad = button_height < 12 ? 0 : 2;
+    constexpr lv_coord_t pad = 2;
+    const lv_coord_t text_height = lv_font_get_line_height(LV_FONT_DEFAULT);
+    const lv_coord_t button_height = text_height + (2 * pad);
     init_roller_styles(pad, button_height);
 }
 

@@ -3062,7 +3062,7 @@ void ui_widget_theme_configure(const UiThemeProfile &profile)
 #endif
 
     s_theme_profile = &profile;
-    ui_component_theme_configure(profile.app_frame.bar_height);
+    ui_component_theme_configure();
 }
 
 

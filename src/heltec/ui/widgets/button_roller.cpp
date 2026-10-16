@@ -6,6 +6,9 @@
 #include "ui/core/widget_classes.hpp"
 #include "ui/core/scheduler.hpp"
 #include "ui/theme/widget_theme.hpp"
+#if defined(HELTEC_HAS_KEY_FRAME) && HELTEC_HAS_KEY_FRAME
+#include "heltec/drivers/display/e213_port.hpp"
+#endif
 
 namespace heltec::meshcore::ui
 {
@@ -95,6 +98,30 @@ void ButtonRoller::layoutItems(uint8_t focus_index, lv_anim_enable_t anim, bool 
             if ((visibleItems - 1) % 2)
                 --i_min;
 
+            bool item_visible[kMaxItems]{};
+            for (int8_t i = i_min; i <= i_max; ++i)
+            {
+                int8_t index = static_cast<int8_t>((focus_index + i) % _count);
+                if (index < 0)
+                    index += static_cast<int8_t>(_count);
+                item_visible[index] = true;
+            }
+
+            for (uint8_t index = 0; index < _count; ++index)
+            {
+                if (!_items[index])
+                    continue;
+                if (item_visible[index])
+                {
+                    lv_obj_clear_flag(_items[index], LV_OBJ_FLAG_HIDDEN);
+                }
+                else
+                {
+                    ui_motion_cancel(_items[index], anim_set_y);
+                    lv_obj_add_flag(_items[index], LV_OBJ_FLAG_HIDDEN);
+                }
+            }
+
             for (int8_t i = i_min; i <= i_max; ++i)
             {
                 int8_t index = static_cast<int8_t>((focus_index + i) % _count);
@@ -136,6 +163,10 @@ void ButtonRoller::layoutItems(uint8_t focus_index, lv_anim_enable_t anim, bool 
             }
             _last_vp_h = vp_h;
             _last_layout_focus = focus_index;
+#if defined(HELTEC_HAS_KEY_FRAME) && HELTEC_HAS_KEY_FRAME
+            lv_obj_invalidate(_root);
+            heltec::meshcore::dal::e213::requestSelectionRefresh("button-roller-selection");
+#endif
         }
     }
 }

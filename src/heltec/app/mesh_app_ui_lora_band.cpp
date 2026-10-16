@@ -34,6 +34,10 @@ void MeshAppUi::setLoRaBandPresetIndex(int preset_index)
     if (result != HeltecMesh::RadioConfigApplyResult::Ok)
         return;
 
+    if (pr.pathHashSize >= 1U && pr.pathHashSize <= 3U)
+    {
+        p->path_hash_mode = pr.pathHashSize - 1U;
+    }
     p->lora_band_configured = 1;
     the_mesh.savePrefs();
     notifyRadioChanged();

@@ -51,7 +51,7 @@ void ESP32Board::powerOff() {
 
 void ESP32Board::enterDeepSleep(uint32_t secs) {
   // Power off the display if any
-#ifdef DISPLAY_CLASS
+#if defined(DISPLAY_CLASS) && !(defined(HELTEC_MESH_UI) && HELTEC_MESH_UI)
   display.turnOff();
 #endif
 

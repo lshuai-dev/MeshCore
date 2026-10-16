@@ -6,7 +6,7 @@
 #include <math.h>
 #include <string.h>
 
-/** Named radio presets: freq MHz, bw kHz, spreading factor, coding rate. */
+/** Named radio presets; pathHashSize=0 preserves the current path hash setting. */
 struct RadioParamPreset
 {
     const char *name;
@@ -14,6 +14,7 @@ struct RadioParamPreset
     uint8_t sf;
     uint8_t cr;
     float bwKhz;
+    uint8_t pathHashSize;
 };
 
 static constexpr int kRadioParamPresetCount = 17;
@@ -39,23 +40,23 @@ inline int loraBandPresetCount()
 inline const RadioParamPreset &radioParamPreset(int index)
 {
     static const RadioParamPreset kPresets[] = {
-        { "Australia", 915.800f, 10, 5, 250.0f },
-        { "Australia (Narrow)", 916.575f, 7, 8, 62.5f },
-        { "Australia (Mid)", 915.075f, 9, 5, 125.0f },
-        { "Australia: SA, WA", 923.125f, 8, 8, 62.5f },
-        { "Australia: QLD", 923.125f, 8, 5, 62.5f },
-        { "EU/UK (Narrow)", 869.618f, 8, 8, 62.5f },
-        { "EU/UK (Deprecated)", 869.525f, 11, 5, 250.0f },
-        { "Czech Republic (Narrow)", 869.432f, 7, 5, 62.5f },
-        { "EU 433MHz (Long Range)", 433.650f, 11, 5, 250.0f },
-        { "EU 433MHz (Narrow)", 433.650f, 8, 8, 62.5f },
-        { "New Zealand", 917.375f, 11, 5, 250.0f },
-        { "New Zealand (Narrow)", 917.375f, 7, 5, 62.5f },
-        { "Portugal 433", 433.375f, 9, 6, 62.5f },
-        { "Portugal 868", 869.618f, 7, 6, 62.5f },
-        { "Switzerland", 869.618f, 8, 8, 62.5f },
-        { "USA/Canada (Rec)", 910.525f, 7, 5, 62.5f },
-        { "Vietnam (Narrow)", 920.250f, 8, 5, 62.5f },
+        { "Australia", 915.800f, 10, 5, 250.0f, 0 },
+        { "Australia (Narrow)", 916.575f, 7, 7, 62.5f, 0 },
+        { "Australia (Mid)", 915.075f, 9, 5, 125.0f, 0 },
+        { "Australia: SA, WA", 923.125f, 8, 8, 62.5f, 0 },
+        { "Australia: QLD", 923.125f, 8, 5, 62.5f, 0 },
+        { "EU/UK (Narrow)", 869.618f, 8, 8, 62.5f, 0 },
+        { "EU/UK (Deprecated)", 869.525f, 11, 5, 250.0f, 0 },
+        { "Czech Republic (Narrow)", 869.432f, 7, 5, 62.5f, 2 },
+        { "EU 433MHz (Long Range)", 433.650f, 11, 5, 250.0f, 0 },
+        { "EU 433MHz (Narrow)", 433.650f, 8, 8, 62.5f, 0 },
+        { "New Zealand", 917.375f, 11, 5, 250.0f, 1 },
+        { "New Zealand (Narrow)", 917.375f, 7, 5, 62.5f, 2 },
+        { "Portugal 433", 433.375f, 9, 6, 62.5f, 0 },
+        { "Portugal 868", 869.618f, 7, 6, 62.5f, 0 },
+        { "Switzerland", 869.618f, 8, 8, 62.5f, 0 },
+        { "USA/Canada (Rec)", 910.525f, 7, 5, 62.5f, 0 },
+        { "Vietnam (Narrow)", 920.250f, 8, 5, 62.5f, 0 },
     };
     if (index < 0 || index >= kRadioParamPresetCount)
     {
@@ -99,7 +100,10 @@ inline bool radioParamPresetMatchesPrefs(int index, const NodePrefs *p)
     const RadioParamPreset &pr = radioParamPreset(index);
     const float df = fabsf(pr.freqMhz - p->freq);
     const float dbw = fabsf(pr.bwKhz - p->bw);
-    return (df < 0.05f) && (dbw < 2.0f) && (pr.sf == p->sf) && (pr.cr == p->cr);
+    const bool path_hash_matches =
+        pr.pathHashSize == 0 || pr.pathHashSize == static_cast<uint8_t>(p->path_hash_mode + 1U);
+    return (df < 0.05f) && (dbw < 2.0f) && (pr.sf == p->sf) && (pr.cr == p->cr) &&
+           path_hash_matches;
 }
 
 inline int radioParamPresetIndexForPrefs(const NodePrefs *p)
