@@ -1,6 +1,6 @@
-#include "HeltecMesh.h"
+#include "heltec_mesh.h"
 #include "MeshCore.h"
-#include "config/DataStore.h"
+#include "config/data_store.h"
 #include "mesh_app_ui.hpp"
 #include "ui/app/app.hpp"
 #include "ui/core/ui_task.hpp"

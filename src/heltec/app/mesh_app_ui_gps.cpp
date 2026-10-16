@@ -1,12 +1,12 @@
-#include "HeltecMesh.h"
-#include "config/NodePrefs.h"
+#include "heltec_mesh.h"
+#include "config/node_prefs.h"
 #include "mesh_app_ui.hpp"
 #include "target.h"
 #include "ui/core/app_state_notifier.hpp"
 
 #include <helpers/SensorManager.h>
 #include <helpers/sensors/LocationProvider.h>
-#include <heltec/sensors/GpsRmcSpeedStream.h>
+#include <heltec/sensors/gps_rmc_speed_stream.h>
 
 namespace heltec::meshcore::biz
 {

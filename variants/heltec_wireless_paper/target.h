@@ -3,7 +3,7 @@
 #define RADIOLIB_STATIC_ONLY 1
 #include <RadioLib.h>
 #include <helpers/radiolib/RadioLibWrappers.h>
-#include <../heltec_v3/HeltecV3Board.h>
+#include <../heltec_v3/heltec_v3_board.h>
 class HeltecWirelessPaperBoard : public HeltecV3Board {
 public:
   const char* getManufacturerName() const override {

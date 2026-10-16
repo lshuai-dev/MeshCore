@@ -3,7 +3,7 @@
 #include "target.h"
 #if (defined(RADIOCORE_BOARD_RC32) || defined(RADIOCORE_BOARD_RC52)) && \
     defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
-#include <heltec/sensors/ICMCompassProvider.h>
+#include <heltec/sensors/icm_compass_provider.h>
 ICMCompassProvider compassProvider;
 #endif
 
@@ -122,7 +122,7 @@ AutoDiscoverRTCClock rtc_clock(fallback_clock);
 
 #if ENV_INCLUDE_GPS
   #include <helpers/sensors/MicroNMEALocationProvider.h>
-  #include <heltec/sensors/GpsRmcSpeedStream.h>
+  #include <heltec/sensors/gps_rmc_speed_stream.h>
 
 #if !defined(RADIOCORE_BOARD_RC32) && !defined(RADIOCORE_BOARD_RC52)
   namespace {

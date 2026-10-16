@@ -2,12 +2,12 @@
 
 #define RADIOLIB_STATIC_ONLY 1
 #include <RadioLib.h>
-#include <T096Board.h>
+#include <t096_board.h>
 #include <helpers/AutoDiscoverRTCClock.h>
 #include <helpers/radiolib/CustomSX1262Wrapper.h>
 #include <helpers/radiolib/RadioLibWrappers.h>
 #if defined(HELTEC_SENSOR_MANAGER) && HELTEC_SENSOR_MANAGER
-#include "sensors/HeltecEnvironmentSensorManager.h"
+#include "sensors/heltec_environment_sensor_manager.h"
 #else
 #include <helpers/sensors/EnvironmentSensorManager.h>
 #endif

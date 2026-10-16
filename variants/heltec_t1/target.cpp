@@ -5,7 +5,7 @@
 
 #ifdef ENV_INCLUDE_GPS
 #include <helpers/sensors/MicroNMEALocationProvider.h>
-#include <heltec/sensors/GpsRmcSpeedStream.h>
+#include <heltec/sensors/gps_rmc_speed_stream.h>
 #endif
 
 T1Board board;
@@ -58,7 +58,7 @@ heltec::gps::GpsRmcSpeedStream gps_serial(Serial1);
 
 #if defined(HELTEC_SENSOR_MANAGER) && HELTEC_SENSOR_MANAGER
 #if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
-#include "sensors/ICMCompassProvider.h"
+#include "sensors/icm_compass_provider.h"
 ICMCompassProvider compassProvider;
 #endif
 #if ENV_INCLUDE_GPS

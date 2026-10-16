@@ -179,7 +179,7 @@
 #define PIN_TFT_DC                (48)
 #endif
 
-// HSPI (SPI1): ST7789 + microSD share one bus; begin() in HeltecV4R8Board.cpp
+// HSPI (SPI1): ST7789 + microSD share one bus; begin() in heltec_v4_r8_board.cpp
 #undef SPI_INTERFACES_COUNT
 #define SPI_INTERFACES_COUNT      (2)
 #ifndef PIN_SPI1_SCK

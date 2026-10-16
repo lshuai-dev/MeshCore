@@ -4,13 +4,13 @@
 #include <RadioLib.h>
 #include <helpers/radiolib/RadioLibWrappers.h>
 #if defined(RADIOCORE_BOARD_RC52)
-#include <RC52Board.h>
+#include <rc52_board.h>
 using HeltecRadioCoreTargetBoard = HeltecRadioCoreRC52Board;
 #elif defined(RADIOCORE_BOARD_RC32)
-#include <RC32Board.h>
+#include <rc32_board.h>
 using HeltecRadioCoreTargetBoard = HeltecRadioCoreRC32Board;
 #elif defined(RADIOCORE_BOARD_RCC6)
-#include <RCC6Board.h>
+#include <rcc6_board.h>
 using HeltecRadioCoreTargetBoard = HeltecRadioCoreRCC6Board;
 #else
 #error "A RadioCore board type must be selected"
@@ -19,7 +19,7 @@ using HeltecRadioCoreTargetBoard = HeltecRadioCoreRCC6Board;
 #include <helpers/AutoDiscoverRTCClock.h>
 #include <helpers/SensorManager.h>
 #if defined(HELTEC_SENSOR_MANAGER) && HELTEC_SENSOR_MANAGER
-#include <heltec/sensors/HeltecEnvironmentSensorManager.h>
+#include <heltec/sensors/heltec_environment_sensor_manager.h>
 #else
 #include <helpers/sensors/EnvironmentSensorManager.h>
 #endif

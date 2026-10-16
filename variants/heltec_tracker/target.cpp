@@ -2,7 +2,7 @@
 #include "target.h"
 
 #include <helpers/sensors/MicroNMEALocationProvider.h>
-#include <heltec/sensors/GpsRmcSpeedStream.h>
+#include <heltec/sensors/gps_rmc_speed_stream.h>
 
 HeltecV3Board board;
 

@@ -8,8 +8,8 @@
 
 #if defined(ENV_INCLUDE_GPS) && ENV_INCLUDE_GPS
 
-#include "app/HeltecMesh.h"
-#include "config/DataStore.h"
+#include "app/heltec_mesh.h"
+#include "config/data_store.h"
 
 #include <Arduino.h>
 #include <Utils.h>

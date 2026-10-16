@@ -1,6 +1,6 @@
 #pragma once
-#include "../../core/AbstractUITask.h"
-#include "config/NodePrefs.h"
+#include "../../core/abstract_ui_task.h"
+#include "config/node_prefs.h"
 
 #include <stdint.h>
 #ifdef PIN_BUZZER

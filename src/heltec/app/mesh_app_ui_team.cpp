@@ -4,7 +4,7 @@
  * @version 1.0
  * @date    2026-09-04
  */
-#include "HeltecMesh.h"
+#include "heltec_mesh.h"
 #include "mesh_app_ui.hpp"
 #include "ui/core/ht_event.h"
 #include "ui/core/ui_task.hpp"

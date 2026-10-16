@@ -1,6 +1,6 @@
-#include "HeltecMesh.h"
-#include "config/LoRaBandPresets.h"
-#include "config/NodePrefs.h"
+#include "heltec_mesh.h"
+#include "config/lora_band_presets.h"
+#include "config/node_prefs.h"
 #include "mesh_app_ui.hpp"
 #include "ui/app/app.hpp"
 

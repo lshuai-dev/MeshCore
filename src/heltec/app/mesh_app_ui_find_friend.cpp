@@ -1,5 +1,5 @@
-#include "HeltecMesh.h"
-#include "config/DataStore.h"
+#include "heltec_mesh.h"
+#include "config/data_store.h"
 #include "mesh_app_ui.hpp"
 #include "target.h"
 

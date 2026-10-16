@@ -2,7 +2,7 @@
 
 #if defined(ENV_INCLUDE_MAP) && ENV_INCLUDE_MAP
 
-#include "HeltecMesh.h"
+#include "heltec_mesh.h"
 #include "map_geo.hpp"
 
 #include <Arduino.h>

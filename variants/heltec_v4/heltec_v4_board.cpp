@@ -1,0 +1,136 @@
+#include "heltec_v4_board.h"
+
+#include <Wire.h>
+
+#if defined(HELTEC_MESH_UI) && HELTEC_MESH_UI
+#include <lvgl.h>
+#include "heltec/drivers/display/display_port.hpp"
+#include "heltec/drivers/input/momentary_button.hpp"
+#endif
+
+void HeltecV4Board::begin() {
+    ESP32Board::begin();
+
+    pinMode(PIN_ADC_CTRL, OUTPUT);
+    digitalWrite(PIN_ADC_CTRL, LOW); // Initially inactive
+
+    loRaFEMControl.init();
+
+    periph_power.begin();
+    periph_power.claim();
+
+#if defined(HELTEC_MESH_UI) && HELTEC_MESH_UI
+    (void)heltec::meshcore::dal::display_port::init();
+
+    using heltec::meshcore::dal::momentary_button::Config;
+    using heltec::meshcore::dal::momentary_button::KeyMap;
+
+    Config cnf{};
+    cnf.debounce_ms = 50;
+    cnf.multi_click_window_ms = 350;
+    cnf.long_press_ms = 1000;
+    cnf.buttons[0].pin = PIN_USER_BTN;
+    cnf.buttons[0].pin_mode = INPUT_PULLDOWN;
+    cnf.buttons[0].active_level = LOW;
+    cnf.buttons[0].map = KeyMap(LV_KEY_NEXT, LV_KEY_ESC, LV_KEY_PREV, LV_KEY_ENTER);
+    heltec::meshcore::dal::momentary_button::configure(cnf);
+    heltec::meshcore::dal::momentary_button::initialize();
+#endif
+
+    esp_reset_reason_t reason = esp_reset_reason();
+    if (reason == ESP_RST_DEEPSLEEP) {
+      long wakeup_source = esp_sleep_get_ext1_wakeup_status();
+      if (wakeup_source & (1 << P_LORA_DIO_1)) {  // received a LoRa packet (while in deep sleep)
+        startup_reason = BD_STARTUP_RX_PACKET;
+    }
+
+      rtc_gpio_hold_dis((gpio_num_t)P_LORA_NSS);
+      rtc_gpio_deinit((gpio_num_t)P_LORA_DIO_1);
+    }
+  }
+
+  void HeltecV4Board::onBeforeTransmit(void) {
+    digitalWrite(P_LORA_TX_LED, HIGH);   // turn TX LED on
+    loRaFEMControl.setTxModeEnable();
+  }
+
+  void HeltecV4Board::onAfterTransmit(void) {
+    digitalWrite(P_LORA_TX_LED, LOW);   // turn TX LED off
+    loRaFEMControl.setRxModeEnable();
+  }
+
+  bool HeltecV4Board::setLNAEnable(bool enabled) {
+    if (!isLnaCanControl()) return false;
+    loRaFEMControl.setLNAEnable(enabled);
+    loRaFEMControl.setRxModeEnable();
+    return true;
+  }
+
+  void HeltecV4Board::enterDeepSleep(uint32_t secs, int pin_wake_btn) {
+    esp_sleep_pd_config(ESP_PD_DOMAIN_RTC_PERIPH, ESP_PD_OPTION_ON);
+
+    rtc_gpio_set_direction((gpio_num_t)P_LORA_DIO_1, RTC_GPIO_MODE_INPUT_ONLY);
+    rtc_gpio_pulldown_en((gpio_num_t)P_LORA_DIO_1);
+    rtc_gpio_hold_en((gpio_num_t)P_LORA_NSS);
+    loRaFEMControl.setRxModeEnableWhenMCUSleep();
+
+    uint64_t wake_mask = 1ULL << P_LORA_DIO_1;
+    if (pin_wake_btn >= 0) {
+      wake_mask |= 1ULL << pin_wake_btn;
+    }
+    esp_sleep_enable_ext1_wakeup(wake_mask, ESP_EXT1_WAKEUP_ANY_HIGH);
+
+    if (secs > 0) {
+      esp_sleep_enable_timer_wakeup(static_cast<uint64_t>(secs) * 1000000ULL);
+    }
+    esp_deep_sleep_start();
+  }
+
+  void HeltecV4Board::powerOff() {
+    // Turn off PA
+    digitalWrite(P_LORA_PA_POWER, LOW);
+    rtc_gpio_hold_en((gpio_num_t)P_LORA_PA_POWER);
+
+    ESP32Board::powerOff();
+  }
+
+  uint16_t HeltecV4Board::getBattMilliVolts()  {
+    analogReadResolution(10);
+    digitalWrite(PIN_ADC_CTRL, HIGH);
+    delay(10);
+    uint32_t raw = 0;
+    for (int i = 0; i < 8; i++) {
+      raw += analogRead(PIN_VBAT_READ);
+    }
+    raw = raw / 8;
+
+    digitalWrite(PIN_ADC_CTRL, LOW);
+
+    return (adc_mult * (3.3 / 1024.0) * raw) * 1000;
+  }
+
+  const char* HeltecV4Board::getManufacturerName() const {
+#ifdef HELTEC_LORA_V4_TFT
+    return loRaFEMControl.getFEMType() == KCT8103L_PA ? "Heltec V4.3 TFT" : "Heltec V4 TFT";
+#else
+    return loRaFEMControl.getFEMType() == KCT8103L_PA ? "Heltec V4.3 OLED" : "Heltec V4 OLED";
+#endif
+  }
+
+  bool HeltecV4Board::setLoRaFemLnaEnabled(bool enable) {
+    if (!loRaFEMControl.isLnaCanControl()) {
+      return false;
+    }
+
+    loRaFEMControl.setLNAEnable(enable);
+    loRaFEMControl.setRxModeEnable();
+    return true;
+  }
+
+  bool HeltecV4Board::canControlLoRaFemLna() const {
+    return loRaFEMControl.isLnaCanControl();
+  }
+
+  bool HeltecV4Board::isLoRaFemLnaEnabled() const {
+    return loRaFEMControl.isLNAEnabled();
+  }

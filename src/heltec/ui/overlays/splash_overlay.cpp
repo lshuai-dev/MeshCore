@@ -1,6 +1,6 @@
 #include "splash_overlay.hpp"
 
-#include "heltec/app/HeltecMesh.h"
+#include "heltec/app/heltec_mesh.h"
 #include "heltec/ui/images.h"
 #include "ui/widgets/widget_classes.hpp"
 #if defined(HELTEC_HAS_KEY_FRAME) && HELTEC_HAS_KEY_FRAME

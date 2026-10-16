@@ -1,5 +1,5 @@
-#include "HeltecMesh.h"
-#include "config/NodePrefs.h"
+#include "heltec_mesh.h"
+#include "config/node_prefs.h"
 #include "mesh_app_ui.hpp"
 #include "target.h"
 

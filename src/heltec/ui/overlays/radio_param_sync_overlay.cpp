@@ -1,6 +1,6 @@
 #include "radio_param_sync_overlay.hpp"
 
-#include "config/LoRaBandPresets.h"
+#include "config/lora_band_presets.h"
 #include "heltec/ui/core/biz_facade.hpp"
 #include "ui/widgets/ht_selector_view.hpp"
 #include "ui/widgets/widget_classes.hpp"

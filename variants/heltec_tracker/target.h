@@ -3,13 +3,13 @@
 #define RADIOLIB_STATIC_ONLY 1
 #include <RadioLib.h>
 #include <helpers/radiolib/RadioLibWrappers.h>
-#include <../heltec_v3/HeltecV3Board.h>
+#include <../heltec_v3/heltec_v3_board.h>
 #include <helpers/radiolib/CustomSX1262Wrapper.h>
 #include <helpers/AutoDiscoverRTCClock.h>
 #include <helpers/SensorManager.h>
 #include <helpers/sensors/LocationProvider.h>
 #if defined(HELTEC_SENSOR_MANAGER) && HELTEC_SENSOR_MANAGER
-#include <heltec/sensors/HeltecEnvironmentSensorManager.h>
+#include <heltec/sensors/heltec_environment_sensor_manager.h>
 #endif
 #if defined(DISPLAY_CLASS) && !defined(HELTEC_DISPLAY_ST7735)
   #include <helpers/ui/ST7735Display.h>

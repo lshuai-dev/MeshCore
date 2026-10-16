@@ -2,11 +2,11 @@
 #include "target.h"
 
 #if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
-#include "HeltecMesh.h"
-#include "config/DataStore.h"
+#include "heltec_mesh.h"
+#include "config/data_store.h"
 
 #include <cstring>
-#include <heltec/sensors/ICMCompassProvider.h>
+#include <heltec/sensors/icm_compass_provider.h>
 
 extern ICMCompassProvider compassProvider;
 extern HeltecMesh the_mesh;

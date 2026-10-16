@@ -8,7 +8,7 @@
 
 #if defined(ENV_INCLUDE_GPS) && ENV_INCLUDE_GPS
 
-#include "app/HeltecMesh.h"
+#include "app/heltec_mesh.h"
 
 #include <Arduino.h>
 #include <ChaChaPoly.h>

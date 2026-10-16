@@ -1,4 +1,4 @@
-#include "HeltecMesh.h"
+#include "heltec_mesh.h"
 #include "MeshCore.h"
 #include "Utils.h"
 #include "mesh_app_ui.hpp"

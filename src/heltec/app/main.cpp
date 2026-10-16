@@ -1,8 +1,8 @@
-#include "HeltecMesh.h"
+#include "heltec_mesh.h"
 #include "MeshCore.h"
 #include "app/mesh_app_ui.hpp"
 #include "app/power_mgr.hpp"
-#include "config/NodePrefs.h"
+#include "config/node_prefs.h"
 #include "heltec/drivers/display/display_port.hpp"
 #include "lvgl.h"
 #include "ui/app/app.hpp"
@@ -18,7 +18,7 @@
 #include "config/heltec_license.h"
 #endif
 #if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
-#include <heltec/sensors/ICMCompassProvider.h>
+#include <heltec/sensors/icm_compass_provider.h>
 #endif
 
 #if defined(RADIOCORE_BOARD_RC52) && defined(PIN_SENSOR_EN)

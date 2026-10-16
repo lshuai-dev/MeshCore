@@ -1,6 +1,6 @@
 #include "mesh_app_ui.hpp"
 
-#include "HeltecMesh.h"
+#include "heltec_mesh.h"
 #include "ui/app/app.hpp"
 #include "ui/core/app_state_notifier.hpp"
 #include "ui/core/ui_task.hpp"

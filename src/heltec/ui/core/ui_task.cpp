@@ -1,6 +1,6 @@
 #include "ui_task.hpp"
 
-#include "heltec/app/HeltecMesh.h"
+#include "heltec/app/heltec_mesh.h"
 #include "heltec/core/board_features.hpp"
 #include "heltec/drivers/display/display_port.hpp"
 #include "heltec/drivers/input/momentary_button.hpp"
