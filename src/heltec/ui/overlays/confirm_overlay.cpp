@@ -1,6 +1,6 @@
 #include "confirm_overlay.hpp"
 #include "ui/core/operation_hints.hpp"
-#include "ui/core/widget_classes.hpp"
+#include "ui/widgets/widget_classes.hpp"
 
 #include <lvgl.h>
 

@@ -2,8 +2,8 @@
 
 #include "MeshCore.h"
 #include "ui/app/behavior_profile.hpp"
-#include "ui/app/theme.hpp"
-#include "ui/core/widget_classes.hpp"
+#include "ui/theme/ui_theme.hpp"
+#include "ui/widgets/widget_classes.hpp"
 #include "ui/core/scheduler.hpp"
 #include "ui/theme/widget_theme.hpp"
 #if defined(HELTEC_HAS_KEY_FRAME) && HELTEC_HAS_KEY_FRAME

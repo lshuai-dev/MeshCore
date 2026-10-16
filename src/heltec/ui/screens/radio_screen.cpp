@@ -1,8 +1,8 @@
 #include "radio_screen.hpp"
-#include "ui/app/theme.hpp"
-#include "ui/core/ht_container.hpp"
+#include "ui/theme/ui_theme.hpp"
+#include "ui/widgets/ht_container.hpp"
 #include "ui/core/ht_event.h"
-#include "ui/core/widget_classes.hpp"
+#include "ui/widgets/widget_classes.hpp"
 #include "ui/theme/widget_theme.hpp"
 #include <lvgl.h>
 

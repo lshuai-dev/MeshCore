@@ -4,7 +4,7 @@
 #include "ht_dropdown.hpp"
 #include "ht_selector_view.hpp"
 #include "ht_textarea.hpp"
-#include "ui/navigation/grid_navigator.hpp"
+#include "ui/navigation/navigation_widget.hpp"
 
 namespace heltec::meshcore::ui {
 

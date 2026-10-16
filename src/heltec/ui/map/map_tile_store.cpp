@@ -1,14 +1,14 @@
 #if defined(ENV_INCLUDE_MAP) && ENV_INCLUDE_MAP
 
-#include "map_sd.hpp"
+#include "map_tile_store.hpp"
 
 #include "geo_point.hpp"
 #include "heltec/drivers/display/spi1_bus_lock.hpp"
-#include "map_prefs.hpp"
+#include "map_preferences.hpp"
 
 #if !defined(SPI_INTERFACES_COUNT) || (SPI_INTERFACES_COUNT < 2) || !defined(PIN_SPI1_SCK) || \
     (PIN_SPI1_SCK < 0)
-#error "map_sd requires SPI1 (SPI_INTERFACES_COUNT>=2 and PIN_SPI1_SCK)"
+#error "map_tile_store requires SPI1 (SPI_INTERFACES_COUNT>=2 and PIN_SPI1_SCK)"
 #endif
 #include "target.h"
 
@@ -547,7 +547,7 @@ static bool safeStyleComponent(const char *name);
 static bool findFirstTileUnder(const char *base, uint8_t zoom, bool allow_nested, uint32_t &x_tile,
                                uint32_t &y_tile, char *found_path, size_t found_path_len);
 
-void map_sd_prepare_pins()
+void map_tile_store_prepare_pins()
 {
     if (s_pins_ready)
         return;
@@ -564,7 +564,7 @@ void map_sd_prepare_pins()
     s_pins_ready = true;
 }
 
-void map_sd_on_screen_enter()
+void map_tile_store_on_screen_enter()
 {
     if (sdUsable())
     {
@@ -591,7 +591,7 @@ void map_sd_on_screen_enter()
     }
 }
 
-bool map_sd_probe_once()
+bool map_tile_store_probe_once()
 {
     if (sdUsable())
     {
@@ -617,7 +617,7 @@ bool map_sd_probe_once()
 #if defined(ESP_PLATFORM)
     esp_task_wdt_reset();
 #endif
-    map_sd_prepare_pins();
+    map_tile_store_prepare_pins();
 
     uint32_t hz = 0;
     if (!nextProbeHz(hz))
@@ -675,11 +675,11 @@ bool map_sd_probe_once()
     }
 
     s_probe_complete = true;
-    map_sd_register_lvgl_fs();
+    map_tile_store_register_lvgl_fs();
     return true;
 }
 
-bool map_sd_init()
+bool map_tile_store_init()
 {
     if (!sdUsable() && s_probe_complete && !s_io_failed)
     {
@@ -689,28 +689,28 @@ bool map_sd_init()
         s_io_failed = false;
         resetTileLookupState();
     }
-    map_sd_prepare_pins();
-    while (!map_sd_probe_once())
+    map_tile_store_prepare_pins();
+    while (!map_tile_store_probe_once())
     {
 #if defined(ESP_PLATFORM)
         esp_task_wdt_reset();
 #endif
         yield();
     }
-    return map_sd_ready();
+    return map_tile_store_ready();
 }
 
-bool map_sd_ready()
+bool map_tile_store_ready()
 {
     return sdUsable();
 }
 
-uint32_t map_sd_active_hz()
+uint32_t map_tile_store_active_hz()
 {
     return sdUsable() ? s_active_hz : 0U;
 }
 
-const char *map_sd_fs_label()
+const char *map_tile_store_fs_label()
 {
     if (!sdUsable())
         return nullptr;
@@ -727,7 +727,7 @@ const char *map_sd_fs_label()
     }
 }
 
-void map_sd_register_lvgl_fs()
+void map_tile_store_register_lvgl_fs()
 {
     if (s_fs_registered || !sdUsable())
         return;
@@ -743,7 +743,7 @@ void map_sd_register_lvgl_fs()
     s_fs_registered = true;
 }
 
-bool map_sd_tile_path(char *out, size_t out_len, const char *style, uint8_t zoom, uint32_t x_tile,
+bool map_tile_store_tile_path(char *out, size_t out_len, const char *style, uint8_t zoom, uint32_t x_tile,
                       uint32_t y_tile)
 {
     if (!out || out_len < 8)
@@ -900,7 +900,7 @@ static bool cachedTileExists(uint8_t style_zoom_key, TileLayout layout, const ch
         }
     }
 
-    const bool exists = map_sd_exists(rel_path);
+    const bool exists = map_tile_store_exists(rel_path);
     if (!sdUsable())
         return false;
     int slot = 0;
@@ -936,7 +936,7 @@ static bool resolveWithLayout(char *out, size_t out_len, uint8_t style_zoom_key,
     return n > 0 && (size_t)n < out_len;
 }
 
-bool map_sd_resolve_tile_path(char *out, size_t out_len, const char *style, uint8_t zoom,
+bool map_tile_store_resolve_tile_path(char *out, size_t out_len, const char *style, uint8_t zoom,
                               uint32_t x_tile, uint32_t y_tile)
 {
     if (!out || out_len < 12 || !sdUsable())
@@ -982,7 +982,7 @@ bool map_sd_resolve_tile_path(char *out, size_t out_len, const char *style, uint
     return false;
 }
 
-bool map_sd_exists(const char *rel_path)
+bool map_tile_store_exists(const char *rel_path)
 {
     if (!sdUsable() || !rel_path || !rel_path[0])
         return false;
@@ -1067,7 +1067,7 @@ static bool mapStyleHasAnyTile(const char *style)
     return tileTreeHasAnyTile(root, true);
 }
 
-void map_sd_resolve_style(char *style, size_t style_len)
+void map_tile_store_resolve_style(char *style, size_t style_len)
 {
     if (!sdUsable() || !style || style_len < 2)
         return;
@@ -1157,10 +1157,10 @@ static bool tileZoomDirExists(const char *style, uint8_t zoom)
     // maps/style directory alongside a populated tiles/ tree.
     uint32_t x = 0;
     uint32_t y = 0;
-    return map_sd_find_first_tile(st, zoom, x, y);
+    return map_tile_store_find_first_tile(st, zoom, x, y);
 }
 
-uint8_t map_sd_best_zoom(const char *style, uint8_t preferred)
+uint8_t map_tile_store_best_zoom(const char *style, uint8_t preferred)
 {
     preferred = clampMapZoom(preferred);
     if (!sdUsable() || !safeStyleComponent(style))
@@ -1188,7 +1188,7 @@ uint8_t map_sd_best_zoom(const char *style, uint8_t preferred)
     return preferred;
 }
 
-void map_sd_apply_tile_prefs(MapUiPrefs &prefs)
+void map_tile_store_apply_tile_prefs(MapPreferences &prefs)
 {
     if (!sdUsable())
         return;
@@ -1196,10 +1196,10 @@ void map_sd_apply_tile_prefs(MapUiPrefs &prefs)
     // empty or malformed tile tree must never monopolise the LVGL loop while
     // every directory entry is searched for a PNG.
     s_tile_scan_deadline_ms = millis() + (uint32_t)MAP_UI_SD_TILE_SCAN_BUDGET_MS;
-    map_sd_resolve_style(prefs.tile_style, sizeof(prefs.tile_style));
+    map_tile_store_resolve_style(prefs.tile_style, sizeof(prefs.tile_style));
     if (!tileScanBudgetExpired())
     {
-        prefs.zoom = map_sd_best_zoom(prefs.tile_style, prefs.zoom);
+        prefs.zoom = map_tile_store_best_zoom(prefs.tile_style, prefs.zoom);
     }
     s_tile_scan_deadline_ms = 0;
 }
@@ -1207,7 +1207,7 @@ void map_sd_apply_tile_prefs(MapUiPrefs &prefs)
 static bool tileExistsAt(const char *style, uint8_t zoom, uint32_t x_tile, uint32_t y_tile)
 {
     char path[96];
-    return map_sd_resolve_tile_path(path, sizeof(path), style, zoom, x_tile, y_tile);
+    return map_tile_store_resolve_tile_path(path, sizeof(path), style, zoom, x_tile, y_tile);
 }
 
 static bool findFirstTileUnder(const char *base, uint8_t zoom, bool allow_nested, uint32_t &x_tile,
@@ -1271,7 +1271,7 @@ static bool findFirstTileUnder(const char *base, uint8_t zoom, bool allow_nested
                     continue;
                 char nested[112];
                 snprintf(nested, sizeof(nested), "%s/%s/%s.png", xpath, yname, yname);
-                if (!map_sd_exists(nested))
+                if (!map_tile_store_exists(nested))
                     continue;
                 x_tile = x;
                 y_tile = y;
@@ -1307,7 +1307,7 @@ static bool findFirstTileUnder(const char *base, uint8_t zoom, bool allow_nested
     return false;
 }
 
-bool map_sd_find_first_tile(const char *style, uint8_t zoom, uint32_t &x_tile, uint32_t &y_tile)
+bool map_tile_store_find_first_tile(const char *style, uint8_t zoom, uint32_t &x_tile, uint32_t &y_tile)
 {
     if (!sdUsable())
         return false;
@@ -1327,7 +1327,7 @@ bool map_sd_find_first_tile(const char *style, uint8_t zoom, uint32_t &x_tile, u
     return found_tile;
 }
 
-bool map_sd_snap_center_to_tiles(const char *style, uint8_t zoom, float &lat, float &lon)
+bool map_tile_store_snap_center_to_tiles(const char *style, uint8_t zoom, float &lat, float &lon)
 {
     if (!sdUsable() || !safeStyleComponent((style && style[0]) ? style : "osm"))
         return false;
@@ -1337,7 +1337,7 @@ bool map_sd_snap_center_to_tiles(const char *style, uint8_t zoom, float &lat, fl
 
     uint32_t xt = 0;
     uint32_t yt = 0;
-    if (!map_sd_find_first_tile(style, zoom, xt, yt))
+    if (!map_tile_store_find_first_tile(style, zoom, xt, yt))
         return false;
     tileCenterLatLon(xt, yt, zoom, lat, lon);
     return true;

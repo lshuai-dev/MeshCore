@@ -7,7 +7,7 @@
 #include "HeltecMesh.h"
 #include "mesh_app_ui.hpp"
 #include "ui/core/ht_event.h"
-#include "ui/core/task.hpp"
+#include "ui/core/ui_task.hpp"
 
 #include <string.h>
 #include <stdio.h>

@@ -1,5 +1,5 @@
 #include "framed_overlay.hpp"
-#include "widget_classes.hpp"
+#include "ui/widgets/widget_classes.hpp"
 
 namespace heltec::meshcore::ui {
 FramedOverlay::FramedOverlay(biz::IBizFacade &biz, const lv_obj_class_t &root_class,

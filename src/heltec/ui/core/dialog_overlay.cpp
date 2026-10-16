@@ -1,5 +1,5 @@
 #include "dialog_overlay.hpp"
-#include "widget_classes.hpp"
+#include "ui/widgets/widget_classes.hpp"
 
 #include <lvgl.h>
 

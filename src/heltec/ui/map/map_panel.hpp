@@ -1,7 +1,7 @@
 #pragma once
 
 #include "geo_point.hpp"
-#include "map_prefs.hpp"
+#include "map_preferences.hpp"
 #include "ui/core/biz_facade.hpp"
 
 #include <lvgl.h>
@@ -203,7 +203,7 @@ class MapPanel
     _lv_obj_t *_range_rings[kRangeRingCount]{};
     _lv_obj_t *_range_labels[kRangeRingCount]{};
 
-    MapUiPrefs _prefs{};
+    MapPreferences _prefs{};
     GeoPoint _home{};
     GeoPoint _gps{};
     GeoPoint _scrolled{};

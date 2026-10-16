@@ -1,8 +1,8 @@
 #include "focus_key_mapper.hpp"
 
-#include "ht_selector_view.hpp"
-#include "ht_scroll_view.hpp"
-#include "ui/navigation/grid_navigator.hpp"
+#include "ui/widgets/ht_selector_view.hpp"
+#include "ui/widgets/ht_scroll_view.hpp"
+#include "ui/navigation/navigation_widget.hpp"
 
 #include <lvgl.h>
 

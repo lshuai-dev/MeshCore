@@ -2,10 +2,10 @@
 
 #if LV_USE_THEME_MONO
 #include "ui/app/behavior_profile.hpp"
-#include "ui/app/theme.hpp"
+#include "ui/theme/ui_theme.hpp"
 #include "ui/images.h"
 #include "ui/menus/context_menu.hpp"
-#include "ui/navigation/grid_navigator.hpp"
+#include "ui/navigation/navigation_widget.hpp"
 #include "ui/theme/widget_theme.hpp"
 #include "theme_mono_flat.hpp"
 

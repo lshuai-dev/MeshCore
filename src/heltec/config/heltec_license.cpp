@@ -23,7 +23,7 @@
 #if defined(HELTEC_MESH_UI) && HELTEC_MESH_UI && HELTEC_LICENSE_BOOT_GATE
 #include "heltec/drivers/display/display_port.hpp"
 #include "heltec/drivers/input/momentary_button.hpp"
-#include "ui/core/widget_classes.hpp"
+#include "ui/widgets/widget_classes.hpp"
 
 #include <lvgl.h>
 #endif

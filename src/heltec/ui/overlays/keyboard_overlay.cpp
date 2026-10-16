@@ -1,9 +1,9 @@
 #include "keyboard_overlay.hpp"
 #include "../core/biz_facade.hpp"
 #include "MeshCore.h"
-#include "ui/app/theme.hpp"
+#include "ui/theme/ui_theme.hpp"
 #include "ui/core/ht_event.h"
-#include "ui/core/widget_classes.hpp"
+#include "ui/widgets/widget_classes.hpp"
 #include "ui/theme/widget_theme.hpp"
 #if defined(HELTEC_HAS_KEY_FRAME) && HELTEC_HAS_KEY_FRAME
 #include "heltec/drivers/display/e213_port.hpp"

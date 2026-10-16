@@ -2,8 +2,8 @@
 
 #include "config/LoRaBandPresets.h"
 #include "heltec/ui/core/biz_facade.hpp"
-#include "ui/core/ht_selector_view.hpp"
-#include "ui/core/widget_classes.hpp"
+#include "ui/widgets/ht_selector_view.hpp"
+#include "ui/widgets/widget_classes.hpp"
 #include "ui/core/operation_hints.hpp"
 #include "ui/core/ht_event.h"
 #include "ui/theme/widget_theme.hpp"

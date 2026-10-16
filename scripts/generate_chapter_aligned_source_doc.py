@@ -24,7 +24,7 @@ CHAPTERS = [
     (3, "支持的终端与固件形态", 120, ["src/heltec/drivers/display/display_port.cpp", "src/heltec/drivers/display/display_port.hpp", "src/heltec/ui/core/board_features.cpp", "variants/heltec_e213/HeltecE213Board.cpp"]),
     (4, "软件总体设计", 180, ["src/heltec/ui/core/surface.cpp", "src/heltec/ui/core/surface.hpp", "src/heltec/ui/core/surface_manager.hpp", "src/heltec/ui/core/surface_manager.cpp"]),
     (5, "启动与主界面", 170, ["src/heltec/ui/overlays/splash_overlay.cpp", "src/heltec/ui/screens/home_screen.cpp", "src/heltec/ui/screens/home_screen.hpp"]),
-    (6, "消息通信功能", 220, ["src/heltec/ui/overlays/send_message_model.hpp", "src/heltec/ui/overlays/send_message_model.cpp", "src/heltec/ui/overlays/send_message_overlay.cpp"]),
+    (6, "消息通信功能", 220, ["src/heltec/ui/overlays/send_message_model.hpp", "src/heltec/ui/overlays/send_message_model.cpp", "src/heltec/ui/overlays/send_message_keypad.cpp", "src/heltec/ui/overlays/send_message_touch.cpp"]),
     (7, "最近消息与节点信息", 180, ["src/heltec/ui/screens/recent_screen.hpp", "src/heltec/ui/screens/recent_screen.cpp"]),
     (8, "无线状态与参数管理", 150, ["src/heltec/ui/screens/radio_screen.hpp", "src/heltec/ui/screens/radio_screen.cpp", "src/heltec/app/mesh_app_ui_radio.cpp"]),
     (9, "GPS定位与位置共享", 200, ["src/heltec/ui/screens/gps_screen.hpp", "src/heltec/ui/screens/gps_screen.cpp"]),

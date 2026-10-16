@@ -117,7 +117,7 @@ ArduinoSerialInterface serial_interface;
 #error "need to define a serial interface"
 #endif
 
-#include "ui/core/task.hpp"
+#include "ui/core/ui_task.hpp"
 static heltec::meshcore::ui::UiTask s_ui_task(&board, &serial_interface);
 namespace heltec::meshcore::ui
 {

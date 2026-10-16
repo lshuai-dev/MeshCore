@@ -1,7 +1,7 @@
 #pragma once
 
 #include "app/power_mgr.hpp"
-#include "ui/app/theme.hpp"
+#include "ui/theme/ui_theme.hpp"
 #include "ui/core/app_state_dispatcher.hpp"
 #include "ui/core/biz_facade.hpp"
 #include "ui/core/capabilities.hpp"

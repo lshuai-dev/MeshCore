@@ -1,9 +1,9 @@
 #include "system_screen.hpp"
 #include "../core/biz_facade.hpp"
 #include "config/LoRaBandPresets.h"
-#include "ui/app/theme.hpp"
+#include "ui/theme/ui_theme.hpp"
 #include "ui/core/ht_event.h"
-#include "ui/core/ht_scroll_view.hpp"
+#include "ui/widgets/ht_scroll_view.hpp"
 
 namespace heltec::meshcore::ui {
 

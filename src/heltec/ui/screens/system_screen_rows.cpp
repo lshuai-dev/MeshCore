@@ -1,9 +1,9 @@
 #include "system_screen.hpp"
 
-#include "ui/core/ht_dropdown.hpp"
-#include "ui/app/theme.hpp"
-#include "ui/core/ht_container.hpp"
-#include "ui/core/widget_classes.hpp"
+#include "ui/widgets/ht_dropdown.hpp"
+#include "ui/theme/ui_theme.hpp"
+#include "ui/widgets/ht_container.hpp"
+#include "ui/widgets/widget_classes.hpp"
 #include "ui/theme/widget_theme.hpp"
 #if defined(HELTEC_HAS_KEY_FRAME) && HELTEC_HAS_KEY_FRAME
 #include "heltec/drivers/display/e213_port.hpp"

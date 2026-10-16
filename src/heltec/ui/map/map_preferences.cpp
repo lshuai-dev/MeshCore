@@ -1,6 +1,6 @@
 #if defined(ENV_INCLUDE_MAP) && ENV_INCLUDE_MAP
 
-#include "map_prefs.hpp"
+#include "map_preferences.hpp"
 
 #include <SPIFFS.h>
 #include <math.h>
@@ -14,7 +14,7 @@ namespace
 
 constexpr const char *kMapPrefsPath = "/map_ui_prefs";
 
-// The first implementation wrote MapUiPrefs directly.  Keep decoding that
+// The first implementation wrote MapPreferences directly.  Keep decoding that
 // 28-byte layout so an upgrade does not discard the user's last map centre.
 constexpr size_t kLegacyPrefsSize = 28;
 
@@ -64,7 +64,7 @@ static bool validStyle(const char *style, size_t capacity)
            !(length == 2 && style[0] == '.' && style[1] == '.');
 }
 
-static bool validPrefs(const MapUiPrefs &prefs)
+static bool validPrefs(const MapPreferences &prefs)
 {
     if (!isfinite(prefs.home_lat) || !isfinite(prefs.home_lon))
         return false;
@@ -79,7 +79,7 @@ static bool validPrefs(const MapUiPrefs &prefs)
     return validStyle(prefs.tile_style, sizeof(prefs.tile_style));
 }
 
-static void normalizePrefs(MapUiPrefs &prefs)
+static void normalizePrefs(MapPreferences &prefs)
 {
     if (isfinite(prefs.home_lat) && isfinite(prefs.home_lon) && prefs.home_lat == 0.0f &&
         prefs.home_lon == 0.0f)
@@ -118,11 +118,11 @@ static void normalizePrefs(MapUiPrefs &prefs)
     }
 }
 
-static bool decodeLegacy(const uint8_t *raw, size_t size, MapUiPrefs &out)
+static bool decodeLegacy(const uint8_t *raw, size_t size, MapPreferences &out)
 {
     if (!raw || size != kLegacyPrefsSize)
         return false;
-    MapUiPrefs candidate{};
+    MapPreferences candidate{};
     // Original layout: float lat @ 0, float lon @ 4, zoom @ 8,
     // one legacy runtime flag @ 9, style[16] @ 10, two bytes tail padding.
     memcpy(&candidate.home_lat, raw, sizeof(candidate.home_lat));
@@ -136,7 +136,7 @@ static bool decodeLegacy(const uint8_t *raw, size_t size, MapUiPrefs &out)
     return true;
 }
 
-static bool decodeCurrent(const uint8_t *raw, size_t size, MapUiPrefs &out)
+static bool decodeCurrent(const uint8_t *raw, size_t size, MapPreferences &out)
 {
     if (!raw || size != sizeof(MapPrefsFileV1))
         return false;
@@ -147,7 +147,7 @@ static bool decodeCurrent(const uint8_t *raw, size_t size, MapUiPrefs &out)
     {
         return false;
     }
-    MapUiPrefs candidate{};
+    MapPreferences candidate{};
     candidate.home_lat = file.home_lat;
     candidate.home_lon = file.home_lon;
     candidate.zoom = file.zoom;
@@ -161,7 +161,7 @@ static bool decodeCurrent(const uint8_t *raw, size_t size, MapUiPrefs &out)
 
 } // namespace
 
-bool map_prefs_load(MapUiPrefs &out)
+bool map_preferences_load(MapPreferences &out)
 {
 #if defined(ESP32)
     if (SPIFFS.totalBytes() == 0)
@@ -181,7 +181,7 @@ bool map_prefs_load(MapUiPrefs &out)
     if (n != read_size)
         return false;
 
-    MapUiPrefs decoded{};
+    MapPreferences decoded{};
     if (decodeCurrent(raw, file_size, decoded))
     {
         out = decoded;
@@ -192,15 +192,15 @@ bool map_prefs_load(MapUiPrefs &out)
         out = decoded;
         // Migrate immediately so subsequent boots use the validated format.  A
         // failed migration is harmless; the decoded preferences are still valid.
-        map_prefs_save(out);
+        map_preferences_save(out);
         return true;
     }
     return false;
 }
 
-void map_prefs_save(const MapUiPrefs &prefs)
+void map_preferences_save(const MapPreferences &prefs)
 {
-    MapUiPrefs normalized = prefs;
+    MapPreferences normalized = prefs;
     normalizePrefs(normalized);
 
     MapPrefsFileV1 file{};

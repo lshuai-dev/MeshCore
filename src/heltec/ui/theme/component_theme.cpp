@@ -1,5 +1,5 @@
-#include "ui/app/theme.hpp"
-#include "ui/core/widget_classes.hpp"
+#include "ui/theme/ui_theme.hpp"
+#include "ui/widgets/widget_classes.hpp"
 #include "ui/screens/compass_dial_widget.hpp"
 #include "ui/theme/widget_theme.hpp"
 #include "ui/theme/theme_internal.hpp"

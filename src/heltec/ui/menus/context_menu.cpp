@@ -1,11 +1,11 @@
 #include "context_menu.hpp"
 
-#include "heltec/ui/app/theme.hpp"
+#include "heltec/ui/theme/ui_theme.hpp"
 #include "heltec/ui/core/abstract_menu.hpp"
 #include "heltec/ui/images.h"
 #include "ui/app/behavior_profile.hpp"
 #include "ui/core/ht_event.h"
-#include "ui/core/widget_classes.hpp"
+#include "ui/widgets/widget_classes.hpp"
 #include "ui/core/scheduler.hpp"
 #include "ui/theme/widget_theme.hpp"
 

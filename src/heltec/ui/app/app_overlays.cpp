@@ -1,6 +1,6 @@
 #include "ui/app/app.hpp"
 #include "ui/core/ht_event.h"
-#include "ui/core/task.hpp"
+#include "ui/core/ui_task.hpp"
 #if defined(HELTEC_HAS_KEY_FRAME) && HELTEC_HAS_KEY_FRAME
 #include "heltec/drivers/display/e213_port.hpp"
 #endif

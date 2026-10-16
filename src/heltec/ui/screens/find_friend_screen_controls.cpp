@@ -2,10 +2,10 @@
 
 #include "find_friend_screen.hpp"
 
-#include "ui/core/ht_dropdown.hpp"
+#include "ui/widgets/ht_dropdown.hpp"
 #include "app/team_join_service.hpp"
-#include "ui/app/theme.hpp"
-#include "ui/core/ht_container.hpp"
+#include "ui/theme/ui_theme.hpp"
+#include "ui/widgets/ht_container.hpp"
 #include "ui/core/ht_event.h"
 #include "ui/theme/widget_theme.hpp"
 #include <lvgl.h>

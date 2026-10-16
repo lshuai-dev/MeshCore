@@ -1,7 +1,7 @@
 #if (defined(ENV_INCLUDE_GPS) && ENV_INCLUDE_GPS) || \
     (defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS)
 #include "compass_dial_widget.hpp"
-#include "ui/app/theme.hpp"
+#include "ui/theme/ui_theme.hpp"
 #include "ui/theme/widget_theme.hpp"
 
 namespace heltec::meshcore::ui

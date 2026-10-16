@@ -1,4 +1,4 @@
-#include "ui/app/theme.hpp"
+#include "ui/theme/ui_theme.hpp"
 
 #include <lvgl.h>
 

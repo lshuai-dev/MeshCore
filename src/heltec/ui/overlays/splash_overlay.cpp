@@ -2,7 +2,7 @@
 
 #include "heltec/app/HeltecMesh.h"
 #include "heltec/ui/images.h"
-#include "ui/core/widget_classes.hpp"
+#include "ui/widgets/widget_classes.hpp"
 #if defined(HELTEC_HAS_KEY_FRAME) && HELTEC_HAS_KEY_FRAME
 #include "heltec/drivers/display/e213_port.hpp"
 #endif

@@ -2,10 +2,10 @@
 
 #include "map_panel.hpp"
 
-#include "map_sd.hpp"
-#include "ui/app/theme.hpp"
+#include "map_tile_store.hpp"
+#include "ui/theme/ui_theme.hpp"
 #include "ui/core/biz_facade.hpp"
-#include "ui/core/widget_classes.hpp"
+#include "ui/widgets/widget_classes.hpp"
 #include "ui/theme/widget_theme.hpp"
 
 #include <Arduino.h>
@@ -95,7 +95,7 @@ void MapPanel::load_prefs(const float *gps_home_deg)
 #if defined(ESP_PLATFORM)
     esp_task_wdt_reset();
 #endif
-    _prefs_loaded = map_prefs_load(_prefs);
+    _prefs_loaded = map_preferences_load(_prefs);
     _prefs_dirty = false;
     if (!_prefs_loaded)
     {
@@ -105,19 +105,19 @@ void MapPanel::load_prefs(const float *gps_home_deg)
     }
     _home = GeoPoint(_prefs.home_lat, _prefs.home_lon, _prefs.zoom);
     _scrolled = gps_home_deg ? GeoPoint(gps_home_deg[0], gps_home_deg[1], _prefs.zoom) : _home;
-    _sd_tiles = map_sd_ready();
+    _sd_tiles = map_tile_store_ready();
     markDirty(DirtyTiles | DirtyMarkers | DirtyRings | DirtyGpsPin | DirtyViewport);
 }
 
 void MapPanel::applySdPrefs()
 {
-    if (!map_sd_ready())
+    if (!map_tile_store_ready())
         return;
     const uint8_t before_zoom = _prefs.zoom;
     char before_style[sizeof(_prefs.tile_style)];
     strncpy(before_style, _prefs.tile_style, sizeof(before_style) - 1);
     before_style[sizeof(before_style) - 1] = '\0';
-    map_sd_apply_tile_prefs(_prefs);
+    map_tile_store_apply_tile_prefs(_prefs);
     const bool changed = before_zoom != _prefs.zoom ||
                          strncmp(before_style, _prefs.tile_style, sizeof(before_style)) != 0;
     _sd_tiles = true;
@@ -126,7 +126,7 @@ void MapPanel::applySdPrefs()
         _home.set_zoom(_prefs.zoom);
         _scrolled.set_zoom(_prefs.zoom);
         if (_prefs_loaded)
-            map_prefs_save(_prefs);
+            map_preferences_save(_prefs);
     }
     request_redraw();
 }
@@ -134,7 +134,7 @@ void MapPanel::applySdPrefs()
 void MapPanel::refreshSdTiles()
 {
     const bool was = _sd_tiles;
-    _sd_tiles = map_sd_ready();
+    _sd_tiles = map_tile_store_ready();
     if (was != _sd_tiles)
     {
         request_redraw();
@@ -176,7 +176,7 @@ void MapPanel::save_prefs()
     _prefs.home_lat = _scrolled.latitude;
     _prefs.home_lon = _scrolled.longitude;
     _prefs.zoom = _scrolled.zoom_level;
-    map_prefs_save(_prefs);
+    map_preferences_save(_prefs);
     _home = _scrolled;
     _prefs_loaded = true;
     _prefs_dirty = false;
@@ -601,7 +601,7 @@ void MapPanel::layout_tiles()
             esp_task_wdt_reset();
 #endif
             const bool has_tile =
-                map_sd_resolve_tile_path(path, sizeof(path), _prefs.tile_style,
+                map_tile_store_resolve_tile_path(path, sizeof(path), _prefs.tile_style,
                                          _scrolled.zoom_level, need.x_tile, need.y_tile);
             --stat_budget;
             if (!has_tile)

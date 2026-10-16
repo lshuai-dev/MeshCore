@@ -2,11 +2,11 @@
 
 #if HELTEC_HAS_TOUCH
 
-#include "ui/core/ht_dropdown.hpp"
-#include "ui/core/ht_textarea.hpp"
+#include "ui/widgets/ht_dropdown.hpp"
+#include "ui/widgets/ht_textarea.hpp"
 
-#include "ui/core/ht_container.hpp"
-#include "ui/core/widget_classes.hpp"
+#include "ui/widgets/ht_container.hpp"
+#include "ui/widgets/widget_classes.hpp"
 
 #include <lvgl.h>
 
@@ -67,7 +67,7 @@ const lv_obj_class_t ht_quick_ping_keyboard_class =
 
 #include "heltec/ui/core/biz_facade.hpp"
 #include "heltec/ui/images.h"
-#include "ui/app/theme.hpp"
+#include "ui/theme/ui_theme.hpp"
 #include "ui/core/ht_event.h"
 #include "ui/core/scheduler.hpp"
 #include "ui/theme/widget_theme.hpp"

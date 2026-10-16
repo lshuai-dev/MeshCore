@@ -1,5 +1,5 @@
 #include "system_screen.hpp"
-#include "ui/app/theme.hpp"
+#include "ui/theme/ui_theme.hpp"
 #if defined(HELTEC_HAS_KEY_FRAME) && HELTEC_HAS_KEY_FRAME
 #include "heltec/drivers/display/e213_port.hpp"
 #endif

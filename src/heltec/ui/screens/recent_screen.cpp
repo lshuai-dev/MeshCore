@@ -1,5 +1,5 @@
 #include "recent_screen.hpp"
-#include "ui/core/ht_container.hpp"
+#include "ui/widgets/ht_container.hpp"
 #include <lvgl.h>
 
 namespace heltec::meshcore::ui

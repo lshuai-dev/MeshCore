@@ -7,7 +7,7 @@
 namespace heltec::meshcore::ui::map
 {
 
-struct MapUiPrefs
+struct MapPreferences
 {
     float home_lat = 51.5074f;
     float home_lon = -0.1278f;
@@ -15,7 +15,7 @@ struct MapUiPrefs
     char tile_style[16] = "osm";
 };
 
-bool map_prefs_load(MapUiPrefs &out);
-void map_prefs_save(const MapUiPrefs &prefs);
+bool map_preferences_load(MapPreferences &out);
+void map_preferences_save(const MapPreferences &prefs);
 
 } // namespace heltec::meshcore::ui::map

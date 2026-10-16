@@ -3,7 +3,7 @@
 #include "heltec/ui/core/biz_facade.hpp"
 #include "heltec/ui/core/screen_id.hpp"
 #include "heltec/ui/core/surface.hpp"
-#include "ui/navigation/grid_navigator.hpp"
+#include "ui/navigation/navigation_widget.hpp"
 
 #include <lvgl.h>
 

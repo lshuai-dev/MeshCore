@@ -1,5 +1,5 @@
-#include "grid_navigator.hpp"
-#include "ui/core/widget_classes.hpp"
+#include "navigation_widget.hpp"
+#include "ui/widgets/widget_classes.hpp"
 #include <lvgl.h>
 
 namespace

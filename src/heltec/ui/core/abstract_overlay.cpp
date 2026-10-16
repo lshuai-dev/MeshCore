@@ -1,6 +1,6 @@
 #include "abstract_overlay.hpp"
 
-#include "widget_classes.hpp"
+#include "ui/widgets/widget_classes.hpp"
 
 namespace heltec::meshcore::ui {
 

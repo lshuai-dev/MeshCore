@@ -232,7 +232,7 @@ def build():
     title(doc, "6.2 消息接收提示", 2)
     para(doc, "收到个人或群组文本后，软件将消息加入当前内存预览队列并触发界面提示。预览区域可保留近期消息，支持单击或方向键切换，并显示消息接收后经过的时间。该机制用于快速查看，不等同于无限期的文件化聊天记录。")
     page(doc)
-    code_excerpt(doc, "6.3 消息选择界面代码", "src/heltec/ui/overlays/touch_send_message_overlay.cpp", 85, 134, [
+    code_excerpt(doc, "6.3 消息选择界面代码", "src/heltec/ui/overlays/send_message_touch.cpp", 85, 134, [
         "该部分只创建消息发送页面的标题、列表、底部提示和触摸行。",
         "真正的消息编码、路由和无线发送过程未纳入本文档。"
     ])

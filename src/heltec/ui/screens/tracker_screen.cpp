@@ -3,9 +3,9 @@
 #include "tracker_screen.hpp"
 
 #include "heltec/ui/map/geo_point.hpp"
-#include "heltec/ui/map/map_sd.hpp"
-#include "ui/app/theme.hpp"
-#include "ui/core/widget_classes.hpp"
+#include "heltec/ui/map/map_tile_store.hpp"
+#include "ui/theme/ui_theme.hpp"
+#include "ui/widgets/widget_classes.hpp"
 #include "ui/core/ht_event.h"
 
 #include <Arduino.h>
@@ -282,7 +282,7 @@ void TrackerScreen::update_status_line()
     if (!_lbl_status || !_panel_attached)
         return;
     char sd_buf[20];
-    const char *fs = heltec::meshcore::ui::map::map_sd_fs_label();
+    const char *fs = heltec::meshcore::ui::map::map_tile_store_fs_label();
     const char *sd_tag = "noSD";
     if (_panel.sd_tiles())
     {
@@ -764,7 +764,7 @@ void TrackerScreen::onEnter()
 #endif
     _biz.setMapForegroundActive(true);
     using namespace heltec::meshcore::ui::map;
-    map_sd_on_screen_enter();
+    map_tile_store_on_screen_enter();
     if (!_map_work_timer || _panel.poolBuildFailed())
     {
         setMapUnavailable();
@@ -1000,7 +1000,7 @@ bool TrackerScreen::processStartupWork()
             }
         }
         _panel.syncViewportLayout();
-        _startup_phase = map::map_sd_ready() ? kStartupApplySd : kStartupProbeSd;
+        _startup_phase = map::map_tile_store_ready() ? kStartupApplySd : kStartupProbeSd;
         return true;
     }
 
@@ -1009,7 +1009,7 @@ bool TrackerScreen::processStartupWork()
 #if defined(ESP_PLATFORM)
         esp_task_wdt_reset();
 #endif
-        const bool probe_done = map::map_sd_probe_once();
+        const bool probe_done = map::map_tile_store_probe_once();
         if (!probe_done)
             return true;
         _startup_phase = kStartupApplySd;

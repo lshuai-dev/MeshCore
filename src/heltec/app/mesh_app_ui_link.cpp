@@ -1,7 +1,7 @@
 #include "HeltecMesh.h"
 #include "config/NodePrefs.h"
 #include "mesh_app_ui.hpp"
-#include "ui/core/task.hpp"
+#include "ui/core/ui_task.hpp"
 
 namespace heltec::meshcore::biz
 {

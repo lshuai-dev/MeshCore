@@ -1,7 +1,7 @@
 #if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
 #include "compass_screen.hpp"
 #include "compass_common.hpp"
-#include "ui/app/theme.hpp"
+#include "ui/theme/ui_theme.hpp"
 #include "ui/core/ht_event.h"
 
 #include <Arduino.h>

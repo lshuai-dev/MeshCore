@@ -4,10 +4,10 @@
 
 #include "heltec/ui/core/biz_facade.hpp"
 #include "keyboard_overlay.hpp"
-#include "ui/app/theme.hpp"
+#include "ui/theme/ui_theme.hpp"
 #include "ui/core/operation_hints.hpp"
-#include "ui/core/ht_selector_view.hpp"
-#include "ui/core/widget_classes.hpp"
+#include "ui/widgets/ht_selector_view.hpp"
+#include "ui/widgets/widget_classes.hpp"
 #include "ui/core/ht_event.h"
 
 #if defined(HELTEC_HAS_KEY_FRAME) && HELTEC_HAS_KEY_FRAME

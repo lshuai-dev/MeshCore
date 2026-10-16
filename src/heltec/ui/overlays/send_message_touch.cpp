@@ -1,14 +1,14 @@
-#include "touch_send_message_overlay.hpp"
+#include "send_message_overlay.hpp"
 
 #if HELTEC_HAS_TOUCH
 
 #include "heltec/ui/core/biz_facade.hpp"
 #include "keyboard_overlay.hpp"
-#include "ui/app/theme.hpp"
-#include "ui/core/ht_container.hpp"
+#include "ui/theme/ui_theme.hpp"
+#include "ui/widgets/ht_container.hpp"
 #include "ui/core/operation_hints.hpp"
 #include "ui/core/ht_event.h"
-#include "ui/core/widget_classes.hpp"
+#include "ui/widgets/widget_classes.hpp"
 
 #include <cstdio>
 #include <cstring>

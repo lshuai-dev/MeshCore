@@ -1,10 +1,5 @@
 #pragma once
 
-
-#if HELTEC_HAS_TOUCH
-#include "touch_send_message_overlay.hpp"
-#else
-
 #include "../core/framed_overlay.hpp"
 #include "send_message_model.hpp"
 
@@ -22,7 +17,7 @@ namespace heltec::meshcore::ui
 
 struct UiSendMessageTarget;
 
-/** @brief 发消息 overlay；由 UiApp::activate 驱动显隐。 */
+/** @brief Message composer overlay selected at compile time for touch or keypad input. */
 class SendMessageOverlay : public FramedOverlay
 {
   public:
@@ -37,51 +32,66 @@ class SendMessageOverlay : public FramedOverlay
     bool buildSurface() override;
 
   private:
-    bool onKey(uint32_t key) override;
-
     using Page = SendMessageModel::Page;
     using TargetKind = SendMessageModel::TargetKind;
     using Target = SendMessageModel::Target;
 
-    static constexpr int kMaxVisibleRows = 5;
-
+    bool onKey(uint32_t key) override;
     void syncContacts();
     void rebuildTargetCategories();
     void rebuildTargetList();
     void rebuildMainRows();
     void renderRows();
-    bool ensureRowPool();
-    int visibleRowCount() const;
-    int focusRow() const;
-    int wrapIndex(int index) const;
     void applySelection();
     void handleBack();
     void sendMessageText(const char *text, bool alert_on_direct_failure = false);
     void scheduleSendResultAlert(bool ok);
     static void showSendResultAlertAsync(void *user_data);
     void openCustomKeyboard();
-    void setTarget(const Target &t);
+    void setTarget(const Target &target);
     void hideVisual();
     int rowCount() const;
     const char *rowLabel(int index) const;
 
-    _lv_obj_t *_list_mid = nullptr;
-    _lv_obj_t *_row_objs[kMaxVisibleRows]{};
-    char _row_text[kMaxVisibleRows][SendMessageModel::kRowTextCapacity]{}; // Writable storage for LONG_DOT.
+#if HELTEC_HAS_TOUCH
+    static constexpr int kMaxListItems = SendMessageModel::kMaxListItems;
+
+    void syncOverlayGroup();
+    void renderTouchList();
+    void clearTouchList();
+    _lv_obj_t *createTouchRow(uint8_t index, const char *text);
+    void syncSelectionVisual();
+    int selectedIndex() const;
+
+    _lv_obj_t *_list = nullptr;
+    _lv_obj_t *_empty_focus = nullptr;
+    _lv_obj_t *_row_objs[kMaxListItems] = {};
+    _lv_obj_t *_row_labels[kMaxListItems] = {};
+    char _row_text[kMaxListItems][32] = {};
+    bool _syncing_focus = false;
+#else
+    static constexpr int kMaxVisibleRows = 5;
+
+    bool ensureRowPool();
+    int visibleRowCount() const;
+    int focusRow() const;
+    int wrapIndex(int index) const;
+
+    _lv_obj_t *_row_objs[kMaxVisibleRows] = {};
+    char _row_text[kMaxVisibleRows][SendMessageModel::kRowTextCapacity] = {};
 #if defined(HELTEC_LORA_V4_TFT)
-    _lv_obj_t *_row_labels[kMaxVisibleRows]{};
+    _lv_obj_t *_row_labels[kMaxVisibleRows] = {};
+#endif
+    int8_t _visible_row_count = 0;
+    bool _confirm_pending = false;
 #endif
 
-    int8_t _visible_row_count = 0;
-
+    _lv_obj_t *_list_mid = nullptr;
     SendMessageModel _model;
-    Target _pending_target{};
+    Target _pending_target = {};
     bool _pending_target_valid = false;
-    bool _confirm_pending = false;
     bool _send_alert_ok = false;
     bool _send_alert_scheduled = false;
 };
 
 } // namespace heltec::meshcore::ui
-
-#endif // HELTEC_HAS_TOUCH

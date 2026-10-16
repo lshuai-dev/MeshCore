@@ -2,7 +2,7 @@
 
 #include "heltec/drivers/input/touch_input.hpp"
 #include "heltec/ui/images.h"
-#include "ui/app/theme.hpp"
+#include "ui/theme/ui_theme.hpp"
 #include "ui/core/app_state_notifier.hpp"
 #include "ui/core/backlight_policy.hpp"
 #include "ui/core/ht_event.h"
@@ -10,11 +10,11 @@
 #include "ui/core/scheduler.hpp"
 #include "ui/core/screen_id.hpp"
 #include "ui/core/surface.hpp"
-#include "ui/core/task.hpp"
-#include "ui/core/widget_classes.hpp"
+#include "ui/core/ui_task.hpp"
+#include "ui/widgets/widget_classes.hpp"
 #include "ui/menus/cascading_menu.hpp"
 #include "ui/menus/context_menu.hpp"
-#include "ui/navigation/grid_navigator.hpp"
+#include "ui/navigation/navigation_widget.hpp"
 #include "ui/overlays/splash_overlay.hpp"
 #include "ui/theme/widget_theme.hpp"
 #if defined(HELTEC_HAS_KEY_FRAME) && HELTEC_HAS_KEY_FRAME

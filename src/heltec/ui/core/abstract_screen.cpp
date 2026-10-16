@@ -1,7 +1,7 @@
 #include "abstract_screen.hpp"
-#include "ui/core/ht_container.hpp"
+#include "ui/widgets/ht_container.hpp"
 #include "ui/core/ht_event.h"
-#include "ui/core/ht_scroll_view.hpp"
+#include "ui/widgets/ht_scroll_view.hpp"
 #if defined(HELTEC_HAS_KEY_FRAME) && HELTEC_HAS_KEY_FRAME
 #include "heltec/drivers/display/e213_port.hpp"
 #endif

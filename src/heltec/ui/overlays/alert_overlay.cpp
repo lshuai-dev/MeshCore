@@ -1,6 +1,6 @@
 #include "alert_overlay.hpp"
 #include "ui/core/ht_event.h"
-#include "ui/core/widget_classes.hpp"
+#include "ui/widgets/widget_classes.hpp"
 
 namespace heltec::meshcore::ui {
 constexpr uint32_t kClickGuardMs = 500;
