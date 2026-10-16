@@ -8,6 +8,9 @@ namespace heltec::meshcore::power
 PowerConfig defaultPowerConfig()
 {
     PowerConfig config{};
+#if defined(HELTEC_POWER_RADIO_STANDBY_DELAY_MS)
+    config.radio_standby_delay_ms = HELTEC_POWER_RADIO_STANDBY_DELAY_MS;
+#endif
 #if defined(BATT_MIN_MILLIVOLTS)
     config.battery_min_mv = BATT_MIN_MILLIVOLTS;
 #elif defined(BAT_MIN_MV)
@@ -48,6 +51,8 @@ void PowerMgr::begin(uint32_t now_ms, const PowerConfig &config)
     _display_last_activity_ms = _snapshot.display_on ? now_ms : 0;
     _display_activity_valid = _snapshot.display_on;
     _display_off_since_ms = _snapshot.display_on ? 0 : now_ms;
+    _snapshot.runtime_level = _snapshot.display_on ? RuntimePowerLevel::Active
+                                                   : RuntimePowerLevel::DisplaySleep;
     _gps_retry_due_ms = now_ms;
     _begun = true;
     pollBattery(now_ms, true);
@@ -177,6 +182,7 @@ bool PowerMgr::setDisplayOn(bool on, uint32_t now_ms)
     if (_snapshot.fault == PowerFault::DisplayApplyFailed)
         setFault(PowerFault::None);
     notify(mask(PowerChange::Display));
+    updateRuntimeLevel(now_ms);
     (void)reconcileGpsPower(now_ms);
     return true;
 }
@@ -193,6 +199,31 @@ void PowerMgr::processDisplayTimeout(uint32_t now_ms)
         return;
     }
     (void)setDisplayOn(false, now_ms);
+}
+
+void PowerMgr::updateRuntimeLevel(uint32_t now_ms)
+{
+    RuntimePowerLevel level = RuntimePowerLevel::Active;
+    if (!_snapshot.display_on)
+    {
+        const uint32_t inactive_ms = now_ms - _display_off_since_ms;
+        if (_config.radio_standby_delay_ms != 0 &&
+            inactive_ms >= _config.radio_standby_delay_ms)
+        {
+            level = RuntimePowerLevel::RadioStandby;
+        }
+        else
+        {
+            level = RuntimePowerLevel::DisplaySleep;
+        }
+    }
+
+    if (_snapshot.runtime_level == level)
+    {
+        return;
+    }
+    _snapshot.runtime_level = level;
+    _gps_policy_changed = true;
 }
 
 void PowerMgr::setGpsAllowed(bool allowed)
@@ -216,20 +247,14 @@ void PowerMgr::setGpsDemand(GpsDemand demand, bool active)
     }
 }
 
-uint16_t PowerMgr::effectiveGpsDemands(uint32_t now_ms) const
+uint16_t PowerMgr::effectiveGpsDemands() const
 {
     uint16_t demands = _requested_gps_demands;
-    demands &= static_cast<uint16_t>(~mask(GpsDemand::ExternalPower));
-    if (_snapshot.source == mesh::PowerSource::External)
+    if (_snapshot.runtime_level == RuntimePowerLevel::RadioStandby)
     {
-        demands |= mask(GpsDemand::ExternalPower);
-    }
-
-    if (!_snapshot.display_on &&
-        static_cast<uint32_t>(now_ms - _display_off_since_ms) >= _config.gps_screen_off_grace_ms)
-    {
-        demands &=
-            static_cast<uint16_t>(~(mask(GpsDemand::GpsScreen) | mask(GpsDemand::MapScreen)));
+        const uint16_t foreground_demands =
+            mask(GpsDemand::GpsScreen) | mask(GpsDemand::MapScreen);
+        demands &= static_cast<uint16_t>(~foreground_demands);
     }
     return demands;
 }
@@ -243,7 +268,7 @@ bool PowerMgr::reconcileGpsPower(uint32_t now_ms)
     _snapshot.gps_available = available;
     const bool policy_changed = _gps_policy_changed;
     _gps_policy_changed = false;
-    const uint16_t demands = effectiveGpsDemands(now_ms);
+    const uint16_t demands = effectiveGpsDemands();
     const bool demand_changed = _snapshot.gps_demands != demands;
     _snapshot.gps_demands = demands;
 
@@ -377,6 +402,7 @@ void PowerMgr::loop(uint32_t now_ms)
     pollBattery(now_ms);
     pollPowerSource(now_ms);
     processDisplayTimeout(now_ms);
+    updateRuntimeLevel(now_ms);
     (void)reconcileGpsPower(now_ms);
     processSystemTransition(now_ms);
 }

@@ -459,6 +459,15 @@ void set_gesture_emit(GestureEmitFn fn)
     s_gesture_emit = fn;
 }
 
+void poll()
+{
+    if (!s_gpio_ready)
+    {
+        return;
+    }
+    poll_buttons();
+}
+
 bool anyPhysicalPressed()
 {
     return any_button_active();

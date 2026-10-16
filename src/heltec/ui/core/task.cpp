@@ -2,6 +2,8 @@
 
 #include "heltec/app/HeltecMesh.h"
 #include "heltec/core/board_features.hpp"
+#include "heltec/drivers/display/display_port.hpp"
+#include "heltec/drivers/input/momentary_button.hpp"
 #include "heltec/drivers/input/touch_input.hpp"
 #include "ui/core/app_state_notifier.hpp"
 #include "ui/core/host.hpp"
@@ -214,8 +216,17 @@ void UiTask::loop() {
     if (_alert_expiry_ms != 0 && (int32_t)(alert_now - _alert_expiry_ms) >= 0) {
         if (_ui_host) _ui_host->closeAlertOverlay();
     }
+    if (!heltec::meshcore::dal::display_port::isBacklightOn())
+    {
+        // LVGL input polling is suspended with the display. Continue processing
+        // GPIO edges so a completed button gesture can wake the display.
+        heltec::meshcore::dal::momentary_button::poll();
+    }
 #if HELTEC_TOUCH_INPUT
-    heltec::meshcore::dal::touch_input::poll();
+    if (heltec::meshcore::dal::display_port::isBacklightOn())
+    {
+        heltec::meshcore::dal::touch_input::poll();
+    }
 #endif
 #ifdef PIN_STATUS_LED
     pollStatusLed();

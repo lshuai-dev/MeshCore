@@ -80,6 +80,36 @@ bool isBacklightOn()
 #endif
 }
 
+void suspend()
+{
+#if defined(HELTEC_DISPLAY_SSD1306)
+    ssd1306::suspend();
+#elif defined(HELTEC_DISPLAY_NV3001B)
+    nv3001b::suspend();
+#elif defined(HELTEC_DISPLAY_ST7735)
+    st7735::suspend();
+#elif defined(HELTEC_DISPLAY_ST7789)
+    st7789::suspend();
+#elif defined(HELTEC_DISPLAY_E213)
+    e213::setBacklightOn(false);
+#endif
+}
+
+void resume()
+{
+#if defined(HELTEC_DISPLAY_SSD1306)
+    ssd1306::resume();
+#elif defined(HELTEC_DISPLAY_NV3001B)
+    nv3001b::resume();
+#elif defined(HELTEC_DISPLAY_ST7735)
+    st7735::resume();
+#elif defined(HELTEC_DISPLAY_ST7789)
+    st7789::resume();
+#elif defined(HELTEC_DISPLAY_E213)
+    e213::setBacklightOn(true);
+#endif
+}
+
 void reinitPanelAfterSharedReset()
 {
 #if defined(HELTEC_DISPLAY_ST7789)

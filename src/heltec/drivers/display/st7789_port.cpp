@@ -85,6 +85,7 @@ constexpr uint8_t CMD_NORMAL = 0x13;
 constexpr uint8_t CMD_INVERT_OFF = 0x20;
 constexpr uint8_t CMD_INVERT_ON = 0x21;
 constexpr uint8_t CMD_GAMMA = 0x26;
+constexpr uint8_t CMD_DISP_OFF = 0x28;
 constexpr uint8_t CMD_DISP_ON = 0x29;
 constexpr uint8_t CMD_CASET = 0x2A;
 constexpr uint8_t CMD_RASET = 0x2B;
@@ -293,6 +294,19 @@ class St7789Panel
         sendPixels(reinterpret_cast<const uint8_t *>(color_p), len);
     }
 
+    void suspend()
+    {
+        sendCmd(CMD_DISP_OFF, nullptr, 0);
+        sendCmd(CMD_SLEEP_IN, nullptr, 0);
+    }
+
+    void resume()
+    {
+        sendCmd(CMD_SLEEP_OUT, nullptr, 0);
+        delay(120);
+        sendCmd(CMD_DISP_ON, nullptr, 0);
+    }
+
   private:
     void sendCmd(uint8_t cmd, const uint8_t *param, size_t param_len)
     {
@@ -466,6 +480,26 @@ void setBacklightOn(bool on)
 bool isBacklightOn()
 {
     return s_backlight_on;
+}
+
+void suspend()
+{
+    if (!s_hw_inited || !s_backlight_on)
+    {
+        return;
+    }
+    apply_backlight(false);
+    s_panel.suspend();
+}
+
+void resume()
+{
+    if (!s_hw_inited || s_backlight_on)
+    {
+        return;
+    }
+    s_panel.resume();
+    apply_backlight(true);
 }
 
 void reinitPanelAfterSharedReset()

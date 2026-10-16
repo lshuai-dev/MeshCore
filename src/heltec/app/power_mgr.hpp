@@ -15,6 +15,13 @@ enum class SystemPowerState : uint8_t
     Fault,
 };
 
+enum class RuntimePowerLevel : uint8_t
+{
+    Active = 0,
+    DisplaySleep,
+    RadioStandby,
+};
+
 enum class PowerFault : uint8_t
 {
     None = 0,
@@ -32,7 +39,6 @@ enum class GpsDemand : uint16_t
     GpsScreen = 1U << 3,
     MapScreen = 1U << 4,
     FindFriend = 1U << 5,
-    ExternalPower = 1U << 6,
 };
 
 enum class PowerChange : uint16_t
@@ -67,7 +73,7 @@ struct PowerConfig
     uint32_t battery_poll_ms = 10000;
     uint32_t source_poll_ms = 1000;
     uint32_t gps_retry_ms = 1000;
-    uint32_t gps_screen_off_grace_ms = 30000;
+    uint32_t radio_standby_delay_ms = 30000;
     uint32_t shutdown_feedback_timeout_ms = 2500;
     uint16_t battery_min_mv = 3000;
     uint16_t battery_max_mv = 4200;
@@ -84,6 +90,7 @@ struct PowerSnapshot
     bool gps_allowed = false;
     bool gps_powered = false;
     uint16_t gps_demands = 0;
+    RuntimePowerLevel runtime_level = RuntimePowerLevel::Active;
     SystemPowerState system_state = SystemPowerState::Running;
     PowerFault fault = PowerFault::None;
 };
@@ -153,10 +160,11 @@ class PowerMgr
   private:
     static bool deadlineReached(uint32_t now_ms, uint32_t deadline_ms);
     uint8_t batteryPercent(uint16_t mv) const;
-    uint16_t effectiveGpsDemands(uint32_t now_ms) const;
+    uint16_t effectiveGpsDemands() const;
     void pollBattery(uint32_t now_ms, bool force = false);
     void pollPowerSource(uint32_t now_ms, bool force = false);
     void processDisplayTimeout(uint32_t now_ms);
+    void updateRuntimeLevel(uint32_t now_ms);
     void processSystemTransition(uint32_t now_ms);
     void finishPowerOff();
     void finishReboot();

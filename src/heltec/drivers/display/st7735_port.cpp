@@ -51,10 +51,12 @@ static lv_disp_drv_t s_disp_drv;
 constexpr uint8_t kStCmdDelay = 0x80;
 
 constexpr uint8_t ST77XX_SWRESET = 0x01;
+constexpr uint8_t ST77XX_SLPIN = 0x10;
 constexpr uint8_t ST77XX_SLPOUT = 0x11;
 constexpr uint8_t ST77XX_INVOFF = 0x20;
 constexpr uint8_t ST77XX_INVON = 0x21;
 constexpr uint8_t ST77XX_NORON = 0x13;
+constexpr uint8_t ST77XX_DISPOFF = 0x28;
 constexpr uint8_t ST77XX_DISPON = 0x29;
 constexpr uint8_t ST77XX_MADCTL = 0x36;
 constexpr uint8_t ST77XX_COLMOD = 0x3A;
@@ -251,6 +253,19 @@ class MiniMipiSt7735
         const size_t len =
             (size_t)(x_end - x_start) * (size_t)(y_end - y_start) * (LV_COLOR_DEPTH / 8);
         sendPixels(reinterpret_cast<const uint8_t *>(color_p), len);
+    }
+
+    void suspend()
+    {
+        sendCmd(ST77XX_DISPOFF, nullptr, 0);
+        sendCmd(ST77XX_SLPIN, nullptr, 0);
+    }
+
+    void resume()
+    {
+        sendCmd(ST77XX_SLPOUT, nullptr, 0);
+        delay(120);
+        sendCmd(ST77XX_DISPON, nullptr, 0);
     }
 
   private:
@@ -529,6 +544,26 @@ void setBacklightOn(bool on)
 bool isBacklightOn()
 {
     return s_backlight_on;
+}
+
+void suspend()
+{
+    if (!s_hw_inited || !s_backlight_on)
+    {
+        return;
+    }
+    apply_backlight(false);
+    s_panel.suspend();
+}
+
+void resume()
+{
+    if (!s_hw_inited || s_backlight_on)
+    {
+        return;
+    }
+    s_panel.resume();
+    apply_backlight(true);
 }
 
 } // namespace heltec::meshcore::dal::st7735

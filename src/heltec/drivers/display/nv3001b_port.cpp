@@ -11,6 +11,11 @@ namespace heltec::meshcore::dal::nv3001b
 {
 namespace
 {
+constexpr uint8_t kCommandSleepIn = 0x10;
+constexpr uint8_t kCommandSleepOut = 0x11;
+constexpr uint8_t kCommandDisplayOff = 0x28;
+constexpr uint8_t kCommandDisplayOn = 0x29;
+
 
 #ifndef DISPLAY_ROTATION
 #define DISPLAY_ROTATION 3
@@ -366,6 +371,29 @@ void setBacklightOn(bool on)
 bool isBacklightOn()
 {
     return s_backlight_on;
+}
+
+void suspend()
+{
+    if (!s_hw_inited || !s_backlight_on)
+    {
+        return;
+    }
+    set_panel_backlight(false);
+    write_command_data(kCommandDisplayOff, nullptr, 0);
+    write_command_data(kCommandSleepIn, nullptr, 0);
+}
+
+void resume()
+{
+    if (!s_hw_inited || s_backlight_on)
+    {
+        return;
+    }
+    write_command_data(kCommandSleepOut, nullptr, 0);
+    delay(120);
+    write_command_data(kCommandDisplayOn, nullptr, 0);
+    set_panel_backlight(true);
 }
 
 } // namespace heltec::meshcore::dal::nv3001b

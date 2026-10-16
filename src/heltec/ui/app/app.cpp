@@ -601,9 +601,16 @@ void UiApp::handlePowerChanged(heltec::meshcore::power::PowerChangeMask changes,
     }
 }
 
-void UiApp::tick() {
-    if (!_inited) return;
-    lv_timer_handler();
+void UiApp::tick()
+{
+    if (!_inited)
+    {
+        return;
+    }
+    if (_power.snapshot().display_on)
+    {
+        lv_timer_handler();
+    }
     refreshTopPaneStatus();
     // Shared approval UI also serves leaders without a Tracker screen.
     // A join request is a device-level Team event. Do not gate it on the

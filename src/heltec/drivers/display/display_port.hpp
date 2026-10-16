@@ -9,6 +9,8 @@ void deinit();
 /** Backlight / panel power (ST7735 LEDA pin or SSD1306 DISPLAYON/OFF). */
 void setBacklightOn(bool on);
 bool isBacklightOn();
+void suspend();
+void resume();
 void reinitPanelAfterSharedReset();
 
 } // namespace heltec::meshcore::dal::display_port

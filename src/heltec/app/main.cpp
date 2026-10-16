@@ -159,7 +159,14 @@ class ApplicationPowerPort final : public heltec::meshcore::power::PowerRuntimeP
 
     void setDisplayOn(bool on) override
     {
-        heltec::meshcore::dal::display_port::setBacklightOn(on);
+        if (on)
+        {
+            heltec::meshcore::dal::display_port::resume();
+        }
+        else
+        {
+            heltec::meshcore::dal::display_port::suspend();
+        }
     }
 
     bool isGpsAvailable() const override
@@ -493,9 +500,13 @@ void loop()
     runtime.power.loop(millis());
     rtc_clock.tick();
 
-    // Both supported Arduino cores run loop() from a FreeRTOS task.  Without a
-    // blocking point this low-priority task remains permanently runnable, so
-    // the idle task cannot enter ESP32/nRF52 low-power idle between events.
-    // One tick keeps radio/UI latency bounded while allowing tickless idle.
+#if defined(NRF52_PLATFORM)
+    // Preserve RAM and the active LoRa receive path while waiting for the next
+    // interrupt. This restores MeshCore's native nRF52 System ON idle model.
+    board.sleep(0);
+#else
+    // ESP32 input wake sources are board-specific. Yield to the FreeRTOS idle
+    // task here so tickless idle remains available without losing UI wakeups.
     delay(5);
+#endif
 }

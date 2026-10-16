@@ -48,6 +48,8 @@ struct Config
 
 void configure(const Config &cfg);
 bool initialize();
+/** Process queued GPIO edges without requiring the LVGL input timer. */
+void poll();
 /** True if any configured button GPIO is currently pressed (e.g. backlight wake). */
 bool anyPhysicalPressed();
 

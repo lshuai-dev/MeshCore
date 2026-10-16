@@ -138,4 +138,14 @@ bool isBacklightOn()
     return s_display_on;
 }
 
+void suspend()
+{
+    setBacklightOn(false);
+}
+
+void resume()
+{
+    setBacklightOn(true);
+}
+
 } // namespace heltec::meshcore::dal::ssd1306
