@@ -10,9 +10,10 @@
 #include <esp_idf_version.h>
 #include <nvs.h>
 #include <nvs_flash.h>
-#if defined(CONFIG_IDF_TARGET_ESP32S3)
+#if defined(CONFIG_IDF_TARGET_ESP32S3) || defined(CONFIG_IDF_TARGET_ESP32C6)
 #include <string>
 #include <vector>
+#define HELTEC_LICENSE_NVS_STORAGE 1
 #endif
 #if defined(CONFIG_IDF_TARGET_ESP32C6) && defined(CONFIG_SOC_IEEE802154_SUPPORTED)
 #include <esp_mac.h>
@@ -40,7 +41,7 @@
 
 #if defined(NRF52_PLATFORM) || defined(ESP32) || defined(ESP_PLATFORM)
 
-#if defined(CONFIG_IDF_TARGET_ESP32S3)
+#if defined(HELTEC_LICENSE_NVS_STORAGE)
 static constexpr const char kLicenseNvsPartition[] = "nvs";
 static constexpr const char kLicenseNvsNamespace[] = "heltec_lic";
 static constexpr const char kLicenseNvsKey[] = "cdkey";
@@ -74,7 +75,7 @@ static NativeLicenseState licenseReadNative(uint32_t license[HT_LICENSE_WORDS])
             empty = false;
     }
     return empty ? NativeLicenseState::Empty : NativeLicenseState::Present;
-#elif (defined(ESP32) || defined(ESP_PLATFORM)) && defined(CONFIG_IDF_TARGET_ESP32S3)
+#elif (defined(ESP32) || defined(ESP_PLATFORM)) && defined(HELTEC_LICENSE_NVS_STORAGE)
     nvs_handle_t handle = 0;
     const esp_err_t open_err =
         nvs_open_from_partition(kLicenseNvsPartition, kLicenseNvsNamespace, NVS_READONLY, &handle);
@@ -166,7 +167,7 @@ static bool licenseWriteNative(const uint32_t license[HT_LICENSE_WORDS])
         }
     }
     return true;
-#elif (defined(ESP32) || defined(ESP_PLATFORM)) && defined(CONFIG_IDF_TARGET_ESP32S3)
+#elif (defined(ESP32) || defined(ESP_PLATFORM)) && defined(HELTEC_LICENSE_NVS_STORAGE)
     nvs_handle_t handle = 0;
     esp_err_t err =
         nvs_open_from_partition(kLicenseNvsPartition, kLicenseNvsNamespace, NVS_READWRITE, &handle);
@@ -396,6 +397,22 @@ bool heltecLicenseWriteStored(const uint32_t license[HT_LICENSE_WORDS])
         LICENSE_LOGLN("native storage is unsupported on this platform");
         return false;
     }
+    if (native_state == NativeLicenseState::Error)
+    {
+        LICENSE_LOGLN("native storage state is unavailable");
+        return false;
+    }
+    if (native_state == NativeLicenseState::Present)
+    {
+        if (licenseWordsEqual(probe, license))
+        {
+            LICENSE_LOGLN("license already stored");
+            return true;
+        }
+
+        LICENSE_LOGLN("store rejected: native license is write-once");
+        return false;
+    }
 
     if (!licenseWriteNative(license))
     {
@@ -430,7 +447,7 @@ bool heltecLicenseClearStored()
 
 bool heltecLicensePrepareFactoryReset()
 {
-#if (defined(ESP32) || defined(ESP_PLATFORM)) && defined(CONFIG_IDF_TARGET_ESP32S3)
+#if (defined(ESP32) || defined(ESP_PLATFORM)) && defined(HELTEC_LICENSE_NVS_STORAGE)
     std::vector<std::string> namespaces;
 
 #if ESP_IDF_VERSION_MAJOR >= 5
