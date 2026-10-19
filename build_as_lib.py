@@ -8,7 +8,7 @@ src_filter = [
   '+<helpers/*.cpp>',
   '+<helpers/sensors>',
   '+<helpers/radiolib/*.cpp>',
-  '+<helpers/ui/MomentaryButton.cpp>',
+  '+<helpers/ui/momentary_button.cpp>',
   '+<helpers/ui/buzzer.cpp>',
 ]
 

@@ -1,5 +1,5 @@
-// Heltec fork of src/identity.cpp — keep in sync when upstream Identity changes.
-// Companion uses orlp ed25519_verify (see HELTEC_USE_ORLP_ED25519_VERIFY in platformio.ini).
+// Heltec fork of src/Identity.cpp — keep in sync when upstream Identity changes.
+// Companion uses orlp ed25519_verify (see HELTEC_USE_ORLP_ED25519_VERIFY in Platformio.ini).
 
 #include "Identity.h"
 

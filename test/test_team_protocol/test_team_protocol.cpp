@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 
-#include "heltec/app/team_protocol.hpp"
+#include "heltec/app/TeamProtocol.hpp"
 
 #include <cstring>
 

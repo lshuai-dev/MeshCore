@@ -1,5 +1,5 @@
 #include <Arduino.h>
-#include "target.h"
+#include "Target.h"
 #include <helpers/ArduinoHelpers.h>
 
 GAT56230SMeshKitBoard board;

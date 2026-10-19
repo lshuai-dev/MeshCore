@@ -388,7 +388,7 @@ void SensorMesh::handleCommand(uint32_t sender_timestamp, char* command, char* r
     command += 3;
   }
 
-  // first, see if this is a custom-handled CLI command (ie. in main.cpp)
+  // first, see if this is a custom-handled CLI command (ie. in Main.cpp)
   if (handleCustomCommand(sender_timestamp, command, reply)) {
     return;   // command has been handled
   }

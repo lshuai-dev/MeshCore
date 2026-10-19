@@ -1,55 +1,55 @@
 #pragma once
 
-#include "app/power_mgr.hpp"
-#include "ui/theme/ui_theme.hpp"
-#include "ui/core/app_state_dispatcher.hpp"
-#include "ui/core/biz_facade.hpp"
-#include "ui/core/capabilities.hpp"
-#include "ui/core/host.hpp"
-#include "ui/core/ht_event.h"
-#include "ui/core/input_host.hpp"
-#include "ui/core/surface.hpp"
-#include "ui/core/surface_manager.hpp"
-#include "ui/widgets/top_pane.hpp"
-#if defined(UI_NAVIGATION_GRID) && UI_NAVIGATION_GRID
-#include "ui/navigation/navigation_pane.hpp"
+#include "app/PowerMgr.hpp"
+#include "ui/theme/UiTheme.hpp"
+#include "ui/core/AppStateDispatcher.hpp"
+#include "ui/core/BizFacade.hpp"
+#include "ui/core/Capabilities.hpp"
+#include "ui/core/Host.hpp"
+#include "ui/core/HtEvent.h"
+#include "ui/core/InputHost.hpp"
+#include "ui/core/Surface.hpp"
+#include "ui/core/SurfaceManager.hpp"
+#include "ui/widgets/TopPane.hpp"
+#if HELTEC_UI_HAS_TOUCH
+#include "ui/navigation/NavigationPane.hpp"
 #else
-#include "ui/navigation/radial_navigator.hpp"
+#include "ui/navigation/RadialNavigator.hpp"
 #endif
-#include "heltec/ui/images.h"
-#include "ui/screens/home_screen.hpp"
-#include "ui/screens/radio_screen.hpp"
-#include "ui/screens/recent_screen.hpp"
+#include "heltec/ui/Images.h"
+#include "ui/screens/HomeScreen.hpp"
+#include "ui/screens/RadioScreen.hpp"
+#include "ui/screens/RecentScreen.hpp"
 #if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
-#include "ui/screens/compass_screen.hpp"
+#include "ui/screens/CompassScreen.hpp"
 #endif
 #if defined(ENV_INCLUDE_GPS) && ENV_INCLUDE_GPS
-#include "ui/screens/find_friend_screen.hpp"
+#include "ui/screens/FindFriendScreen.hpp"
 #endif
-#if UI_INCLUDE_GPS_SCREEN
-#include "ui/screens/gps_screen.hpp"
+#if ENV_INCLUDE_GPS
+#include "ui/screens/GpsScreen.hpp"
 #endif
 #if defined(ENV_INCLUDE_MAP) && ENV_INCLUDE_MAP
-#include "ui/screens/tracker_screen.hpp"
+#include "ui/screens/TrackerScreen.hpp"
 #endif
-#include "ui/overlays/alert_overlay.hpp"
-#include "ui/overlays/confirm_overlay.hpp"
-#if UI_INCLUDE_KEYBOARD_OVERLAY
-#include "ui/overlays/keyboard_overlay.hpp"
+#include "ui/overlays/AlertOverlay.hpp"
+#include "ui/overlays/ConfirmOverlay.hpp"
+#if HELTEC_UI_ENABLE_KEYBOARD
+#include "ui/overlays/KeyboardOverlay.hpp"
 #endif
-#include "ui/overlays/preview_overlay.hpp"
-#include "ui/overlays/radio_param_sync_overlay.hpp"
-#include "ui/overlays/repeat_mode_overlay.hpp"
-#include "ui/overlays/send_message_overlay.hpp"
-#include "ui/screens/system_screen.hpp"
-#if HELTEC_HAS_TOUCH
-#include "ui/overlays/quick_ping_overlay.hpp"
+#include "ui/overlays/PreviewOverlay.hpp"
+#include "ui/overlays/RadioParamSyncOverlay.hpp"
+#include "ui/overlays/RepeatModeOverlay.hpp"
+#include "ui/overlays/SendMessageOverlay.hpp"
+#include "ui/screens/SystemScreen.hpp"
+#if HELTEC_UI_HAS_TOUCH
+#include "ui/overlays/QuickPingOverlay.hpp"
 #else
-#include "ui/menus/cascading_menu.hpp"
-#include "ui/menus/context_menu.hpp"
+#include "ui/menus/CascadingMenu.hpp"
+#include "ui/menus/ContextMenu.hpp"
 #endif
 #if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
-#include "ui/overlays/calibration_overlay.hpp"
+#include "ui/overlays/CalibrationOverlay.hpp"
 #endif
 
 namespace heltec::meshcore::ui {
@@ -85,7 +85,7 @@ class UiApp final : public IUiHost, public InputHost {
     void setDisplayAutoOffMs(uint32_t ms);
 
   private:
-#if defined(UI_NAVIGATION_GRID) && UI_NAVIGATION_GRID
+#if HELTEC_UI_HAS_TOUCH
     using AppNavigation = NavigationPane;
 #else
     using AppNavigation = RadialNavigator;
@@ -106,7 +106,7 @@ class UiApp final : public IUiHost, public InputHost {
     void ensureTileKeypadFocus() override;
     bool blocksCloseTopLayer() const override
     {
-#if UI_INCLUDE_KEYBOARD_OVERLAY
+#if HELTEC_UI_ENABLE_KEYBOARD
         return _surfaces.isActive(&_keyboardOvl);
 #else
         return false;
@@ -114,13 +114,13 @@ class UiApp final : public IUiHost, public InputHost {
     }
     bool acceptsKeyboardCycle() const override
     {
-#if UI_INCLUDE_KEYBOARD_OVERLAY
+#if HELTEC_UI_ENABLE_KEYBOARD
         if (_surfaces.isActive(&_keyboardOvl))
         {
             return true;
         }
 #endif
-#if HELTEC_HAS_TOUCH
+#if HELTEC_UI_HAS_TOUCH
         return _surfaces.isActive(&_quickPingOverlay) &&
                _quickPingOverlay.acceptsKeyboardCycle();
 #else
@@ -129,7 +129,7 @@ class UiApp final : public IUiHost, public InputHost {
     }
     bool interceptInputKey(uint32_t key) override
     {
-#if UI_INCLUDE_KEYBOARD_OVERLAY
+#if HELTEC_UI_ENABLE_KEYBOARD
         if (_surfaces.isActive(&_keyboardOvl))
         {
             return _keyboardOvl.handleInputKey(key);
@@ -143,7 +143,7 @@ class UiApp final : public IUiHost, public InputHost {
         return _frame_root;
     }
 
-#if !defined(HELTEC_HAS_TOUCH) || !HELTEC_HAS_TOUCH
+#if !defined(HELTEC_UI_HAS_TOUCH) || !HELTEC_UI_HAS_TOUCH
     bool openContextMenu();
     void closeContextMenu();
     void ensureContextMenusRegistered();
@@ -166,7 +166,7 @@ class UiApp final : public IUiHost, public InputHost {
     void presentMessageKeyboard();
     void closeKeyboardOverlay();
 
-#if HELTEC_HAS_TOUCH
+#if HELTEC_UI_HAS_TOUCH
     bool hitActiveTrackerViewport(lv_coord_t x, lv_coord_t y) const;
 #if defined(HELTEC_TOUCH_GESTURE) && HELTEC_TOUCH_GESTURE
     static bool touchGestureBlockLongPress(int16_t x, int16_t y);
@@ -186,7 +186,7 @@ class UiApp final : public IUiHost, public InputHost {
     AbstractScreen *resolveActiveScreen() const;
     void bindScreen(AbstractScreen *scr);
     void activateActiveScreen();
-#if HELTEC_HAS_TOUCH
+#if HELTEC_UI_HAS_TOUCH
     static void nativeTouchGestureEvent(lv_event_t *e);
     void handleNativeTouchGesture(lv_event_t *e);
 
@@ -240,7 +240,7 @@ class UiApp final : public IUiHost, public InputHost {
 #if defined(ENV_INCLUDE_GPS) && ENV_INCLUDE_GPS
     FindFriendScreen _scrFindFriend;
 #endif
-#if UI_INCLUDE_GPS_SCREEN
+#if ENV_INCLUDE_GPS
     GPSScreen _scrGPS;
 #endif
 #if defined(ENV_INCLUDE_MAP) && ENV_INCLUDE_MAP
@@ -248,13 +248,13 @@ class UiApp final : public IUiHost, public InputHost {
 #endif
     SystemScreen _scrSystem;
 
-#if !defined(HELTEC_HAS_TOUCH) || !HELTEC_HAS_TOUCH
+#if !defined(HELTEC_UI_HAS_TOUCH) || !HELTEC_UI_HAS_TOUCH
     CascadingMenu _ctxRadioMenu;
 #if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
     CascadingMenu _ctxCompassMenu;
 #endif
 #endif
-#if HELTEC_HAS_TOUCH
+#if HELTEC_UI_HAS_TOUCH
     QuickPingOverlay _quickPingOverlay;
 #endif
 
@@ -266,17 +266,17 @@ class UiApp final : public IUiHost, public InputHost {
     RadioParamSyncOverlay _radioParamSyncOvl;
     RepeatModeOverlay _repeatModeOvl;
     SendMessageOverlay _sendMessageOvl;
-#if UI_INCLUDE_KEYBOARD_OVERLAY
+#if HELTEC_UI_ENABLE_KEYBOARD
     KeyboardOverlay _keyboardOvl;
 #endif
 #if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
     CalibrationOverlay _calibrationOvl;
 #endif
-#if !defined(HELTEC_HAS_TOUCH) || !HELTEC_HAS_TOUCH
+#if !defined(HELTEC_UI_HAS_TOUCH) || !HELTEC_UI_HAS_TOUCH
     ContextMenu _contextMenu;
     bool _context_menus_registered = false;
 #endif
-#if HELTEC_HAS_TOUCH
+#if HELTEC_UI_HAS_TOUCH
     DeferredTouchAction _deferred_touch_action = DeferredTouchAction::None;
     lv_timer_t *_deferred_touch_timer = nullptr;
 #endif

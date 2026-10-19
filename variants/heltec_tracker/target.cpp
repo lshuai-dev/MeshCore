@@ -2,7 +2,7 @@
 #include "target.h"
 
 #include <helpers/sensors/MicroNMEALocationProvider.h>
-#include <heltec/sensors/gps_rmc_speed_stream.h>
+#include <heltec/sensors/GpsRmcSpeedStream.h>
 
 HeltecV3Board board;
 
@@ -26,7 +26,7 @@ HeltecEnvironmentSensorManager sensors(nmea);
 HWTSensorManager sensors = HWTSensorManager(nmea);
 #endif
 
-#if defined(DISPLAY_CLASS) && !defined(HELTEC_DISPLAY_ST7735)
+#if defined(DISPLAY_CLASS) && !(defined(LV_CONF_SKIP) && LV_CONF_SKIP)
   DISPLAY_CLASS display(&board.periph_power);   // peripheral power pin is shared
   MomentaryButton user_btn(PIN_USER_BTN, 1000, true);
 #endif

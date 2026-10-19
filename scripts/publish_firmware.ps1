@@ -99,7 +99,7 @@ switch ($Type) {
   'lvgl-companion' {
     $configPath = Join-Path ([System.IO.Path]::GetTempPath()) 'meshcore-pio-config.json'
     & (Join-Path $pio 'pio.exe') project config --json-output | Out-File -Encoding utf8 $configPath
-    $targets = @(& $python -c "import json,sys; d=json.load(open(sys.argv[1],encoding='utf-8-sig')); [print(s[4:]) for s,o in d if s.startswith('env:') and s[4:].endswith(('_companion_radio_usb','_companion_radio_ble')) and any(k=='build_flags' and 'HELTEC_MESH_UI' in (v if isinstance(v,str) else ' '.join(v)) for k,v in o)]" $configPath)
+    $targets = @(& $python -c "import json,sys; d=json.load(open(sys.argv[1],encoding='utf-8-sig')); [print(s[4:]) for s,o in d if s.startswith('env:') and s[4:].endswith(('_companion_radio_usb','_companion_radio_ble')) and any(k=='lib_deps' and 'file://lib/lvgl' in (v if isinstance(v,str) else ' '.join(v)) for k,v in o)]" $configPath)
     if ($targets.Count -eq 0) { throw 'No LVGL companion targets were found.' }
     $buildCommand = 'build-firmware ' + ($targets -join ' ')
     Write-Host "LVGL companion targets: $($targets -join ', ')"

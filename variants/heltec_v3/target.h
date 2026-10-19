@@ -3,12 +3,12 @@
 #define RADIOLIB_STATIC_ONLY 1
 #include <RadioLib.h>
 #include <helpers/radiolib/RadioLibWrappers.h>
-#include <heltec_v3_board.h>
+#include <HeltecV3Board.h>
 #include <helpers/radiolib/CustomSX1262Wrapper.h>
 #include <helpers/AutoDiscoverRTCClock.h>
 #include <helpers/SensorManager.h>
 #include <helpers/sensors/EnvironmentSensorManager.h>
-#if defined(DISPLAY_CLASS) && !defined(HELTEC_DISPLAY_SSD1306)
+#if defined(DISPLAY_CLASS) && !(defined(LV_CONF_SKIP) && LV_CONF_SKIP)
   #include <helpers/ui/SSD1306Display.h>
   #include <helpers/ui/MomentaryButton.h>
 #endif
@@ -18,7 +18,7 @@ extern WRAPPER_CLASS radio_driver;
 extern AutoDiscoverRTCClock rtc_clock;
 extern EnvironmentSensorManager sensors;
 
-#if defined(DISPLAY_CLASS) && !defined(HELTEC_DISPLAY_SSD1306)
+#if defined(DISPLAY_CLASS) && !(defined(LV_CONF_SKIP) && LV_CONF_SKIP)
   extern DISPLAY_CLASS display;
   extern MomentaryButton user_btn;
 #endif

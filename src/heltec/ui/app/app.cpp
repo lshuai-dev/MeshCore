@@ -1,24 +1,24 @@
-#include "ui/app/app.hpp"
+#include "ui/app/App.hpp"
 
-#include "heltec/drivers/input/touch_input.hpp"
-#include "heltec/ui/images.h"
-#include "ui/theme/ui_theme.hpp"
-#include "ui/core/app_state_notifier.hpp"
-#include "ui/core/backlight_policy.hpp"
-#include "ui/core/ht_event.h"
-#include "ui/core/input_pipeline.hpp"
-#include "ui/core/scheduler.hpp"
-#include "ui/core/screen_id.hpp"
-#include "ui/core/surface.hpp"
-#include "ui/core/ui_task.hpp"
-#include "ui/widgets/widget_classes.hpp"
-#include "ui/menus/cascading_menu.hpp"
-#include "ui/menus/context_menu.hpp"
-#include "ui/navigation/navigation_widget.hpp"
-#include "ui/overlays/splash_overlay.hpp"
-#include "ui/theme/widget_theme.hpp"
+#include "heltec/drivers/input/TouchInput.hpp"
+#include "heltec/ui/Images.h"
+#include "ui/theme/UiTheme.hpp"
+#include "ui/core/AppStateNotifier.hpp"
+#include "ui/core/BacklightPolicy.hpp"
+#include "ui/core/HtEvent.h"
+#include "ui/core/InputPipeline.hpp"
+#include "ui/core/Scheduler.hpp"
+#include "ui/core/ScreenId.hpp"
+#include "ui/core/Surface.hpp"
+#include "ui/core/UiTask.hpp"
+#include "ui/widgets/WidgetClasses.hpp"
+#include "ui/menus/CascadingMenu.hpp"
+#include "ui/menus/ContextMenu.hpp"
+#include "ui/navigation/NavigationWidget.hpp"
+#include "ui/overlays/SplashOverlay.hpp"
+#include "ui/theme/WidgetTheme.hpp"
 #if defined(HELTEC_HAS_KEY_FRAME) && HELTEC_HAS_KEY_FRAME
-#include "heltec/drivers/display/e213_port.hpp"
+#include "heltec/drivers/display/DisplayPort.hpp"
 #endif
 
 #include <Arduino.h>
@@ -72,14 +72,14 @@ UiApp::UiApp(biz::IBizFacade &biz, heltec::meshcore::power::PowerMgr &power)
 #if defined(ENV_INCLUDE_GPS) && ENV_INCLUDE_GPS
       _scrFindFriend(_biz, "Find Friend", &icon_findfriend_img),
 #endif
-#if UI_INCLUDE_GPS_SCREEN
+#if ENV_INCLUDE_GPS
       _scrGPS(_biz, "GPS", &icon_gps_img),
 #endif
 #if defined(ENV_INCLUDE_MAP) && ENV_INCLUDE_MAP
       _scrTracker(_biz, "Tracker", &icon_map_img),
 #endif
       _scrSystem(_biz, "System", &icon_system_img)
-#if !defined(HELTEC_HAS_TOUCH) || !HELTEC_HAS_TOUCH
+#if !defined(HELTEC_UI_HAS_TOUCH) || !HELTEC_UI_HAS_TOUCH
       ,
       _ctxRadioMenu(_biz)
 #if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
@@ -87,14 +87,14 @@ UiApp::UiApp(biz::IBizFacade &biz, heltec::meshcore::power::PowerMgr &power)
       _ctxCompassMenu(_biz)
 #endif
 #endif
-#if HELTEC_HAS_TOUCH
+#if HELTEC_UI_HAS_TOUCH
       ,
       _quickPingOverlay(_biz)
 #endif
       ,
       _previewOvl(_biz), _alertOvl(_biz), _confirmOvl(_biz), _radioParamSyncOvl(_biz),
       _repeatModeOvl(_biz), _sendMessageOvl(_biz)
-#if UI_INCLUDE_KEYBOARD_OVERLAY
+#if HELTEC_UI_ENABLE_KEYBOARD
       ,
       _keyboardOvl(_biz)
 #endif
@@ -102,7 +102,7 @@ UiApp::UiApp(biz::IBizFacade &biz, heltec::meshcore::power::PowerMgr &power)
       ,
       _calibrationOvl(_biz)
 #endif
-#if !defined(HELTEC_HAS_TOUCH) || !HELTEC_HAS_TOUCH
+#if !defined(HELTEC_UI_HAS_TOUCH) || !HELTEC_UI_HAS_TOUCH
       ,
       _contextMenu(_biz)
 #endif
@@ -194,7 +194,7 @@ void UiApp::init() {
         }
         return !app.isDisplayOn();
     };
-#if HELTEC_HAS_TOUCH && defined(HELTEC_TOUCH_GESTURE) && HELTEC_TOUCH_GESTURE
+#if HELTEC_UI_HAS_TOUCH && defined(HELTEC_TOUCH_GESTURE) && HELTEC_TOUCH_GESTURE
     touch_hooks.block_long_enter = UiApp::touchGestureBlockLongPress;
     touch_hooks.raw_pointer_passthrough = UiApp::touchGestureRawPointerPassthrough;
     touch_hooks.block_double_tap = UiApp::touchGestureBlockQuickPingDoubleTap;
@@ -220,7 +220,7 @@ void UiApp::init() {
 
     lv_obj_clear_flag(scr, LV_OBJ_FLAG_SCROLLABLE);
     ui_app_active_screen_apply_theme(scr);
-#if HELTEC_HAS_TOUCH
+#if HELTEC_UI_HAS_TOUCH
     lv_obj_t *bg = ht_class_create(&ht_app_background_class, scr);
     if (bg) {
         lv_obj_set_pos(bg, 0, 0);
@@ -307,17 +307,17 @@ void UiApp::init() {
             },
             HT_EVENT_USER, this);
     }
-#if UI_INCLUDE_KEYBOARD_OVERLAY
+#if HELTEC_UI_ENABLE_KEYBOARD
 #endif
 #if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
 #endif
-#if HELTEC_HAS_TOUCH
+#if HELTEC_UI_HAS_TOUCH
 #else
 #if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
 #endif
 #endif
 
-#if HELTEC_HAS_TOUCH && \
+#if HELTEC_UI_HAS_TOUCH && \
     defined(HELTEC_TOUCH_GESTURE) && HELTEC_TOUCH_GESTURE
     lv_obj_add_event_cb(scr, nativeTouchGestureEvent, LV_EVENT_GESTURE, this);
     if (lv_obj_t *const top_layer = lv_layer_top()) {
@@ -327,7 +327,7 @@ void UiApp::init() {
     _inited = true;
 #if defined(HELTEC_HAS_KEY_FRAME) && HELTEC_HAS_KEY_FRAME
     splash.hide();
-    heltec::meshcore::dal::e213::requestRefresh();
+    heltec::meshcore::dal::display_port::requestRefresh();
 #endif
     if (_tileview) {
         lv_obj_t *tile = lv_tileview_get_tile_act(_tileview);
@@ -411,7 +411,7 @@ void UiApp::handleFrameEvent(lv_event_t *e) {
         }
         break;
     }
-#if !defined(HELTEC_HAS_TOUCH) || !HELTEC_HAS_TOUCH
+#if !defined(HELTEC_UI_HAS_TOUCH) || !HELTEC_UI_HAS_TOUCH
     case EventType::ContextOpen:
         (void)lv_async_call(
             +[](void *user_data) {
@@ -436,7 +436,7 @@ void UiApp::handleFrameEvent(lv_event_t *e) {
         break;
 #endif
     case EventType::SendMessageOpen:
-#if HELTEC_HAS_TOUCH
+#if HELTEC_UI_HAS_TOUCH
         _quickPingOverlay.prepareTarget(static_cast<const UiSendMessageTarget *>(event->payload));
         if (lv_async_call(
                 +[](void *user_data) {
@@ -466,7 +466,7 @@ void UiApp::handleFrameEvent(lv_event_t *e) {
     case EventType::RepeatModeOpen:
         openRepeatModeOverlay();
         break;
-#if HELTEC_HAS_TOUCH
+#if HELTEC_UI_HAS_TOUCH
     case EventType::QuickPingClose:
         if (!_quickPingOverlay.requestCloseAnimation()) {
             (void)_surfaces.show(&_quickPingOverlay, false);
@@ -505,7 +505,7 @@ void UiApp::handleFrameEvent(lv_event_t *e) {
         closeSendMessageOverlay();
         break;
     case EventType::MessageKeyboardOpen: {
-#if HELTEC_HAS_TOUCH
+#if HELTEC_UI_HAS_TOUCH
         auto *preset_req = static_cast<const UiMessageKeyboardRequest *>(event->payload);
         if (preset_req && preset_req->purpose == UiMessageKeyboardPurpose::EditPreset &&
             activeScreen() == &_scrSystem &&
@@ -523,7 +523,7 @@ void UiApp::handleFrameEvent(lv_event_t *e) {
             break;
         }
 #endif
-#if UI_INCLUDE_KEYBOARD_OVERLAY
+#if HELTEC_UI_ENABLE_KEYBOARD
         auto *req = static_cast<const UiMessageKeyboardRequest *>(event->payload);
         const bool message_active = _surfaces.isActive(&_sendMessageOvl);
         const bool preset_active = activeScreen() == &_scrSystem;
@@ -572,7 +572,7 @@ void UiApp::handleFrameEvent(lv_event_t *e) {
         // Navigation owns a refresh session and coalesces rapid selection changes.
         break;
     default:
-        heltec::meshcore::dal::e213::requestRefresh();
+        heltec::meshcore::dal::display_port::requestRefresh();
         break;
     }
 #endif
@@ -586,7 +586,7 @@ void UiApp::handleAppStateEvent(const AppStateEvent &event) {
         refreshTopPaneStatus(true);
     }
 #if defined(HELTEC_HAS_KEY_FRAME) && HELTEC_HAS_KEY_FRAME
-    heltec::meshcore::dal::e213::requestDeferredRefresh();
+    heltec::meshcore::dal::display_port::requestDeferredRefresh();
 #endif
 }
 
@@ -637,7 +637,7 @@ bool UiApp::initScreens(_lv_obj_t *content) {
 #if defined(ENV_INCLUDE_GPS) && ENV_INCLUDE_GPS
     screens[screen_count++] = &_scrFindFriend;
 #endif
-#if UI_INCLUDE_GPS_SCREEN
+#if ENV_INCLUDE_GPS
     screens[screen_count++] = &_scrGPS;
 #endif
 #if defined(ENV_INCLUDE_MAP) && ENV_INCLUDE_MAP
@@ -661,7 +661,7 @@ bool UiApp::initScreens(_lv_obj_t *content) {
         AbstractScreen *const scr = screens[i];
         if (!scr) continue;
 
-#if defined(UI_NAVIGATION_GRID) && UI_NAVIGATION_GRID
+#if HELTEC_UI_HAS_TOUCH
         lv_obj_t *tile = lv_tileview_add_tile(_tileview, i, 0, LV_DIR_NONE);
 #else
         lv_obj_t *tile = lv_tileview_add_tile(_tileview, i, 0, LV_DIR_HOR);
@@ -686,7 +686,7 @@ bool UiApp::initScreens(_lv_obj_t *content) {
 
     lv_obj_t *first_tile = lv_obj_get_child(_tileview, 0);
     if (first_tile) lv_obj_set_tile(_tileview, first_tile, LV_ANIM_OFF);
-#if defined(UI_NAVIGATION_GRID) && UI_NAVIGATION_GRID
+#if HELTEC_UI_HAS_TOUCH
     lv_obj_clear_flag(_tileview, LV_OBJ_FLAG_SCROLLABLE);
 #else
     lv_obj_set_scroll_dir(_tileview, LV_DIR_HOR);
@@ -705,7 +705,7 @@ bool UiApp::initTimers() {
         lv_timer_set_repeat_count(_nav_auto_commit_timer, -1);
         lv_timer_pause(_nav_auto_commit_timer);
     }
-#if HELTEC_HAS_TOUCH
+#if HELTEC_UI_HAS_TOUCH
     if (!_deferred_touch_timer) {
         _deferred_touch_timer = lv_timer_create(deferredTouchActionTimerCb, 40U, this);
         if (!_deferred_touch_timer) return false;
@@ -737,9 +737,6 @@ void UiApp::onBacklightTurnedOn() {
 }
 
 void UiApp::setDisplayAutoOffMs(uint32_t ms) {
-#if !UI_DISPLAY_BACKLIGHT
-    ms = 0;
-#endif
     if (BacklightPolicy::mode() == BacklightMode::ManualToggle) {
         ms = 0;
     }

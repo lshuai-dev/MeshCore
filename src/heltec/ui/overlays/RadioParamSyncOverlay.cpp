@@ -1,0 +1,368 @@
+#include "RadioParamSyncOverlay.hpp"
+
+#include "config/LoraBandPresets.h"
+#include "heltec/ui/core/BizFacade.hpp"
+#include "ui/widgets/HtSelectorView.hpp"
+#include "ui/widgets/WidgetClasses.hpp"
+#include "ui/core/OperationHints.hpp"
+#include "ui/core/HtEvent.h"
+#include "ui/theme/WidgetTheme.hpp"
+#if defined(HELTEC_HAS_KEY_FRAME) && HELTEC_HAS_KEY_FRAME
+#include "heltec/drivers/display/DisplayPort.hpp"
+#endif
+
+#include <lvgl.h>
+
+namespace heltec::meshcore::ui
+{
+
+RadioParamSyncOverlay::RadioParamSyncOverlay(biz::IBizFacade &biz)
+    : FramedOverlay(biz, ht_radio_sync_overlay_class)
+{
+}
+
+namespace
+{
+
+static int wrapIndex(int idx, int count)
+{
+    if (count <= 0)
+        return 0;
+    idx %= count;
+    if (idx < 0)
+        idx += count;
+    return idx;
+}
+
+} // namespace
+
+bool RadioParamSyncOverlay::buildSurface()
+{
+    if (!FramedOverlay::buildSurface())
+        return false;
+
+
+    setStaticTitle("Radio param preset");
+    setStaticToolTip(operation_hint::kRadioPreset);
+
+    _list = ht_class_create(&ht_radio_sync_list_class, _content);
+    if (!_list)
+        return false;
+    lv_obj_set_width(_list, lv_pct(100));
+    lv_obj_set_flex_grow(_list, 1);
+    lv_obj_set_flex_flow(_list, LV_FLEX_FLOW_COLUMN);
+    lv_obj_set_flex_align(_list, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+    lv_obj_clear_flag(_list, LV_OBJ_FLAG_SCROLLABLE);
+
+    const int preset_count = _biz.loRaBandPresetCount();
+    _count = static_cast<uint8_t>(preset_count > 0 ? (preset_count > 255 ? 255 : preset_count) : 0);
+
+#if HELTEC_UI_HAS_TOUCH
+#if LV_USE_ROLLER == 0
+#error "Touch radio preset overlay requires LV_USE_ROLLER=1"
+#endif
+    _roller = lv_roller_create(_list);
+    if (!_roller)
+        return false;
+    lv_obj_set_width(_roller, lv_pct(100));
+    lv_obj_add_event_cb(
+        _roller,
+        [](lv_event_t *e)
+        {
+            auto *ovl = static_cast<RadioParamSyncOverlay *>(lv_event_get_user_data(e));
+            lv_obj_t *roller = lv_event_get_target(e);
+            if (!ovl || !roller)
+                return;
+            const lv_event_code_t code = lv_event_get_code(e);
+            const uint8_t selected = static_cast<uint8_t>(lv_roller_get_selected(roller));
+            if (code == LV_EVENT_PRESSED)
+            {
+                ovl->_roller_press_selected = selected;
+            }
+            else if (code == LV_EVENT_VALUE_CHANGED)
+            {
+                ovl->_select = static_cast<int8_t>(selected);
+            }
+            else if (code == LV_EVENT_CLICKED)
+            {
+                const auto *state = reinterpret_cast<const lv_roller_t *>(roller);
+                if (state && !state->moved && selected == ovl->_roller_press_selected)
+                {
+                    ovl->applySelection();
+                }
+            }
+        },
+        LV_EVENT_ALL,
+        this);
+#else
+    for (uint8_t i = 0; i < _count; i++)
+    {
+        lv_obj_t *row = ht_label_create(&ht_radio_sync_row_class, _list);
+        if (!row)
+            return false;
+        lv_obj_set_width(row, lv_pct(100));
+        lv_label_set_long_mode(row, LV_LABEL_LONG_DOT);
+    }
+#endif
+
+#if !HELTEC_UI_HAS_TOUCH
+    lv_obj_add_flag(_root, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_add_event_cb(
+        _root,
+        [](lv_event_t *e)
+        {
+            if (LV_EVENT_CLICKED != lv_event_get_code(e))
+                return;
+            RadioParamSyncOverlay *ovl =
+                static_cast<RadioParamSyncOverlay *>(lv_event_get_user_data(e));
+            if (ovl)
+                ovl->applySelection();
+        },
+        LV_EVENT_CLICKED, this);
+#endif
+
+    _select = 0;
+    configureListLayout();
+    return true;
+}
+
+#if HELTEC_UI_HAS_TOUCH
+bool RadioParamSyncOverlay::hitRoller(int16_t x, int16_t y) const
+{
+    if (!_roller || !lv_obj_is_valid(_roller) || lv_obj_has_flag(_roller, LV_OBJ_FLAG_HIDDEN))
+    {
+        return false;
+    }
+    lv_area_t area{};
+    lv_obj_get_coords(_roller, &area);
+    return x >= area.x1 && x <= area.x2 && y >= area.y1 && y <= area.y2;
+}
+#endif
+
+bool RadioParamSyncOverlay::onKey(uint32_t key)
+{
+    if (!_root)
+        return false;
+    if (key == LV_KEY_PREV || key == LV_KEY_LEFT || key == LV_KEY_UP)
+    {
+        stepSelection(-1);
+        return true;
+    }
+    if (key == LV_KEY_NEXT || key == LV_KEY_RIGHT || key == LV_KEY_DOWN)
+    {
+        stepSelection(1);
+        return true;
+    }
+    if (key == LV_KEY_ESC)
+    {
+        emitEvent(EventType::RadioSyncClose);
+        return true;
+    }
+    return false;
+}
+
+void RadioParamSyncOverlay::stepSelection(int8_t dir)
+{
+    if (dir == 0 || _count == 0)
+        return;
+    _select = (int8_t)wrapIndex((int)_select + (int)dir, (int)_count);
+#if HELTEC_UI_HAS_TOUCH
+    if (_roller)
+        lv_roller_set_selected(_roller, static_cast<uint16_t>(_select), LV_ANIM_ON);
+#else
+    renderRows();
+#endif
+}
+
+void RadioParamSyncOverlay::syncFromPrefs()
+{
+    _count = (uint8_t)_biz.loRaBandPresetCount();
+    const int idx = _biz.currentLoRaBandPresetIndex();
+    _select = (int8_t)wrapIndex(idx, (int)_count);
+}
+
+void RadioParamSyncOverlay::configureListLayout()
+{
+    if (!_root || !_list || _count == 0)
+        return;
+
+    lv_obj_update_layout(_root);
+
+    const lv_coord_t usable_height = lv_obj_get_content_height(_list);
+    int visible = 1;
+
+#if HELTEC_UI_HAS_TOUCH
+    if (_roller)
+    {
+        const lv_font_t *font = lv_obj_get_style_text_font(_roller, LV_PART_MAIN);
+        const lv_coord_t line_height = font ? lv_font_get_line_height(font) : 1;
+        const lv_coord_t line_space = lv_obj_get_style_text_line_space(_roller, LV_PART_MAIN);
+        const lv_coord_t row_height = line_height + line_space;
+        if (usable_height > 0 && row_height > 0)
+            visible = usable_height / row_height;
+    }
+#else
+    lv_obj_t *first_row = lv_obj_get_child(_list, 0);
+    if (first_row)
+    {
+        const lv_font_t *font = lv_obj_get_style_text_font(first_row, LV_PART_MAIN);
+        const lv_coord_t line_height = font ? lv_font_get_line_height(font) : 1;
+        const lv_coord_t row_gap = lv_obj_get_style_pad_row(_list, LV_PART_MAIN);
+        const lv_coord_t row_height = line_height + row_gap;
+        if (usable_height > 0 && row_height > 0)
+        {
+            visible = (usable_height + row_gap) / row_height;
+        }
+    }
+#endif
+
+    if (visible < 1)
+        visible = 1;
+    if (visible > static_cast<int>(_count))
+        visible = _count;
+    // A centered selector needs the same number of neighbours above and below.
+    if (visible > 1 && (visible & 1) == 0)
+        --visible;
+    _visible_rows = static_cast<uint8_t>(visible);
+
+#if HELTEC_UI_HAS_TOUCH
+    if (_roller)
+        lv_roller_set_visible_row_count(_roller, _visible_rows);
+#else
+    for (uint8_t i = 0; i < _count; ++i)
+    {
+        lv_obj_t *row = lv_obj_get_child(_list, i);
+        if (!row)
+            break;
+        if (i < _visible_rows)
+        {
+            lv_obj_clear_flag(row, LV_OBJ_FLAG_HIDDEN);
+        }
+        else
+        {
+            lv_obj_add_flag(row, LV_OBJ_FLAG_HIDDEN);
+        }
+    }
+#endif
+}
+
+void RadioParamSyncOverlay::renderRows()
+{
+    if (!_root)
+        return;
+#if HELTEC_UI_HAS_TOUCH
+    if (!_roller)
+        return;
+    const int current_index = _biz.currentLoRaBandPresetIndex();
+    if (_rendered_current_index != current_index)
+    {
+        rebuildRollerOptions();
+        _rendered_current_index = static_cast<int8_t>(current_index);
+    }
+    lv_roller_set_selected(_roller, static_cast<uint16_t>(_select), LV_ANIM_OFF);
+#else
+    const int cur_idx = _biz.currentLoRaBandPresetIndex();
+    const int center = static_cast<int>(_visible_rows) / 2;
+
+    for (int vr = 0; vr < static_cast<int>(_visible_rows); vr++)
+    {
+        lv_obj_t *row = lv_obj_get_child(_list, vr);
+        if (!row)
+            break;
+        const int item = wrapIndex((int)_select + (vr - center), (int)_count);
+        const char *name = _biz.loRaBandPresetName(item);
+        const bool is_cur = (item == cur_idx);
+
+        if (is_cur)
+        {
+            lv_snprintf(_current_row_text, sizeof(_current_row_text), "*%s", name ? name : "");
+            lv_label_set_text_static(row, _current_row_text);
+        }
+        else
+        {
+            lv_label_set_text_static(row, name ? name : "");
+        }
+
+        if (vr == center)
+        {
+            lv_obj_add_state(row, LV_STATE_CHECKED);
+        }
+        else
+        {
+            lv_obj_clear_state(row, LV_STATE_CHECKED);
+        }
+    }
+#if defined(HELTEC_HAS_KEY_FRAME) && HELTEC_HAS_KEY_FRAME
+    lv_obj_invalidate(_list);
+    heltec::meshcore::dal::display_port::requestSelectionRefresh();
+#endif
+#endif
+}
+
+#if HELTEC_UI_HAS_TOUCH
+void RadioParamSyncOverlay::rebuildRollerOptions()
+{
+    if (!_roller || kRadioParamPresetUiScratchSize < 2)
+        return;
+    char *const roller_options = radioParamPresetUiScratch();
+
+    const int cur_idx = _biz.currentLoRaBandPresetIndex();
+    size_t pos = 0;
+    roller_options[0] = '\0';
+    for (int i = 0; i < static_cast<int>(_count); ++i)
+    {
+        const char *name = _biz.loRaBandPresetName(i);
+        if (!name)
+            name = "";
+        const int written = lv_snprintf(roller_options + pos, kRadioParamPresetUiScratchSize - pos,
+                                        "%s%s%s", i > 0 ? "\n" : "", i == cur_idx ? "*" : "", name);
+        if (written < 0)
+            break;
+        const size_t available = kRadioParamPresetUiScratchSize - pos;
+        if (static_cast<size_t>(written) >= available)
+        {
+            pos = kRadioParamPresetUiScratchSize - 1;
+            break;
+        }
+        pos += static_cast<size_t>(written);
+    }
+    roller_options[pos] = '\0';
+    lv_roller_set_options(_roller, roller_options, LV_ROLLER_MODE_NORMAL);
+}
+#endif
+
+void RadioParamSyncOverlay::onEnter()
+{
+    if (!_root)
+        return;
+    _applying = false;
+#if HELTEC_UI_HAS_TOUCH
+    if (_roller)
+        lv_obj_clear_state(_roller, LV_STATE_DISABLED);
+#endif
+    AbstractOverlay::onEnter();
+    syncFromPrefs();
+    configureListLayout();
+    renderRows();
+}
+
+void RadioParamSyncOverlay::onExit()
+{
+    AbstractOverlay::onExit();
+}
+
+void RadioParamSyncOverlay::applySelection()
+{
+    if (_count == 0 || _applying)
+        return;
+    _applying = true;
+#if HELTEC_UI_HAS_TOUCH
+    if (_roller)
+        lv_obj_add_state(_roller, LV_STATE_DISABLED);
+#endif
+    _biz.setLoRaBandPresetIndex((int)_select);
+    _biz.showAlert("LoRa band set", 800);
+    emitEvent(EventType::RadioSyncClose);
+}
+
+} // namespace heltec::meshcore::ui

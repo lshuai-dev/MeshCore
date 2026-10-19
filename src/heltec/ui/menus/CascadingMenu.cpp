@@ -1,0 +1,262 @@
+#include "CascadingMenu.hpp"
+
+#if LV_USE_MENU
+#include "ui/theme/WidgetTheme.hpp"
+#if defined(HELTEC_HAS_KEY_FRAME) && HELTEC_HAS_KEY_FRAME
+#include "heltec/drivers/display/DisplayPort.hpp"
+#endif
+
+#include <cstdio>
+#include <cstring>
+#include <lvgl.h>
+
+namespace heltec::meshcore::ui
+{
+
+bool CascadingMenu::enterSubmenuAt(uint8_t index)
+{
+    if (index >= _item_count || !_menu_host)
+        return false;
+    MenuItem &item = _items[index];
+    if (item.kind != MenuKind::Menu || !item.submenu || !item.submenu->page())
+        return false;
+
+    _focused_index = index;
+    _roller.setInputEnabled(false);
+    _active_child = item.submenu;
+    lv_menu_set_page(_menu_host, item.submenu->page());
+    item.submenu->resetInputState(true);
+    return true;
+}
+
+void CascadingMenu::leaveSubmenu()
+{
+    if (!_active_child || !_menu_host || !_page)
+        return;
+    _active_child->resetInputState(false);
+    _active_child = nullptr;
+    lv_menu_set_page(_menu_host, _page);
+    resetInputState(true);
+}
+
+bool CascadingMenu::create(lv_obj_t *menu, lv_group_t *group, const char *title,
+                           lv_obj_t *event_target)
+{
+    if (!menu || !group || !title)
+        return false;
+    if (_page && _roller.root())
+        return true;
+
+    _menu_host = menu;
+    _event_target = event_target;
+
+    _page = ht_class_create(&ht_cascading_menu_page_class, menu);
+    if (_page)
+    {
+        lv_menu_page_t *const page = reinterpret_cast<lv_menu_page_t *>(_page);
+        const size_t title_len = strlen(title);
+        page->title = static_cast<char *>(lv_mem_alloc(title_len + 1U));
+        if (!page->title)
+        {
+            lv_obj_del(_page);
+            _page = nullptr;
+            return false;
+        }
+        memcpy(page->title, title, title_len + 1U);
+    }
+    if (_page)
+        lv_obj_set_user_data(_page, this);
+    if (!_page)
+        return false;
+    lv_obj_clear_flag(_page, LV_OBJ_FLAG_SCROLLABLE);
+
+    _focus_group = group;
+
+    if (!_roller.create(_page, _focus_group, &ht_cascading_menu_roller_class,
+                        &ht_cascading_menu_item_class, &ht_cascading_menu_label_class))
+    {
+        lv_obj_del(_page);
+        _page = nullptr;
+        return false;
+    }
+
+    char buf[kPageTitleLen] = { 0 };
+    for (uint8_t i = 0; i < _item_count; ++i)
+    {
+        if (_items[i].label)
+        {
+            memset(buf, 0, sizeof(buf));
+            snprintf(buf, sizeof(buf) - 1, "%s%s", _items[i].label,
+                     _items[i].kind == MenuKind::Menu ? "..." : "");
+            lv_obj_t *const btn = _roller.addItem(buf);
+            if (!btn)
+                continue;
+            lv_obj_set_user_data(btn, this);
+            lv_obj_add_event_cb(
+                btn,
+                [](lv_event_t *e)
+                {
+                    CascadingMenu *const menu =
+                        static_cast<CascadingMenu *>(lv_obj_get_user_data(lv_event_get_target(e)));
+                    if (!menu)
+                        return;
+                    const uint32_t index = lv_obj_get_index(lv_event_get_target(e));
+                    if (index < menu->_item_count)
+                    {
+                        menu->_focused_index = static_cast<uint8_t>(index);
+#if defined(HELTEC_HAS_KEY_FRAME) && HELTEC_HAS_KEY_FRAME
+                        heltec::meshcore::dal::display_port::requestSelectionRefresh();
+#endif
+                    }
+                },
+                LV_EVENT_FOCUSED, this);
+
+            lv_obj_add_event_cb(
+                btn,
+                [](lv_event_t *e)
+                {
+                    CascadingMenu *const menu =
+                        static_cast<CascadingMenu *>(lv_obj_get_user_data(lv_event_get_target(e)));
+                    if (!menu)
+                        return;
+                    const uint32_t index = lv_obj_get_index(lv_event_get_target(e));
+                    if (index < menu->_item_count)
+                    {
+                        menu->_focused_index = static_cast<uint8_t>(index);
+                        (void)menu->_roller.focusItem(menu->_focused_index, true);
+                    }
+                },
+                LV_EVENT_CLICKED, this);
+
+            if (MenuKind::Menu == _items[i].kind && _items[i].submenu && menu)
+            {
+                memset(buf, 0, sizeof(buf));
+                snprintf(buf, sizeof(buf) - 1, "%s > %s", title ? title : "",
+                         _items[i].label ? _items[i].label : "");
+                if (_items[i].submenu->create(menu, _focus_group, buf, _event_target))
+                {
+                    _items[i].submenu->resetInputState(false);
+                    lv_obj_add_event_cb(
+                        btn,
+                        [](lv_event_t *e)
+                        {
+                            if (lv_event_get_code(e) != LV_EVENT_CLICKED)
+                                return;
+
+                            CascadingMenu *const menu =
+                                static_cast<CascadingMenu *>(lv_obj_get_user_data(lv_event_get_target(e)));
+                            if (!menu)
+                                return;
+
+                            const uint32_t index = lv_obj_get_index(lv_event_get_target(e));
+                            if (index >= menu->_item_count)
+                                return;
+
+                            if (menu->enterSubmenuAt(static_cast<uint8_t>(index)))
+                            {
+                                lv_event_stop_bubbling(e);
+                                lv_event_stop_processing(e);
+                            }
+                        },
+                        LV_EVENT_CLICKED, this);
+
+                    if (_items[i].submenu->root())
+                    {
+                        lv_obj_add_event_cb(
+                            _items[i].submenu->root(),
+                            [](lv_event_t *e)
+                            {
+                                if (lv_event_get_code(e) == LV_EVENT_KEY &&
+                                    LV_KEY_ESC == lv_event_get_key(e))
+                                {
+                                    CascadingMenu *cm =
+                                        static_cast<CascadingMenu *>(lv_event_get_user_data(e));
+                                    if (cm)
+                                    {
+                                        cm->leaveSubmenu();
+                                        lv_event_stop_bubbling(e);
+                                        lv_event_stop_processing(e);
+                                    }
+                                }
+                            },
+                            LV_EVENT_KEY, this);
+                    }
+                }
+            }
+
+            if (MenuKind::Command == _items[i].kind)
+            {
+                lv_obj_add_event_cb(
+                    btn,
+                    [](lv_event_t *e)
+                    {
+                        if (lv_event_get_code(e) != LV_EVENT_CLICKED)
+                            return;
+                        MenuItem *const item = static_cast<MenuItem *>(lv_event_get_user_data(e));
+                        if (!item || !item->cmd)
+                            return;
+                        CascadingMenu *const menu =
+                            static_cast<CascadingMenu *>(lv_obj_get_user_data(lv_event_get_target(e)));
+                        if (menu)
+                        {
+                            item->cmd(menu->_biz, menu->_event_target);
+                        }
+                        lv_event_stop_bubbling(e);
+                        lv_event_stop_processing(e);
+                    },
+                    LV_EVENT_CLICKED, &_items[i]);
+            }
+        }
+    }
+    return true;
+}
+
+bool CascadingMenu::addCommandHandler(const char *label, MenuHandlerFn action)
+{
+    if (!label || !action || _item_count >= kMaxItems)
+        return false;
+    _items[_item_count].kind = MenuKind::Command;
+    _items[_item_count].label = label;
+    _items[_item_count].cmd = action;
+    ++_item_count;
+    return true;
+}
+
+void CascadingMenu::resetInputState(bool focus_first_item)
+{
+    if (_active_child)
+        _active_child->resetInputState(false);
+    _active_child = nullptr;
+    if (!focus_first_item)
+    {
+        _roller.resetFocus(false);
+        _roller.setInputEnabled(false);
+        return;
+    }
+    _roller.setInputEnabled(true);
+    if (_item_count == 0)
+    {
+        _roller.resetFocus(true);
+        return;
+    }
+    if (_focused_index >= _item_count)
+        _focused_index = 0;
+    if (!_roller.focusItem(_focused_index, true))
+    {
+        _roller.resetFocus(true);
+    }
+}
+
+bool CascadingMenu::addMenu(const char *label, AbstractMenu &submenu)
+{
+    if (!label || _item_count >= kMaxItems)
+        return false;
+    _items[_item_count].kind = MenuKind::Menu;
+    _items[_item_count].label = label;
+    _items[_item_count].submenu = &submenu;
+    ++_item_count;
+    return true;
+}
+} // namespace heltec::meshcore::ui
+
+#endif // LV_USE_MENU

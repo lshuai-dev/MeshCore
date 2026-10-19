@@ -2,7 +2,7 @@
 
 #define RADIOLIB_STATIC_ONLY 1
 #include <RadioLib.h>
-#include <heltec_tower_v2_board.h>
+#include <HeltecTowerV2Board.h>
 #include <helpers/AutoDiscoverRTCClock.h>
 #include <helpers/radiolib/CustomSX1262Wrapper.h>
 #include <helpers/radiolib/RadioLibWrappers.h>

@@ -14,7 +14,7 @@
 #include <helpers/SimpleMeshTables.h>
 #include <helpers/IdentityStore.h>
 #include <RTClib.h>
-#include <target.h>
+#include <Target.h>
 
 /* ---------------------------------- CONFIGURATION ------------------------------------- */
 

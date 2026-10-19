@@ -1,5 +1,5 @@
 #include <Arduino.h>
-#include "heltec/ui/images.h"
+#include "heltec/ui/Images.h"
 
 // V4 navigation icons use compact 10x10 alpha bitmaps.
 

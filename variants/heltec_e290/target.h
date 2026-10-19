@@ -3,11 +3,12 @@
 #define RADIOLIB_STATIC_ONLY 1
 #include <RadioLib.h>
 #include <helpers/radiolib/RadioLibWrappers.h>
-#include <heltec_e290_board.h>
+#include <HeltecE290Board.h>
 #include <helpers/radiolib/CustomSX1262Wrapper.h>
 #include <helpers/AutoDiscoverRTCClock.h>
 #include <helpers/SensorManager.h>
-#ifdef DISPLAY_CLASS
+#include <heltec/sensors/HeltecEnvironmentSensorManager.h>
+#if defined(DISPLAY_CLASS) && !(defined(LV_CONF_SKIP) && LV_CONF_SKIP)
 #include <helpers/ui/E290Display.h>
 #include <helpers/ui/MomentaryButton.h>
 #endif
@@ -15,12 +16,19 @@
 extern HeltecE290Board board;
 extern WRAPPER_CLASS radio_driver;
 extern AutoDiscoverRTCClock rtc_clock;
+#if defined(LV_CONF_SKIP) && LV_CONF_SKIP
+extern HeltecEnvironmentSensorManager sensors;
+#else
 extern SensorManager sensors;
+#endif
 
-#ifdef DISPLAY_CLASS
+#if defined(DISPLAY_CLASS) && !(defined(LV_CONF_SKIP) && LV_CONF_SKIP)
 extern DISPLAY_CLASS display;
 extern MomentaryButton user_btn;
 #endif
 
 bool radio_init();
+uint32_t radio_get_rng_seed();
+void radio_set_params(float freq, float bw, uint8_t sf, uint8_t cr);
+void radio_set_tx_power(int8_t dbm);
 mesh::LocalIdentity radio_new_identity();

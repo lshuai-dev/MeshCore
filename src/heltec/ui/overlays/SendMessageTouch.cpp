@@ -1,0 +1,615 @@
+#include "SendMessageOverlay.hpp"
+
+#if HELTEC_UI_HAS_TOUCH
+
+#include "heltec/ui/core/BizFacade.hpp"
+#include "KeyboardOverlay.hpp"
+#include "ui/theme/UiTheme.hpp"
+#include "ui/widgets/HtContainer.hpp"
+#include "ui/core/OperationHints.hpp"
+#include "ui/core/HtEvent.h"
+#include "ui/widgets/WidgetClasses.hpp"
+
+#include <cstdio>
+#include <cstring>
+#include <lvgl.h>
+
+namespace heltec::meshcore::ui
+{
+
+SendMessageOverlay::SendMessageOverlay(biz::IBizFacade &biz)
+    : FramedOverlay(biz, ht_send_message_touch_overlay_class)
+{
+}
+
+namespace
+{
+
+lv_coord_t sendRowHeight()
+{
+    lv_disp_t *const display = lv_disp_get_default();
+    if (!display)
+        return 12;
+    return lv_disp_get_ver_res(display) >= 240 ? 16 : 12;
+}
+
+void fitToDisplay(_lv_obj_t *obj)
+{
+    if (!obj)
+        return;
+    lv_disp_t *disp = lv_disp_get_default();
+    const lv_coord_t w = disp ? lv_disp_get_hor_res(disp) : lv_obj_get_width(lv_scr_act());
+    const lv_coord_t h = disp ? lv_disp_get_ver_res(disp) : lv_obj_get_height(lv_scr_act());
+    lv_obj_set_pos(obj, 0, 0);
+    lv_obj_set_size(obj, w, h);
+}
+
+} // namespace
+
+void SendMessageOverlay::syncOverlayGroup()
+{
+    if (!_list || !focusGroup())
+        return;
+    const bool empty = rowCount() <= 0;
+    if (_empty_focus)
+    {
+        if (empty)
+        {
+            lv_obj_clear_flag(_empty_focus, LV_OBJ_FLAG_HIDDEN);
+            if (lv_obj_get_group(_empty_focus) == focusGroup())
+                lv_group_focus_obj(_empty_focus);
+        }
+        else
+        {
+            lv_obj_add_flag(_empty_focus, LV_OBJ_FLAG_HIDDEN);
+        }
+    }
+}
+
+bool SendMessageOverlay::onKey(uint32_t key)
+{
+    if (!_root)
+        return false;
+    if (key == LV_KEY_PREV || key == LV_KEY_LEFT)
+    {
+        const int count = rowCount();
+        if (count <= 0)
+            return true;
+        _model.moveSelection(_biz, -1);
+        renderRows();
+        return true;
+    }
+    if (key == LV_KEY_NEXT || key == LV_KEY_RIGHT)
+    {
+        const int count = rowCount();
+        if (count <= 0)
+            return true;
+        _model.moveSelection(_biz, 1);
+        renderRows();
+        return true;
+    }
+    if (key == LV_KEY_ESC)
+    {
+        handleBack();
+        return true;
+    }
+    return false;
+}
+
+bool SendMessageOverlay::buildSurface()
+{
+    if (!FramedOverlay::buildSurface())
+        return false;
+
+
+    fitToDisplay(_root);
+    lv_obj_add_flag(_root, LV_OBJ_FLAG_CLICKABLE);
+    setStaticTitle("send message");
+    setStaticToolTip(operation_hint::kMessageSelect);
+
+    _list_mid = ht_class_create(&ht_send_message_list_class, _content);
+    if (!_list_mid)
+        return false;
+    lv_obj_set_width(_list_mid, lv_pct(100));
+    lv_obj_set_flex_grow(_list_mid, 1);
+    lv_obj_set_flex_flow(_list_mid, LV_FLEX_FLOW_COLUMN);
+    lv_obj_set_flex_align(_list_mid, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER,
+                          LV_FLEX_ALIGN_CENTER);
+    lv_obj_clear_flag(_list_mid, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_add_flag(_list_mid, LV_OBJ_FLAG_CLICKABLE);
+
+    _list = ht_class_create(&ht_send_message_touch_list_class, _list_mid);
+    if (!_list)
+        return false;
+    lv_obj_set_width(_list, lv_pct(100));
+    lv_obj_set_flex_grow(_list, 1);
+    lv_obj_set_flex_flow(_list, LV_FLEX_FLOW_COLUMN);
+    lv_obj_set_flex_align(_list, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+    lv_obj_clear_flag(_list, LV_OBJ_FLAG_SCROLLABLE);
+
+    for (uint8_t i = 0; i < kMaxListItems; ++i)
+    {
+        if (!createTouchRow(i, ""))
+            return false;
+        lv_obj_add_flag(_row_objs[i], LV_OBJ_FLAG_HIDDEN);
+    }
+
+    _empty_focus = ht_class_create(&lv_obj_class, _list);
+    if (!_empty_focus)
+        return false;
+    lv_obj_set_size(_empty_focus, 1, 1);
+    lv_obj_add_flag(_empty_focus, LV_OBJ_FLAG_HIDDEN);
+    _syncing_focus = true;
+    for (int i = 0; i < kMaxListItems; ++i)
+        lv_group_add_obj(focusGroup(), _row_objs[i]);
+    lv_group_add_obj(focusGroup(), _empty_focus);
+    _syncing_focus = false;
+    setTarget(_model.target());
+    return true;
+}
+
+void SendMessageOverlay::syncContacts()
+{
+    _model.syncContacts(_biz);
+}
+
+void SendMessageOverlay::setTarget(const Target &t)
+{
+    _model.setTarget(t);
+}
+
+void SendMessageOverlay::prepareTarget(const UiSendMessageTarget *target)
+{
+    _pending_target_valid = false;
+    if (!target)
+        return;
+    Target pending{};
+    if (target->kind == UiMessageTargetKind::Channel)
+    {
+        pending.kind = TargetKind::Group;
+        pending.channel_idx = target->channel_idx;
+    }
+    else
+    {
+        pending.kind = TargetKind::Personal;
+        memcpy(pending.pub_key_prefix, target->pub_key_prefix, sizeof(pending.pub_key_prefix));
+    }
+    SendMessageModel::safeCopy(pending.label, sizeof(pending.label), target->label);
+    _pending_target = pending;
+    _pending_target_valid = true;
+}
+
+void SendMessageOverlay::rebuildTargetCategories()
+{
+    _model.rebuildTargetCategories(_biz);
+}
+
+void SendMessageOverlay::rebuildTargetList()
+{
+    _model.rebuildTargetList(_biz, _model.listKind());
+}
+
+void SendMessageOverlay::rebuildMainRows()
+{
+    _model.rebuildMainRows();
+}
+
+int SendMessageOverlay::rowCount() const
+{
+    return _model.rowCount();
+}
+
+int SendMessageOverlay::selectedIndex() const
+{
+    return _model.selectedIndex();
+}
+
+const char *SendMessageOverlay::rowLabel(int index) const
+{
+    return _model.rowLabel(_biz, index);
+}
+
+void SendMessageOverlay::clearTouchList()
+{
+    if (!_list)
+        return;
+    for (int i = 0; i < kMaxListItems; ++i)
+    {
+        if (!_row_objs[i])
+            continue;
+        lv_obj_add_flag(_row_objs[i], LV_OBJ_FLAG_HIDDEN);
+        ht_container_set_focused(_row_objs[i], false);
+    }
+}
+
+_lv_obj_t *SendMessageOverlay::createTouchRow(uint8_t index, const char *text)
+{
+    if (!_list)
+        return nullptr;
+    lv_obj_t *row = ht_class_create(
+        &ht_send_message_touch_row_class, _list,
+        reinterpret_cast<void *>(static_cast<uintptr_t>(index)));
+    if (!row)
+        return nullptr;
+    lv_obj_set_size(row, lv_pct(100), sendRowHeight());
+    lv_obj_set_flex_flow(row, LV_FLEX_FLOW_ROW);
+    lv_obj_set_flex_align(row, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+    lv_obj_clear_flag(row, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_set_scrollbar_mode(row, LV_SCROLLBAR_MODE_OFF);
+    lv_obj_add_flag(row, LV_OBJ_FLAG_CLICKABLE);
+
+    lv_obj_t *label = ht_label_create(&ht_send_message_label_class, row, text ? text : "");
+    if (!label)
+        return nullptr;
+    lv_obj_set_width(label, lv_pct(100));
+    lv_obj_set_flex_grow(label, 1);
+    lv_label_set_long_mode(label, LV_LABEL_LONG_DOT);
+
+    lv_obj_add_event_cb(
+        row,
+        [](lv_event_t *e)
+        {
+            if (LV_EVENT_FOCUSED != lv_event_get_code(e))
+                return;
+            auto *self = static_cast<SendMessageOverlay *>(lv_event_get_user_data(e));
+            if (!self)
+                return;
+            if (self->_syncing_focus)
+                return;
+            self->_model.setSelectedIndex(static_cast<int>(
+                reinterpret_cast<uintptr_t>(lv_obj_get_user_data(lv_event_get_target(e)))));
+            self->syncSelectionVisual();
+        },
+        LV_EVENT_FOCUSED, this);
+
+    lv_obj_add_event_cb(
+        row,
+        [](lv_event_t *e)
+        {
+            if (lv_event_get_code(e) != LV_EVENT_CLICKED)
+                return;
+            auto *self = static_cast<SendMessageOverlay *>(lv_event_get_user_data(e));
+            if (!self)
+                return;
+            self->_model.setSelectedIndex(static_cast<int>(
+                reinterpret_cast<uintptr_t>(lv_obj_get_user_data(lv_event_get_target(e)))));
+            lv_event_stop_bubbling(e);
+            lv_event_stop_processing(e);
+            self->applySelection();
+            if (self->_root && !lv_obj_has_flag(self->_root, LV_OBJ_FLAG_HIDDEN))
+            {
+                self->syncOverlayGroup();
+                self->syncSelectionVisual();
+            }
+        },
+        LV_EVENT_CLICKED, this);
+
+    if (index < kMaxListItems)
+    {
+        _row_objs[index] = row;
+        _row_labels[index] = label;
+        SendMessageModel::safeCopy(_row_text[index], sizeof(_row_text[index]), text);
+        lv_label_set_text_static(label, _row_text[index]);
+    }
+    return row;
+}
+
+void SendMessageOverlay::syncSelectionVisual()
+{
+    if (!_list)
+        return;
+    const int count = rowCount();
+    if (count <= 0)
+        return;
+    _model.setSelectedIndex(_model.selectedIndex());
+    const int selected = _model.selectedIndex();
+    for (int i = 0; i < count && i < kMaxListItems; ++i)
+    {
+        lv_obj_t *row = _row_objs[i];
+        if (!row)
+            continue;
+        if (i == selected)
+        {
+            ht_container_set_focused(row, true);
+        }
+        else
+        {
+            ht_container_set_focused(row, false);
+        }
+    }
+    if (focusGroup() && selected < kMaxListItems && _row_objs[selected])
+    {
+        _syncing_focus = true;
+        lv_obj_t *const target = _row_objs[selected] ? _row_objs[selected] : _empty_focus;
+        if (target && lv_obj_get_group(target) == focusGroup())
+            lv_group_focus_obj(target);
+        _syncing_focus = false;
+    }
+}
+
+void SendMessageOverlay::renderTouchList()
+{
+    if (!_list)
+        return;
+    if (focusGroup())
+        lv_group_set_editing(focusGroup(), false);
+    clearTouchList();
+
+    const int count = rowCount();
+    if (count <= 0)
+    {
+        syncOverlayGroup();
+        return;
+    }
+    _model.setSelectedIndex(_model.selectedIndex());
+
+    for (int i = 0; i < count && i < kMaxListItems; ++i)
+    {
+        if (!_row_objs[i] || !_row_labels[i])
+            continue;
+        lv_label_set_long_mode(_row_labels[i], LV_LABEL_LONG_CLIP);
+        SendMessageModel::safeCopy(_row_text[i], SendMessageModel::kRowTextCapacity, rowLabel(i));
+        lv_label_set_text_static(_row_labels[i], _row_text[i]);
+        lv_label_set_long_mode(_row_labels[i], LV_LABEL_LONG_DOT);
+        lv_obj_clear_flag(_row_objs[i], LV_OBJ_FLAG_HIDDEN);
+    }
+    syncOverlayGroup();
+    syncSelectionVisual();
+}
+
+void SendMessageOverlay::renderRows()
+{
+    if (!_root)
+        return;
+
+    const char *title = "send message";
+    const char *footer_text = operation_hint::kMessageSelect;
+    if (_model.page() == Page::TargetCategory)
+    {
+        title = "to";
+    }
+    else if (_model.page() == Page::TargetList)
+    {
+        title = (_model.listKind() == 1) ? "group" : "personal";
+    }
+    setStaticTitle(title);
+    setStaticToolTip(footer_text);
+
+    renderTouchList();
+}
+
+void SendMessageOverlay::sendMessageText(const char *text, bool alert_on_direct_failure)
+{
+    if (!text || text[0] == '\0')
+        return;
+
+    const Target &target = _model.target();
+    const TargetKind kind = target.kind;
+    const int channel_idx = target.channel_idx;
+    uint8_t pub_key_prefix[6];
+    memcpy(pub_key_prefix, target.pub_key_prefix, 6);
+
+    // Close before alert/send so the result overlay becomes the top surface.
+    emitEvent(EventType::SendMessageClose);
+
+    bool ok = false;
+    if (kind == TargetKind::Personal)
+    {
+        ok = _biz.sendDirectMessage(pub_key_prefix, text);
+    }
+    else if (kind == TargetKind::Group)
+    {
+        ok = _biz.sendGroupMessage(channel_idx, text);
+    }
+    else
+    {
+        const int len = static_cast<int>(strlen(text));
+        ok = _biz.sendBroadcast(text, len);
+    }
+    if (ok || alert_on_direct_failure || kind == TargetKind::Broadcast)
+    {
+        scheduleSendResultAlert(ok);
+    }
+}
+
+void SendMessageOverlay::scheduleSendResultAlert(bool ok)
+{
+    _send_alert_ok = ok;
+    if (_send_alert_scheduled)
+        return;
+    _send_alert_scheduled = true;
+    if (lv_async_call(showSendResultAlertAsync, this) != LV_RES_OK)
+    {
+        _send_alert_scheduled = false;
+        _biz.showAlert(ok ? "Queued" : "Failed", 1600);
+    }
+}
+
+void SendMessageOverlay::showSendResultAlertAsync(void *user_data)
+{
+    auto *self = static_cast<SendMessageOverlay *>(user_data);
+    if (!self)
+        return;
+    self->_send_alert_scheduled = false;
+    self->_biz.showAlert(self->_send_alert_ok ? "Queued" : "Failed", 1600);
+}
+
+void SendMessageOverlay::submitCustomMessage(const char *text)
+{
+    sendMessageText(text, true);
+}
+
+void SendMessageOverlay::openCustomKeyboard()
+{
+    const Target &target = _model.target();
+    UiMessageKeyboardRequest req;
+    req.title = target.label;
+    (void)emitEvent(EventType::MessageKeyboardOpen, &req);
+}
+
+void SendMessageOverlay::handleBack()
+{
+    if (_model.page() == Page::TargetList)
+    {
+        _model.setPage(Page::TargetCategory);
+        _model.setSelectedIndex(0);
+        renderRows();
+        return;
+    }
+    if (_model.page() == Page::TargetCategory)
+    {
+        _model.setPage(Page::Main);
+        rebuildMainRows();
+        _model.setSelectedIndex(0);
+        renderRows();
+        return;
+    }
+    emitEvent(EventType::SendMessageClose);
+}
+
+void SendMessageOverlay::applySelection()
+{
+    const int count = rowCount();
+    if (count <= 0)
+        return;
+    const int idx = _model.selectedIndex();
+    if (idx < 0 || idx >= count)
+        return;
+
+    if (_model.page() == Page::Main)
+    {
+        if (idx == 0)
+        {
+            _model.setPage(Page::TargetCategory);
+            rebuildTargetCategories();
+            _model.setSelectedIndex(0);
+            renderRows();
+            return;
+        }
+        if (idx >= 1 && idx <= 5)
+        {
+            sendMessageText(rowLabel(idx));
+            return;
+        }
+        if (idx == 6)
+        {
+            openCustomKeyboard();
+            return;
+        }
+    }
+
+    if (_model.page() == Page::TargetCategory)
+    {
+        const char *label = rowLabel(idx);
+        if (!label)
+            return;
+        if (strcmp(label, "broadcast") == 0)
+        {
+            Target t{};
+            t.kind = TargetKind::Broadcast;
+            t.channel_idx = -1;
+            SendMessageModel::safeCopy(t.label, sizeof(t.label), "broadcast");
+            setTarget(t);
+            _model.setPage(Page::Main);
+            rebuildMainRows();
+            _model.setSelectedIndex(0);
+            renderRows();
+            return;
+        }
+        if (strcmp(label, "group") == 0)
+        {
+            _model.setListKind(1);
+            rebuildTargetList();
+            if (_model.listCount() <= 0)
+            {
+                _biz.showAlert("No group channels", 900);
+                return;
+            }
+            _model.setPage(Page::TargetList);
+            _model.setSelectedIndex(0);
+            renderRows();
+            return;
+        }
+        if (strcmp(label, "personal") == 0)
+        {
+            _model.setListKind(2);
+            rebuildTargetList();
+            if (_model.listCount() <= 0)
+            {
+                _biz.showAlert("No contacts", 900);
+                return;
+            }
+            _model.setPage(Page::TargetList);
+            _model.setSelectedIndex(0);
+            renderRows();
+            return;
+        }
+    }
+
+    if (_model.page() == Page::TargetList)
+    {
+        Target t{};
+        if (_model.listKind() == 1)
+        {
+            if (idx >= 0 && idx < _model.listCount())
+            {
+                t.kind = TargetKind::Group;
+                t.channel_idx = _model.listChannelIndex(idx);
+                SendMessageModel::safeCopy(t.label, sizeof(t.label), rowLabel(idx));
+            }
+        }
+        else if (_model.listKind() == 2)
+        {
+            if (idx >= 0 && idx < _model.listCount())
+            {
+                t.kind = TargetKind::Personal;
+                (void)_model.contactAt(idx, t.pub_key_prefix, t.label, sizeof(t.label));
+            }
+        }
+        setTarget(t);
+        _model.setPage(Page::Main);
+        rebuildMainRows();
+        _model.setSelectedIndex(0);
+        renderRows();
+    }
+}
+
+void SendMessageOverlay::onEnter()
+{
+    if (!_root)
+        return;
+    if (!_list)
+        return;
+    // Fixed group members were registered during create(); do not replace them.
+    UiSurface::onEnter();
+    fitToDisplay(lv_obj_get_parent(_root));
+    fitToDisplay(_root);
+    _model.reset(_biz);
+    if (_pending_target_valid)
+    {
+        setTarget(_pending_target);
+        rebuildMainRows();
+        _pending_target_valid = false;
+    }
+    renderRows();
+    lv_obj_update_layout(_root);
+    syncOverlayGroup();
+    syncSelectionVisual();
+}
+
+void SendMessageOverlay::onExit()
+{
+    AbstractOverlay::onExit();
+    hideVisual();
+}
+
+void SendMessageOverlay::hideVisual()
+{
+    if (!_root)
+        return;
+    clearTouchList();
+}
+
+} // namespace heltec::meshcore::ui
+
+#endif // HELTEC_UI_HAS_TOUCH

@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 
-#include "heltec/app/team_geofence.hpp"
+#include "heltec/app/TeamGeofence.hpp"
 
 using heltec::meshcore::team::GeofenceAddResult;
 using heltec::meshcore::team::GeofenceMemberResult;

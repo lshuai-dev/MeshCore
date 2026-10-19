@@ -1,7 +1,7 @@
 #ifdef ESP_PLATFORM
 
 #include "ESP32Board.h"
-#include <target.h>
+#include <Target.h>
 
 #if defined(ADMIN_PASSWORD) && !defined(DISABLE_WIFI_OTA)   // Repeater or Room Server only
 #include <WiFi.h>
@@ -51,7 +51,7 @@ void ESP32Board::powerOff() {
 
 void ESP32Board::enterDeepSleep(uint32_t secs) {
   // Power off the display if any
-#if defined(DISPLAY_CLASS) && !(defined(HELTEC_MESH_UI) && HELTEC_MESH_UI)
+#if defined(DISPLAY_CLASS) && !(defined(LV_CONF_SKIP) && LV_CONF_SKIP)
   display.turnOff();
 #endif
 

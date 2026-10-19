@@ -1,4 +1,4 @@
-#include "surface.hpp"
+#include "Surface.hpp"
 
 namespace heltec::meshcore::ui {
 

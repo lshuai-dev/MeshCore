@@ -1,4 +1,4 @@
-#include "scheduler.hpp"
+#include "Scheduler.hpp"
 
 #include <lvgl.h>
 

@@ -1,4 +1,4 @@
-// UI icon API — bitmap data in variants/<board>/images.cpp
+// UI icon API — bitmap data in variants/<board>/Images.cpp
 #pragma once
 #include "lvgl.h"
 
@@ -16,7 +16,7 @@ extern const lv_img_dsc_t icon_map_img;
 extern const lv_img_dsc_t icon_meshcore_log_img;
 extern const lv_img_dsc_t icon_meshcore_logo_alpha_img;
 
-#if HELTEC_HAS_TOUCH
+#if HELTEC_UI_HAS_TOUCH
 extern const lv_img_dsc_t ui_background_img;
 extern const lv_img_dsc_t quick_ping_target_img;
 extern const lv_img_dsc_t quick_ping_message_img;

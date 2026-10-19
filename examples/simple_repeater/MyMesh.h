@@ -3,7 +3,7 @@
 #include <Arduino.h>
 #include <Mesh.h>
 #include <RTClib.h>
-#include <target.h>
+#include <Target.h>
 
 #if defined(NRF52_PLATFORM) || defined(STM32_PLATFORM)
   #include <InternalFileSystem.h>

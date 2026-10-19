@@ -15,9 +15,13 @@ WRAPPER_CLASS radio_driver(radio, board);
 ESP32RTCClock fallback_clock;
 AutoDiscoverRTCClock rtc_clock(fallback_clock);
 
+#if defined(LV_CONF_SKIP) && LV_CONF_SKIP
+HeltecEnvironmentSensorManager sensors;
+#else
 SensorManager sensors;
+#endif
 
-#ifdef DISPLAY_CLASS
+#if defined(DISPLAY_CLASS) && !(defined(LV_CONF_SKIP) && LV_CONF_SKIP)
 DISPLAY_CLASS display;
 MomentaryButton user_btn(PIN_USER_BTN, 1000, true);
 #endif
@@ -31,6 +35,21 @@ bool radio_init() {
 #else
   return radio.std_init();
 #endif
+}
+
+uint32_t radio_get_rng_seed() {
+  return radio.random(0x7FFFFFFF);
+}
+
+void radio_set_params(float freq, float bw, uint8_t sf, uint8_t cr) {
+  radio.setFrequency(freq);
+  radio.setSpreadingFactor(sf);
+  radio.setBandwidth(bw);
+  radio.setCodingRate(cr);
+}
+
+void radio_set_tx_power(int8_t dbm) {
+  radio.setOutputPower(dbm);
 }
 
 mesh::LocalIdentity radio_new_identity() {

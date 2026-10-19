@@ -6,7 +6,7 @@
 
 #ifdef NRF52_POWER_MANAGEMENT
 // Static configuration for power management
-// Values set in variant.h defines
+// Values set in Variant.h defines
 const PowerMgtConfig power_config = {
   .lpcomp_ain_channel = PWRMGT_LPCOMP_AIN,
   .lpcomp_refsel = PWRMGT_LPCOMP_REFSEL,

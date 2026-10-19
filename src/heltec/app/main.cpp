@@ -1,12 +1,12 @@
-#include "heltec_mesh.h"
+#include "HeltecMesh.h"
 #include "MeshCore.h"
-#include "app/mesh_app_ui.hpp"
-#include "app/power_mgr.hpp"
-#include "config/node_prefs.h"
-#include "heltec/drivers/display/display_port.hpp"
+#include "app/MeshAppUi.hpp"
+#include "app/PowerMgr.hpp"
+#include "config/NodePrefs.h"
+#include "heltec/drivers/display/DisplayPort.hpp"
 #include "lvgl.h"
-#include "ui/app/app.hpp"
-#include "ui/core/app_state_notifier.hpp"
+#include "ui/app/App.hpp"
+#include "ui/core/AppStateNotifier.hpp"
 
 #include <Arduino.h> // needed for PlatformIO
 #include <Mesh.h>
@@ -14,11 +14,11 @@
 #if defined(RADIOCORE_BOARD_RC52)
 #include <nrf_gpio.h>
 #endif
-#if defined(HELTEC_MESH_UI) && HELTEC_MESH_UI
-#include "config/heltec_license.h"
+#if defined(LV_CONF_SKIP) && LV_CONF_SKIP
+#include "config/HeltecLicense.h"
 #endif
 #if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
-#include <heltec/sensors/icm_compass_provider.h>
+#include <heltec/sensors/IcmCompassProvider.h>
 #endif
 
 #if defined(RADIOCORE_BOARD_RC52) && defined(PIN_SENSOR_EN)
@@ -117,7 +117,7 @@ ArduinoSerialInterface serial_interface;
 #error "need to define a serial interface"
 #endif
 
-#include "ui/core/ui_task.hpp"
+#include "ui/core/UiTask.hpp"
 static heltec::meshcore::ui::UiTask s_ui_task(&board, &serial_interface);
 namespace heltec::meshcore::ui
 {
@@ -328,7 +328,7 @@ void setup()
         MESH_DEBUG_PRINTLN("[fs] SPIFFS mounted");
     }
 #endif
-#if defined(HELTEC_MESH_UI) && HELTEC_MESH_UI
+#if defined(LV_CONF_SKIP) && LV_CONF_SKIP
 #if HELTEC_LICENSE_BOOT_GATE
     if (!heltecLicenseBootGate(hasDisplay))
     {
@@ -424,7 +424,7 @@ void setup()
 #else
 #error "need to define filesystem"
 #endif
-#if defined(HELTEC_MESH_UI) && HELTEC_MESH_UI
+#if defined(LV_CONF_SKIP) && LV_CONF_SKIP
     {
         heltec::meshcore::ui::AppStateEvent config_event{};
         config_event.type = heltec::meshcore::ui::AppStateEventType::ConfigChanged;
@@ -505,8 +505,8 @@ void loop()
     // interrupt. This restores MeshCore's native nRF52 System ON idle model.
     board.sleep(0);
 #else
-    // ESP32 input wake sources are board-specific. Yield to the FreeRTOS idle
-    // task here so tickless idle remains available without losing UI wakeups.
-    delay(5);
+    // Enter light sleep. ESP32Board configures LoRa DIO1 and board-specific
+    // button/touch wake sources while preserving the active receive path.
+    board.sleep(0);
 #endif
 }

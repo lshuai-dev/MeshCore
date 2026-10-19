@@ -1,6 +1,6 @@
 #include <Arduino.h>
 
-#include "heltec/ui/images.h"
+#include "heltec/ui/Images.h"
 
 // Compact 1-bit assets used by the E213 page set: Home, Recent, Radio, System.
 namespace {

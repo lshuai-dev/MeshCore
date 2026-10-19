@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 
-#include "heltec/app/find_friend_nav_estimator.hpp"
-#include "heltec/app/geodesic.hpp"
+#include "heltec/app/FindFriendNavEstimator.hpp"
+#include "heltec/app/Geodesic.hpp"
 
 #include <cmath>
 

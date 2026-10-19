@@ -1,7 +1,7 @@
 #include <Arduino.h>
 #include "target.h"
 #if defined(UI_HAS_ROTARY_INPUT)
-#include "heltec_rc32_rotary_input.h"
+#include "HeltecRc32RotaryInput.h"
 #endif
 
 HeltecRC32Board board;

@@ -1,5 +1,5 @@
 #include <Arduino.h>
-#include "target.h"
+#include "Target.h"
 
 ESP32Board board;
 

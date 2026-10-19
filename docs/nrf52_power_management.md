@@ -79,12 +79,12 @@ This ensures we capture the true reset reason before any initialisation code run
 
 To enable power management on a board variant:
 
-1. **Enable in platformio.ini**:
+1. **Enable in Platformio.ini**:
    ```ini
    -D NRF52_POWER_MANAGEMENT
    ```
 
-2. **Define configuration in variant.h**:
+2. **Define configuration in Variant.h**:
    ```c
    #define PWRMGT_VOLTAGE_BOOTLOCK    3300   // Won't boot below this voltage (mV)
    #define PWRMGT_LPCOMP_AIN          7      // AIN channel for voltage sensing

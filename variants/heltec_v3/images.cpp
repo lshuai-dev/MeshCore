@@ -1,5 +1,5 @@
 #include <Arduino.h>
-#include "heltec/ui/images.h"
+#include "heltec/ui/Images.h"
 
 // Per-board LVGL bitmaps for Heltec V3 OLED (12x12 indexed 1bpp).
 

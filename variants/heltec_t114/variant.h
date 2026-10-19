@@ -141,3 +141,5 @@
 #define PIN_TFT_LEDA_CTL        (15)
 #define PIN_TFT_CS              (11)
 #define PIN_TFT_DC              (12)
+#define PIN_TFT_VDD_CTL_ACTIVE  LOW
+#define PIN_TFT_LEDA_CTL_ACTIVE LOW

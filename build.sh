@@ -40,7 +40,7 @@ $ sh build.sh build-kiss-radio-firmwares
 
 Environment Variables:
   DISABLE_DEBUG=1: Disables all debug logging flags (MESH_DEBUG, MESH_PACKET_LOGGING, etc.)
-                   If not set, debug flags from variant platformio.ini files are used.
+                   If not set, debug flags from variant Platformio.ini files are used.
 
 Examples:
 Build without debug logging:
@@ -120,6 +120,13 @@ has_pio_build_flag() {
   local env_name=$1
   local flag_name=$2
   printf '%s' "$PIO_CONFIG_JSON" | python3 -c "import sys,json; data=json.load(sys.stdin); sys.exit(0 if any(section == 'env:$env_name' and key == 'build_flags' and ('$flag_name' in value if isinstance(value,str) else any('$flag_name' in flag for flag in value)) for section,options in data for key,value in options) else 1)"
+}
+
+# return success when a pio environment contains the requested library dependency
+has_pio_lib_dependency() {
+  local env_name=$1
+  local dependency=$2
+  printf '%s' "$PIO_CONFIG_JSON" | python3 -c "import sys,json; data=json.load(sys.stdin); sys.exit(0 if any(section == 'env:$env_name' and key == 'lib_deps' and ('$dependency' in value if isinstance(value,str) else any('$dependency' in item for item in value)) for section,options in data for key,value in options) else 1)"
 }
 
 # disable all debug logging flags if DISABLE_DEBUG=1 is set
@@ -247,7 +254,7 @@ build_lvgl_companion_firmwares() {
   for suffix in "_companion_radio_usb" "_companion_radio_ble"; do
     while read -r env; do
       [ -z "$env" ] && continue
-      if has_pio_build_flag "$env" "HELTEC_MESH_UI"; then
+      if has_pio_lib_dependency "$env" "file://lib/lvgl"; then
         build_firmware "$env"
       fi
     done < <(get_pio_envs_ending_with_string "$suffix")
@@ -259,7 +266,7 @@ get_lvgl_companion_firmwares_to_build() {
   for suffix in "_companion_radio_usb" "_companion_radio_ble"; do
     while read -r env; do
       [ -z "$env" ] && continue
-      if has_pio_build_flag "$env" "HELTEC_MESH_UI"; then
+      if has_pio_lib_dependency "$env" "file://lib/lvgl"; then
         echo "$env"
       fi
     done < <(get_pio_envs_ending_with_string "$suffix")

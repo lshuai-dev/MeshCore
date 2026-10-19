@@ -5,7 +5,7 @@
 
 #ifdef ENV_INCLUDE_GPS
 #include <helpers/sensors/MicroNMEALocationProvider.h>
-#include <heltec/sensors/gps_rmc_speed_stream.h>
+#include <heltec/sensors/GpsRmcSpeedStream.h>
 #endif
 
 T1Board board;
@@ -58,7 +58,7 @@ heltec::gps::GpsRmcSpeedStream gps_serial(Serial1);
 
 #if defined(HELTEC_SENSOR_MANAGER) && HELTEC_SENSOR_MANAGER
 #if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
-#include "sensors/icm_compass_provider.h"
+#include "sensors/IcmCompassProvider.h"
 ICMCompassProvider compassProvider;
 #endif
 #if ENV_INCLUDE_GPS
@@ -77,7 +77,7 @@ HeltecEnvironmentSensorManager sensors;
 #endif
 #else
 #if ENV_INCLUDE_GPS
-#if defined(HELTEC_MESH_UI) && HELTEC_MESH_UI
+#if defined(LV_CONF_SKIP) && LV_CONF_SKIP
 MicroNMEALocationProvider nmea =
     MicroNMEALocationProvider(gps_serial, &rtc_clock, GPS_RESET, GPS_EN, &board._sensorPower);
 #else
@@ -155,7 +155,7 @@ void T1RTCClock::tick() {
 }
 
 #ifdef DISPLAY_CLASS
-#if !(defined(HELTEC_MESH_UI) && HELTEC_MESH_UI)
+#if !(defined(LV_CONF_SKIP) && LV_CONF_SKIP)
 DISPLAY_CLASS display(&board.periph_power);
 MomentaryButton user_btn(PIN_USER_BTN, 1000, true);
 #endif

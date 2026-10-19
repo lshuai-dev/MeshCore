@@ -4,18 +4,18 @@
 #include <RadioLib.h>
 #include <SPI.h>
 #include <helpers/radiolib/RadioLibWrappers.h>
-#include <heltec_v4_r8_board.h>
+#include <HeltecV4R8Board.h>
 #include <helpers/radiolib/CustomSX1262Wrapper.h>
 #include <helpers/AutoDiscoverRTCClock.h>
 #include <helpers/SensorManager.h>
 
-#if defined(HELTEC_DISPLAY_ST7789)
-#include <heltec/sensors/heltec_environment_sensor_manager.h>
+#if defined(HELTEC_SENSOR_MANAGER)
+#include <heltec/sensors/HeltecEnvironmentSensorManager.h>
 #else
 #include <helpers/sensors/EnvironmentSensorManager.h>
 #endif
 
-#ifndef HELTEC_DISPLAY_ST7789
+#if !(defined(LV_CONF_SKIP) && LV_CONF_SKIP)
 #ifdef DISPLAY_CLASS
   #ifdef HELTEC_V4_R8_OLED
     #include <helpers/ui/SSD1306Display.h>
@@ -30,13 +30,13 @@ extern HeltecV4R8Board board;
 extern WRAPPER_CLASS radio_driver;
 extern AutoDiscoverRTCClock rtc_clock;
 
-#if defined(HELTEC_DISPLAY_ST7789)
+#if defined(HELTEC_SENSOR_MANAGER)
 extern HeltecEnvironmentSensorManager sensors;
 #else
 extern EnvironmentSensorManager sensors;
 #endif
 
-#ifndef HELTEC_DISPLAY_ST7789
+#if !(defined(LV_CONF_SKIP) && LV_CONF_SKIP)
 #ifdef DISPLAY_CLASS
   extern DISPLAY_CLASS display;
   extern MomentaryButton user_btn;

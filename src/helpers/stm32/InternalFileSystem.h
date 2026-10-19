@@ -27,7 +27,7 @@
  
  #include "Adafruit_LittleFS.h"
  
-#ifndef LFS_FLASH_TOTAL_SIZE /* Flash size can be configured in platformio.ini */
+#ifndef LFS_FLASH_TOTAL_SIZE /* Flash size can be configured in Platformio.ini */
   #define LFS_FLASH_TOTAL_SIZE (16 * 2048) /* defaults to 32k flash */
 #endif
 #define LFS_BLOCK_SIZE (2048)

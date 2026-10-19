@@ -17,7 +17,7 @@ AutoDiscoverRTCClock rtc_clock(fallback_clock);
 
 #if ENV_INCLUDE_GPS
   #include <helpers/sensors/MicroNMEALocationProvider.h>
-  #include <heltec/sensors/gps_rmc_speed_stream.h>
+  #include <heltec/sensors/GpsRmcSpeedStream.h>
   heltec::gps::GpsRmcSpeedStream gps_serial(Serial1);
   MicroNMEALocationProvider nmea = MicroNMEALocationProvider(gps_serial, &rtc_clock);
   EnvironmentSensorManager sensors = EnvironmentSensorManager(nmea);
@@ -25,7 +25,7 @@ AutoDiscoverRTCClock rtc_clock(fallback_clock);
   EnvironmentSensorManager sensors;
 #endif
 
-#if defined(DISPLAY_CLASS) && !defined(HELTEC_DISPLAY_SSD1306)
+#if defined(DISPLAY_CLASS) && !(defined(LV_CONF_SKIP) && LV_CONF_SKIP)
   DISPLAY_CLASS display;
   MomentaryButton user_btn(PIN_USER_BTN, 1000, true);
 #endif

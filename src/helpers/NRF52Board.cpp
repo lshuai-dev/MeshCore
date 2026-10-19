@@ -1,6 +1,6 @@
 #if defined(NRF52_PLATFORM)
 #include "NRF52Board.h"
-#include <target.h>
+#include <Target.h>
 
 #include <bluefruit.h>
 #include <nrf_soc.h>

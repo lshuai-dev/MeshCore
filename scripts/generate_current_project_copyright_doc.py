@@ -212,7 +212,7 @@ def build():
     title(doc, "5.2 启动检查", 2)
     para(doc, "使用前应确认设备已连接匹配的天线、电量足够并能正常进入 Home 页面。带定位功能的终端首次获取位置可能需要在室外等待。带触摸屏的设备可直接点击列表和按钮；单键或多键设备按屏幕操作提示移动焦点并确认。")
     page(doc)
-    code_excerpt(doc, "5.3 Home页面创建代码", "src/heltec/ui/screens/home_screen.cpp", 43, 82, [
+    code_excerpt(doc, "5.3 Home页面创建代码", "src/heltec/ui/screens/HomeScreen.cpp", 43, 82, [
         "该代码创建Home页面中的节点标识、消息数量和状态标签。",
         "这里只负责读取界面快照并刷新文字，不包含消息传输和节点路由算法。"
     ])
@@ -232,7 +232,7 @@ def build():
     title(doc, "6.2 消息接收提示", 2)
     para(doc, "收到个人或群组文本后，软件将消息加入当前内存预览队列并触发界面提示。预览区域可保留近期消息，支持单击或方向键切换，并显示消息接收后经过的时间。该机制用于快速查看，不等同于无限期的文件化聊天记录。")
     page(doc)
-    code_excerpt(doc, "6.3 消息选择界面代码", "src/heltec/ui/overlays/send_message_touch.cpp", 85, 134, [
+    code_excerpt(doc, "6.3 消息选择界面代码", "src/heltec/ui/overlays/SendMessageTouch.cpp", 85, 134, [
         "该部分只创建消息发送页面的标题、列表、底部提示和触摸行。",
         "真正的消息编码、路由和无线发送过程未纳入本文档。"
     ])
@@ -249,7 +249,7 @@ def build():
     ])
     para(doc, "用户查看 Recent 页面时，可使用上下或左右输入切换项目。列表项目超出显示区域后，当前焦点会自动滚动到可见范围。触摸设备可直接拖动列表并点击目标。当前页面强调近期网络节点发现，不作为完整的长期通信记录存档。")
     page(doc)
-    code_excerpt(doc, "7.1 Recent页面控件代码", "src/heltec/ui/screens/recent_screen.cpp", 1, 62, [
+    code_excerpt(doc, "7.1 Recent页面控件代码", "src/heltec/ui/screens/RecentScreen.cpp", 1, 62, [
         "该节选展示Recent页面使用的文本格式、行状态和页面初始化辅助逻辑。",
         "代码用于近期信息的界面呈现，不涉及无线广播解析的核心过程。"
     ])
@@ -266,7 +266,7 @@ def build():
     ])
     para(doc, "项目支持通过预设方式选择无线工作方案，并在设置变更后更新无线模块。用户应选择符合终端硬件和所在地无线电管理要求的配置。为保护项目核心实现，本说明书不列出内部报文、计算过程和完整底层参数表。")
     page(doc)
-    code_excerpt(doc, "8.1 Radio状态页面代码", "src/heltec/ui/screens/radio_screen.cpp", 1, 72, [
+    code_excerpt(doc, "8.1 Radio状态页面代码", "src/heltec/ui/screens/RadioScreen.cpp", 1, 72, [
         "该代码负责创建Radio页面标签并刷新RSSI、SNR等用户可见状态。",
         "节选不包含无线驱动初始化、调制参数应用或报文收发实现。"
     ])
@@ -284,7 +284,7 @@ def build():
     ])
     para(doc, "开启 GPS Track 或 Location Share 时，软件会自动开启 GPS，避免功能开关与定位模块状态不一致。经纬度手工输入完成后，当前版本优化了页面返回和数据同步流程。位置数据属于敏感信息，启用共享前应确认使用场景和接收范围。")
     page(doc)
-    code_excerpt(doc, "9.1 GPS页面开关与标签代码", "src/heltec/ui/screens/gps_screen.cpp", 60, 128, [
+    code_excerpt(doc, "9.1 GPS页面开关与标签代码", "src/heltec/ui/screens/GpsScreen.cpp", 60, 128, [
         "该节选创建GPS开关、位置共享开关和广播周期选择控件。",
         "代码属于页面布局与事件绑定部分，未展示定位算法、位置广播和功耗决策核心。"
     ])
@@ -342,7 +342,7 @@ def build():
     title(doc, "13.1 转发模式", 2)
     para(doc, "当前版本新增 Enable Repeat Mode 开关。用户打开后，从项目限定的 433、869 或 918 MHz 选项中选择转发频率；选择期间按 ESC 取消时保持转发模式关闭；启用成功后界面给出状态提示。该功能只允许当前软件认可的选项，并应在符合所在地规定的前提下使用。")
     page(doc)
-    code_excerpt(doc, "13.2 系统设置行创建代码", "src/heltec/ui/screens/system_screen_rows.cpp", 90, 174, [
+    code_excerpt(doc, "13.2 系统设置行创建代码", "src/heltec/ui/screens/SystemScreenRows.cpp", 90, 174, [
         "该代码用于创建系统设置中的操作行、开关行和下拉选择行。",
         "节选重点说明控件布局和事件绑定，不包含转发模式的无线应用逻辑。"
     ])
@@ -360,12 +360,12 @@ def build():
     ])
     para(doc, "当前版本统一将可操作列表行加入焦点组，解决小屏页面项目超出可视区域后的键盘翻页和自动滚动问题。V4 R8 TFT 对列表行高度、间距和选中状态进行了单独优化；导航图标、选中状态及布局也会按设备屏幕类型变化。")
     page(doc)
-    code_excerpt(doc, "14.1 按键焦点映射代码", "src/heltec/ui/core/focus_key_mapper.cpp", 1, 72, [
+    code_excerpt(doc, "14.1 按键焦点映射代码", "src/heltec/ui/core/FocusKeyMapper.cpp", 1, 72, [
         "该代码把设备按键转换为上一项、下一项、确认和返回等通用界面动作。",
         "映射层只处理人机交互，不读取或修改无线通信数据。"
     ])
     page(doc)
-    code_excerpt(doc, "14.2 导航页面配置代码", "src/heltec/ui/app/app_navigation.cpp", 96, 138, [
+    code_excerpt(doc, "14.2 导航页面配置代码", "src/heltec/ui/app/AppNavigation.cpp", 96, 138, [
         "该代码依据终端能力配置Home、Recent、Radio、Compass、GPS、Tracker和System页面。",
         "条件配置确保没有相应硬件能力的设备不会显示不可用页面。"
     ])
@@ -465,65 +465,65 @@ def build():
 
     # 附录按非核心模块逐页展示真实代码，使说明书总页数超过60页。
     appendix_samples = [
-        ("A.1 单色主题初始化", "src/heltec/ui/theme/theme_mono_flat.cpp", 1, 48,
+        ("A.1 单色主题初始化", "src/heltec/ui/theme/ThemeMonoFlat.cpp", 1, 48,
          ["该段负责单色屏幕的基础主题初始化。", "主题代码只改变控件外观，不参与通信业务。"]),
-        ("A.2 单色控件样式", "src/heltec/ui/theme/theme_mono_flat.cpp", 49, 102,
+        ("A.2 单色控件样式", "src/heltec/ui/theme/ThemeMonoFlat.cpp", 49, 102,
          ["该段设置标签、按钮和选择状态的单色显示效果。"]),
-        ("A.3 单色页面样式", "src/heltec/ui/theme/theme_mono_flat.cpp", 103, 160,
+        ("A.3 单色页面样式", "src/heltec/ui/theme/ThemeMonoFlat.cpp", 103, 160,
          ["该段根据控件类型应用页面样式和边框规则。"]),
-        ("A.4 像素主题初始化", "src/heltec/ui/theme/theme_pixel.cpp", 1, 52,
+        ("A.4 像素主题初始化", "src/heltec/ui/theme/ThemePixel.cpp", 1, 52,
          ["该段创建适用于小尺寸屏幕的像素化主题。"]),
-        ("A.5 像素主题控件处理", "src/heltec/ui/theme/theme_pixel.cpp", 53, 112,
+        ("A.5 像素主题控件处理", "src/heltec/ui/theme/ThemePixel.cpp", 53, 112,
          ["该段处理按钮、标签和选中状态的视觉表现。"]),
-        ("A.6 控件主题公共入口", "src/heltec/ui/theme/widget_theme.cpp", 1, 58,
+        ("A.6 控件主题公共入口", "src/heltec/ui/theme/WidgetTheme.cpp", 1, 58,
          ["该段是通用控件主题的入口和基础颜色配置。"]),
-        ("A.7 控件边框与背景", "src/heltec/ui/theme/widget_theme.cpp", 59, 118,
+        ("A.7 控件边框与背景", "src/heltec/ui/theme/WidgetTheme.cpp", 59, 118,
          ["该段集中设置控件背景、边框和透明度。"]),
-        ("A.8 控件文字样式", "src/heltec/ui/theme/widget_theme.cpp", 119, 178,
+        ("A.8 控件文字样式", "src/heltec/ui/theme/WidgetTheme.cpp", 119, 178,
          ["该段处理文本颜色、对齐和不同状态显示。"]),
-        ("A.9 按钮滚轮初始化", "src/heltec/ui/widgets/button_roller.cpp", 1, 62,
+        ("A.9 按钮滚轮初始化", "src/heltec/ui/widgets/ButtonRoller.cpp", 1, 62,
          ["该段初始化按钮滚轮使用的普通和选中样式。"]),
-        ("A.10 按钮滚轮焦点", "src/heltec/ui/widgets/button_roller.cpp", 63, 126,
+        ("A.10 按钮滚轮焦点", "src/heltec/ui/widgets/ButtonRoller.cpp", 63, 126,
          ["该段根据焦点状态更新滚轮项目的显示效果。"]),
-        ("A.11 按钮滚轮布局", "src/heltec/ui/widgets/button_roller.cpp", 127, 194,
+        ("A.11 按钮滚轮布局", "src/heltec/ui/widgets/ButtonRoller.cpp", 127, 194,
          ["该段计算可见项目和滚动位置，属于界面布局逻辑。"]),
-        ("A.12 顶部状态区域创建", "src/heltec/ui/widgets/top_pane.cpp", 1, 58,
+        ("A.12 顶部状态区域创建", "src/heltec/ui/widgets/TopPane.cpp", 1, 58,
          ["该段创建页面顶部状态区域使用的基础对象。"]),
-        ("A.13 顶部状态文字刷新", "src/heltec/ui/widgets/top_pane.cpp", 59, 118,
+        ("A.13 顶部状态文字刷新", "src/heltec/ui/widgets/TopPane.cpp", 59, 118,
          ["该段更新标题和状态文字，不处理底层业务数据。"]),
-        ("A.14 顶部状态图标布局", "src/heltec/ui/widgets/top_pane.cpp", 119, 182,
+        ("A.14 顶部状态图标布局", "src/heltec/ui/widgets/TopPane.cpp", 119, 182,
          ["该段负责状态图标的排列和可见性。"]),
-        ("A.15 输入类型定义", "src/heltec/ui/core/input_types.hpp", 1, 77,
+        ("A.15 输入类型定义", "src/heltec/ui/core/InputTypes.hpp", 1, 77,
          ["该段定义按键、触摸和通用界面输入的数据类型。"]),
-        ("A.16 输入适配入口", "src/heltec/ui/core/input_adapter.cpp", 1, 58,
+        ("A.16 输入适配入口", "src/heltec/ui/core/InputAdapter.cpp", 1, 58,
          ["该段把设备输入转换为界面能够识别的通用动作。"]),
-        ("A.17 输入事件分发", "src/heltec/ui/core/input_dispatcher.cpp", 1, 43,
+        ("A.17 输入事件分发", "src/heltec/ui/core/InputDispatcher.cpp", 1, 43,
          ["该段将已经标准化的输入事件交给当前界面处理。"]),
-        ("A.18 输入处理管线", "src/heltec/ui/core/input_pipeline.cpp", 1, 66,
+        ("A.18 输入处理管线", "src/heltec/ui/core/InputPipeline.cpp", 1, 66,
          ["该段组织输入读取、转换和分发的先后顺序。"]),
-        ("A.19 界面动画调度", "src/heltec/ui/core/scheduler.cpp", 1, 62,
+        ("A.19 界面动画调度", "src/heltec/ui/core/Scheduler.cpp", 1, 62,
          ["该段负责界面动画任务的创建和调度。"]),
-        ("A.20 界面动画执行", "src/heltec/ui/core/scheduler.cpp", 63, 128,
+        ("A.20 界面动画执行", "src/heltec/ui/core/Scheduler.cpp", 63, 128,
          ["该段处理动画状态更新和完成回调。"]),
-        ("A.21 屏幕对象公共行为", "src/heltec/ui/core/abstract_screen.cpp", 1, 62,
+        ("A.21 屏幕对象公共行为", "src/heltec/ui/core/AbstractScreen.cpp", 1, 62,
          ["该段提供所有功能页面共用的创建和进入退出行为。"]),
-        ("A.22 屏幕焦点管理", "src/heltec/ui/core/abstract_screen.cpp", 63, 132,
+        ("A.22 屏幕焦点管理", "src/heltec/ui/core/AbstractScreen.cpp", 63, 132,
          ["该段管理页面内控件的焦点注册和切换。"]),
-        ("A.23 覆盖层公共行为", "src/heltec/ui/core/abstract_overlay.cpp", 1, 51,
+        ("A.23 覆盖层公共行为", "src/heltec/ui/core/AbstractOverlay.cpp", 1, 51,
          ["该段实现提示框、键盘和快捷窗口共用的覆盖层行为。"]),
         ("A.24 延迟界面任务", "src/heltec/ui/core/ui_deferred_queue.cpp", 1, 70,
          ["该段用于延后执行界面任务，避免在输入回调中直接修改复杂控件。"]),
-        ("A.25 显示内存管理", "src/heltec/drivers/display/lv_mem_psram.cpp", 1, 40,
+        ("A.25 显示内存管理", "src/heltec/drivers/display/LvMemPsram.cpp", 1, 40,
          ["该段为图形界面提供外部内存申请和释放适配。"]),
-        ("A.26 按键输入初始化", "src/heltec/drivers/input/key_input.cpp", 1, 62,
+        ("A.26 按键输入初始化", "src/heltec/drivers/input/KeyInput.cpp", 1, 62,
          ["该段初始化物理按键并准备界面输入设备。"]),
-        ("A.27 按键状态读取", "src/heltec/drivers/input/key_input.cpp", 63, 132,
+        ("A.27 按键状态读取", "src/heltec/drivers/input/KeyInput.cpp", 63, 132,
          ["该段读取按键状态并转换为界面按键值。"]),
-        ("A.28 瞬时按键消抖", "src/heltec/drivers/input/momentary_button.cpp", 1, 68,
+        ("A.28 瞬时按键消抖", "src/heltec/drivers/input/MomentaryButton.cpp", 1, 68,
          ["该段处理机械按键消抖和按下释放状态。"]),
-        ("A.29 触摸手势识别", "src/heltec/drivers/input/touch_gesture_input.cpp", 1, 72,
+        ("A.29 触摸手势识别", "src/heltec/drivers/input/TouchGestureInput.cpp", 1, 72,
          ["该段识别点击、滑动和长按等基础手势。"]),
-        ("A.30 触摸坐标输入", "src/heltec/drivers/input/touch_input.cpp", 1, 82,
+        ("A.30 触摸坐标输入", "src/heltec/drivers/input/TouchInput.cpp", 1, 82,
          ["该段读取触摸坐标并生成图形界面的指针输入。"]),
     ]
     if INCLUDE_EMBEDDED_CODE:

@@ -179,7 +179,7 @@
 #define PIN_TFT_DC                (48)
 #endif
 
-// HSPI (SPI1): ST7789 + microSD share one bus; begin() in heltec_v4_r8_board.cpp
+// HSPI (SPI1): ST7789 + microSD share one bus; begin() in HeltecV4R8Board.cpp
 #undef SPI_INTERFACES_COUNT
 #define SPI_INTERFACES_COUNT      (2)
 #ifndef PIN_SPI1_SCK
@@ -222,15 +222,6 @@
 #endif
 #ifndef DISPLAY_SCALE_Y
 #define DISPLAY_SCALE_Y           3.75f
-#endif
-#ifndef HELTEC_TFT_HOR_RES
-#define HELTEC_TFT_HOR_RES        240
-#endif
-#ifndef HELTEC_TFT_VER_RES
-#define HELTEC_TFT_VER_RES        320
-#endif
-#ifndef DISPLAY_ROTATION
-#define DISPLAY_ROTATION          2
 #endif
 #ifndef ST7789_LVGL_INVERT
 #define ST7789_LVGL_INVERT        1

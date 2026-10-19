@@ -125,12 +125,12 @@ timestamp + flags + "sender_name: message"
 | Group Data 分发 | `src/helpers/BaseChatMesh.cpp` | 解析 16 位 `data_type` 和 8 位 `data_len` |
 | Group Text 发送 | `src/helpers/BaseChatMesh.cpp` | `sendGroupMessage()` 创建并 Flood Group Text |
 | Group Data 发送 | `src/helpers/BaseChatMesh.cpp` | `sendGroupData()` 支持 Flood 或 Direct |
-| Heltec Group UI | `src/heltec/app/mesh_app_ui_messaging.cpp` | 已支持选择 Group channel 并发送文本 |
+| Heltec Group UI | `src/heltec/app/MeshAppUiMessaging.cpp` | 已支持选择 Group channel 并发送文本 |
 | 位置 Advert 调度 | `src/heltec/app/HeltecMesh.cpp` | `pollLocShareAdvert()` 按周期/移动距离发送 Advert |
 | Advert 位置入库 | `src/heltec/app/HeltecMesh.cpp` | `onAdvertRecv()` 将位置关联到全局 Contact |
-| Find Friend 数据源 | `src/heltec/app/mesh_app_ui_find_friend.cpp` | 从 Contact 表筛选有 GPS 的联系人 |
-| T1 UI | `src/heltec/ui/screens/find_friend_screen.cpp` | 单目标导航与 Waypoint |
-| V4 R8 TFT 构建 | `variants/heltec_v4_r8/platformio.ini` | TFT 当前排除了 `find_friend_screen.cpp` |
+| Find Friend 数据源 | `src/heltec/app/MeshAppUiFindFriend.cpp` | 从 Contact 表筛选有 GPS 的联系人 |
+| T1 UI | `src/heltec/ui/screens/FindFriendScreen.cpp` | 单目标导航与 Waypoint |
+| V4 R8 TFT 构建 | `variants/heltec_v4_r8/Platformio.ini` | TFT 当前排除了 `FindFriendScreen.cpp` |
 | 偏好存储 | `src/heltec/config/NodePrefs.h`、`DataStore.cpp` | `/new_prefs` 按固定偏移逐字段读写 |
 
 重要约束：
@@ -153,12 +153,12 @@ timestamp + flags + "sender_name: message"
 新增两个无 UI 依赖的模块：
 
 ```text
-src/heltec/app/team_protocol.hpp
-src/heltec/app/team_protocol.cpp
-src/heltec/app/team_join_service.hpp
-src/heltec/app/team_join_service.cpp
-src/heltec/app/team_service.hpp
-src/heltec/app/team_service.cpp
+src/heltec/app/TeamProtocol.hpp
+src/heltec/app/TeamProtocol.cpp
+src/heltec/app/TeamJoinService.hpp
+src/heltec/app/TeamJoinService.cpp
+src/heltec/app/TeamService.hpp
+src/heltec/app/TeamService.cpp
 ```
 
 模块职责：
@@ -928,7 +928,7 @@ Team 仅存在于 RAM，不序列化凭据、队名、Team Key、成员表、加
 
 ### 12.1 通用 facade
 
-在 `biz_facade.hpp` 增加只读 DTO 和操作接口，不暴露 `TeamMember` 内部指针：
+在 `BizFacade.hpp` 增加只读 DTO 和操作接口，不暴露 `TeamMember` 内部指针：
 
 ```text
 TeamUiSnapshot
@@ -978,7 +978,7 @@ Team member 位置变化只发送 invalidation event，screen 在刷新时从 fa
 
 当 V4 R8 TFT 构建为 Leader 时，Tracker Screen 提供成员地图和审批界面。这是该型号的
 可视化能力，不是 Leader 协议对设备型号的限制。V4 R8 TFT 当前排除了
-`find_friend_screen.cpp`，不能简单打开 T1 单目标罗盘页面。新增 TFT Team 页面，建议文件：
+`FindFriendScreen.cpp`，不能简单打开 T1 单目标罗盘页面。新增 TFT Team 页面，建议文件：
 
 ```text
 src/heltec/ui/screens/team_map_screen.hpp
@@ -1088,8 +1088,8 @@ static_assert(HELTEC_TEAM_ROLE == 0 || HELTEC_TEAM_ROLE == 1,
 
 仅在以下目标启用：
 
-- `variants/heltec_t1/platformio.ini` 的 companion radio USB/BLE 环境。
-- `variants/heltec_v4_r8/platformio.ini` 的 TFT companion radio USB/BLE/Wi-Fi 环境。
+- `variants/heltec_t1/Platformio.ini` 的 companion radio USB/BLE 环境。
+- `variants/heltec_v4_r8/Platformio.ini` 的 TFT companion radio USB/BLE/Wi-Fi 环境。
 
 T1 不需要额外角色 build flag，使用默认 `HELTEC_TEAM_ROLE=0`。V4 R8 TFT 的三个
 Team companion 环境通过共享 PlatformIO section 追加：
@@ -1126,10 +1126,10 @@ E～G 合并到发布分支的前置门禁是 B 的 wire encoding 获得上游�
 
 ### 阶段 A：协议和主机测试
 
-1. 新建 `team_protocol.hpp/.cpp`。
+1. 新建 `TeamProtocol.hpp/.cpp`。
 2. 定义开发 data type 和三个 subtype。
 3. 实现小端读写、Presence/Location/Sync 编解码。
-4. 新建 `test/test_team_protocol/test_team_protocol.cpp`。
+4. 新建 `test/test_team_protocol/test_TeamProtocol.cpp`。
 5. 覆盖正常、截断、超长名称、非法坐标、未知版本、未知 subtype。
 6. 以仓库现有主机测试框架添加 corpus/fuzz 入口，对 0～165 字节任意输入确保不越界。
 

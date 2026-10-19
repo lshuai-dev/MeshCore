@@ -1,5 +1,5 @@
 #include <Arduino.h>
-#include "target.h"
+#include "Target.h"
 
 Heltec_CT62_Board board;
 

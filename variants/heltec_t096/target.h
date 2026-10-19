@@ -2,18 +2,18 @@
 
 #define RADIOLIB_STATIC_ONLY 1
 #include <RadioLib.h>
-#include <t096_board.h>
+#include <T096Board.h>
 #include <helpers/AutoDiscoverRTCClock.h>
 #include <helpers/radiolib/CustomSX1262Wrapper.h>
 #include <helpers/radiolib/RadioLibWrappers.h>
 #if defined(HELTEC_SENSOR_MANAGER) && HELTEC_SENSOR_MANAGER
-#include "sensors/heltec_environment_sensor_manager.h"
+#include "sensors/HeltecEnvironmentSensorManager.h"
 #else
 #include <helpers/sensors/EnvironmentSensorManager.h>
 #endif
 #include <helpers/sensors/LocationProvider.h>
 
-#if defined(DISPLAY_CLASS) && !defined(HELTEC_DISPLAY_ST7735)
+#if defined(DISPLAY_CLASS) && !(defined(LV_CONF_SKIP) && LV_CONF_SKIP)
 #include <helpers/ui/MomentaryButton.h>
 #include <helpers/ui/ST7735Display.h>
 #else
@@ -29,7 +29,7 @@ extern HeltecEnvironmentSensorManager sensors;
 extern EnvironmentSensorManager sensors;
 #endif
 
-#if defined(DISPLAY_CLASS) && !defined(HELTEC_DISPLAY_ST7735)
+#if defined(DISPLAY_CLASS) && !(defined(LV_CONF_SKIP) && LV_CONF_SKIP)
 extern DISPLAY_CLASS display;
 extern MomentaryButton user_btn;
 #endif

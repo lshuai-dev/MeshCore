@@ -1,0 +1,274 @@
+#include "SurfaceManager.hpp"
+
+#include "Surface.hpp"
+
+#include "heltec/drivers/input/KeyInput.hpp"
+
+#include <lvgl.h>
+
+namespace heltec::meshcore::ui
+{
+
+bool SurfaceManager::isAvailable(const UiSurface *surface)
+{
+    lv_obj_t *const root = surface ? surface->root() : nullptr;
+    return root && lv_obj_is_valid(root);
+}
+
+bool SurfaceManager::isFocusEligible(const lv_obj_t *object)
+{
+    if (!object || !lv_obj_is_valid(object) || lv_obj_has_state(object, LV_STATE_DISABLED))
+    {
+        return false;
+    }
+    for (const lv_obj_t *parent = object; parent; parent = lv_obj_get_parent(parent))
+    {
+        if (lv_obj_has_flag(parent, LV_OBJ_FLAG_HIDDEN))
+        {
+            return false;
+        }
+    }
+    return true;
+}
+
+UiSurface *SurfaceManager::active() const
+{
+    for (uint8_t index = _presented_count; index > 0; --index)
+    {
+        UiSurface *const surface = _presented[index - 1U];
+        if (isAvailable(surface) && !lv_obj_has_flag(surface->root(), LV_OBJ_FLAG_HIDDEN))
+        {
+            return surface;
+        }
+    }
+    return isAvailable(_root) ? _root : nullptr;
+}
+
+void SurfaceManager::enter(UiSurface *surface)
+{
+    if (!isAvailable(surface))
+    {
+        return;
+    }
+
+    lv_obj_t *const object = surface->root();
+    lv_obj_clear_flag(object, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_move_foreground(object);
+    surface->onEnter();
+}
+
+void SurfaceManager::exit(UiSurface *surface)
+{
+    if (!isAvailable(surface))
+    {
+        return;
+    }
+
+    surface->onExit();
+    if (surface != _root)
+    {
+        lv_obj_add_flag(surface->root(), LV_OBJ_FLAG_HIDDEN);
+    }
+}
+
+void SurfaceManager::bindInput(UiSurface *surface)
+{
+    if (!isAvailable(surface))
+    {
+        clearInput();
+        return;
+    }
+
+    lv_group_t *const group = surface->group();
+    if (!group)
+    {
+        clearInput();
+        return;
+    }
+
+    const bool changed = _bound_surface != surface;
+    const bool preserve_editing = lv_group_get_editing(group);
+    lv_group_set_default(group);
+    heltec::meshcore::dal::key_input::set_group(group);
+    lv_obj_t *const focused = lv_group_get_focused(group);
+    const bool focus_valid = isFocusEligible(focused) && lv_obj_get_group(focused) == group;
+    if (!focus_valid && lv_group_get_obj_count(group) > 0)
+    {
+        lv_group_focus_next(group);
+    }
+    if (preserve_editing)
+    {
+        lv_group_set_editing(group, true);
+    }
+    _bound_surface = surface;
+    if (changed)
+    {
+        surface->onActivated();
+    }
+}
+
+void SurfaceManager::clearInput()
+{
+    lv_group_set_default(nullptr);
+    heltec::meshcore::dal::key_input::set_group(nullptr);
+    _bound_surface = nullptr;
+}
+
+int SurfaceManager::find(const UiSurface *surface) const
+{
+    if (!surface)
+    {
+        return -1;
+    }
+    for (uint8_t index = 0; index < _presented_count; ++index)
+    {
+        if (_presented[index] == surface)
+        {
+            return static_cast<int>(index);
+        }
+    }
+    return -1;
+}
+
+void SurfaceManager::remove(uint8_t index)
+{
+    if (index >= _presented_count)
+    {
+        return;
+    }
+    for (uint8_t current = index; current + 1U < _presented_count; ++current)
+    {
+        _presented[current] = _presented[current + 1U];
+    }
+    _presented[--_presented_count] = nullptr;
+}
+
+void SurfaceManager::setRoot(UiSurface *surface)
+{
+    if (!isAvailable(surface))
+    {
+        return;
+    }
+    if (_root == surface)
+    {
+        reconcile();
+        return;
+    }
+
+    /* The manager owns one base slot. Screen roots remain visible because
+       the application TileView controls their clipping and visibility. */
+    if (_root)
+    {
+        exit(_root);
+    }
+    _root = surface;
+    enter(_root);
+    bindInput(active());
+}
+
+bool SurfaceManager::show(UiSurface *surface, bool visible)
+{
+    if (!visible)
+    {
+        const int index = find(surface);
+        if (index < 0)
+        {
+            return false;
+        }
+
+        const bool was_active = isActive(surface);
+        if (was_active)
+        {
+            clearInput();
+        }
+        exit(surface);
+        remove(static_cast<uint8_t>(index));
+        if (was_active)
+        {
+            bindInput(active());
+        }
+        return true;
+    }
+
+    if (!isAvailable(surface) || surface == _root)
+    {
+        return false;
+    }
+
+    const int existing = find(surface);
+    if (existing >= 0)
+    {
+        if (isActive(surface) && isVisible(surface))
+        {
+            bindInput(surface);
+            return true;
+        }
+        remove(static_cast<uint8_t>(existing));
+    }
+    else if (_presented_count >= kMaxPresentedSurfaces)
+    {
+        return false;
+    }
+
+    _presented[_presented_count++] = surface;
+    enter(surface);
+    if (!isAvailable(surface))
+    {
+        remove(static_cast<uint8_t>(_presented_count - 1U));
+        reconcile();
+        return false;
+    }
+    bindInput(surface);
+    return true;
+}
+
+bool SurfaceManager::isActive(const UiSurface *surface) const
+{
+    return surface && active() == surface;
+}
+
+bool SurfaceManager::isVisible(const UiSurface *surface) const
+{
+    if (!isAvailable(surface))
+    {
+        return false;
+    }
+    const bool managed = surface == _root || find(surface) >= 0;
+    return managed && !lv_obj_has_flag(surface->root(), LV_OBJ_FLAG_HIDDEN);
+}
+
+bool SurfaceManager::dispatchToActive(EventType type, const void *payload)
+{
+    UiSurface *const surface = active();
+    return isAvailable(surface) && ht_event_send(surface->root(), type, payload);
+}
+
+void SurfaceManager::dispatchAppStateToActive(const AppStateEvent &event)
+{
+    UiSurface *const surface = active();
+    if (isAvailable(surface))
+    {
+        surface->onAppStateChanged(event);
+    }
+}
+
+void SurfaceManager::reconcile()
+{
+    uint8_t index = 0;
+    while (index < _presented_count)
+    {
+        UiSurface *const surface = _presented[index];
+        if (!isAvailable(surface))
+        {
+            remove(index);
+            continue;
+        }
+        /* Hidden roots remain presented: they may be temporarily hidden by
+           an animation or by an internal overlay state. Only show(false)
+           performs the lifecycle exit and removes a surface. */
+        ++index;
+    }
+    bindInput(active());
+}
+
+} // namespace heltec::meshcore::ui

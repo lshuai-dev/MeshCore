@@ -24,7 +24,7 @@
 #include <helpers/ClientACL.h>
 #include <helpers/RegionMap.h>
 #include <RTClib.h>
-#include <target.h>
+#include <Target.h>
 
 #define PERM_RESERVED1         (1 << 2)
 #define PERM_RESERVED2         (1 << 3)

@@ -32,7 +32,7 @@
 #include <helpers/IdentityStore.h>
 #include <helpers/SimpleMeshTables.h>
 #include <helpers/StaticPoolPacketManager.h>
-#include <target.h>
+#include <Target.h>
 
 /* ---------------------------------- CONFIGURATION ------------------------------------- */
 

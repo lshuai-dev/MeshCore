@@ -2,12 +2,12 @@
 
 #define RADIOLIB_STATIC_ONLY 1
 #include <RadioLib.h>
-#include <t114_board.h>
+#include <T114Board.h>
 #include <helpers/AutoDiscoverRTCClock.h>
 #include <helpers/radiolib/CustomSX1262Wrapper.h>
 #include <helpers/radiolib/RadioLibWrappers.h>
 #if defined(HELTEC_SENSOR_MANAGER) && HELTEC_SENSOR_MANAGER
-#include <heltec/sensors/heltec_environment_sensor_manager.h>
+#include <heltec/sensors/HeltecEnvironmentSensorManager.h>
 #else
 #include <helpers/sensors/EnvironmentSensorManager.h>
 #endif
@@ -15,7 +15,7 @@
 
 #ifdef DISPLAY_CLASS
 #include <helpers/ui/MomentaryButton.h>
-#ifdef HELTEC_T114_WITH_DISPLAY
+#ifdef ST7789
 #include <helpers/ui/ST7789Display.h>
 #else
 #include "helpers/ui/NullDisplayDriver.h"

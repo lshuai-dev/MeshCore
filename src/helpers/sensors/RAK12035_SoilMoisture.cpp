@@ -78,7 +78,7 @@ void RAK12035_SoilMoisture::setup(TwoWire &i2c)
 //      The begin() function would need to be modified to loop through the three addresses
 //
 // DEBUG STATEMENTS: Can be enabled by uncommenting or adding:
-//      File:    variants/rak4631 platformio.ini
+//      File:    variants/rak4631 Platformio.ini
 //      Section example: [env:RAK_4631_companion_radio_ble] 
 //      Enable Debug statements: -D MESH_DEBUG=1
 // 

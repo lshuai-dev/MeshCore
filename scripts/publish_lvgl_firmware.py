@@ -77,8 +77,8 @@ def parse_args(argv: Sequence[str]) -> argparse.Namespace:
 def find_repo_root() -> Path:
     script_dir = Path(__file__).resolve().parent
     repo = script_dir.parent
-    if not (repo / "platformio.ini").is_file():
-        raise RuntimeError(f"platformio.ini was not found under {repo}")
+    if not (repo / "Platformio.ini").is_file():
+        raise RuntimeError(f"Platformio.ini was not found under {repo}")
     return repo
 
 
@@ -210,8 +210,8 @@ def load_targets(repo: Path, pio: Path) -> list[Target]:
 
 
 def platformio_files(repo: Path) -> list[Path]:
-    files = [repo / "platformio.ini"]
-    files.extend(sorted((repo / "variants").glob("*/platformio.ini")))
+    files = [repo / "Platformio.ini"]
+    files.extend(sorted((repo / "variants").glob("*/Platformio.ini")))
     local = repo / "platformio.local.ini"
     if local.is_file():
         files.append(local)

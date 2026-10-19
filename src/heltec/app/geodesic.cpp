@@ -1,4 +1,4 @@
-#include "geodesic.hpp"
+#include "Geodesic.hpp"
 
 #include <math.h>
 

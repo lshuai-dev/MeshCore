@@ -1,5 +1,5 @@
 #include <Arduino.h>
-#include "heltec/ui/images.h"
+#include "heltec/ui/Images.h"
 
 // Per-board LVGL bitmaps �?heltec_v4_r8 (64x64 TRUE_COLOR_ALPHA + 1bpp helpers).
 

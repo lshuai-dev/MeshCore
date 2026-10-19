@@ -1,0 +1,72 @@
+/**
+ * @file    TeamConfig.hpp
+ * @brief   Compile-time configuration for the Heltec Team feature.
+ * @version 1.0
+ * @date    2026-09-04
+ */
+#pragma once
+
+#ifndef HELTEC_TEAM_MAX_MEMBERS
+#define HELTEC_TEAM_MAX_MEMBERS 32
+#endif
+
+#ifndef HELTEC_TEAM_JOIN_CONFIRM_SEC
+#define HELTEC_TEAM_JOIN_CONFIRM_SEC 30
+#endif
+
+#ifndef HELTEC_TEAM_JOIN_MAX_SESSIONS
+#define HELTEC_TEAM_JOIN_MAX_SESSIONS 4
+#endif
+
+#if HELTEC_TEAM_JOIN_MAX_SESSIONS < 1 || HELTEC_TEAM_JOIN_MAX_SESSIONS > 4
+#error "HELTEC_TEAM_JOIN_MAX_SESSIONS must be between 1 and 4"
+#endif
+
+#ifndef HELTEC_TEAM_LOCATION_IDLE_PERIOD_SEC
+#define HELTEC_TEAM_LOCATION_IDLE_PERIOD_SEC 300
+#endif
+
+#ifndef HELTEC_TEAM_LOCATION_MOVE_THRESHOLD_E6
+#define HELTEC_TEAM_LOCATION_MOVE_THRESHOLD_E6 45
+#endif
+
+#ifndef HELTEC_TEAM_LOCATION_EVENT_MIN_PERIOD_SEC
+#define HELTEC_TEAM_LOCATION_EVENT_MIN_PERIOD_SEC 5
+#endif
+
+#ifndef HELTEC_TEAM_PRESENCE_PERIOD_SEC
+#define HELTEC_TEAM_PRESENCE_PERIOD_SEC 900
+#endif
+
+#ifndef HELTEC_TEAM_LEADER_HEARTBEAT_SEC
+#define HELTEC_TEAM_LEADER_HEARTBEAT_SEC 60
+#endif
+
+#ifndef HELTEC_TEAM_LEADER_TIMEOUT_SEC
+#define HELTEC_TEAM_LEADER_TIMEOUT_SEC 180
+#endif
+
+#ifndef HELTEC_TEAM_MEMBER_TIMEOUT_SEC
+#define HELTEC_TEAM_MEMBER_TIMEOUT_SEC 1200UL
+#endif
+
+static_assert(HELTEC_TEAM_LEADER_TIMEOUT_SEC > HELTEC_TEAM_LEADER_HEARTBEAT_SEC * 2,
+              "Leader timeout must tolerate two missed heartbeats");
+
+#if HELTEC_TEAM_MAX_MEMBERS < 1 || HELTEC_TEAM_MAX_MEMBERS > 32
+#error "HELTEC_TEAM_MAX_MEMBERS must be between 1 and 32"
+#endif
+
+#if defined(ENV_INCLUDE_GPS) && ENV_INCLUDE_GPS
+#ifndef MAX_GROUP_CHANNELS
+#error "Find Friend Team support requires MAX_GROUP_CHANNELS"
+#endif // ENV_INCLUDE_GPS
+
+#define HELTEC_TEAM_USER_CHANNEL_CAPACITY (MAX_GROUP_CHANNELS - 2)
+#define HELTEC_TEAM_JOIN_CHANNEL_INDEX     (MAX_GROUP_CHANNELS - 2)
+#define HELTEC_TEAM_CHANNEL_INDEX          (MAX_GROUP_CHANNELS - 1)
+
+static_assert(MAX_GROUP_CHANNELS >= 3, "Team requires two reserved group channel slots");
+static_assert(HELTEC_TEAM_JOIN_CHANNEL_INDEX + 1 == HELTEC_TEAM_CHANNEL_INDEX,
+              "Team system channel slots must be contiguous");
+#endif

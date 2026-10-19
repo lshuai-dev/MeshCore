@@ -1,0 +1,476 @@
+#include "MomentaryButton.hpp"
+
+#include "KeyInput.hpp"
+#include "MomentaryButtonDetail.hpp"
+
+#include <Arduino.h>
+
+#ifndef HELTEC_BUTTON_MAX_CLICKS
+#define HELTEC_BUTTON_MAX_CLICKS 3
+#endif
+
+namespace heltec::meshcore::dal::momentary_button
+{
+namespace
+{
+
+static_assert(HELTEC_UI_BUTTON_COUNT >= 1 && HELTEC_UI_BUTTON_COUNT <= 4,
+              "HELTEC_UI_BUTTON_COUNT must be 1..4");
+
+#if defined(HELTEC_HAS_KEY_FRAME) && HELTEC_HAS_KEY_FRAME
+static constexpr uint8_t kEdgeCap = 16;
+#else
+static constexpr uint8_t kEdgeCap = 4;
+#endif
+
+#if defined(ESP_PLATFORM)
+#define BTN_ISR IRAM_ATTR
+#else
+#define BTN_ISR
+#endif
+
+struct ButtonState
+{
+    int8_t pin = -1;
+    uint8_t active_level = 1;
+    uint8_t prev = 0;
+#if defined(HELTEC_HAS_KEY_FRAME) && HELTEC_HAS_KEY_FRAME
+    uint8_t candidate_level = 0;
+    unsigned long candidate_since = 0;
+#endif
+    unsigned long down_at = 0;
+    unsigned long next_repeat_at = 0;
+    unsigned long last_edge_at = 0;
+    uint8_t clicks = 0;
+    unsigned long last_release = 0;
+    bool long_fired = false;
+    KeyMap map;
+    volatile uint8_t edge_head = 0;
+    volatile uint8_t edge_tail = 0;
+    volatile uint8_t edge_level[kEdgeCap] = {};
+    volatile unsigned long edge_at[kEdgeCap] = {};
+};
+
+static Config s_cfg;
+static ButtonState s_buttons[HELTEC_UI_BUTTON_COUNT];
+static bool s_gpio_ready = false;
+static bool s_irq_attached = false;
+static GestureEmitFn s_gesture_emit = nullptr;
+
+static inline bool is_pressed(uint8_t level, uint8_t active_level)
+{
+    return level == active_level;
+}
+
+static uint32_t key_for_clicks(const KeyMap &map, uint8_t count)
+{
+    if (count == 1)
+        return map.click;
+    if (count == 2)
+        return map.dbl;
+    return map.tri;
+}
+
+static ButtonGesture gesture_for_clicks(uint8_t count)
+{
+    if (count <= 1)
+        return ButtonGesture::Click;
+    if (count == 2)
+        return ButtonGesture::Double;
+    return ButtonGesture::Triple;
+}
+
+static void emit_gesture(uint8_t slot, ButtonGesture gesture)
+{
+    if (s_gesture_emit)
+    {
+        s_gesture_emit(slot, gesture);
+        return;
+    }
+
+    if (gesture == ButtonGesture::LongRepeat)
+        return;
+
+    const ButtonState &button = s_buttons[slot];
+    const uint32_t key = (gesture == ButtonGesture::Long)
+                             ? button.map.long_press
+                             : key_for_clicks(button.map, static_cast<uint8_t>(gesture));
+    key_input::post(key, gesture == ButtonGesture::Long ? key_input::KeyDelivery::Pulse
+                                                        : key_input::KeyDelivery::Tracked);
+}
+
+static void BTN_ISR enqueue_level(uint8_t slot)
+{
+    if (slot >= HELTEC_UI_BUTTON_COUNT)
+        return;
+    ButtonState &button = s_buttons[slot];
+    if (button.pin < 0)
+        return;
+
+    const uint8_t level = (uint8_t)digitalRead((uint8_t)button.pin);
+    const uint8_t next = (uint8_t)((button.edge_tail + 1U) % kEdgeCap);
+    if (next == button.edge_head)
+    {
+        button.edge_head = (uint8_t)((button.edge_head + 1U) % kEdgeCap);
+    }
+    button.edge_level[button.edge_tail] = level;
+    button.edge_at[button.edge_tail] = millis();
+    button.edge_tail = next;
+}
+
+#if HELTEC_UI_BUTTON_COUNT >= 1
+static void BTN_ISR isr0()
+{
+    enqueue_level(0);
+}
+#endif
+#if HELTEC_UI_BUTTON_COUNT >= 2
+static void BTN_ISR isr1()
+{
+    enqueue_level(1);
+}
+#endif
+#if HELTEC_UI_BUTTON_COUNT >= 3
+static void BTN_ISR isr2()
+{
+    enqueue_level(2);
+}
+#endif
+#if HELTEC_UI_BUTTON_COUNT >= 4
+static void BTN_ISR isr3()
+{
+    enqueue_level(3);
+}
+#endif
+
+static void (*isr_for_slot(uint8_t slot))()
+{
+    switch (slot)
+    {
+#if HELTEC_UI_BUTTON_COUNT >= 1
+    case 0:
+        return isr0;
+#endif
+#if HELTEC_UI_BUTTON_COUNT >= 2
+    case 1:
+        return isr1;
+#endif
+#if HELTEC_UI_BUTTON_COUNT >= 3
+    case 2:
+        return isr2;
+#endif
+#if HELTEC_UI_BUTTON_COUNT >= 4
+    case 3:
+        return isr3;
+#endif
+    default:
+        return nullptr;
+    }
+}
+
+static void detach_irqs()
+{
+    if (!s_irq_attached)
+        return;
+    for (uint8_t i = 0; i < HELTEC_UI_BUTTON_COUNT; ++i)
+    {
+        const int8_t pin = s_buttons[i].pin;
+        if (pin < 0)
+            continue;
+        const int irq = digitalPinToInterrupt((uint8_t)pin);
+        if (irq >= 0)
+            detachInterrupt(irq);
+    }
+    s_irq_attached = false;
+}
+
+static void attach_irqs()
+{
+    detach_irqs();
+    for (uint8_t i = 0; i < HELTEC_UI_BUTTON_COUNT; ++i)
+    {
+        const int8_t pin = s_buttons[i].pin;
+        if (pin < 0)
+            continue;
+
+        void (*isr)() = isr_for_slot(i);
+        if (!isr)
+            continue;
+
+        const int irq = digitalPinToInterrupt((uint8_t)pin);
+        if (irq >= 0)
+            attachInterrupt(irq, isr, CHANGE);
+    }
+    s_irq_attached = true;
+}
+
+static void accept_level(ButtonState &button, uint8_t slot, uint8_t level,
+                         unsigned long now)
+{
+    if (level == button.prev)
+        return;
+
+    if (is_pressed(level, button.active_level))
+    {
+        button.down_at = now;
+        button.next_repeat_at = 0;
+        button.long_fired = false;
+    }
+    else if (button.down_at > 0)
+    {
+        const unsigned long held = now - button.down_at;
+        if (!button.long_fired &&
+            (s_cfg.long_press_ms == 0 || held < s_cfg.long_press_ms))
+        {
+            ++button.clicks;
+            if (HELTEC_BUTTON_MAX_CLICKS >= 3 && button.clicks >= 3)
+            {
+                emit_gesture(slot, ButtonGesture::Triple);
+                button.clicks = 0;
+                button.last_release = 0;
+            }
+            else if (button.clicks > HELTEC_BUTTON_MAX_CLICKS)
+            {
+                emit_gesture(slot, gesture_for_clicks(HELTEC_BUTTON_MAX_CLICKS));
+                button.clicks = 1;
+                button.last_release = now;
+            }
+            else
+            {
+                button.last_release = now;
+            }
+        }
+        else if (!button.long_fired && button.clicks == 0)
+        {
+            // A complete long press can occur while an E-paper refresh blocks
+            // the UI task. Reconstruct it from the timestamped ISR edges.
+            emit_gesture(slot, ButtonGesture::Long);
+        }
+        else
+        {
+            button.clicks = 0;
+            button.last_release = 0;
+        }
+        button.down_at = 0;
+        button.next_repeat_at = 0;
+        button.long_fired = false;
+    }
+
+    button.prev = level;
+}
+
+static void drain_edges(ButtonState &button, uint8_t slot, unsigned long now)
+{
+    while (button.edge_head != button.edge_tail)
+    {
+        const uint8_t edge_index = button.edge_head;
+        const uint8_t level = button.edge_level[edge_index];
+        const unsigned long edge_at = button.edge_at[edge_index];
+        button.edge_head = (uint8_t)((button.edge_head + 1U) % kEdgeCap);
+        if (level == button.prev)
+            continue;
+        if (s_cfg.debounce_ms > 0 && button.last_edge_at > 0 &&
+            (edge_at - button.last_edge_at) < s_cfg.debounce_ms)
+        {
+            continue;
+        }
+        button.last_edge_at = edge_at;
+
+        accept_level(button, slot, level, edge_at);
+    }
+}
+
+#if defined(HELTEC_HAS_KEY_FRAME) && HELTEC_HAS_KEY_FRAME
+static void confirm_stable_level(ButtonState &button, uint8_t slot, unsigned long now)
+{
+    // Replay all timestamped candidates. This preserves a complete click even
+    // when panel->update() blocks polling until the GPIO is idle again.
+    while (button.edge_head != button.edge_tail)
+    {
+        const uint8_t index = button.edge_head;
+        const uint8_t level = button.edge_level[index];
+        const unsigned long edge_at = button.edge_at[index];
+        button.edge_head = (uint8_t)((button.edge_head + 1U) % kEdgeCap);
+        if (level == button.candidate_level)
+            continue;
+
+        if (button.candidate_level != button.prev &&
+            (edge_at - button.candidate_since) >= s_cfg.debounce_ms)
+        {
+            accept_level(button, slot, button.candidate_level,
+                         button.candidate_since + s_cfg.debounce_ms);
+        }
+        button.candidate_level = level;
+        button.candidate_since = edge_at;
+    }
+
+    const uint8_t level = (uint8_t)digitalRead((uint8_t)button.pin);
+    if (level != button.candidate_level)
+    {
+        button.candidate_level = level;
+        button.candidate_since = now;
+    }
+    if (button.candidate_level == button.prev)
+        return;
+    if (s_cfg.debounce_ms > 0 && (now - button.candidate_since) < s_cfg.debounce_ms)
+        return;
+
+    accept_level(button, slot, button.candidate_level,
+                 button.candidate_since + s_cfg.debounce_ms);
+}
+#endif
+
+static void tick_button(ButtonState &button, uint8_t slot, unsigned long now)
+{
+    if (button.pin < 0)
+        return;
+
+#if defined(HELTEC_HAS_KEY_FRAME) && HELTEC_HAS_KEY_FRAME
+    if (s_cfg.stable_level_debounce)
+        confirm_stable_level(button, slot, now);
+    else
+        drain_edges(button, slot, now);
+#else
+    drain_edges(button, slot, now);
+#endif
+
+    if (s_cfg.long_press_ms > 0 && button.down_at > 0 && !button.long_fired &&
+        (now - button.down_at) >= s_cfg.long_press_ms)
+    {
+        const bool emit_long = button.clicks == 0;
+        if (button.clicks > 0)
+        {
+            button.clicks = 0;
+            button.last_release = 0;
+        }
+        else
+        {
+            emit_gesture(slot, ButtonGesture::Long);
+        }
+        button.long_fired = true;
+        if (emit_long && s_cfg.buttons[slot].long_repeat_ms > 0)
+        {
+            button.next_repeat_at = now + s_cfg.buttons[slot].long_repeat_ms;
+        }
+        return;
+    }
+
+    if (button.long_fired && button.next_repeat_at > 0 &&
+        static_cast<int32_t>(now - button.next_repeat_at) >= 0)
+    {
+        emit_gesture(slot, ButtonGesture::LongRepeat);
+        button.next_repeat_at = now + s_cfg.buttons[slot].long_repeat_ms;
+    }
+
+    if (button.clicks > 0 && button.down_at == 0 &&
+        (now - button.last_release) >= s_cfg.multi_click_window_ms)
+    {
+        const uint8_t count =
+            button.clicks > HELTEC_BUTTON_MAX_CLICKS ? HELTEC_BUTTON_MAX_CLICKS : button.clicks;
+        emit_gesture(slot, gesture_for_clicks(count));
+        button.clicks = 0;
+        button.last_release = 0;
+    }
+}
+
+static void poll_buttons()
+{
+    const unsigned long now = millis();
+    for (uint8_t i = 0; i < HELTEC_UI_BUTTON_COUNT; ++i)
+    {
+        tick_button(s_buttons[i], i, now);
+    }
+}
+
+static void setup_gpio()
+{
+    if (s_gpio_ready)
+        return;
+    detach_irqs();
+
+    for (uint8_t i = 0; i < HELTEC_UI_BUTTON_COUNT; ++i)
+    {
+        const ButtonConfig &config = s_cfg.buttons[i];
+        ButtonState &button = s_buttons[i];
+        button = ButtonState{};
+        button.pin = config.pin;
+        button.active_level = config.active_level;
+        button.map = config.map;
+        if (button.pin < 0)
+            continue;
+
+        pinMode((uint8_t)button.pin, config.pin_mode);
+        button.prev = (uint8_t)digitalRead((uint8_t)button.pin);
+#if defined(HELTEC_HAS_KEY_FRAME) && HELTEC_HAS_KEY_FRAME
+        button.candidate_level = button.prev;
+        button.candidate_since = millis();
+#endif
+    }
+
+    attach_irqs();
+    s_gpio_ready = true;
+}
+
+static bool any_button_active()
+{
+#if defined(HELTEC_HAS_KEY_FRAME) && HELTEC_HAS_KEY_FRAME
+    const unsigned long now = millis();
+#endif
+    for (uint8_t i = 0; i < HELTEC_UI_BUTTON_COUNT; ++i)
+    {
+        ButtonState &button = s_buttons[i];
+        const int8_t pin = button.pin;
+        if (pin < 0)
+            continue;
+#if defined(HELTEC_HAS_KEY_FRAME) && HELTEC_HAS_KEY_FRAME
+        if (s_cfg.stable_level_debounce)
+            confirm_stable_level(button, i, now);
+        const uint8_t level = s_cfg.stable_level_debounce
+                                  ? button.prev
+                                  : (uint8_t)digitalRead((uint8_t)pin);
+#else
+        const uint8_t level = (uint8_t)digitalRead((uint8_t)pin);
+#endif
+        if (is_pressed(level, button.active_level))
+            return true;
+    }
+    return false;
+}
+
+} // namespace
+
+void configure(const Config &cfg)
+{
+    detach_irqs();
+    s_cfg = cfg;
+    s_gpio_ready = false;
+}
+
+bool initialize()
+{
+    setup_gpio();
+    key_input::set_poll_hook(poll_buttons);
+    key_input::set_down_state_provider(any_button_active);
+    return key_input::initialize();
+}
+
+void set_gesture_emit(GestureEmitFn fn)
+{
+    s_gesture_emit = fn;
+}
+
+void poll()
+{
+    if (!s_gpio_ready)
+    {
+        return;
+    }
+    poll_buttons();
+}
+
+bool anyPhysicalPressed()
+{
+    return any_button_active();
+}
+
+} // namespace heltec::meshcore::dal::momentary_button

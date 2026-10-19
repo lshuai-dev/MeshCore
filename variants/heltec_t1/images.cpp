@@ -1,5 +1,5 @@
 #include <Arduino.h>
-#include "heltec/ui/images.h"
+#include "heltec/ui/Images.h"
 
 // Per-board LVGL bitmaps �?heltec_t1 (12×12 indexed 1bpp).
 

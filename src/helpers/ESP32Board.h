@@ -72,6 +72,16 @@ public:
     return P_LORA_DIO_1; // default for SX1262
   }
 
+  // Boards may add input wake sources such as buttons or a touch IRQ.
+  // Each level is the asserted wake level for the corresponding GPIO.
+  virtual uint8_t getAdditionalWakeupPins(uint8_t *pins, uint8_t *levels,
+                                           uint8_t capacity) const {
+    (void)pins;
+    (void)levels;
+    (void)capacity;
+    return 0;
+  }
+
   void sleep(uint32_t secs) override {
     // Skip if not allow to sleep
     if (inhibit_sleep) {
@@ -80,7 +90,11 @@ public:
     }
 
     // Set GPIO wakeup
-    gpio_num_t wakeupPin = (gpio_num_t)getIRQGpio();    
+    const gpio_num_t loraWakePin = (gpio_num_t)getIRQGpio();
+    uint8_t additionalPins[4] = {};
+    uint8_t additionalLevels[4] = {};
+    const uint8_t additionalCount = getAdditionalWakeupPins(
+        additionalPins, additionalLevels, sizeof(additionalPins));
 
     // Configure timer wakeup
     if (secs > 0) {
@@ -91,7 +105,7 @@ public:
     portENTER_CRITICAL(&sleepMux);
 
     // Skip sleep if there is a LoRa packet
-    if (gpio_get_level(wakeupPin) == HIGH) {
+    if (gpio_get_level(loraWakePin) == HIGH) {
       portEXIT_CRITICAL(&sleepMux);
       delay(1);
       return;
@@ -99,14 +113,32 @@ public:
 
     // Configure GPIO wakeup
     esp_sleep_enable_gpio_wakeup();
-    gpio_wakeup_enable((gpio_num_t)wakeupPin, GPIO_INTR_HIGH_LEVEL); // Wake up when receiving a LoRa packet
+    gpio_wakeup_enable(loraWakePin, GPIO_INTR_HIGH_LEVEL);
+    for (uint8_t index = 0; index < additionalCount; ++index) {
+      const gpio_num_t pin = (gpio_num_t)additionalPins[index];
+      const int level = additionalLevels[index] ? HIGH : LOW;
+      if (gpio_get_level(pin) == level) {
+        gpio_wakeup_disable(loraWakePin);
+        portEXIT_CRITICAL(&sleepMux);
+        delay(1);
+        return;
+      }
+      gpio_wakeup_enable(pin, additionalLevels[index] ? GPIO_INTR_HIGH_LEVEL
+                                                       : GPIO_INTR_LOW_LEVEL);
+    }
 
     // MCU enters light sleep
     esp_light_sleep_start();
 
     // Avoid ISR flood during wakeup due to HIGH LEVEL interrupt
-    gpio_wakeup_disable(wakeupPin);
-    gpio_set_intr_type(wakeupPin, GPIO_INTR_POSEDGE);
+    gpio_wakeup_disable(loraWakePin);
+    gpio_set_intr_type(loraWakePin, GPIO_INTR_POSEDGE);
+    for (uint8_t index = 0; index < additionalCount; ++index) {
+      const gpio_num_t pin = (gpio_num_t)additionalPins[index];
+      gpio_wakeup_disable(pin);
+      gpio_set_intr_type(pin, additionalLevels[index] ? GPIO_INTR_POSEDGE
+                                                      : GPIO_INTR_NEGEDGE);
+    }
 
     // Enable CPU interrupt servicing
     portEXIT_CRITICAL(&sleepMux);

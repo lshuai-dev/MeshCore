@@ -1,7 +1,7 @@
 #pragma once
-#include "app_state_event.hpp"
-#include "biz_facade.hpp"
-#include "ht_event.h"
+#include "AppStateEvent.hpp"
+#include "BizFacade.hpp"
+#include "HtEvent.h"
 
 namespace heltec::meshcore::ui {
 class SurfaceManager;

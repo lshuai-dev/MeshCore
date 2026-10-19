@@ -1,5 +1,5 @@
 #include <Arduino.h>
-#include "heltec/ui/images.h"
+#include "heltec/ui/Images.h"
 
 // Per-board LVGL bitmaps for Heltec T114 TFT (24x24 alpha 1bpp).
 
