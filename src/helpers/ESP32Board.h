@@ -136,8 +136,9 @@ public:
     for (uint8_t index = 0; index < additionalCount; ++index) {
       const gpio_num_t pin = (gpio_num_t)additionalPins[index];
       gpio_wakeup_disable(pin);
-      gpio_set_intr_type(pin, additionalLevels[index] ? GPIO_INTR_POSEDGE
-                                                      : GPIO_INTR_NEGEDGE);
+      // MomentaryButton uses CHANGE; restoring only the wake edge loses the
+      // release transition and leaves the button logically held.
+      gpio_set_intr_type(pin, GPIO_INTR_ANYEDGE);
     }
 
     // Enable CPU interrupt servicing

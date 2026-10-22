@@ -241,6 +241,14 @@ bool UiTask::isBuzzerQuiet() const {
 #endif
 }
 
+bool UiTask::isBuzzerPlaying() {
+#ifdef PIN_BUZZER
+    return _buzzer.isPlaying();
+#else
+    return false;
+#endif
+}
+
 void UiTask::setBuzzerEnabled(bool enabled) {
 #ifdef PIN_BUZZER
     const bool cur = !_buzzer.isQuiet();

@@ -29,6 +29,7 @@ class UiTask final : public AbstractUITask
     void begin(NodePrefs *node_prefs);
 
     bool isBuzzerQuiet() const;
+    bool isBuzzerPlaying();
     void setBuzzerEnabled(bool enabled);
     uint8_t buzzerVolumeLevel() const;
     void setBuzzerVolumeLevel(uint8_t level);

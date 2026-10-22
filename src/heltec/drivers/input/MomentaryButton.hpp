@@ -52,5 +52,7 @@ bool initialize();
 void poll();
 /** True if any configured button GPIO is currently pressed (e.g. backlight wake). */
 bool anyPhysicalPressed();
+/** True while GPIO edges, a held key, or a multi-click decision is pending. */
+bool hasPendingGesture();
 
 } // namespace heltec::meshcore::dal::momentary_button

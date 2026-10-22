@@ -473,4 +473,17 @@ bool anyPhysicalPressed()
     return any_button_active();
 }
 
+bool hasPendingGesture()
+{
+    for (uint8_t i = 0; i < HELTEC_UI_BUTTON_COUNT; ++i)
+    {
+        const ButtonState &button = s_buttons[i];
+        if (button.edge_head != button.edge_tail || button.down_at != 0 || button.clicks != 0)
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
 } // namespace heltec::meshcore::dal::momentary_button

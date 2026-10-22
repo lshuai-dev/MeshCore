@@ -72,7 +72,7 @@ void HeltecV4R8Board::begin() {
   cnf.multi_click_window_ms = 350;
   cnf.long_press_ms = 1000;
   cnf.buttons[0].pin = BUTTON_PIN;
-  cnf.buttons[0].pin_mode = INPUT_PULLDOWN;
+  cnf.buttons[0].pin_mode = INPUT_PULLUP;
   cnf.buttons[0].active_level = LOW;
 #if HELTEC_UI_BUTTON_COUNT == 1
   cnf.buttons[0].map = KeyMap(LV_KEY_NEXT, LV_KEY_ESC, LV_KEY_PREV, LV_KEY_ENTER);
@@ -81,7 +81,7 @@ void HeltecV4R8Board::begin() {
 #endif
 #if HELTEC_UI_BUTTON_COUNT >= 2
   cnf.buttons[1].pin = PIN_USER_BTN;
-  cnf.buttons[1].pin_mode = INPUT_PULLUP;
+  cnf.buttons[1].pin_mode = INPUT_PULLDOWN;
   cnf.buttons[1].active_level = HIGH;
   cnf.buttons[1].long_repeat_ms = 220;
   cnf.buttons[1].map = KeyMap(LV_KEY_NEXT, LV_KEY_ESC, LV_KEY_RIGHT, 0);

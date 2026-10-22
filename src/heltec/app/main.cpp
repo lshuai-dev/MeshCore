@@ -4,6 +4,7 @@
 #include "app/PowerMgr.hpp"
 #include "config/NodePrefs.h"
 #include "heltec/drivers/display/DisplayPort.hpp"
+#include "heltec/drivers/input/MomentaryButton.hpp"
 #include "lvgl.h"
 #include "ui/app/App.hpp"
 #include "ui/core/AppStateNotifier.hpp"
@@ -505,8 +506,24 @@ void loop()
     // interrupt. This restores MeshCore's native nRF52 System ON idle model.
     board.sleep(0);
 #else
-    // Enter light sleep. ESP32Board configures LoRa DIO1 and board-specific
-    // button/touch wake sources while preserving the active receive path.
-    board.sleep(0);
+    const auto &power_snapshot = runtime.power.snapshot();
+    const bool peripherals_active = power_snapshot.display_on || power_snapshot.gps_powered ||
+                                    heltec::meshcore::ui::ui_task().isBuzzerPlaying() ||
+                                    heltec::meshcore::dal::momentary_button::hasPendingGesture();
+    if (peripherals_active)
+    {
+        // Touch and GPS are polled peripherals on ESP32. Keep the cooperative
+        // loop running while either one is active, and let FreeRTOS idle briefly.
+        delay(5);
+    }
+    else
+    {
+#if defined(PIN_BUZZER) && PIN_BUZZER >= 0
+        digitalWrite(PIN_BUZZER, LOW);
+#endif
+        // Event-driven sleep, matching the nRF52 WFE model: LoRa DIO1 and
+        // board GPIO wake sources resume execution; no periodic timer is used.
+        board.sleep(0);
+    }
 #endif
 }
