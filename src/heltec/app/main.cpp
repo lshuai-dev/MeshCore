@@ -119,14 +119,14 @@ ArduinoSerialInterface serial_interface;
 #endif
 
 #include "ui/core/UiTask.hpp"
-static heltec::meshcore::ui::UiTask s_ui_task(&board, &serial_interface);
-namespace heltec::meshcore::ui
+static Heltec::MeshCore::Ui::UiTask s_ui_task(&board, &serial_interface);
+namespace Heltec::MeshCore::Ui
 {
 UiTask &ui_task()
 {
     return s_ui_task;
 }
-} // namespace heltec::meshcore::ui
+} // namespace Heltec::MeshCore::Ui
 
 /* GLOBAL OBJECTS */
 
@@ -134,14 +134,14 @@ StdRNG fast_rng;
 SimpleMeshTables tables;
 
 HeltecMesh the_mesh(radio_driver, fast_rng, rtc_clock, tables, store,
-                    &heltec::meshcore::ui::ui_task());
+                    &Heltec::MeshCore::Ui::ui_task());
 
 /* END GLOBAL OBJECTS */
 
 namespace
 {
 
-class ApplicationPowerPort final : public heltec::meshcore::power::PowerRuntimePort
+class ApplicationPowerPort final : public Heltec::MeshCore::Power::PowerRuntimePort
 {
   public:
     mesh::PowerSource getPowerSource() const override
@@ -155,18 +155,18 @@ class ApplicationPowerPort final : public heltec::meshcore::power::PowerRuntimeP
 
     bool isDisplayOn() const override
     {
-        return heltec::meshcore::dal::display_port::isBacklightOn();
+        return Heltec::MeshCore::Dal::DisplayPort::isBacklightOn();
     }
 
     void setDisplayOn(bool on) override
     {
         if (on)
         {
-            heltec::meshcore::dal::display_port::resume();
+            Heltec::MeshCore::Dal::DisplayPort::resume();
         }
         else
         {
-            heltec::meshcore::dal::display_port::suspend();
+            Heltec::MeshCore::Dal::DisplayPort::suspend();
         }
     }
 
@@ -195,12 +195,12 @@ class ApplicationPowerPort final : public heltec::meshcore::power::PowerRuntimeP
 
     void startShutdownFeedback() override
     {
-        heltec::meshcore::ui::ui_task().startShutdownFeedback();
+        Heltec::MeshCore::Ui::ui_task().startShutdownFeedback();
     }
 
     bool shutdownFeedbackDone() override
     {
-        return heltec::meshcore::ui::ui_task().shutdownFeedbackDone();
+        return Heltec::MeshCore::Ui::ui_task().shutdownFeedbackDone();
     }
 
     void powerOffRadio() override
@@ -209,36 +209,43 @@ class ApplicationPowerPort final : public heltec::meshcore::power::PowerRuntimeP
     }
 };
 
-struct ApplicationRuntime final : heltec::meshcore::power::PowerListener
+class MeshAppRT final : public Heltec::MeshCore::Power::PowerListener
 {
+  public:
     ApplicationPowerPort power_port;
-    heltec::meshcore::power::PowerMgr power{ board, power_port };
-    heltec::meshcore::biz::MeshAppUi biz{ power };
-    heltec::meshcore::ui::UiApp ui{ biz, power };
+    Heltec::MeshCore::Power::PowerMgr power{ board, power_port };
+    Heltec::MeshCore::Biz::MeshAppUi biz{ power };
+    Heltec::MeshCore::Ui::UiApp ui{ biz, power };
 
-    ApplicationRuntime()
+    static MeshAppRT &instance()
     {
-        power.setListener(this);
+        static MeshAppRT core;
+        return core;
     }
+
+    MeshAppRT(const MeshAppRT &) = delete;
+    MeshAppRT &operator=(const MeshAppRT &) = delete;
+    MeshAppRT(MeshAppRT &&) = delete;
+    MeshAppRT &operator=(MeshAppRT &&) = delete;
 
     void pollBackend()
     {
         biz.pollRuntime();
     }
 
-    void onPowerChanged(heltec::meshcore::power::PowerChangeMask changes,
-                        const heltec::meshcore::power::PowerSnapshot &snapshot) override
+    void onPowerChanged(Heltec::MeshCore::Power::PowerChangeMask changes,
+                        const Heltec::MeshCore::Power::PowerSnapshot &snapshot) override
     {
         biz.handlePowerChanged(changes, snapshot);
         ui.handlePowerChanged(changes, snapshot);
     }
-};
 
-ApplicationRuntime &applicationRuntime()
-{
-    static ApplicationRuntime runtime;
-    return runtime;
-}
+  private:
+    MeshAppRT()
+    {
+        power.setListener(this);
+    }
+};
 
 } // namespace
 
@@ -249,7 +256,7 @@ static void requestRadioPresetOverlayIfUnconfigured(bool hasDisplay)
     NodePrefs *p = the_mesh.getNodePrefs();
     if (p && p->lora_band_configured == 0)
     {
-        applicationRuntime().biz.requestRadioParamPresetPicker();
+        MeshAppRT::instance().biz.requestRadioParamPresetPicker();
     }
 }
 
@@ -275,13 +282,13 @@ void setup()
 #if defined(RADIOCORE_BOARD_RC52) && defined(PIN_SENSOR_EN)
     logRc52SensorPowerState("after board.begin");
 #endif
-    heltec::meshcore::dal::display_port::setBacklightOn(true);
-    ApplicationRuntime &runtime = applicationRuntime();
-    runtime.ui.init();
+    Heltec::MeshCore::Dal::DisplayPort::setBacklightOn(true);
+    MeshAppRT &core = MeshAppRT::instance();
+    core.ui.init();
 #if defined(RADIOCORE_BOARD_RC52) && defined(PIN_SENSOR_EN)
     logRc52SensorPowerState("after UI init");
 #endif
-    const bool hasDisplay = runtime.ui.isReady();
+    const bool hasDisplay = core.ui.isReady();
     if (hasDisplay)
     {
         for (uint8_t i = 0; i < 8; ++i)
@@ -367,7 +374,7 @@ void setup()
     {
         if (0 == p->companion_link_enabled)
         {
-            heltec::meshcore::ui::ui_task().disableSerial();
+            Heltec::MeshCore::Ui::ui_task().disableSerial();
         }
     }
 #elif defined(RP2040_PLATFORM)
@@ -419,7 +426,7 @@ void setup()
     {
         if (0 == p->companion_link_enabled)
         {
-            heltec::meshcore::ui::ui_task().disableSerial();
+            Heltec::MeshCore::Ui::ui_task().disableSerial();
         }
     }
 #else
@@ -427,9 +434,9 @@ void setup()
 #endif
 #if defined(LV_CONF_SKIP) && LV_CONF_SKIP
     {
-        heltec::meshcore::ui::AppStateEvent config_event{};
-        config_event.type = heltec::meshcore::ui::AppStateEventType::ConfigChanged;
-        heltec::meshcore::ui::app_state_notifier().notify(config_event);
+        Heltec::MeshCore::Ui::AppStateEvent config_event{};
+        config_event.type = Heltec::MeshCore::Ui::AppStateEventType::ConfigChanged;
+        Heltec::MeshCore::Ui::app_state_notifier().notify(config_event);
     }
 #endif
     store.notifyBootRegionMapStorageDone();
@@ -448,17 +455,17 @@ void setup()
 #endif
     sensors.begin();
     {
-        heltec::meshcore::power::PowerConfig power_config =
-            heltec::meshcore::power::defaultPowerConfig();
+        Heltec::MeshCore::Power::PowerConfig power_config =
+            Heltec::MeshCore::Power::defaultPowerConfig();
         power_config.display_available = hasDisplay;
-        runtime.power.begin(millis(), power_config);
-        the_mesh.attachPowerMgr(&runtime.power);
+        core.power.begin(millis(), power_config);
+        the_mesh.attachPowerMgr(&core.power);
     }
 #if ENV_INCLUDE_GPS == 1
     // Apply stored GPS prefs to hardware (initBasicGPS leaves GPS off until this).
     if (NodePrefs *p = the_mesh.getNodePrefs())
     {
-        runtime.biz.setGpsEnabled(p->gps_enabled != 0);
+        core.biz.setGpsEnabled(p->gps_enabled != 0);
         if (p->gps_interval > 0)
         {
             char interval_str[12];
@@ -467,7 +474,7 @@ void setup()
         }
         if (p->gps_track_armed && p->gps_enabled)
         {
-            runtime.biz.setGpsTrackRecording(true);
+            core.biz.setGpsTrackRecording(true);
         }
     }
 #endif
@@ -475,17 +482,17 @@ void setup()
     {
         if (NodePrefs *p = the_mesh.getNodePrefs())
         {
-            runtime.ui.setDisplayAutoOffMs((uint32_t)p->display_auto_off_sec * 1000u);
+            core.ui.setDisplayAutoOffMs((uint32_t)p->display_auto_off_sec * 1000u);
         }
     }
 
-    heltec::meshcore::ui::ui_task().begin(the_mesh.getNodePrefs());
+    Heltec::MeshCore::Ui::ui_task().begin(the_mesh.getNodePrefs());
     requestRadioPresetOverlayIfUnconfigured(hasDisplay);
 }
 
 void loop()
 {
-    ApplicationRuntime &runtime = applicationRuntime();
+    MeshAppRT &core = MeshAppRT::instance();
     the_mesh.loop();
     sensors.loop();
 #if defined(ENV_INCLUDE_GPS) && ENV_INCLUDE_GPS
@@ -494,11 +501,11 @@ void loop()
     HeltecMesh::StableGpsFixSnapshot stable_gps{};
     (void)the_mesh.getStableGpsFix(stable_gps);
 #endif
-    runtime.pollBackend();
-    heltec::meshcore::ui::ui_task().loop();
-    runtime.ui.tick();
-    runtime.biz.reconcileGpsPower();
-    runtime.power.loop(millis());
+    core.pollBackend();
+    Heltec::MeshCore::Ui::ui_task().loop();
+    core.ui.tick();
+    core.biz.reconcileGpsPower();
+    core.power.loop(millis());
     rtc_clock.tick();
 
 #if defined(NRF52_PLATFORM)
@@ -506,10 +513,10 @@ void loop()
     // interrupt. This restores MeshCore's native nRF52 System ON idle model.
     board.sleep(0);
 #else
-    const auto &power_snapshot = runtime.power.snapshot();
+    const auto &power_snapshot = core.power.snapshot();
     const bool peripherals_active = power_snapshot.display_on || power_snapshot.gps_powered ||
-                                    heltec::meshcore::ui::ui_task().isBuzzerPlaying() ||
-                                    heltec::meshcore::dal::momentary_button::hasPendingGesture();
+                                    Heltec::MeshCore::Ui::ui_task().isBuzzerPlaying() ||
+                                    Heltec::MeshCore::Dal::MomentaryButton::hasPendingGesture();
     if (peripherals_active)
     {
         // Touch and GPS are polled peripherals on ESP32. Keep the cooperative

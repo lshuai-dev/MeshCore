@@ -18,7 +18,7 @@
 class DataStore;
 class HeltecMesh;
 
-namespace heltec::meshcore::team
+namespace Heltec::MeshCore::Team
 {
 
 enum class TeamRole : uint8_t
@@ -188,4 +188,4 @@ class TeamService
 #endif
 };
 
-} // namespace heltec::meshcore::team
+} // namespace Heltec::MeshCore::Team

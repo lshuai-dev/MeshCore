@@ -6,12 +6,12 @@
 
 #include <lvgl.h>
 
-namespace heltec::meshcore::ui
+namespace Heltec::MeshCore::Ui
 {
 class RadialNavigator : public UiSurface
 {
   public:
-    explicit RadialNavigator(biz::IBizFacade &biz);
+    explicit RadialNavigator(Biz::IBizFacade &biz);
     ~RadialNavigator();
 
     void configure(const UiNavigationItem *items, uint8_t count);
@@ -53,8 +53,8 @@ class RadialNavigator : public UiSurface
     void layoutRing(bool animate, bool snap_theta = true, bool update_emphasis = true,
                     bool update_selection = true);
     void updateGeometry();
-    void stepNavFocus(int delta);
     void sendTilePreview(uint8_t tile_idx);
+    bool commitFocused();
     void clearAnimations();
     void ensureDefaultFocus();
     void invalidateSlotCache();
@@ -86,4 +86,4 @@ class RadialNavigator : public UiSurface
     lv_coord_t _cached_nav_side = 0;
 };
 
-} // namespace heltec::meshcore::ui
+} // namespace Heltec::MeshCore::Ui

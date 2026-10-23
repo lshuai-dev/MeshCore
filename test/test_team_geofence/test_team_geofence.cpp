@@ -2,10 +2,10 @@
 
 #include "heltec/app/TeamGeofence.hpp"
 
-using heltec::meshcore::team::GeofenceAddResult;
-using heltec::meshcore::team::GeofenceMemberResult;
-using heltec::meshcore::team::GeofenceState;
-using heltec::meshcore::team::TeamGeofence;
+using Heltec::MeshCore::Team::GeofenceAddResult;
+using Heltec::MeshCore::Team::GeofenceMemberResult;
+using Heltec::MeshCore::Team::GeofenceState;
+using Heltec::MeshCore::Team::TeamGeofence;
 
 namespace
 {

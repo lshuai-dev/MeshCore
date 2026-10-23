@@ -8,7 +8,7 @@
 #error "NV3001B display support is not enabled for this Radio Core target."
 #endif
 
-namespace heltec::meshcore::dal::nv3001b
+namespace Heltec::MeshCore::Dal::NV3001B
 {
 namespace
 {
@@ -397,35 +397,35 @@ void resume()
     set_panel_backlight(true);
 }
 
-} // namespace heltec::meshcore::dal::nv3001b
+} // namespace Heltec::MeshCore::Dal::NV3001B
 
-namespace heltec::meshcore::dal::display_port
+namespace Heltec::MeshCore::Dal::DisplayPort
 {
 bool init()
 {
-    return nv3001b::init();
+    return NV3001B::init();
 }
 void deinit()
 {
-    nv3001b::deinit();
+    NV3001B::deinit();
 }
 void setBacklightOn(bool on)
 {
-    nv3001b::setBacklightOn(on);
+    NV3001B::setBacklightOn(on);
 }
 bool isBacklightOn()
 {
-    return nv3001b::isBacklightOn();
+    return NV3001B::isBacklightOn();
 }
 void suspend()
 {
-    nv3001b::suspend();
+    NV3001B::suspend();
 }
 void resume()
 {
-    nv3001b::resume();
+    NV3001B::resume();
 }
 void reinitPanelAfterSharedReset()
 {
 }
-} // namespace heltec::meshcore::dal::display_port
+} // namespace Heltec::MeshCore::Dal::DisplayPort

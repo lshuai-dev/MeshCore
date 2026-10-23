@@ -4,7 +4,7 @@
 
 #include <stdint.h>
 
-namespace heltec::meshcore::ui::map
+namespace Heltec::MeshCore::Ui::Map
 {
 
 struct MapPreferences
@@ -18,4 +18,4 @@ struct MapPreferences
 bool map_preferences_load(MapPreferences &out);
 void map_preferences_save(const MapPreferences &prefs);
 
-} // namespace heltec::meshcore::ui::map
+} // namespace Heltec::MeshCore::Ui::Map

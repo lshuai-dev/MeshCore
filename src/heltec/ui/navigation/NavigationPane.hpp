@@ -7,14 +7,14 @@
 
 #include <lvgl.h>
 
-namespace heltec::meshcore::ui
+namespace Heltec::MeshCore::Ui
 {
 
 /** V4 grid nav overlay. */
 class NavigationPane : public UiSurface
 {
   public:
-    explicit NavigationPane(biz::IBizFacade &biz);
+    explicit NavigationPane(Biz::IBizFacade &biz);
     ~NavigationPane();
 
     void configure(const UiNavigationItem *items, uint8_t count);
@@ -92,4 +92,4 @@ class NavigationPane : public UiSurface
     uint8_t _footer_id = static_cast<uint8_t>(eScreenId::None);
 };
 
-} // namespace heltec::meshcore::ui
+} // namespace Heltec::MeshCore::Ui

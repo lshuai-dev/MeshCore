@@ -4,7 +4,7 @@
 
 #include <lvgl.h>
 
-namespace heltec::meshcore::ui
+namespace Heltec::MeshCore::Ui
 {
 
 namespace
@@ -102,7 +102,7 @@ bool ConfirmOverlay::buildSurface()
     }
 #else
     _lv_obj_t *const key_hint = ht_label_create(
-        &ht_overlay_footer_class, actionsHost(), operation_hint::kDestructiveConfirm);
+        &ht_overlay_footer_class, actionsHost(), OperationHint::kDestructiveConfirm);
     if (key_hint)
     {
         lv_obj_set_width(key_hint, lv_pct(100));
@@ -182,4 +182,4 @@ void ConfirmOverlay::onButtonClicked(lv_event_t *e)
     lv_event_stop_bubbling(e);
 }
 
-} // namespace heltec::meshcore::ui
+} // namespace Heltec::MeshCore::Ui

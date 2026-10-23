@@ -1,14 +1,14 @@
 #pragma once
 #include "../core/AbstractScreen.hpp"
 #include "../core/AppStateEvent.hpp"
-namespace heltec::meshcore::biz {
+namespace Heltec::MeshCore::Biz {
 class IBizFacade;
 }
 
-namespace heltec::meshcore::ui {
+namespace Heltec::MeshCore::Ui {
 class HomeScreen : public AbstractScreen {
   public:
-    HomeScreen(biz::IBizFacade &biz, const char *title, const lv_img_dsc_t *icon)
+    HomeScreen(Biz::IBizFacade &biz, const char *title, const lv_img_dsc_t *icon)
         : AbstractScreen(biz, title, icon) {
     }
 
@@ -32,4 +32,4 @@ class HomeScreen : public AbstractScreen {
     char _status_line[32] = {};
 };
 
-} // namespace heltec::meshcore::ui
+} // namespace Heltec::MeshCore::Ui

@@ -7,7 +7,7 @@
 
 #include <stdint.h>
 
-namespace heltec::meshcore::dal::momentary_button
+namespace Heltec::MeshCore::Dal::MomentaryButton
 {
 
 enum class ButtonGesture : uint8_t
@@ -25,4 +25,4 @@ using GestureEmitFn = void (*)(uint8_t slot, ButtonGesture gesture);
 /** When set, completed gestures invoke this instead of KeyMap lookup. */
 void set_gesture_emit(GestureEmitFn fn);
 
-} // namespace heltec::meshcore::dal::momentary_button
+} // namespace Heltec::MeshCore::Dal::MomentaryButton

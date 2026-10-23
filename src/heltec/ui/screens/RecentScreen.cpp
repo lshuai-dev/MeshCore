@@ -2,7 +2,7 @@
 #include "ui/widgets/HtContainer.hpp"
 #include <lvgl.h>
 
-namespace heltec::meshcore::ui
+namespace Heltec::MeshCore::Ui
 {
 namespace
 {
@@ -265,4 +265,4 @@ void RecentScreen::refreshTimerCallback(lv_timer_t *timer)
     self->renderWindow();
 }
 
-} // namespace heltec::meshcore::ui
+} // namespace Heltec::MeshCore::Ui

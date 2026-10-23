@@ -2,7 +2,7 @@
 
 #include "InputTypes.hpp"
 
-namespace heltec::meshcore::ui
+namespace Heltec::MeshCore::Ui
 {
 
 class InputPipeline
@@ -17,4 +17,4 @@ class InputPipeline
     static void onSyntheticKey(uint32_t lv_key, bool pulse);
 };
 
-} // namespace heltec::meshcore::ui
+} // namespace Heltec::MeshCore::Ui

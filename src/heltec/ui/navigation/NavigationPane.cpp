@@ -23,7 +23,7 @@
 #define HELTEC_TOUCH_GESTURE_SWIPE_PX 24
 #endif
 
-namespace heltec::meshcore::ui
+namespace Heltec::MeshCore::Ui
 {
 
 namespace
@@ -224,7 +224,7 @@ _lv_obj_t *NavigationPane::navButtonHost() const
 
 _lv_obj_t *NavigationPane::itemHost() const
 {
-    return ui_navigator_content(_nav);
+    return ui_gridNav_content(_nav);
 }
 
 _lv_obj_t *NavigationPane::findCellById(uint8_t id) const
@@ -536,7 +536,7 @@ void NavigationPane::setTileView(_lv_obj_t *tileview)
     updateGeometry();
 }
 
-NavigationPane::NavigationPane(biz::IBizFacade &biz)
+NavigationPane::NavigationPane(Biz::IBizFacade &biz)
     : UiSurface(biz, ht_navigation_root_class)
 {
 }
@@ -546,12 +546,13 @@ bool NavigationPane::buildSurface()
     layoutRootToTileView(_root, _tileview);
     lv_obj_clear_flag(_root, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_add_flag(_root, LV_OBJ_FLAG_OVERFLOW_VISIBLE);
-    lv_group_set_wrap(group(), false);
+    _gridNav.setWrap(false);
 
-    _nav = ui_navigator_create_grid(_root);
+    _nav = ui_gridNav_create_grid(_root);
     if (!_nav)
         return false;
-    lv_group_add_obj(focusGroup(), _nav);
+    _gridNav.add(_nav);
+    (void)_gridNav.enterControls();
     lv_obj_add_event_cb(
         _nav,
         [](lv_event_t *event)
@@ -598,7 +599,7 @@ void NavigationPane::setIcon(uint8_t id, const lv_img_dsc_t *img)
 {
     if (id >= kMaxButtons || !img)
         return;
-    if (!_nav || !group())
+    if (!_nav)
         return;
 
     _lv_obj_t *const host = itemHost();
@@ -624,7 +625,6 @@ void NavigationPane::setIcon(uint8_t id, const lv_img_dsc_t *img)
     lv_obj_set_flex_flow(cell, LV_FLEX_FLOW_COLUMN);
     lv_obj_set_flex_align(cell, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_END, LV_FLEX_ALIGN_CENTER);
     lv_obj_clear_flag(cell, LV_OBJ_FLAG_SCROLLABLE);
-    lv_obj_add_flag(cell, LV_OBJ_FLAG_EVENT_BUBBLE);
 
     _lv_obj_t *icon_area = ht_class_create(&ht_navigation_icon_area_class, cell);
     if (!icon_area)
@@ -634,7 +634,6 @@ void NavigationPane::setIcon(uint8_t id, const lv_img_dsc_t *img)
     }
     lv_obj_set_width(icon_area, lv_pct(100));
     lv_obj_clear_flag(icon_area, LV_OBJ_FLAG_SCROLLABLE | LV_OBJ_FLAG_CLICKABLE);
-    lv_obj_add_flag(icon_area, LV_OBJ_FLAG_EVENT_BUBBLE);
 
     _lv_obj_t *icon = ht_class_create(&ht_navigation_grid_icon_class, icon_area);
     if (!icon)
@@ -648,7 +647,6 @@ void NavigationPane::setIcon(uint8_t id, const lv_img_dsc_t *img)
     lv_obj_set_size(icon, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
     lv_img_set_antialias(icon, false);
     lv_obj_clear_flag(icon, LV_OBJ_FLAG_CLICKABLE | LV_OBJ_FLAG_SCROLLABLE);
-    lv_obj_add_flag(icon, LV_OBJ_FLAG_EVENT_BUBBLE);
 
     _lv_obj_t *bar = ht_class_create(&ht_navigation_title_bar_class, cell);
     if (!bar)
@@ -659,7 +657,6 @@ void NavigationPane::setIcon(uint8_t id, const lv_img_dsc_t *img)
     lv_obj_set_flex_flow(bar, LV_FLEX_FLOW_ROW);
     lv_obj_set_flex_align(bar, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
     lv_obj_clear_flag(bar, LV_OBJ_FLAG_SCROLLABLE | LV_OBJ_FLAG_CLICKABLE);
-    lv_obj_add_flag(bar, LV_OBJ_FLAG_EVENT_BUBBLE);
 
     _lv_obj_t *lbl =
         ht_label_create_static(&ht_navigation_title_label_class, bar,
@@ -701,7 +698,7 @@ void NavigationPane::setIcon(uint8_t id, const lv_img_dsc_t *img)
 #if HELTEC_UI_HAS_TOUCH
             // Custom long-press or double-tap actions can hold LVGL at RELEASED while
             // the finger is still down. Do not turn that transition into a nav commit.
-            if (heltec::meshcore::dal::touch_port::isPressed())
+            if (Heltec::MeshCore::Dal::TouchPort::isPressed())
                 return;
 #endif
 #if HELTEC_UI_HAS_TOUCH
@@ -1064,10 +1061,7 @@ void NavigationPane::openPanel()
         self->updateGeometry();
         self->setNavButtonsInteractive(true);
         self->layoutNav(false);
-        if (_lv_group_t *g = self->group())
-        {
-            lv_group_focus_obj(self->_nav);
-        }
+        (void)self->_gridNav.focus(self->_nav);
     };
     motion.ready_data = this;
     motion.start_value = closed_x;
@@ -1081,13 +1075,10 @@ void NavigationPane::openPanel()
         updateGeometry();
         setNavButtonsInteractive(true);
         layoutNav(false);
-        if (_lv_group_t *g = group())
-        {
-            lv_group_focus_obj(_nav);
-        }
+        (void)_gridNav.focus(_nav);
     }
 }
 
-} // namespace heltec::meshcore::ui
+} // namespace Heltec::MeshCore::Ui
 
 #endif // HELTEC_UI_HAS_TOUCH

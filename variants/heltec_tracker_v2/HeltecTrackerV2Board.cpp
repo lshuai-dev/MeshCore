@@ -29,10 +29,10 @@ void HeltecTrackerV2Board::begin() {
 #if defined(LV_CONF_SKIP) && LV_CONF_SKIP
     periph_power.claim();
     delay(50);  // let TFT rail settle before SPI init
-    (void)heltec::meshcore::dal::display_port::init();
+    (void)Heltec::MeshCore::Dal::DisplayPort::init();
 
-    using heltec::meshcore::dal::momentary_button::Config;
-    using heltec::meshcore::dal::momentary_button::KeyMap;
+    using Heltec::MeshCore::Dal::MomentaryButton::Config;
+    using Heltec::MeshCore::Dal::MomentaryButton::KeyMap;
 
     Config cnf{};
     cnf.debounce_ms = 50;
@@ -42,8 +42,8 @@ void HeltecTrackerV2Board::begin() {
     cnf.buttons[0].pin_mode = INPUT;
     cnf.buttons[0].active_level = LOW;
     cnf.buttons[0].map = KeyMap(LV_KEY_NEXT, LV_KEY_ESC, LV_KEY_PREV, LV_KEY_ENTER);
-    heltec::meshcore::dal::momentary_button::configure(cnf);
-    heltec::meshcore::dal::momentary_button::initialize();
+    Heltec::MeshCore::Dal::MomentaryButton::configure(cnf);
+    Heltec::MeshCore::Dal::MomentaryButton::initialize();
 #endif
   }
 

@@ -24,7 +24,7 @@
 #define HELTEC_TOUCH_GESTURE_LONG_MS 1000
 #endif
 
-namespace heltec::meshcore::dal::touch_gesture_input
+namespace Heltec::MeshCore::Dal::TouchGestureInput
 {
 namespace
 {
@@ -60,12 +60,12 @@ static bool near_point(int16_t x, int16_t y, int16_t ox, int16_t oy)
 
 static void injectPulse(uint32_t key)
 {
-    heltec::meshcore::ui::InputPipeline::onSyntheticKey(key, true);
+    Heltec::MeshCore::Ui::InputPipeline::onSyntheticKey(key, true);
 }
 
 static void consumeTouch()
 {
-    touch_port::requestReleaseBarrier();
+    TouchPort::requestReleaseBarrier();
     s_suppress_pointer = true;
     s_last_tap_ms = 0;
 }
@@ -176,6 +176,6 @@ void feed(bool pressed, int16_t x, int16_t y, uint32_t now_ms, bool native_scrol
         *suppress_pointer = true;
 }
 
-} // namespace heltec::meshcore::dal::touch_gesture_input
+} // namespace Heltec::MeshCore::Dal::TouchGestureInput
 
 #endif // HELTEC_TOUCH_GESTURE

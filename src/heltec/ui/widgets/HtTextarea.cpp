@@ -4,7 +4,7 @@
  */
 #include "HtTextarea.hpp"
 
-namespace heltec::meshcore::ui {
+namespace Heltec::MeshCore::Ui {
 namespace {
 
 void center_single_line_text(lv_obj_t *textarea) {
@@ -60,4 +60,4 @@ lv_obj_t *ht_textarea_create(lv_obj_t *parent) {
     return obj;
 }
 
-} // namespace heltec::meshcore::ui
+} // namespace Heltec::MeshCore::Ui

@@ -3,20 +3,20 @@
 #include "ui/core/HtEvent.h"
 #include "ui/core/OperationHints.hpp"
 #include "ui/theme/WidgetTheme.hpp"
-namespace heltec::meshcore::ui {
+namespace Heltec::MeshCore::Ui {
 namespace {
 
-const char *apply_error_text(biz::IBizFacade::ForwardingApplyResult result) {
+const char *apply_error_text(Biz::IBizFacade::ForwardingApplyResult result) {
     switch (result) {
-    case biz::IBizFacade::ForwardingApplyResult::InvalidSelection:
+    case Biz::IBizFacade::ForwardingApplyResult::InvalidSelection:
         return "Invalid frequency";
-    case biz::IBizFacade::ForwardingApplyResult::UnsupportedFrequency:
+    case Biz::IBizFacade::ForwardingApplyResult::UnsupportedFrequency:
         return "Frequency unsupported";
-    case biz::IBizFacade::ForwardingApplyResult::InvalidRadioParams:
+    case Biz::IBizFacade::ForwardingApplyResult::InvalidRadioParams:
         return "Invalid radio params";
-    case biz::IBizFacade::ForwardingApplyResult::Unavailable:
+    case Biz::IBizFacade::ForwardingApplyResult::Unavailable:
         return "Repeat mode unavailable";
-    case biz::IBizFacade::ForwardingApplyResult::Ok:
+    case Biz::IBizFacade::ForwardingApplyResult::Ok:
         return nullptr;
     }
     return "Repeat mode failed";
@@ -32,7 +32,7 @@ void format_frequency(char *buffer, size_t capacity, uint32_t khz) {
     }
 }
 
-bool format_frequency_item(const biz::IBizFacade &biz, int index, char *buffer, size_t capacity) {
+bool format_frequency_item(const Biz::IBizFacade &biz, int index, char *buffer, size_t capacity) {
     uint32_t lower_khz = 0;
     uint32_t upper_khz = 0;
     if (!buffer || capacity == 0 || !biz.forwardingFrequencyRange(index, &lower_khz, &upper_khz)) {
@@ -54,7 +54,7 @@ bool format_frequency_item(const biz::IBizFacade &biz, int index, char *buffer, 
 
 } // namespace
 
-RepeatModeOverlay::RepeatModeOverlay(biz::IBizFacade &biz)
+RepeatModeOverlay::RepeatModeOverlay(Biz::IBizFacade &biz)
     : FramedOverlay(biz, ht_repeat_mode_overlay_class) {
 }
 
@@ -62,7 +62,7 @@ bool RepeatModeOverlay::buildSurface() {
     if (!FramedOverlay::buildSurface()) return false;
 
     setStaticTitle("Repeat frequency");
-    setStaticToolTip(operation_hint::kRepeatMode);
+    setStaticToolTip(OperationHint::kRepeatMode);
 
     _lv_obj_t *const list = ht_class_create(&ht_repeat_mode_list_class, _content);
     if (!list) return false;
@@ -71,7 +71,6 @@ bool RepeatModeOverlay::buildSurface() {
     lv_obj_set_flex_flow(list, LV_FLEX_FLOW_COLUMN);
     lv_obj_set_flex_align(list, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
     lv_obj_clear_flag(list, LV_OBJ_FLAG_SCROLLABLE);
-    lv_obj_add_flag(list, LV_OBJ_FLAG_EVENT_BUBBLE);
 
 #if HELTEC_UI_HAS_TOUCH
 #if LV_USE_ROLLER == 0
@@ -82,9 +81,8 @@ bool RepeatModeOverlay::buildSurface() {
     lv_obj_set_width(_touch_roller, lv_pct(100));
     lv_obj_add_event_cb(_touch_roller, onRollerEvent, LV_EVENT_CLICKED, this);
 #else
-    if (!_roller.create(list, group(), &ht_repeat_mode_roller_class,
+    if (!_roller.create(list, &_gridNav, &ht_repeat_mode_roller_class,
                         &ht_repeat_mode_item_class, &ht_repeat_mode_label_class)) return false;
-    lv_obj_add_flag(_roller.root(), LV_OBJ_FLAG_EVENT_BUBBLE);
 #endif
 
     char label[kFrequencyLabelCapacity]{};
@@ -221,17 +219,17 @@ void RepeatModeOverlay::applySelection(uint8_t item_index) {
     if (_applying || item_index >= _frequency_count) return;
     setApplying(true);
 
-    const biz::IBizFacade::ForwardingApplyResult result =
+    const Biz::IBizFacade::ForwardingApplyResult result =
         _biz.setForwardingEnabled(true, _frequency_indices[item_index]);
     const char *const error = apply_error_text(result);
     if (!error && _biz.forwardingEnabled()) {
-        _biz.showAlert("Repeat mode enabled", 1200);
+        showAlert("Repeat mode enabled", 1200);
         (void)emitEvent(EventType::RepeatModeClose);
         return;
     }
 
     setApplying(false);
-    _biz.showAlert(error ? error : "Repeat mode failed", 2000);
+    showAlert(error ? error : "Repeat mode failed", 2000);
 }
 
 void RepeatModeOverlay::cancelSelection() {
@@ -264,4 +262,4 @@ void RepeatModeOverlay::setApplying(bool applying) {
 #endif
 }
 
-} // namespace heltec::meshcore::ui
+} // namespace Heltec::MeshCore::Ui

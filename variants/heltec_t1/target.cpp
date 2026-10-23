@@ -53,7 +53,7 @@ void T1RTCClock::setCurrentTime(uint32_t time) {
 T1RTCClock rtc_clock;
 
 #if ENV_INCLUDE_GPS
-heltec::gps::GpsRmcSpeedStream gps_serial(Serial1);
+Heltec::Gps::GpsRmcSpeedStream gps_serial(Serial1);
 #endif
 
 #if defined(HELTEC_SENSOR_MANAGER) && HELTEC_SENSOR_MANAGER

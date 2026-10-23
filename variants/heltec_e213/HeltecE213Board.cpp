@@ -25,10 +25,10 @@ void HeltecE213Board::begin() {
     }
 
 #if defined(HELTEC_E213_LVGL) && HELTEC_E213_LVGL
-    (void)heltec::meshcore::dal::display_port::init();
+    (void)Heltec::MeshCore::Dal::DisplayPort::init();
 
-    using heltec::meshcore::dal::momentary_button::Config;
-    using heltec::meshcore::dal::momentary_button::KeyMap;
+    using Heltec::MeshCore::Dal::MomentaryButton::Config;
+    using Heltec::MeshCore::Dal::MomentaryButton::KeyMap;
 
     Config cnf{};
     // Keep stable-level filtering for line transients, but use a short enough
@@ -42,8 +42,8 @@ void HeltecE213Board::begin() {
     cnf.buttons[0].active_level = LOW;
     cnf.buttons[0].map =
         KeyMap(E213_LV_KEY_NEXT, E213_LV_KEY_ESC, E213_LV_KEY_PREV, E213_LV_KEY_ENTER);
-    heltec::meshcore::dal::momentary_button::configure(cnf);
-    (void)heltec::meshcore::dal::momentary_button::initialize();
+    Heltec::MeshCore::Dal::MomentaryButton::configure(cnf);
+    (void)Heltec::MeshCore::Dal::MomentaryButton::initialize();
 #endif
   }
 
@@ -51,7 +51,7 @@ void HeltecE213Board::begin() {
 #if defined(HELTEC_E213_LVGL) && HELTEC_E213_LVGL
     // Flush pending UI changes, then remove panel power. E-ink keeps the last
     // image without holding the shared peripheral rail during deep sleep.
-    heltec::meshcore::dal::display_port::setBacklightOn(false);
+    Heltec::MeshCore::Dal::DisplayPort::setBacklightOn(false);
 #endif
     esp_sleep_pd_config(ESP_PD_DOMAIN_RTC_PERIPH, ESP_PD_OPTION_ON);
 

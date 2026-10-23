@@ -2,7 +2,7 @@
 
 #include <stdint.h>
 
-namespace heltec::meshcore::ui
+namespace Heltec::MeshCore::Ui
 {
 
 enum class AppStateEventType : uint8_t
@@ -21,6 +21,8 @@ enum class AppStateEventType : uint8_t
     FindFriendChanged,
     TeamChanged,
     ConfigChanged,
+    PreviewChanged,
+    AlertChanged,
     Count,
 };
 
@@ -75,4 +77,4 @@ struct AppStateEvent
     };
 };
 
-} // namespace heltec::meshcore::ui
+} // namespace Heltec::MeshCore::Ui

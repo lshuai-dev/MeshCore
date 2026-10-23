@@ -108,7 +108,7 @@ Rcc6SoftwareSpiHal s_radio_spi(P_LORA_SCLK, P_LORA_MISO, P_LORA_MOSI);
 
 WRAPPER_CLASS radio_driver(radio, board);
 
-namespace heltec::meshcore::board {
+namespace Heltec::MeshCore::Board {
 bool lnaCanControl() { return false; }
 bool setLnaEnable(bool enabled) { (void)enabled; return false; }
 }
@@ -153,7 +153,7 @@ AutoDiscoverRTCClock rtc_clock(fallback_clock);
   }  // namespace
 #endif
 
-  heltec::gps::GpsRmcSpeedStream gps_serial(Serial1);
+  Heltec::Gps::GpsRmcSpeedStream gps_serial(Serial1);
 #if defined(RADIOCORE_BOARD_RC32) || defined(RADIOCORE_BOARD_RC52)
   MicroNMEALocationProvider nmea(gps_serial, &rtc_clock, PIN_GPS_RESET, PIN_GPS_EN);
 #else

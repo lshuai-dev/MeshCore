@@ -1,7 +1,7 @@
 #pragma once
 #if LV_USE_THEME_MONO
 #include <lvgl.h>
-namespace heltec::meshcore::ui
+namespace Heltec::MeshCore::Ui
 {
 struct UiThemeColors;
 
@@ -15,5 +15,5 @@ lv_theme_t *init_ui_ssd1306_theme(lv_disp_t *disp, const lv_font_t *font);
 lv_theme_t *init_ui_mono_flat_theme_with_colors(lv_disp_t *disp, const lv_font_t *font,
                                                 const UiThemeColors &colors);
 
-} // namespace heltec::meshcore::ui
+} // namespace Heltec::MeshCore::Ui
 #endif // LV_USE_THEME_MONO

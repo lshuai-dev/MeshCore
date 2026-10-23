@@ -2,7 +2,7 @@
 
 #include <lvgl.h>
 
-namespace heltec::meshcore::ui
+namespace Heltec::MeshCore::Ui
 {
 
 struct UiAppFrameStyleConfig
@@ -39,9 +39,9 @@ struct UiThemeProfile
     UiTopPaneStyleConfig top_pane;
 };
 
-struct UiCascadingMenuStyles
+struct UiContextMenuRollerStyles
 {
-    UiCascadingMenuStyles(const lv_style_t *page_style = nullptr,
+    UiContextMenuRollerStyles(const lv_style_t *page_style = nullptr,
                           const lv_style_t *item_style = nullptr,
                           const lv_style_t *selected_item_style = nullptr)
         : page(page_style), item(item_style), item_selected(selected_item_style)
@@ -55,7 +55,7 @@ struct UiCascadingMenuStyles
 
 /** Configures geometry from a profile with static storage duration. */
 void ui_widget_theme_configure(const UiThemeProfile &profile);
-void ui_widget_theme_set_cascading_menu_styles(const UiCascadingMenuStyles &styles);
+void ui_widget_theme_set_context_menu_roller_styles(const UiContextMenuRollerStyles &styles);
 void ui_theme_set_waypoint_keyboard_active(_lv_obj_t *keyboard, _lv_obj_t *latitude,
                                            _lv_obj_t *longitude, bool active);
 
@@ -71,4 +71,4 @@ bool ui_license_gate_apply_theme(_lv_obj_t *obj);
 bool ui_radial_navigation_icon_apply_theme(_lv_obj_t *icon);
 void ui_context_menu_title_apply_theme(_lv_obj_t *title);
 
-} // namespace heltec::meshcore::ui
+} // namespace Heltec::MeshCore::Ui

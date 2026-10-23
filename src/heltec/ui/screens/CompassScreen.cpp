@@ -16,7 +16,7 @@ static constexpr lv_coord_t kCompassInfoColumnWidthPct = 40;
 static constexpr lv_coord_t kCompassInfoColumnMarginRight = 4;
 static constexpr lv_coord_t kCompassInfoColumnPadLeft = 0;
 
-namespace heltec::meshcore::ui
+namespace Heltec::MeshCore::Ui
 {
 
 namespace
@@ -81,7 +81,7 @@ void CompassScreen::clearMagLabels()
         lv_label_set_text_static(_lbl_mag, _mag_text);
 }
 
-void CompassScreen::showUnavailable(const biz::CompassUi &c, const char *hdg_text)
+void CompassScreen::showUnavailable(const Biz::CompassUi &c, const char *hdg_text)
 {
     _dial.setVisible(false);
     _dial.invalidateNeedle();
@@ -150,7 +150,7 @@ bool CompassScreen::buildSurface()
     return true;
 }
 
-void CompassScreen::refresh_ui(const biz::CompassUi &c)
+void CompassScreen::refresh_ui(const Biz::CompassUi &c)
 {
     const uint8_t prev = _state_flags & (kFLastHw | kFLastValid);
     uint8_t next = 0;
@@ -254,7 +254,7 @@ void CompassScreen::maybeScheduleAutoCal()
         return;
     }
 
-    const biz::CompassUi &c = _biz.compassUi();
+    const Biz::CompassUi &c = _biz.compassUi();
     if (!c.has_hardware || !c.heading_valid)
         return;
     if (_biz.compassHasStoredCalibration() && c.quality >= 3)
@@ -323,6 +323,6 @@ void CompassScreen::onActivated()
     maybeScheduleAutoCal();
 }
 
-} // namespace heltec::meshcore::ui
+} // namespace Heltec::MeshCore::Ui
 
 #endif // ENV_INCLUDE_COMPASS

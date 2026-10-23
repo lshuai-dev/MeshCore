@@ -4,7 +4,7 @@
 
 #include <cstring>
 
-using namespace heltec::meshcore::team;
+using namespace Heltec::MeshCore::Team;
 
 namespace
 {

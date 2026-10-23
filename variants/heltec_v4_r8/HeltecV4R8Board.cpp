@@ -63,10 +63,10 @@ void HeltecV4R8Board::begin() {
   SPI1.setFrequency(40000000);
 #endif
 
-  heltec::meshcore::dal::display_port::init();
+  Heltec::MeshCore::Dal::DisplayPort::init();
 
-  using heltec::meshcore::dal::momentary_button::Config;
-  using heltec::meshcore::dal::momentary_button::KeyMap;
+  using Heltec::MeshCore::Dal::MomentaryButton::Config;
+  using Heltec::MeshCore::Dal::MomentaryButton::KeyMap;
 
   Config cnf{};
   cnf.multi_click_window_ms = 350;
@@ -86,8 +86,8 @@ void HeltecV4R8Board::begin() {
   cnf.buttons[1].long_repeat_ms = 220;
   cnf.buttons[1].map = KeyMap(LV_KEY_NEXT, LV_KEY_ESC, LV_KEY_RIGHT, 0);
 #endif
-  heltec::meshcore::dal::momentary_button::configure(cnf);
-  heltec::meshcore::dal::momentary_button::initialize();
+  Heltec::MeshCore::Dal::MomentaryButton::configure(cnf);
+  Heltec::MeshCore::Dal::MomentaryButton::initialize();
 #endif
 
   if (reason == ESP_RST_DEEPSLEEP) {

@@ -6,7 +6,6 @@
 #include "KeyboardOverlay.hpp"
 #include "ui/theme/UiTheme.hpp"
 #include "ui/core/OperationHints.hpp"
-#include "ui/widgets/HtSelectorView.hpp"
 #include "ui/widgets/WidgetClasses.hpp"
 #include "ui/core/HtEvent.h"
 
@@ -17,10 +16,10 @@
 #include <cstring>
 #include <lvgl.h>
 
-namespace heltec::meshcore::ui
+namespace Heltec::MeshCore::Ui
 {
 
-SendMessageOverlay::SendMessageOverlay(biz::IBizFacade &biz)
+SendMessageOverlay::SendMessageOverlay(Biz::IBizFacade &biz)
     : FramedOverlay(biz, ht_send_message_selector_overlay_class,
                     &ht_send_message_content_class)
 {
@@ -44,7 +43,7 @@ lv_coord_t sendRowHeight()
 const char *footerForPage(bool back_to_parent)
 {
     (void)back_to_parent;
-    return operation_hint::kMessageSelect;
+    return OperationHint::kMessageSelect;
 }
 
 } // namespace
@@ -95,7 +94,7 @@ bool SendMessageOverlay::buildSurface()
         LV_EVENT_CLICKED, this);
 
     setStaticTitle("Send message");
-    setStaticToolTip(operation_hint::kMessageSelect);
+    setStaticToolTip(OperationHint::kMessageSelect);
 
     _list_mid = ht_class_create(&ht_send_message_list_class, _content);
     if (!_list_mid)
@@ -293,7 +292,7 @@ void SendMessageOverlay::renderRows()
                 lv_obj_add_flag(_row_objs[i], LV_OBJ_FLAG_HIDDEN);
         }
 #if defined(HELTEC_HAS_KEY_FRAME) && HELTEC_HAS_KEY_FRAME
-        heltec::meshcore::dal::display_port::requestSelectionRefresh();
+        Heltec::MeshCore::Dal::DisplayPort::requestSelectionRefresh();
 #endif
         return;
     }
@@ -345,7 +344,7 @@ void SendMessageOverlay::renderRows()
     }
 #if defined(HELTEC_HAS_KEY_FRAME) && HELTEC_HAS_KEY_FRAME
     lv_obj_invalidate(_list_mid);
-    heltec::meshcore::dal::display_port::requestSelectionRefresh();
+    Heltec::MeshCore::Dal::DisplayPort::requestSelectionRefresh();
 #endif
 }
 
@@ -392,7 +391,7 @@ void SendMessageOverlay::scheduleSendResultAlert(bool ok)
     if (lv_async_call(showSendResultAlertAsync, this) != LV_RES_OK)
     {
         _send_alert_scheduled = false;
-        _biz.showAlert(ok ? "Queued" : "Failed", 1600);
+        showAlert(ok ? "Queued" : "Failed", 1600);
     }
 }
 
@@ -402,7 +401,7 @@ void SendMessageOverlay::showSendResultAlertAsync(void *user_data)
     if (!self)
         return;
     self->_send_alert_scheduled = false;
-    self->_biz.showAlert(self->_send_alert_ok ? "Queued" : "Failed", 1600);
+    self->showAlert(self->_send_alert_ok ? "Queued" : "Failed", 1600);
 }
 
 void SendMessageOverlay::submitCustomMessage(const char *text)
@@ -493,7 +492,7 @@ void SendMessageOverlay::applySelection()
             rebuildTargetList();
             if (_model.listCount() <= 0)
             {
-                _biz.showAlert("No group channels", 900);
+                showAlert("No group channels", 900);
                 return;
             }
             _model.setPage(Page::TargetList);
@@ -507,7 +506,7 @@ void SendMessageOverlay::applySelection()
             rebuildTargetList();
             if (_model.listCount() <= 0)
             {
-                _biz.showAlert("No contacts", 900);
+                showAlert("No contacts", 900);
                 return;
             }
             _model.setPage(Page::TargetList);
@@ -569,7 +568,7 @@ void SendMessageOverlay::onEnter()
 
 void SendMessageOverlay::onExit()
 {
-    lv_group_remove_all_objs(focusGroup());
+    _gridNav.clear();
     for (int i = 0; i < kMaxVisibleRows; ++i)
     {
         if (_row_objs[i])
@@ -585,6 +584,6 @@ void SendMessageOverlay::hideVisual()
         return;
 }
 
-} // namespace heltec::meshcore::ui
+} // namespace Heltec::MeshCore::Ui
 
 #endif // !HELTEC_UI_HAS_TOUCH

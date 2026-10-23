@@ -8,22 +8,18 @@
 
 #include <Arduino.h>
 
-namespace heltec::meshcore::ui
+namespace Heltec::MeshCore::Ui
 {
 
 void UiApp::openNavigationPane()
 {
-    if (!_inited || _surfaces.isVisible(&_navigation))
-        return;
-
-    reconcileInput();
-    if (_surfaces.isVisible(&_navigation))
+    if (!_inited || _surfaces.isVisible(&_navigation) || !inputOnActiveScreen())
         return;
 
     _navigation.setSelectedIndex(activeTileIndex(), true);
     notifyNavActivity(millis());
 #if defined(HELTEC_HAS_KEY_FRAME) && HELTEC_HAS_KEY_FRAME
-    heltec::meshcore::dal::display_port::beginNavigationSession();
+    Heltec::MeshCore::Dal::DisplayPort::beginNavigationSession();
 #endif
     (void)_surfaces.show(&_navigation, true);
 }
@@ -105,7 +101,7 @@ void UiApp::closeNavigationPane()
     _nav_last_activity_ms = 0;
     stopNavigationAutoCommitTimer();
 #if defined(HELTEC_HAS_KEY_FRAME) && HELTEC_HAS_KEY_FRAME
-    heltec::meshcore::dal::display_port::endNavigationSession();
+    Heltec::MeshCore::Dal::DisplayPort::endNavigationSession();
 #endif
     (void)_surfaces.show(&_navigation, false);
     if (AbstractScreen *scr = activeScreen())
@@ -117,6 +113,8 @@ void UiApp::closeNavigationPane()
 bool UiApp::initNavigationPane(_lv_obj_t *parent)
 {
     if (!_navigation.init(parent, _frame_root))
+        return false;
+    if (!_surfaces.registerSurface(&_navigation))
         return false;
 
 #if HELTEC_UI_HAS_TOUCH
@@ -183,7 +181,7 @@ void UiApp::notifyNavActivity(uint32_t now_ms)
     restartNavigationAutoCommitTimer();
     notifyDisplayActivity(now_ms);
 #if defined(HELTEC_HAS_KEY_FRAME) && HELTEC_HAS_KEY_FRAME
-    heltec::meshcore::dal::display_port::navigationActivity();
+    Heltec::MeshCore::Dal::DisplayPort::navigationActivity();
 #endif
 }
 
@@ -198,14 +196,12 @@ void UiApp::ensureTileKeypadFocus()
         closeNavigationPane();
         return;
     }
-    if (_surfaces.isVisible(&_navigation))
-    {
-        closeNavigationImmediate();
-    }
 #if !defined(HELTEC_UI_HAS_TOUCH) || !HELTEC_UI_HAS_TOUCH
     if (_surfaces.isVisible(&_contextMenu))
         (void)closeActionPane();
 #endif
+    if (!inputOnActiveScreen())
+        return;
     bindScreen(resolveActiveScreen());
     if (AbstractScreen *scr = activeScreen())
     {
@@ -253,7 +249,7 @@ void UiApp::closeNavigationImmediate()
     _nav_last_activity_ms = 0;
     stopNavigationAutoCommitTimer();
 #if defined(HELTEC_HAS_KEY_FRAME) && HELTEC_HAS_KEY_FRAME
-    heltec::meshcore::dal::display_port::endNavigationSession();
+    Heltec::MeshCore::Dal::DisplayPort::endNavigationSession();
 #endif
     (void)_surfaces.show(&_navigation, false);
 }
@@ -313,4 +309,4 @@ void UiApp::navigationAutoCommitTimerCb(lv_timer_t *timer)
         app->handleNavigationAutoCommitTimeout();
 }
 
-} // namespace heltec::meshcore::ui
+} // namespace Heltec::MeshCore::Ui

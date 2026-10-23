@@ -31,7 +31,7 @@
 #define E213_LVGL_AUTO_REFRESH 1
 #endif
 
-namespace heltec::meshcore::dal::e213 {
+namespace Heltec::MeshCore::Dal::E213 {
 namespace {
 
 /* E213 refresh tracing is intentionally disabled in production firmware. */
@@ -744,67 +744,67 @@ void requestDeferredRefresh(const char* reason) {
   queueRefresh(RefreshRequest::Deferred, reason);
 }
 
-}  // namespace heltec::meshcore::dal::e213
+}  // namespace Heltec::MeshCore::Dal::E213
 
-namespace heltec::meshcore::dal::display_port
+namespace Heltec::MeshCore::Dal::DisplayPort
 {
 bool init()
 {
-    return e213::init();
+    return E213::init();
 }
 void deinit()
 {
-    e213::deinit();
+    E213::deinit();
 }
 void setBacklightOn(bool on)
 {
-    e213::setBacklightOn(on);
+    E213::setBacklightOn(on);
 }
 bool isBacklightOn()
 {
-    return e213::isBacklightOn();
+    return E213::isBacklightOn();
 }
 void suspend()
 {
-    e213::setBacklightOn(false);
+    E213::setBacklightOn(false);
 }
 void resume()
 {
-    e213::setBacklightOn(true);
+    E213::setBacklightOn(true);
 }
 void reinitPanelAfterSharedReset()
 {
-    e213::reinitPanelAfterSharedReset();
+    E213::reinitPanelAfterSharedReset();
 }
 
 #if defined(HELTEC_HAS_KEY_FRAME) && HELTEC_HAS_KEY_FRAME
 bool commitBootFrame(const char *reason, bool prepare_white_partial_baseline)
 {
-    return e213::commitBootFrame(reason, prepare_white_partial_baseline);
+    return E213::commitBootFrame(reason, prepare_white_partial_baseline);
 }
 void beginNavigationSession()
 {
-    e213::beginNavigationSession();
+    E213::beginNavigationSession();
 }
 void navigationActivity()
 {
-    e213::navigationActivity();
+    E213::navigationActivity();
 }
 void endNavigationSession()
 {
-    e213::endNavigationSession();
+    E213::endNavigationSession();
 }
 void requestRefresh(const char *reason)
 {
-    e213::requestRefresh(reason);
+    E213::requestRefresh(reason);
 }
 void requestSelectionRefresh(const char *reason)
 {
-    e213::requestSelectionRefresh(reason);
+    E213::requestSelectionRefresh(reason);
 }
 void requestDeferredRefresh(const char *reason)
 {
-    e213::requestDeferredRefresh(reason);
+    E213::requestDeferredRefresh(reason);
 }
 #endif
-} // namespace heltec::meshcore::dal::display_port
+} // namespace Heltec::MeshCore::Dal::DisplayPort

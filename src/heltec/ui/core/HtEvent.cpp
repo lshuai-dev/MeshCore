@@ -1,6 +1,6 @@
 #include "HtEvent.h"
 
-namespace heltec::meshcore::ui {
+namespace Heltec::MeshCore::Ui {
 
 lv_event_code_t HT_EVENT_USER = LV_EVENT_ALL;
 
@@ -24,4 +24,4 @@ const UiEvent *ht_event_get(const lv_event_t *event) {
     return static_cast<const UiEvent *>(lv_event_get_param(const_cast<lv_event_t *>(event)));
 }
 
-} // namespace heltec::meshcore::ui
+} // namespace Heltec::MeshCore::Ui

@@ -4,7 +4,7 @@
 
 #include <math.h>
 
-namespace heltec::meshcore::nav
+namespace Heltec::MeshCore::Nav
 {
 namespace
 {
@@ -147,7 +147,7 @@ void FindFriendNavEstimator::filteredGps(double &lat_deg, double &lon_deg, float
     double *const deviations = latitudes;
     for (size_t i = 0; i < _gps_count; ++i)
     {
-        deviations[i] = geo::geodesic_distance_m(lat_deg, lon_deg, _gps_samples[i].lat_deg,
+        deviations[i] = Geo::geodesic_distance_m(lat_deg, lon_deg, _gps_samples[i].lat_deg,
                                                  _gps_samples[i].lon_deg);
     }
     sortValues(deviations, _gps_count);
@@ -241,7 +241,7 @@ FindFriendNavOutput FindFriendNavEstimator::update(const FindFriendNavInput &inp
     }
 
     double bearing_deg = 0.0;
-    geo::geodesic_inverse_wgs84(out.filtered_lat_deg, out.filtered_lon_deg, input.target_lat_deg,
+    Geo::geodesic_inverse_wgs84(out.filtered_lat_deg, out.filtered_lon_deg, input.target_lat_deg,
                                 input.target_lon_deg, out.distance_m, &bearing_deg);
 
     const float combined_error_m = sqrtf(out.estimated_accuracy_m * out.estimated_accuracy_m +
@@ -285,4 +285,4 @@ FindFriendNavOutput FindFriendNavEstimator::update(const FindFriendNavInput &inp
     return out;
 }
 
-} // namespace heltec::meshcore::nav
+} // namespace Heltec::MeshCore::Nav

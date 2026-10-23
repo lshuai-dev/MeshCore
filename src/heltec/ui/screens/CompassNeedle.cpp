@@ -19,7 +19,7 @@ static constexpr lv_coord_t kNeedleRadiusInset = 2;
 static constexpr int kNeedleTipPercent = 39;
 static constexpr int kNeedleBasePercent = 17;
 
-namespace heltec::meshcore::ui
+namespace Heltec::MeshCore::Ui
 {
 namespace
 {
@@ -220,4 +220,4 @@ void compass_draw_friend_needle(lv_draw_ctx_t *ctx, lv_coord_t cx, lv_coord_t cy
                  edge_color, !gps_fix);
     }
 }
-} // namespace heltec::meshcore::ui
+} // namespace Heltec::MeshCore::Ui

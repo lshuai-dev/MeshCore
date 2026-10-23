@@ -17,7 +17,7 @@
 #include "ui/theme/ThemePixel.hpp"
 #endif
 
-namespace heltec::meshcore::ui
+namespace Heltec::MeshCore::Ui
 {
 
 namespace
@@ -100,4 +100,4 @@ bool ui_theme_init(lv_disp_t *disp)
 #endif
 }
 
-} // namespace heltec::meshcore::ui
+} // namespace Heltec::MeshCore::Ui

@@ -3,7 +3,7 @@
 #include <lvgl.h>
 #include <stdint.h>
 
-namespace heltec::meshcore::ui
+namespace Heltec::MeshCore::Ui
 {
 
 struct UiContextMenuBehavior
@@ -29,4 +29,4 @@ struct UiBehaviorProfile
 const UiBehaviorProfile &ui_behavior_profile();
 void ui_set_behavior_profile(const UiBehaviorProfile *profile);
 
-} // namespace heltec::meshcore::ui
+} // namespace Heltec::MeshCore::Ui

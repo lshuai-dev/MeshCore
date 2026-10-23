@@ -4,7 +4,7 @@
 
 #include <stdint.h>
 
-namespace heltec::meshcore::power
+namespace Heltec::MeshCore::Power
 {
 
 enum class SystemPowerState : uint8_t
@@ -192,4 +192,4 @@ class PowerMgr
     bool _begun = false;
 };
 
-} // namespace heltec::meshcore::power
+} // namespace Heltec::MeshCore::Power

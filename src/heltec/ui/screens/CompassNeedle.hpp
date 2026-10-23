@@ -7,7 +7,7 @@
 
 #include <lvgl.h>
 
-namespace heltec::meshcore::ui
+namespace Heltec::MeshCore::Ui
 {
 
 int16_t dial_heading_tenths(int16_t tenths);
@@ -22,6 +22,6 @@ void compass_draw_friend_needle(lv_draw_ctx_t *draw_ctx, lv_coord_t cx, lv_coord
                                 lv_coord_t radius, int16_t turn_tenths_clockwise_from_up,
                                 bool gps_fix, bool on_target);
 
-} // namespace heltec::meshcore::ui
+} // namespace Heltec::MeshCore::Ui
 
 #endif // HELTEC_UI_SCREENS_COMPASS_NEEDLE_HPP

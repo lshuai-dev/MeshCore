@@ -2,16 +2,16 @@
 
 #include "InputTypes.hpp"
 
-namespace heltec::meshcore::ui
+namespace Heltec::MeshCore::Ui
 {
 
-class InputHost;
+class IUiInputHost;
 
 class InputDispatcher
 {
   public:
     /** Returns true if the command was consumed. */
-    static bool dispatch(InputHost &host, InputCommand command, uint32_t now_ms);
+    static bool dispatch(IUiInputHost &host, InputCommand command, uint32_t now_ms);
 };
 
-} // namespace heltec::meshcore::ui
+} // namespace Heltec::MeshCore::Ui

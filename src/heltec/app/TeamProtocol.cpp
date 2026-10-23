@@ -8,7 +8,7 @@
 
 #include <string.h>
 
-namespace heltec::meshcore::team
+namespace Heltec::MeshCore::Team
 {
 namespace
 {
@@ -345,4 +345,4 @@ DecodeResult decode_sync_request(const uint8_t *data, size_t length, SyncRequest
     return DecodeResult::Ok;
 }
 
-} // namespace heltec::meshcore::team
+} // namespace Heltec::MeshCore::Team

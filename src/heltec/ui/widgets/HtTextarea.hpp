@@ -7,7 +7,7 @@
 
 #include <lvgl.h>
 
-namespace heltec::meshcore::ui {
+namespace Heltec::MeshCore::Ui {
 
 typedef struct {
     lv_textarea_t textarea;
@@ -17,6 +17,6 @@ extern const lv_obj_class_t ht_textarea_class;
 
 lv_obj_t *ht_textarea_create(lv_obj_t *parent);
 
-} // namespace heltec::meshcore::ui
+} // namespace Heltec::MeshCore::Ui
 
 #endif // HELTEC_UI_CORE_HT_TEXTAREA_HPP

@@ -1,5 +1,4 @@
 #pragma once
-#include "Feedback.hpp"
 #if defined(HELTEC_GEOFENCE) && HELTEC_GEOFENCE
 #include "heltec/app/TeamGeofence.hpp"
 #endif
@@ -7,11 +6,11 @@
 #include <stddef.h>
 #include <stdint.h>
 
-namespace heltec::meshcore::ui {
+namespace Heltec::MeshCore::Ui {
 struct UiSendMessageTarget;
 }
 
-namespace heltec::meshcore::biz {
+namespace Heltec::MeshCore::Biz {
 struct CompassUi {
     bool has_hardware = false;
     bool heading_valid = false;
@@ -90,7 +89,7 @@ struct FindFriendUi {
     FindFriendConfidence confidence = FindFriendConfidence::Unavailable;
 };
 
-class IBizFacade : public ui::IFeedback {
+class IBizFacade {
   public:
     enum class PresetUpdateResult : uint8_t
     {
@@ -209,23 +208,23 @@ class IBizFacade : public ui::IFeedback {
 
     virtual int teamOnlineCount() const = 0;
 #if defined(HELTEC_GEOFENCE) && HELTEC_GEOFENCE
-    virtual team::GeofenceState teamGeofenceState() const {
-        return team::GeofenceState::Empty;
+    virtual Team::GeofenceState teamGeofenceState() const {
+        return Team::GeofenceState::Empty;
     }
     virtual uint8_t teamGeofencePointCount() const { return 0; }
-    virtual bool teamGeofencePoint(uint8_t index, team::GeofencePoint &point) const {
+    virtual bool teamGeofencePoint(uint8_t index, Team::GeofencePoint &point) const {
         (void)index;
-        point = team::GeofencePoint{};
+        point = Team::GeofencePoint{};
         return false;
     }
     virtual bool beginTeamGeofenceEdit() { return false; }
     virtual void cancelTeamGeofenceEdit() { }
     virtual void deleteTeamGeofence() { }
-    virtual team::GeofenceAddResult addTeamGeofencePoint(int32_t latitude_e7,
+    virtual Team::GeofenceAddResult addTeamGeofencePoint(int32_t latitude_e7,
                                                          int32_t longitude_e7) {
         (void)latitude_e7;
         (void)longitude_e7;
-        return team::GeofenceAddResult::Invalid;
+        return Team::GeofenceAddResult::Invalid;
     }
     virtual bool teamGeofenceMemberAlarm(const uint8_t member_id[6]) const {
         (void)member_id;
@@ -267,13 +266,13 @@ class IBizFacade : public ui::IFeedback {
         (void)open;
         return false;
     }
-    virtual bool teamMessageTarget(int member_index, ui::UiSendMessageTarget &target) const {
+    virtual bool teamMessageTarget(int member_index, Ui::UiSendMessageTarget &target) const {
         (void)member_index;
         (void)target;
         return false;
     }
     virtual bool mapMessageTarget(const uint8_t *prefix, size_t length,
-                                  ui::UiSendMessageTarget &target) const {
+                                  Ui::UiSendMessageTarget &target) const {
         (void)prefix;
         (void)length;
         (void)target;
@@ -393,4 +392,4 @@ class IBizFacade : public ui::IFeedback {
 #endif
 };
 
-} // namespace heltec::meshcore::biz
+} // namespace Heltec::MeshCore::Biz

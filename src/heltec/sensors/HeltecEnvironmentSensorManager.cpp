@@ -496,7 +496,7 @@ bool HeltecEnvironmentSensorManager::begin()
     // #if defined(HELTEC_UI_HAS_TOUCH) && HELTEC_UI_HAS_TOUCH && defined(ENV_PIN_SDA) && ENV_PIN_SDA && \
 //     defined(ENV_PIN_SCL) && ENV_PIN_SCL && defined(PIN_BOARD_SDA) && defined(PIN_BOARD_SCL) && \
 //     (ENV_PIN_SDA) == (PIN_BOARD_SDA) && (ENV_PIN_SCL) == (PIN_BOARD_SCL)
-    //   heltec::meshcore::dal::touch_port::reinitAfterI2cProbe();
+    //   Heltec::MeshCore::Dal::TouchPort::reinitAfterI2cProbe();
     // #endif
 
     MESH_DEBUG_PRINTLN("[env] manager end t=%lu", (unsigned long)millis());
@@ -1237,8 +1237,8 @@ void HeltecEnvironmentSensorManager::loop()
                 last_lon = lon;
                 last_alt = alt;
                 last_sats = sats;
-                heltec::meshcore::ui::AppStateEvent ev{};
-                ev.type = heltec::meshcore::ui::AppStateEventType::GpsChanged;
+                Heltec::MeshCore::Ui::AppStateEvent ev{};
+                ev.type = Heltec::MeshCore::Ui::AppStateEventType::GpsChanged;
                 ev.gps.enabled = enabled;
                 ev.gps.available = true;
                 ev.gps.powered = enabled;
@@ -1251,7 +1251,7 @@ void HeltecEnvironmentSensorManager::loop()
                 ev.gps.lon_deg = lon / 1000000.0;
                 ev.gps.alt_m = alt / 1000.0;
                 ev.gps.speed_kph = -1.0f;
-                heltec::meshcore::ui::app_state_notifier().notify(ev);
+                Heltec::MeshCore::Ui::app_state_notifier().notify(ev);
             }
         }
 #endif

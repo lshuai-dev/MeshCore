@@ -8,7 +8,7 @@
 #include <Arduino.h>
 #include <string.h>
 
-namespace heltec::meshcore::biz
+namespace Heltec::MeshCore::Biz
 {
 namespace
 {
@@ -44,10 +44,10 @@ void copyMarkerLabel(char output[9], const char *name, size_t name_length)
     output[output_offset] = '\0';
 }
 
-bool teamLocationUsable(const heltec::meshcore::team::TeamMember &member, uint32_t now_ms)
+bool teamLocationUsable(const Heltec::MeshCore::Team::TeamMember &member, uint32_t now_ms)
 {
     if (!member.location_valid ||
-        !geo::has_valid_gps_micro(member.latitude_e6, member.longitude_e6))
+        !Geo::has_valid_gps_micro(member.latitude_e6, member.longitude_e6))
     {
         return false;
     }
@@ -72,7 +72,7 @@ void buildTeamMapPlotUi(const MeshAppUi &app, MapPlotUi &out)
     for (size_t slot = 0; slot < HELTEC_TEAM_MAX_MEMBERS &&
                           out.marker_count < MapPlotUi::kMaxMarkers; ++slot)
     {
-        const heltec::meshcore::team::TeamMember *const member = team.memberSlot(slot);
+        const Heltec::MeshCore::Team::TeamMember *const member = team.memberSlot(slot);
         if (!member)
         {
             continue;
@@ -107,6 +107,6 @@ const MapPlotUi &MeshAppUi::mapPlotUi() const
     return _map_plot_cache;
 }
 
-} // namespace heltec::meshcore::biz
+} // namespace Heltec::MeshCore::Biz
 
 #endif // ENV_INCLUDE_MAP

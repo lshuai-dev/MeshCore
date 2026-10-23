@@ -5,7 +5,7 @@
 #include <Arduino.h>
 #include <Wire.h>
 
-namespace heltec::meshcore::biz
+namespace Heltec::MeshCore::Biz
 {
 struct CompassUi;
 }
@@ -25,7 +25,7 @@ class ICMCompassProvider : public CompassProvider
     void begin() override;
     void loop() override;
     bool getResult(CompassResult *result) override;
-    bool fillUiSnapshot(heltec::meshcore::biz::CompassUi &ui) const;
+    bool fillUiSnapshot(Heltec::MeshCore::Biz::CompassUi &ui) const;
     void setCalibrationState(bool bEnable) override;
     bool hasHardware() const override
     {
@@ -79,7 +79,7 @@ class ICMCompassProvider : public CompassProvider
     bool readMagnetometerG(float *mag_g);
     void updateHeadingFilter(float headingDegrees);
     void updateCalibrationIfChanged();
-    bool shouldNotifyUi(const heltec::meshcore::biz::CompassUi &ui, uint32_t now_ms);
+    bool shouldNotifyUi(const Heltec::MeshCore::Biz::CompassUi &ui, uint32_t now_ms);
     void resetRuntimeState();
     bool resetCompassAlgorithm();
     void recordAccelerometerFailure(uint32_t now_ms);

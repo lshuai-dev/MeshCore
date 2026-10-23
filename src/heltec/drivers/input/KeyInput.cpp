@@ -2,7 +2,7 @@
 
 #include <lvgl.h>
 
-namespace heltec::meshcore::dal::key_input
+namespace Heltec::MeshCore::Dal::KeyInput
 {
 namespace
 {
@@ -207,4 +207,4 @@ bool post(uint32_t key, KeyDelivery delivery)
     return enqueue_key(key, delivery);
 }
 
-} // namespace heltec::meshcore::dal::key_input
+} // namespace Heltec::MeshCore::Dal::KeyInput

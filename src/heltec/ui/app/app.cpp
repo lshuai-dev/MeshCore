@@ -12,7 +12,6 @@
 #include "ui/core/Surface.hpp"
 #include "ui/core/UiTask.hpp"
 #include "ui/widgets/WidgetClasses.hpp"
-#include "ui/menus/CascadingMenu.hpp"
 #include "ui/menus/ContextMenu.hpp"
 #include "ui/navigation/NavigationWidget.hpp"
 #include "ui/overlays/SplashOverlay.hpp"
@@ -25,7 +24,7 @@
 #include <cstring>
 #include <lvgl.h>
 
-namespace heltec::meshcore::ui {
+namespace Heltec::MeshCore::Ui {
 
 namespace {
 
@@ -62,7 +61,7 @@ UiApp &UiApp::instance() {
     return *s_ui_app_instance;
 }
 
-UiApp::UiApp(biz::IBizFacade &biz, heltec::meshcore::power::PowerMgr &power)
+UiApp::UiApp(Biz::IBizFacade &biz, Heltec::MeshCore::Power::PowerMgr &power)
     : _biz(biz), _power(power), _top_pane(), _navigation(_biz),
       _scrHome(_biz, "Home", &icon_home_img), _scrRecent(_biz, "Recent", &icon_recent_img),
       _scrRadio(_biz, "Radio", &icon_radio_img),
@@ -79,14 +78,6 @@ UiApp::UiApp(biz::IBizFacade &biz, heltec::meshcore::power::PowerMgr &power)
       _scrTracker(_biz, "Tracker", &icon_map_img),
 #endif
       _scrSystem(_biz, "System", &icon_system_img)
-#if !defined(HELTEC_UI_HAS_TOUCH) || !HELTEC_UI_HAS_TOUCH
-      ,
-      _ctxRadioMenu(_biz)
-#if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
-      ,
-      _ctxCompassMenu(_biz)
-#endif
-#endif
 #if HELTEC_UI_HAS_TOUCH
       ,
       _quickPingOverlay(_biz)
@@ -144,18 +135,6 @@ bool UiApp::inputOnActiveScreen() const {
     return scr && _surfaces.isActive(static_cast<UiSurface *>(scr));
 }
 
-void UiApp::reconcileInput() {
-    _surfaces.reconcile();
-    if (_surfaces.isVisible(&_previewOvl) && !ui_task().isPreviewActive()) {
-        (void)_surfaces.show(&_previewOvl, false);
-        return;
-    }
-    if (_surfaces.isVisible(&_alertOvl) && !ui_task().isAlertActive()) {
-        (void)_surfaces.show(&_alertOvl, false);
-        return;
-    }
-}
-
 void UiApp::setTopPaneTitle(const char *title) {
     if (title) _top_pane.setTitle(title);
 }
@@ -172,7 +151,6 @@ void UiApp::refreshTopPaneStatus(bool force) {
 void UiApp::init() {
     _inited = false;
     ht_event_init();
-    ui_task().attachHost(this);
     _app_state_dispatcher.bindSurfaceManager(_surfaces);
     _app_state_dispatcher.bindGlobalHandler(
         [](void *user_data, const AppStateEvent &event) {
@@ -184,7 +162,7 @@ void UiApp::init() {
 
     InputPipeline::init();
 #if HELTEC_TOUCH_INPUT
-    heltec::meshcore::dal::touch_input::UiHooks touch_hooks{};
+    Heltec::MeshCore::Dal::TouchInput::UiHooks touch_hooks{};
     touch_hooks.wake = +[]() {
         auto &app = UiApp::instance();
         if (BacklightPolicy::mode() == BacklightMode::AutoTimeout) {
@@ -199,7 +177,7 @@ void UiApp::init() {
     touch_hooks.raw_pointer_passthrough = UiApp::touchGestureRawPointerPassthrough;
     touch_hooks.block_double_tap = UiApp::touchGestureBlockQuickPingDoubleTap;
 #endif
-    heltec::meshcore::dal::touch_input::bindUi(touch_hooks);
+    Heltec::MeshCore::Dal::TouchInput::bindUi(touch_hooks);
 #endif
 
     lv_obj_t *scr = lv_scr_act();
@@ -211,7 +189,7 @@ void UiApp::init() {
     if (!disp) {
         return;
     }
-    if (!heltec::meshcore::ui::ui_theme_init(disp)) {
+    if (!Heltec::MeshCore::Ui::ui_theme_init(disp)) {
         return;
     }
     if (!initTimers()) {
@@ -327,7 +305,7 @@ void UiApp::init() {
     _inited = true;
 #if defined(HELTEC_HAS_KEY_FRAME) && HELTEC_HAS_KEY_FRAME
     splash.hide();
-    heltec::meshcore::dal::display_port::requestRefresh();
+    Heltec::MeshCore::Dal::DisplayPort::requestRefresh();
 #endif
     if (_tileview) {
         lv_obj_t *tile = lv_tileview_get_tile_act(_tileview);
@@ -373,7 +351,7 @@ void UiApp::handleFrameEvent(lv_event_t *e) {
         if (!request || !inputOnActiveScreen() || _surfaces.isVisible(&_confirmOvl)) break;
         _confirmOvl.setRequest(request->action);
         if (!_surfaces.isVisible(&_confirmOvl) && !_surfaces.show(&_confirmOvl)) {
-            _biz.showAlert("Unable to open confirmation", 2000);
+            ui_task().showAlert("Unable to open confirmation", 2000);
         }
         break;
     }
@@ -384,7 +362,7 @@ void UiApp::handleFrameEvent(lv_event_t *e) {
         const uint64_t team_session = _confirmOvl.teamSession();
         if (_surfaces.show(&_confirmOvl, false) && !_surfaces.isVisible(&_confirmOvl)) {
             if (accepted_action == UiConfirmAction::TeamJoin) {
-                _biz.showAlert(_biz.teamDecidePending(team_session, true)
+                ui_task().showAlert(_biz.teamDecidePending(team_session, true)
                                    ? "Member approved"
                                    : "Request expired or send failed",
                                2000);
@@ -392,7 +370,7 @@ void UiApp::handleFrameEvent(lv_event_t *e) {
             }
             if (accepted_action == UiConfirmAction::TeamLeave) {
                 const bool ok = _biz.teamLeave();
-                _biz.showAlert(ok ? "Team updated" : "Team update failed", 2000);
+                ui_task().showAlert(ok ? "Team updated" : "Team update failed", 2000);
                 break;
             }
             (void)_surfaces.dispatchToActive(EventType::ConfirmAccepted, &accepted_action);
@@ -418,7 +396,6 @@ void UiApp::handleFrameEvent(lv_event_t *e) {
                 auto *app = static_cast<UiApp *>(user_data);
                 if (!app) return;
                 if (!app->_inited || app->_surfaces.isVisible(&app->_contextMenu)) return;
-                app->reconcileInput();
 #if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
                 if (app->_surfaces.isActive(&app->_calibrationOvl)) {
                     app->closeCalibrationOverlay();
@@ -474,18 +451,20 @@ void UiApp::handleFrameEvent(lv_event_t *e) {
         break;
 #endif
     case EventType::PreviewNext:
-        if (ui_task().advancePreview()) {
-            openPreviewOverlay(ui_task().previewUnread(), ui_task().previewReceivedMillis(),
-                               ui_task().previewOrigin(), ui_task().previewText());
-        } else {
-            closePreviewOverlay();
-        }
+        (void)ui_task().advancePreview();
         break;
     case EventType::PreviewClose:
-        closePreviewOverlay();
+        ui_task().dismissPreview();
         break;
+    case EventType::AlertOpen: {
+        const auto *request = static_cast<const UiAlertRequest *>(event->payload);
+        if (request && request->text) {
+            ui_task().showAlert(request->text, request->duration_ms);
+        }
+        break;
+    }
     case EventType::AlertClose:
-        closeAlertOverlay();
+        ui_task().dismissAlert();
         break;
     case EventType::RadioSyncClose:
         closeRadioParamSyncOverlay();
@@ -572,7 +551,7 @@ void UiApp::handleFrameEvent(lv_event_t *e) {
         // Navigation owns a refresh session and coalesces rapid selection changes.
         break;
     default:
-        heltec::meshcore::dal::display_port::requestRefresh();
+        Heltec::MeshCore::Dal::DisplayPort::requestRefresh();
         break;
     }
 #endif
@@ -585,15 +564,30 @@ void UiApp::handleAppStateEvent(const AppStateEvent &event) {
     if (event.type == AppStateEventType::ConfigChanged) {
         refreshTopPaneStatus(true);
     }
+    if (event.type == AppStateEventType::PreviewChanged) {
+        if (ui_task().isPreviewActive()) {
+            openPreviewOverlay(ui_task().previewUnread(), ui_task().previewReceivedMillis(),
+                               ui_task().previewOrigin(), ui_task().previewText());
+        } else {
+            (void)_surfaces.show(&_previewOvl, false);
+        }
+    }
+    if (event.type == AppStateEventType::AlertChanged) {
+        if (ui_task().isAlertActive()) {
+            openAlertOverlay(ui_task().getAlertText());
+        } else {
+            (void)_surfaces.show(&_alertOvl, false);
+        }
+    }
 #if defined(HELTEC_HAS_KEY_FRAME) && HELTEC_HAS_KEY_FRAME
-    heltec::meshcore::dal::display_port::requestDeferredRefresh();
+    Heltec::MeshCore::Dal::DisplayPort::requestDeferredRefresh();
 #endif
 }
 
-void UiApp::handlePowerChanged(heltec::meshcore::power::PowerChangeMask changes,
-                               const heltec::meshcore::power::PowerSnapshot &snapshot) {
-    using heltec::meshcore::power::PowerChange;
-    if (!heltec::meshcore::power::hasChange(changes, PowerChange::Display)) return;
+void UiApp::handlePowerChanged(Heltec::MeshCore::Power::PowerChangeMask changes,
+                               const Heltec::MeshCore::Power::PowerSnapshot &snapshot) {
+    using Heltec::MeshCore::Power::PowerChange;
+    if (!Heltec::MeshCore::Power::hasChange(changes, PowerChange::Display)) return;
     if (snapshot.display_on) {
         onBacklightTurnedOn();
     } else {
@@ -615,7 +609,7 @@ void UiApp::tick()
     // Shared approval UI also serves leaders without a Tracker screen.
     // A join request is a device-level Team event. Do not gate it on the
     // currently focused screen; Tracker and Find Friend must both receive it.
-    const biz::IBizFacade::TeamStatus team = _biz.teamStatus();
+    const Biz::IBizFacade::TeamStatus team = _biz.teamStatus();
     if (team.is_leader && !_surfaces.isVisible(&_confirmOvl) && team.pending_session != 0) {
         _confirmOvl.setRequest(UiConfirmAction::TeamJoin);
         (void)_surfaces.show(&_confirmOvl);
@@ -676,6 +670,9 @@ bool UiApp::initScreens(_lv_obj_t *content) {
         if (!scr->init(tile, _frame_root)) {
             return false;
         }
+        if (!_surfaces.registerSurface(scr)) {
+            return false;
+        }
         lv_obj_t *scr_root = scr->root();
         if (!scr_root) {
             return false;
@@ -731,7 +728,6 @@ void UiApp::toggleDisplay(uint32_t now_ms) {
 
 void UiApp::onBacklightTurnedOn() {
     ensureTileKeypadFocus();
-    reconcileInput();
     lv_obj_t *scr = lv_scr_act();
     if (scr) lv_obj_invalidate(scr);
 }
@@ -750,4 +746,4 @@ void UiApp::syncDisplayTimeoutInhibit(uint32_t now_ms) {
     _power.setDisplayTimeoutInhibited(kCriticalOverlay, inhibited, now_ms);
 }
 
-} // namespace heltec::meshcore::ui
+} // namespace Heltec::MeshCore::Ui

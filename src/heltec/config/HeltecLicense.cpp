@@ -628,9 +628,9 @@ static uint32_t s_gate_display_last_activity_ms = 0;
 static void heltecLicenseGateNotifyDisplayActivity(uint32_t now)
 {
     s_gate_display_last_activity_ms = now;
-    if (!heltec::meshcore::dal::display_port::isBacklightOn())
+    if (!Heltec::MeshCore::Dal::DisplayPort::isBacklightOn())
     {
-        heltec::meshcore::dal::display_port::setBacklightOn(true);
+        Heltec::MeshCore::Dal::DisplayPort::setBacklightOn(true);
         if (lv_disp_t *d = lv_disp_get_default())
         {
             lv_refr_now(d);
@@ -642,17 +642,17 @@ static void heltecLicenseGateTickDisplayAutoOff(uint32_t now)
 {
     if (!s_gate_display_last_activity_ms)
         return;
-    if (!heltec::meshcore::dal::display_port::isBacklightOn())
+    if (!Heltec::MeshCore::Dal::DisplayPort::isBacklightOn())
         return;
     if ((now - s_gate_display_last_activity_ms) >= HELTEC_LICENSE_GATE_AUTO_OFF_MS)
     {
-        heltec::meshcore::dal::display_port::setBacklightOn(false);
+        Heltec::MeshCore::Dal::DisplayPort::setBacklightOn(false);
     }
 }
 
 static void heltecLicenseGatePollInputWake(uint32_t now)
 {
-    if (heltec::meshcore::dal::momentary_button::anyPhysicalPressed())
+    if (Heltec::MeshCore::Dal::MomentaryButton::anyPhysicalPressed())
     {
         heltecLicenseGateNotifyDisplayActivity(now);
     }
@@ -667,7 +667,7 @@ static void heltecLicenseShowUnauthorizedUi(const char *display_id)
         return;
     }
 
-    using namespace heltec::meshcore::ui;
+    using namespace Heltec::MeshCore::Ui;
 
     s_gate_root = ht_class_create(&ht_license_gate_class, lv_layer_top());
     if (!s_gate_root)

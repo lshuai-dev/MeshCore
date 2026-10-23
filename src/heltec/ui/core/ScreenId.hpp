@@ -2,7 +2,7 @@
 #include "Capabilities.hpp"
 #include <stdint.h>
 
-namespace heltec::meshcore::ui
+namespace Heltec::MeshCore::Ui
 {
 
 enum class eScreenId : uint8_t
@@ -29,4 +29,4 @@ enum class eScreenId : uint8_t
 
 constexpr uint8_t kScreenCnt = static_cast<uint8_t>(eScreenId::kScreenCnt);
 
-} // namespace heltec::meshcore::ui
+} // namespace Heltec::MeshCore::Ui

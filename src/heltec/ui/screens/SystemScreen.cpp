@@ -3,12 +3,11 @@
 #include "config/LoraBandPresets.h"
 #include "ui/theme/UiTheme.hpp"
 #include "ui/core/HtEvent.h"
-#include "ui/widgets/HtScrollView.hpp"
 
-namespace heltec::meshcore::ui {
+namespace Heltec::MeshCore::Ui {
 
 const lv_obj_class_t ht_system_screen_root_class = {
-    &ht_scroll_view_class,
+    &lv_obj_class,
     nullptr,
     nullptr,
 #if LV_USE_USER_DATA
@@ -19,7 +18,7 @@ const lv_obj_class_t ht_system_screen_root_class = {
     LV_SIZE_CONTENT,
     LV_OBJ_CLASS_EDITABLE_INHERIT,
     LV_OBJ_CLASS_GROUP_DEF_INHERIT,
-    sizeof(ht_scroll_view_t),
+    sizeof(lv_obj_t),
 };
 
 namespace {
@@ -29,8 +28,8 @@ char s_screen_off_options[64];
 constexpr const char *kMessagePresetOptions =
     "Select\nPreset 1\nPreset 2\nPreset 3\nPreset 4\nPreset 5";
 
-int append_options(char *buf, size_t cap, const biz::IBizFacade &app, int count,
-                   bool (*label_fn)(const biz::IBizFacade &, int, char *, size_t)) {
+int append_options(char *buf, size_t cap, const Biz::IBizFacade &app, int count,
+                   bool (*label_fn)(const Biz::IBizFacade &, int, char *, size_t)) {
     char *p = buf;
     size_t rem = cap;
     for (int i = 0; i < count; ++i) {
@@ -44,7 +43,7 @@ int append_options(char *buf, size_t cap, const biz::IBizFacade &app, int count,
     return (int)(p - buf);
 }
 
-bool screen_off_label(const biz::IBizFacade &app, int i, char *lab, size_t cap) {
+bool screen_off_label(const Biz::IBizFacade &app, int i, char *lab, size_t cap) {
     const char *s = app.displayAutoOffOptionLabel(i);
     lv_snprintf(lab, cap, "%s", s ? s : "?");
     return true;
@@ -92,41 +91,34 @@ bool SystemScreen::buildSurface() {
     addActionRow(_root, "> Factory Reset", &_row_factory_reset);
     addActionRow(_root, "> Clear Data", &_row_clear_data);
 
-    addFocusableObject(_choice_region.dropdown, _choice_region.row);
-    addFocusableObject(_swForwarding, _swForwarding ? lv_obj_get_parent(_swForwarding) : nullptr);
-    addFocusableObject(_choice_screen_off.dropdown, _choice_screen_off.row);
+    addNavigableObject(_choice_region.dropdown, _choice_region.row);
+    addNavigableObject(_swForwarding, _swForwarding ? lv_obj_get_parent(_swForwarding) : nullptr);
+    addNavigableObject(_choice_screen_off.dropdown, _choice_screen_off.row);
 #if HELTEC_UI_ENABLE_KEYBOARD
-    addFocusableObject(_choice_message_preset.dropdown, _choice_message_preset.row);
+    addNavigableObject(_choice_message_preset.dropdown, _choice_message_preset.row);
 #endif
-    addFocusableObject(_swBle, _swBle ? lv_obj_get_parent(_swBle) : nullptr);
+    addNavigableObject(_swBle, _swBle ? lv_obj_get_parent(_swBle) : nullptr);
 #ifdef PIN_BUZZER
 #if !defined(HAS_BUZZER_VOLUME_CONTROL) || !HAS_BUZZER_VOLUME_CONTROL
-    addFocusableObject(_swBuzzer, _swBuzzer ? lv_obj_get_parent(_swBuzzer) : nullptr);
+    addNavigableObject(_swBuzzer, _swBuzzer ? lv_obj_get_parent(_swBuzzer) : nullptr);
 #endif
 #endif
 #if defined(HAS_BUZZER_VOLUME_CONTROL) && HAS_BUZZER_VOLUME_CONTROL
-    addFocusableObject(_btnBuzzerVolumeDown, nullptr, false);
-    addFocusableObject(_btnBuzzerVolumeUp, nullptr, false);
+    addNavigableObject(_btnBuzzerVolumeDown, nullptr, false);
+    addNavigableObject(_btnBuzzerVolumeUp, nullptr, false);
 #endif
-    addFocusableObject(_row_factory_reset);
-    addFocusableObject(_row_clear_data);
+    addNavigableObject(_row_factory_reset);
+    addNavigableObject(_row_clear_data);
 
-    lv_obj_set_user_data(_root, this);
-
-    lv_group_set_focus_cb(group(), onGroupFocusChanged);
+    _gridNav.setFocusChangedCallback(onFocusChanged, this);
 
     return true;
 }
 
-void SystemScreen::onGroupFocusChanged(lv_group_t *group) {
-    lv_obj_t *const focused = lv_group_get_focused(group);
-    if (!focused) return;
-    for (lv_obj_t *object = focused; object; object = lv_obj_get_parent(object)) {
-        auto *const self = static_cast<SystemScreen *>(lv_obj_get_user_data(object));
-        if (self && self->root() == object) {
-            if (!self->isDropdownRow(focused)) self->closeOpenDropdown();
-            return;
-        }
+void SystemScreen::onFocusChanged(lv_obj_t *focused, void *user_data) {
+    auto *const self = static_cast<SystemScreen *>(user_data);
+    if (self != nullptr && focused != nullptr && !self->isDropdownRow(focused)) {
+        self->closeOpenDropdown();
     }
 }
 
@@ -146,7 +138,7 @@ void SystemScreen::openMessagePresetEditor(uint8_t index)
     request.preset_index = index;
     request.max_bytes = 31;
     if (!emitEvent(EventType::MessageKeyboardOpen, &request))
-        _feedback.showAlert("Unable to open keyboard", 1600);
+        showAlert("Unable to open keyboard", 1600);
 }
 
-} // namespace heltec::meshcore::ui
+} // namespace Heltec::MeshCore::Ui

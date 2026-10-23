@@ -1,14 +1,14 @@
 #pragma once
 #include "AbstractOverlay.hpp"
 
-namespace heltec::meshcore::ui {
+namespace Heltec::MeshCore::Ui {
 class FramedOverlay : public AbstractOverlay {
   public:
     void setStaticTitle(const char *text);
     void setStaticToolTip(const char *text);
 
   protected:
-    FramedOverlay(biz::IBizFacade &biz, const lv_obj_class_t &root_class,
+    FramedOverlay(Biz::IBizFacade &biz, const lv_obj_class_t &root_class,
                   const lv_obj_class_t *content_class = nullptr);
 
     bool buildSurface() override;
@@ -24,4 +24,4 @@ class FramedOverlay : public AbstractOverlay {
     const char *_tool_tip_text = "";
 };
 
-} // namespace heltec::meshcore::ui
+} // namespace Heltec::MeshCore::Ui

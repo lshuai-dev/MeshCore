@@ -11,7 +11,7 @@
 #define DISPLAY_ADDRESS 0x3C
 #endif
 
-namespace heltec::meshcore::dal::ssd1306
+namespace Heltec::MeshCore::Dal::SSD1306
 {
 namespace
 {
@@ -149,35 +149,35 @@ void resume()
     setBacklightOn(true);
 }
 
-} // namespace heltec::meshcore::dal::ssd1306
+} // namespace Heltec::MeshCore::Dal::SSD1306
 
-namespace heltec::meshcore::dal::display_port
+namespace Heltec::MeshCore::Dal::DisplayPort
 {
 bool init()
 {
-    return ssd1306::init();
+    return SSD1306::init();
 }
 void deinit()
 {
-    ssd1306::deinit();
+    SSD1306::deinit();
 }
 void setBacklightOn(bool on)
 {
-    ssd1306::setBacklightOn(on);
+    SSD1306::setBacklightOn(on);
 }
 bool isBacklightOn()
 {
-    return ssd1306::isBacklightOn();
+    return SSD1306::isBacklightOn();
 }
 void suspend()
 {
-    ssd1306::suspend();
+    SSD1306::suspend();
 }
 void resume()
 {
-    ssd1306::resume();
+    SSD1306::resume();
 }
 void reinitPanelAfterSharedReset()
 {
 }
-} // namespace heltec::meshcore::dal::display_port
+} // namespace Heltec::MeshCore::Dal::DisplayPort

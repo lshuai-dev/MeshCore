@@ -15,7 +15,7 @@
 #endif
 #endif
 
-namespace heltec::meshcore::dal::touch_port
+namespace Heltec::MeshCore::Dal::TouchPort
 {
 namespace
 {
@@ -196,7 +196,7 @@ static void deliverPointer(lv_indev_data_t *data, const Sample &s, bool hw_press
 
 static bool handleBacklightWakeTouch(lv_indev_data_t *data)
 {
-    if (display_port::isBacklightOn())
+    if (DisplayPort::isBacklightOn())
     {
         if (s_wake_fn)
             (void)s_wake_fn();
@@ -209,7 +209,7 @@ static bool handleBacklightWakeTouch(lv_indev_data_t *data)
     }
     else
     {
-        display_port::setBacklightOn(true);
+        DisplayPort::setBacklightOn(true);
     }
     if (swallow)
     {
@@ -442,6 +442,6 @@ void set_sample_hook(SampleHookFn fn)
     s_sample_hook = fn;
 }
 
-} // namespace heltec::meshcore::dal::touch_port
+} // namespace Heltec::MeshCore::Dal::TouchPort
 
 #endif // HELTEC_UI_HAS_TOUCH

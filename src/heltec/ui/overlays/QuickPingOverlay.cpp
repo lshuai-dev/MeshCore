@@ -2,7 +2,7 @@
 
 #if HELTEC_UI_HAS_TOUCH
 
-#include "ui/widgets/HtDropdown.hpp"
+#include "ui/widgets/DropdownViewport.hpp"
 #include "ui/widgets/HtTextarea.hpp"
 
 #include "ui/widgets/HtContainer.hpp"
@@ -10,7 +10,7 @@
 
 #include <lvgl.h>
 
-namespace heltec::meshcore::ui
+namespace Heltec::MeshCore::Ui
 {
 
 namespace
@@ -55,15 +55,15 @@ const lv_obj_class_t ht_quick_ping_title_class =
 const lv_obj_class_t ht_quick_ping_label_class =
     quick_ping_class(&lv_label_class, sizeof(lv_label_t));
 const lv_obj_class_t ht_quick_ping_dropdown_class =
-    quick_ping_class(&ht_dropdown_class, sizeof(ht_dropdown_t));
+    quick_ping_class(&lv_dropdown_class, sizeof(lv_dropdown_t));
 const lv_obj_class_t ht_quick_ping_message_dropdown_class =
-    quick_ping_class(&ht_quick_ping_dropdown_class, sizeof(ht_dropdown_t));
+    quick_ping_class(&ht_quick_ping_dropdown_class, sizeof(lv_dropdown_t));
 const lv_obj_class_t ht_quick_ping_message_editor_class =
     quick_ping_class(&ht_textarea_class, sizeof(ht_textarea_t));
 const lv_obj_class_t ht_quick_ping_keyboard_class =
     quick_ping_class(&lv_keyboard_class, sizeof(lv_keyboard_t));
 
-} // namespace heltec::meshcore::ui
+} // namespace Heltec::MeshCore::Ui
 
 #include "heltec/ui/core/BizFacade.hpp"
 #include "heltec/ui/Images.h"
@@ -74,7 +74,7 @@ const lv_obj_class_t ht_quick_ping_keyboard_class =
 
 #include <cstring>
 
-namespace heltec::meshcore::ui
+namespace Heltec::MeshCore::Ui
 {
 namespace
 {
@@ -366,7 +366,7 @@ void syncControlFocusToRow(lv_event_t *event)
         return;
     }
 
-    ht_container_set_focused(row, code == LV_EVENT_FOCUSED);
+    ht_container_set_selected(row, code == LV_EVENT_FOCUSED);
 }
 
 _lv_obj_t *createFieldIcon(_lv_obj_t *row, const lv_img_dsc_t *image)
@@ -393,7 +393,7 @@ _lv_obj_t *createFieldIcon(_lv_obj_t *row, const lv_img_dsc_t *image)
 
 } // namespace
 
-QuickPingOverlay::QuickPingOverlay(biz::IBizFacade &biz)
+QuickPingOverlay::QuickPingOverlay(Biz::IBizFacade &biz)
     : AbstractOverlay(biz, ht_quick_ping_overlay_class)
 {
 }
@@ -487,7 +487,7 @@ bool QuickPingOverlay::buildSurface()
     {
         return fail();
     }
-    _rebuilding_focus_group = true;
+    _rebuilding_navigation = true;
     _lv_obj_t *const focus_objects[] = {
         _dd_target,
         _dd_recipient,
@@ -497,10 +497,10 @@ bool QuickPingOverlay::buildSurface()
     };
     for (_lv_obj_t *object : focus_objects)
     {
-        lv_obj_add_flag(object, LV_OBJ_FLAG_EVENT_BUBBLE | LV_OBJ_FLAG_SCROLL_ON_FOCUS);
-        lv_group_add_obj(focusGroup(), object);
+        lv_obj_add_flag(object, LV_OBJ_FLAG_SCROLL_ON_FOCUS);
+        _gridNav.add(object);
     }
-    _rebuilding_focus_group = false;
+    _rebuilding_navigation = false;
     updateMessageTextPresentation(false);
     return true;
 }
@@ -724,7 +724,6 @@ _lv_obj_t *QuickPingOverlay::createDropdownRow(_lv_obj_t *parent, const char *la
     _lv_obj_t *dropdown = ht_class_create(&ht_quick_ping_dropdown_class, row);
     if (!dropdown)
         return row;
-    ht_dropdown_set_viewport(dropdown, _root);
     const lv_coord_t control_x = has_icon ? kIconDropdownControlX : kDropdownControlX;
     const lv_coord_t control_width = has_icon ? kIconDropdownControlWidth : kDropdownControlWidth;
     lv_obj_set_size(dropdown, control_width, kDropdownControlHeight);
@@ -820,7 +819,6 @@ _lv_obj_t *QuickPingOverlay::createMessageRow(_lv_obj_t *parent)
     if (_dd_message)
     {
         lv_obj_add_flag(_dd_message, LV_OBJ_FLAG_CLICKABLE | LV_OBJ_FLAG_CLICK_FOCUSABLE);
-        ht_dropdown_set_viewport(_dd_message, _root);
         lv_obj_set_size(_dd_message, kMessageDropdownWidth, kDropdownControlHeight);
         lv_obj_align(_dd_message, LV_ALIGN_TOP_LEFT, kIconDropdownControlX + kMessageInputWidth,
                      kDropdownControlY);
@@ -912,15 +910,12 @@ void QuickPingOverlay::applyState(bool keep_focus)
     setDropdownEnabled(_ta_message, message_ready);
     setDropdownEnabled(_dd_message, message_ready);
 
-    _lv_obj_t *preferred =
-        keep_focus && focusGroup() ? lv_group_get_focused(focusGroup()) : _dd_target;
+    _lv_obj_t *preferred = keep_focus ? _gridNav.focused() : _dd_target;
     restoreModeFocus(preferred);
 }
 
 void QuickPingOverlay::restoreModeFocus(_lv_obj_t *preferred)
 {
-    if (!focusGroup())
-        return;
     _lv_obj_t *fallback = nullptr;
     _lv_obj_t *const candidates[] = { _dd_target, _dd_recipient, _ta_message, _dd_message, _keyboard };
     for (_lv_obj_t *candidate : candidates)
@@ -931,11 +926,11 @@ void QuickPingOverlay::restoreModeFocus(_lv_obj_t *preferred)
             break;
         }
     }
-    _rebuilding_focus_group = true;
+    _rebuilding_navigation = true;
     lv_obj_t *const target = focus_object_available(preferred) ? preferred : fallback;
-    if (target && lv_obj_get_group(target) == focusGroup())
-        lv_group_focus_obj(target);
-    _rebuilding_focus_group = false;
+    if (target && _gridNav.contains(target))
+        (void)_gridNav.focus(target);
+    _rebuilding_navigation = false;
 }
 
 void QuickPingOverlay::syncLists()
@@ -1153,7 +1148,7 @@ void QuickPingOverlay::moveContactSelection(int delta)
     if (_contact_window_start != old_start)
     {
         syncRecipientDropdown();
-        ht_dropdown_realign(_dd_recipient);
+        dropdown_viewport_realign(_dd_recipient, _root);
     }
     else if (_dd_recipient)
     {
@@ -1366,6 +1361,10 @@ void QuickPingOverlay::setKeyboardVisible(bool visible)
     const bool was_visible = keyboardVisible();
     if (visible)
     {
+        if (!was_visible)
+        {
+            _keyboard_return_focus = _gridNav.focused();
+        }
         if (_title_bar && lv_obj_is_valid(_title_bar))
         {
             lv_obj_add_flag(_title_bar, LV_OBJ_FLAG_HIDDEN);
@@ -1388,9 +1387,18 @@ void QuickPingOverlay::setKeyboardVisible(bool visible)
         lv_obj_set_pos(_keyboard, 0, 0);
         lv_obj_clear_flag(_keyboard, LV_OBJ_FLAG_HIDDEN);
         lv_obj_move_foreground(_keyboard);
+        _gridNav.setCaptureMode(HtGridNav::CaptureMode::Persistent);
+        _gridNav.setHorizontalNavigation(true);
+        if (_gridNav.focus(_keyboard))
+        {
+            _gridNav.setEditing(true);
+        }
     }
     else
     {
+        _gridNav.setEditing(false);
+        _gridNav.setHorizontalNavigation(false);
+        _gridNav.setCaptureMode(HtGridNav::CaptureMode::Transient);
         if (was_visible)
             syncKeyboardEditorToMessage();
         lv_obj_add_flag(_keyboard, LV_OBJ_FLAG_HIDDEN);
@@ -1402,6 +1410,12 @@ void QuickPingOverlay::setKeyboardVisible(bool visible)
         if (_title_bar && lv_obj_is_valid(_title_bar))
         {
             lv_obj_clear_flag(_title_bar, LV_OBJ_FLAG_HIDDEN);
+        }
+        _lv_obj_t *const return_focus = _keyboard_return_focus;
+        _keyboard_return_focus = nullptr;
+        if (focus_object_available(return_focus) && _gridNav.contains(return_focus))
+        {
+            (void)_gridNav.focus(return_focus);
         }
     }
     if (was_visible != visible)
@@ -1579,11 +1593,11 @@ void QuickPingOverlay::handleTargetChanged()
     }
     else if (kind == TargetKind::Group && _group_count <= 0)
     {
-        _biz.showAlert("No group channels", 900);
+        showAlert("No group channels", 900);
     }
     else if (kind == TargetKind::Personal && _contact_count <= 0)
     {
-        _biz.showAlert("No contacts", 900);
+        showAlert("No contacts", 900);
     }
 
     applyState(true);
@@ -1667,31 +1681,31 @@ void QuickPingOverlay::submitMessageFromTextarea()
         const size_t length = text ? strlen(text) : 0;
         if (length == 0)
         {
-            _biz.showAlert("Preset cannot be empty", 1200);
+            showAlert("Preset cannot be empty", 1200);
             return;
         }
         if (length > kMaxPresetLength)
         {
-            _biz.showAlert("Preset too long", 1200);
+            showAlert("Preset too long", 1200);
             return;
         }
-        using Result = biz::IBizFacade::PresetUpdateResult;
+        using Result = Biz::IBizFacade::PresetUpdateResult;
         const Result result = _biz.updateMessagePreset(_preset_edit_index, text);
         if (result != Result::Updated && result != Result::Unchanged)
         {
-            _biz.showAlert(result == Result::InvalidText ? "Invalid preset text" :
+            showAlert(result == Result::InvalidText ? "Invalid preset text" :
                                                              "Invalid preset",
                            1200);
             return;
         }
         if (!_biz.commitMessagePresets())
         {
-            _biz.showAlert("Preset save failed", 1600);
+            showAlert("Preset save failed", 1600);
             return;
         }
         _message_submit_handled = true;
         _preset_edit_active = false;
-        _biz.showAlert(result == Result::Updated ? "Preset saved" : "Preset unchanged", 1000);
+        showAlert(result == Result::Updated ? "Preset saved" : "Preset unchanged", 1000);
         (void)emitEvent(EventType::QuickPingClose);
         return;
     }
@@ -1728,13 +1742,13 @@ bool QuickPingOverlay::sendMessageText(const char *text)
 {
     if (text && strlen(text) > kMaxMessageLength)
     {
-        _biz.showAlert("Message too long", 900);
+        showAlert("Message too long", 900);
         return false;
     }
     char normalized[kMaxMessageLength + 1] = {};
     if (normalizeSingleLineText(text, normalized, sizeof(normalized)) == 0)
     {
-        _biz.showAlert("Enter message", 900);
+        showAlert("Enter message", 900);
         return false;
     }
 
@@ -1744,7 +1758,7 @@ bool QuickPingOverlay::sendMessageText(const char *text)
         const uint8_t *key = currentContactKey();
         if (!key)
         {
-            _biz.showAlert("No contacts", 900);
+            showAlert("No contacts", 900);
             return false;
         }
         return _biz.sendDirectMessage(key, normalized);
@@ -1754,7 +1768,7 @@ bool QuickPingOverlay::sendMessageText(const char *text)
         const int channel = currentGroupChannel();
         if (channel < 0)
         {
-            _biz.showAlert("No group channels", 900);
+            showAlert("No group channels", 900);
             return false;
         }
         return _biz.sendGroupMessage(channel, normalized);
@@ -1763,7 +1777,7 @@ bool QuickPingOverlay::sendMessageText(const char *text)
     {
         const int len = static_cast<int>(strlen(normalized));
         const bool ok = _biz.sendBroadcast(normalized, len);
-        _biz.showAlert(ok ? "Queued" : "Failed", 900);
+        showAlert(ok ? "Queued" : "Failed", 900);
         return ok;
     }
     showMissingTargetAlert();
@@ -1887,16 +1901,16 @@ void QuickPingOverlay::showMissingTargetAlert() const
     switch (targetKind())
     {
     case TargetKind::Group:
-        _biz.showAlert("No group channels", 900);
+        showAlert("No group channels", 900);
         break;
     case TargetKind::Personal:
-        _biz.showAlert("No contacts", 900);
+        showAlert("No contacts", 900);
         break;
     case TargetKind::Advert:
-        _biz.showAlert("Select message target", 900);
+        showAlert("Select message target", 900);
         break;
     case TargetKind::Broadcast:
-        _biz.showAlert("Failed", 900);
+        showAlert("Failed", 900);
         break;
     }
 }
@@ -1927,12 +1941,13 @@ void QuickPingOverlay::onDropdownEvent(lv_event_t *e)
     if (code == LV_EVENT_PRESSED || code == LV_EVENT_CLICKED || code == LV_EVENT_FOCUSED ||
         code == LV_EVENT_VALUE_CHANGED)
     {
-        if (!self->_rebuilding_focus_group)
+        if (!self->_rebuilding_navigation)
             self->closeKeyboardForOutsideTarget(dropdown);
     }
 
     if (code == LV_EVENT_READY)
     {
+        dropdown_viewport_realign(dropdown, self->_root);
         return;
     }
     if (code != LV_EVENT_VALUE_CHANGED)
@@ -2185,6 +2200,6 @@ void QuickPingOverlay::onOutsideEvent(lv_event_t *e)
     lv_event_stop_processing(e);
 }
 
-} // namespace heltec::meshcore::ui
+} // namespace Heltec::MeshCore::Ui
 
 #endif // HELTEC_UI_HAS_TOUCH

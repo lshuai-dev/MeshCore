@@ -10,7 +10,7 @@
 #include "heltec/drivers/display/DisplayPort.hpp"
 #endif
 
-namespace heltec::meshcore::ui
+namespace Heltec::MeshCore::Ui
 {
 namespace
 {
@@ -40,26 +40,27 @@ void clearItemFocusState(lv_obj_t *item)
 
 void ButtonRoller::layoutItems(uint8_t focus_index, lv_anim_enable_t anim, bool is_checked)
 {
-    if (_root && _count > 0 && _group)
+    if (_root && _active_count > 0 && _gridNav)
     {
-        lv_obj_t *focus_obj = lv_group_get_focused(_group);
+        lv_obj_t *focus_obj = _gridNav->focused();
         if (focus_obj && lv_obj_get_parent(focus_obj) == _root)
         {
             focus_index = lv_obj_get_index(focus_obj);
         }
-        if (_items[focus_index])
+        lv_obj_t *const focused_item = itemAt(focus_index);
+        if (focused_item)
         {
             const uint16_t ms = ui_behavior_profile().context_menu.page_anim_ms;
             auto const anim_set_y =
                 +[](void *obj, int32_t v) { lv_obj_set_y(static_cast<lv_obj_t *>(obj), v); };
 
             lv_coord_t vp_h = lv_obj_get_content_height(_root);
-            lv_coord_t row_h = lv_obj_get_height(_items[focus_index]);
+            lv_coord_t row_h = lv_obj_get_height(focused_item);
             if (vp_h <= 0 || row_h <= 0)
             {
                 lv_obj_update_layout(_root);
                 vp_h = lv_obj_get_content_height(_root);
-                row_h = lv_obj_get_height(_items[focus_index]);
+                row_h = lv_obj_get_height(focused_item);
             }
             if (row_h <= 0)
                 row_h = vp_h;
@@ -76,7 +77,7 @@ void ButtonRoller::layoutItems(uint8_t focus_index, lv_anim_enable_t anim, bool 
             if (anim != LV_ANIM_OFF && is_checked && focus_index == _last_layout_focus &&
                 vp_h == _last_vp_h)
             {
-                setItemSelected(_items[focus_index], true);
+                setItemSelected(focused_item, true);
                 return;
             }
 
@@ -87,7 +88,7 @@ void ButtonRoller::layoutItems(uint8_t focus_index, lv_anim_enable_t anim, bool 
                 if (maxVisible < 1)
                     maxVisible = 1;
             }
-            uint8_t visibleItems = LV_MIN(maxVisible, _count);
+            uint8_t visibleItems = LV_MIN(maxVisible, _active_count);
             if (visibleItems < 1)
                 visibleItems = 1;
 
@@ -101,45 +102,49 @@ void ButtonRoller::layoutItems(uint8_t focus_index, lv_anim_enable_t anim, bool 
             bool item_visible[kMaxItems]{};
             for (int8_t i = i_min; i <= i_max; ++i)
             {
-                int8_t index = static_cast<int8_t>((focus_index + i) % _count);
+                int8_t index = static_cast<int8_t>((focus_index + i) % _active_count);
                 if (index < 0)
-                    index += static_cast<int8_t>(_count);
+                    index += static_cast<int8_t>(_active_count);
                 item_visible[index] = true;
             }
 
-            for (uint8_t index = 0; index < _count; ++index)
+            for (uint8_t index = 0; index < _active_count; ++index)
             {
-                if (!_items[index])
+                lv_obj_t *const item = itemAt(index);
+                if (!item)
                     continue;
                 if (item_visible[index])
                 {
-                    lv_obj_clear_flag(_items[index], LV_OBJ_FLAG_HIDDEN);
+                    lv_obj_clear_flag(item, LV_OBJ_FLAG_HIDDEN);
                 }
                 else
                 {
-                    ui_motion_cancel(_items[index], anim_set_y);
-                    lv_obj_add_flag(_items[index], LV_OBJ_FLAG_HIDDEN);
+                    ui_motion_cancel(item, anim_set_y);
+                    lv_obj_add_flag(item, LV_OBJ_FLAG_HIDDEN);
                 }
             }
 
             for (int8_t i = i_min; i <= i_max; ++i)
             {
-                int8_t index = static_cast<int8_t>((focus_index + i) % _count);
+                int8_t index = static_cast<int8_t>((focus_index + i) % _active_count);
                 if (index < 0)
-                    index += static_cast<int8_t>(_count);
+                    index += static_cast<int8_t>(_active_count);
 
                 const lv_coord_t target_y = center_offset + i * row_h;
-                ui_motion_cancel(_items[index], anim_set_y);
+                lv_obj_t *const item = itemAt(static_cast<uint8_t>(index));
+                if (!item)
+                    continue;
+                ui_motion_cancel(item, anim_set_y);
                 if (anim == LV_ANIM_OFF || ms == 0)
                 {
-                    lv_obj_set_y(_items[index], target_y);
+                    lv_obj_set_y(item, target_y);
                     if (is_checked && 0 == i)
-                        setItemSelected(_items[index], true);
+                        setItemSelected(item, true);
                     continue;
                 }
 
                 UiMotionSpec motion;
-                motion.target = _items[index];
+                motion.target = item;
                 if (is_checked && 0 == i)
                 {
                     motion.ready = [](void *user_data)
@@ -148,24 +153,24 @@ void ButtonRoller::layoutItems(uint8_t focus_index, lv_anim_enable_t anim, bool 
                         if (btn)
                             setItemSelected(btn, true);
                     };
-                    motion.ready_data = _items[index];
+                    motion.ready_data = item;
                 }
                 motion.exec = anim_set_y;
-                motion.start_value = lv_obj_get_y(_items[index]);
+                motion.start_value = lv_obj_get_y(item);
                 motion.end_value = target_y;
                 motion.duration_ms = ms;
                 if (!ui_motion_start(motion))
                 {
-                    lv_obj_set_y(_items[index], target_y);
+                    lv_obj_set_y(item, target_y);
                     if (is_checked && 0 == i)
-                        setItemSelected(_items[index], true);
+                        setItemSelected(item, true);
                 }
             }
             _last_vp_h = vp_h;
             _last_layout_focus = focus_index;
 #if defined(HELTEC_HAS_KEY_FRAME) && HELTEC_HAS_KEY_FRAME
             lv_obj_invalidate(_root);
-            heltec::meshcore::dal::display_port::requestSelectionRefresh("button-roller-selection");
+            Heltec::MeshCore::Dal::DisplayPort::requestSelectionRefresh("button-roller-selection");
 #endif
         }
     }
@@ -173,15 +178,13 @@ void ButtonRoller::layoutItems(uint8_t focus_index, lv_anim_enable_t anim, bool 
 
 lv_obj_t *ButtonRoller::addItem(const char *label)
 {
-    if (!_root || _count >= kMaxItems || !_group)
+    if (!_root || lv_obj_get_child_cnt(_root) >= kMaxItems || !_gridNav)
         return nullptr;
 
     lv_obj_t *const btn = ht_btn_create(_item_class, _root);
     if (!btn)
         return nullptr;
     lv_obj_set_width(btn, lv_pct(100));
-    lv_obj_add_flag(btn, LV_OBJ_FLAG_EVENT_BUBBLE);
-
     lv_obj_t *const lbl = ht_label_create(_label_class, btn);
     if (lbl)
     {
@@ -217,22 +220,84 @@ lv_obj_t *ButtonRoller::addItem(const char *label)
         },
         LV_EVENT_DEFOCUSED, this);
 
-    _items[_count++] = btn;
-    lv_group_add_obj(_group, btn);
+    ++_active_count;
+    _gridNav->add(btn);
     return btn;
 }
 
-bool ButtonRoller::create(lv_obj_t *parent, lv_group_t *group,
+lv_obj_t *ButtonRoller::itemAt(uint8_t index) const
+{
+    if (!_root || index >= lv_obj_get_child_cnt(_root))
+        return nullptr;
+    return lv_obj_get_child(_root, index);
+}
+
+bool ButtonRoller::ensureCapacity(uint8_t count)
+{
+    if (!_root || count > kMaxItems)
+        return false;
+    while (lv_obj_get_child_cnt(_root) < count)
+    {
+        if (!addItem(""))
+            return false;
+    }
+    return true;
+}
+
+bool ButtonRoller::showItems(uint8_t count)
+{
+    if (!ensureCapacity(count))
+        return false;
+    lv_obj_t *const focused = _gridNav ? _gridNav->focused() : nullptr;
+    if (focused && lv_obj_get_parent(focused) == _root)
+        _gridNav->enterBrowse();
+    const uint8_t capacity = static_cast<uint8_t>(lv_obj_get_child_cnt(_root));
+    _active_count = count;
+    for (uint8_t index = 0; index < capacity; ++index)
+    {
+        lv_obj_t *const item = itemAt(index);
+        if (!item)
+            continue;
+        clearItemFocusState(item);
+        if (index < count)
+        {
+            lv_obj_clear_flag(item, LV_OBJ_FLAG_HIDDEN);
+            _gridNav->add(item);
+        }
+        else
+        {
+            lv_obj_add_flag(item, LV_OBJ_FLAG_HIDDEN);
+            _gridNav->remove(item);
+        }
+    }
+    _last_layout_focus = 0xFF;
+    _last_vp_h = 0;
+    if (count > 0)
+        layoutItems(0, LV_ANIM_OFF, false);
+    return true;
+}
+
+bool ButtonRoller::setItemLabelStatic(uint8_t index, const char *label)
+{
+    lv_obj_t *const item = itemAt(index);
+    lv_obj_t *const label_obj = item ? lv_obj_get_child(item, 0) : nullptr;
+    if (!label_obj || !label)
+        return false;
+    lv_label_set_text_static(label_obj, label);
+    return true;
+}
+
+bool ButtonRoller::create(lv_obj_t *parent, HtGridNav *navigator,
                           const lv_obj_class_t *root_class,
                           const lv_obj_class_t *item_class,
                           const lv_obj_class_t *label_class)
 {
-    if (!parent || !group)
+    if (!parent || !navigator)
         return false;
     if (_root)
         return true;
 
-    _group = group;
+    _gridNav = navigator;
     _item_class = item_class ? item_class : &ht_button_roller_item_class;
     _label_class = label_class ? label_class : &ht_button_roller_label_class;
     _root = ht_class_create(root_class ? root_class : &ht_button_roller_class, parent);
@@ -266,63 +331,59 @@ bool ButtonRoller::create(lv_obj_t *parent, lv_group_t *group,
 
 void ButtonRoller::resetFocus(bool focus_first_item)
 {
-    if (!_group || _count == 0)
+    if (!_gridNav || _active_count == 0)
         return;
-    for (uint8_t i = 0; i < _count; ++i)
+    for (uint8_t i = 0; i < _active_count; ++i)
     {
-        if (_items[i])
-        {
-            clearItemFocusState(_items[i]);
-        }
+        clearItemFocusState(itemAt(i));
     }
     _last_layout_focus = 0xFF;
     _last_vp_h = 0;
     if (focus_first_item)
     {
-        lv_group_focus_obj(_items[0]);
+        (void)_gridNav->focus(itemAt(0));
         layoutItems(0, LV_ANIM_OFF, false);
     }
     else
     {
-        lv_obj_t *const focused = lv_group_get_focused(_group);
+        lv_obj_t *const focused = _gridNav->focused();
         if (focused && lv_obj_get_parent(focused) == _root)
-            lv_group_focus_obj(nullptr);
+            _gridNav->enterBrowse();
         layoutItems(0, LV_ANIM_OFF, false);
     }
 }
 
 void ButtonRoller::setInputEnabled(bool enabled)
 {
-    if (!_group || _input_enabled == enabled)
+    if (!_gridNav || _input_enabled == enabled)
         return;
 
     _input_enabled = enabled;
-    for (uint8_t i = 0; i < _count; ++i)
+    for (uint8_t i = 0; i < _active_count; ++i)
     {
-        if (!_items[i])
+        lv_obj_t *const item = itemAt(i);
+        if (!item)
             continue;
         if (enabled)
-            lv_group_add_obj(_group, _items[i]);
+            _gridNav->add(item);
         else
-            lv_group_remove_obj(_items[i]);
+            _gridNav->remove(item);
     }
 }
 
 bool ButtonRoller::focusItem(uint8_t index, bool checked)
 {
-    if (!_group || index >= _count || !_items[index])
+    if (!_gridNav || index >= _active_count || !itemAt(index))
         return false;
-    for (uint8_t i = 0; i < _count; ++i)
+    for (uint8_t i = 0; i < _active_count; ++i)
     {
-        if (!_items[i])
-            continue;
-        clearItemFocusState(_items[i]);
+        clearItemFocusState(itemAt(i));
     }
     _last_layout_focus = 0xFF;
     _last_vp_h = 0;
-    lv_group_focus_obj(_items[index]);
+    (void)_gridNav->focus(itemAt(index));
     layoutItems(index, LV_ANIM_OFF, checked);
     return true;
 }
 
-} // namespace heltec::meshcore::ui
+} // namespace Heltec::MeshCore::Ui

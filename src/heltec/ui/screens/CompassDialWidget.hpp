@@ -5,7 +5,7 @@
 
 #include <lvgl.h>
 
-namespace heltec::meshcore::ui
+namespace Heltec::MeshCore::Ui
 {
 
 enum class CompassDialNeedleKind
@@ -71,4 +71,4 @@ struct CompassDialWidget
     }
 };
 
-} // namespace heltec::meshcore::ui
+} // namespace Heltec::MeshCore::Ui

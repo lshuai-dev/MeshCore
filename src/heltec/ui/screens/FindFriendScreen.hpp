@@ -3,16 +3,16 @@
 #include "../core/AppStateEvent.hpp"
 #include "CompassDialWidget.hpp"
 
-namespace heltec::meshcore::biz {
+namespace Heltec::MeshCore::Biz {
 class IBizFacade;
 struct FindFriendUi;
-} // namespace heltec::meshcore::biz
+} // namespace Heltec::MeshCore::Biz
 
-namespace heltec::meshcore::ui {
+namespace Heltec::MeshCore::Ui {
 
 class FindFriendScreen : public AbstractScreen {
   public:
-    FindFriendScreen(biz::IBizFacade &biz, const char *title, const lv_img_dsc_t *icon)
+    FindFriendScreen(Biz::IBizFacade &biz, const char *title, const lv_img_dsc_t *icon)
         : AbstractScreen(biz, title, icon) {
     }
     void onEnter() override;
@@ -45,11 +45,11 @@ class FindFriendScreen : public AbstractScreen {
     void onUIEvent(const UiEvent &event) override;
     void onAppStateChanged(const AppStateEvent &event) override;
     void onActivated() override;
-    void render(const biz::FindFriendUi &u);
+    void render(const Biz::FindFriendUi &u);
     void refresh();
     void refreshNavigation();
     void showInfoOnly(const char *info);
-    void showHeadingOnly(const biz::FindFriendUi &ui, const char *info);
+    void showHeadingOnly(const Biz::FindFriendUi &ui, const char *info);
     void setInfoText(const char *info);
     void setStatusText(const char *status);
     void runDeferredEnterActions();
@@ -66,7 +66,7 @@ class FindFriendScreen : public AbstractScreen {
     void bindControl(_lv_obj_t *control);
     void syncControls(bool force_friend_options = false);
     void updateConditionalVisibility();
-    void syncFocusGroupMembership();
+    void syncNavigationMembership();
     void setDropdownIndex(_lv_obj_t *dropdown, uint16_t index, bool force = false);
     void syncFriendDropdown(bool force = false);
     void loadFriendDropdownWindow(int start, int selected_rank, bool force);
@@ -86,7 +86,7 @@ class FindFriendScreen : public AbstractScreen {
     static void onControlKeyPreprocess(lv_event_t *e);
     static void onRightColumnScrolled(lv_event_t *event);
     static void onActionClicked(lv_event_t *e);
-    static void onGroupFocusChanged(lv_group_t *group);
+    static void onFocusChanged(lv_obj_t *focused, void *user_data);
 
     CompassDialWidget _dial;
     _lv_obj_t *_dial_row = nullptr;
@@ -122,7 +122,7 @@ class FindFriendScreen : public AbstractScreen {
     bool _defer_cycle_target = false;
     DeferredFocus _pending_focus = DeferredFocus::None;
     DeferredFocus _scheduled_focus = DeferredFocus::None;
-    uint16_t _focus_membership_mask = 0xFFFFU;
+    uint16_t _navigation_membership_mask = 0xFFFFU;
     int16_t _friend_mesh_map[kFriendWindowSize] = {};
     uint32_t _friend_options_hash = 0;
     int _friend_mesh_map_count = 0;
@@ -132,4 +132,4 @@ class FindFriendScreen : public AbstractScreen {
     int _friend_selected_rank = -1;
 };
 
-} // namespace heltec::meshcore::ui
+} // namespace Heltec::MeshCore::Ui

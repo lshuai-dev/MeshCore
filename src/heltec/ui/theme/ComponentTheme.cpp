@@ -5,7 +5,7 @@
 #include "ui/theme/ThemeInternal.hpp"
 #include "ui/widgets/ButtonRoller.hpp"
 
-namespace heltec::meshcore::ui
+namespace Heltec::MeshCore::Ui
 {
 namespace
 {
@@ -121,9 +121,9 @@ static const lv_style_selector_t kRollerItemSelectedSelectors[] = {
     LV_PART_MAIN | LV_STATE_PRESSED,
 };
 
-static UiCascadingMenuStyles s_cascading_menu_styles;
+static UiContextMenuRollerStyles s_context_menu_roller_styles;
 
-static const lv_style_selector_t kCascadingMenuSelectedSelectors[] = {
+static const lv_style_selector_t kContextMenuRollerSelectedSelectors[] = {
     LV_PART_MAIN | LV_STATE_CHECKED,
     LV_PART_MAIN | LV_STATE_FOCUSED,
     LV_PART_MAIN | LV_STATE_FOCUS_KEY,
@@ -348,10 +348,10 @@ bool ui_license_gate_apply_theme(_lv_obj_t *obj)
         return false;
 
 #if LV_USE_MENU
-    if (lv_obj_check_type(obj, &ht_cascading_menu_page_class))
+    if (lv_obj_check_type(obj, &ht_context_menu_page_class))
     {
-        if (s_cascading_menu_styles.page)
-            lv_obj_add_style(obj, s_cascading_menu_styles.page, LV_PART_MAIN);
+        if (s_context_menu_roller_styles.page)
+            lv_obj_add_style(obj, s_context_menu_roller_styles.page, LV_PART_MAIN);
         return true;
     }
 #endif
@@ -406,9 +406,9 @@ void ui_component_theme_configure()
     init_roller_styles(pad, button_height);
 }
 
-void ui_widget_theme_set_cascading_menu_styles(const UiCascadingMenuStyles &styles)
+void ui_widget_theme_set_context_menu_roller_styles(const UiContextMenuRollerStyles &styles)
 {
-    s_cascading_menu_styles = styles;
+    s_context_menu_roller_styles = styles;
 }
 
 bool ui_button_roller_apply_theme(_lv_obj_t *obj)
@@ -416,28 +416,28 @@ bool ui_button_roller_apply_theme(_lv_obj_t *obj)
     if (!obj)
         return false;
 
-    if (lv_obj_check_type(obj, &ht_cascading_menu_roller_class))
+    if (lv_obj_check_type(obj, &ht_context_menu_roller_class))
     {
         style_roller_root(obj);
-        if (s_cascading_menu_styles.page)
-            lv_obj_add_style(obj, s_cascading_menu_styles.page, LV_PART_MAIN);
+        if (s_context_menu_roller_styles.page)
+            lv_obj_add_style(obj, s_context_menu_roller_styles.page, LV_PART_MAIN);
         return true;
     }
 
-    if (lv_obj_check_type(obj, &ht_cascading_menu_item_class))
+    if (lv_obj_check_type(obj, &ht_context_menu_item_class))
     {
         style_roller_button(obj);
-        if (s_cascading_menu_styles.item)
-            lv_obj_add_style(obj, s_cascading_menu_styles.item, LV_PART_MAIN);
-        if (s_cascading_menu_styles.item_selected)
+        if (s_context_menu_roller_styles.item)
+            lv_obj_add_style(obj, s_context_menu_roller_styles.item, LV_PART_MAIN);
+        if (s_context_menu_roller_styles.item_selected)
         {
-            for (lv_style_selector_t selector : kCascadingMenuSelectedSelectors)
-                lv_obj_add_style(obj, s_cascading_menu_styles.item_selected, selector);
+            for (lv_style_selector_t selector : kContextMenuRollerSelectedSelectors)
+                lv_obj_add_style(obj, s_context_menu_roller_styles.item_selected, selector);
         }
         return true;
     }
 
-    if (lv_obj_check_type(obj, &ht_cascading_menu_label_class))
+    if (lv_obj_check_type(obj, &ht_context_menu_label_class))
     {
         return true;
     }
@@ -648,4 +648,4 @@ bool ui_compass_apply_theme(_lv_obj_t *obj)
 }
 #endif
 
-} // namespace heltec::meshcore::ui
+} // namespace Heltec::MeshCore::Ui

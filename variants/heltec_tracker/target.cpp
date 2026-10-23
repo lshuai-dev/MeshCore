@@ -18,7 +18,7 @@ WRAPPER_CLASS radio_driver(radio, board);
 ESP32RTCClock fallback_clock;
 AutoDiscoverRTCClock rtc_clock(fallback_clock);
 // GPS_EN (GPIO35) drives N-ch MOSFET → P-ch high-side switch; GPS_RESET (GPIO36) active LOW
-heltec::gps::GpsRmcSpeedStream gps_serial(Serial1);
+Heltec::Gps::GpsRmcSpeedStream gps_serial(Serial1);
 MicroNMEALocationProvider nmea = MicroNMEALocationProvider(gps_serial, &rtc_clock, GPS_RESET, GPS_EN, &board.periph_power);
 #if defined(HELTEC_SENSOR_MANAGER) && HELTEC_SENSOR_MANAGER
 HeltecEnvironmentSensorManager sensors(nmea);

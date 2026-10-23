@@ -1,7 +1,7 @@
 #pragma once
 #include "AppStateEvent.hpp"
 struct _lv_timer_t;
-namespace heltec::meshcore::ui {
+namespace Heltec::MeshCore::Ui {
 class SurfaceManager;
 class AppStateNotifier;
 class AppStateUiDispatcher final {
@@ -40,4 +40,4 @@ class AppStateUiDispatcher final {
     _lv_timer_t *_dispatch_timer = nullptr;
 };
 
-} // namespace heltec::meshcore::ui
+} // namespace Heltec::MeshCore::Ui

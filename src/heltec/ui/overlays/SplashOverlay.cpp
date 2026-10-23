@@ -10,7 +10,7 @@
 #include <lvgl.h>
 #include <string.h>
 
-namespace heltec::meshcore::ui
+namespace Heltec::MeshCore::Ui
 {
 
 SplashOverlay::~SplashOverlay()
@@ -79,7 +79,7 @@ bool SplashOverlay::create(_lv_obj_t *parent)
 #if defined(HELTEC_HAS_KEY_FRAME) && HELTEC_HAS_KEY_FRAME
         lv_obj_update_layout(_root);
         lv_obj_invalidate(_root);
-        heltec::meshcore::dal::display_port::commitBootFrame(nullptr, true);
+        Heltec::MeshCore::Dal::DisplayPort::commitBootFrame(nullptr, true);
 #else
         lv_timer_handler();
         lv_refr_now(disp);
@@ -112,4 +112,4 @@ void SplashOverlay::hide()
     lv_obj_add_flag(_root, LV_OBJ_FLAG_HIDDEN);
 }
 
-} // namespace heltec::meshcore::ui
+} // namespace Heltec::MeshCore::Ui

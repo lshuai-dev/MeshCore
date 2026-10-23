@@ -63,7 +63,7 @@ bool locShareGpsMovedEnough(double lat, double lon)
 {
     if (!s_loc_share_has_last_gps)
         return false;
-    return heltec::meshcore::geo::geodesic_distance_m(s_loc_share_last_lat, s_loc_share_last_lon,
+    return Heltec::MeshCore::Geo::geodesic_distance_m(s_loc_share_last_lat, s_loc_share_last_lon,
                                                       lat, lon) >= LOC_SHARE_MOVEMENT_ADVERT_M;
 }
 
@@ -77,11 +77,11 @@ uint32_t hashBytes(uint32_t hash, const void *data, size_t size)
     return hash;
 }
 
-void notifyUiDomain(heltec::meshcore::ui::AppStateEventType type)
+void notifyUiDomain(Heltec::MeshCore::Ui::AppStateEventType type)
 {
-    heltec::meshcore::ui::AppStateEvent event{};
+    Heltec::MeshCore::Ui::AppStateEvent event{};
     event.type = type;
-    heltec::meshcore::ui::app_state_notifier().notify(event);
+    Heltec::MeshCore::Ui::app_state_notifier().notify(event);
 }
 
 bool isEncodedPathLenValid(uint8_t path_len)
@@ -921,7 +921,7 @@ void HeltecMesh::notifyContactLocationChangedIfNeeded()
     }
     _contact_location_fingerprint = fingerprint;
     _contact_location_fingerprint_valid = true;
-    notifyUiDomain(heltec::meshcore::ui::AppStateEventType::ContactLocationChanged);
+    notifyUiDomain(Heltec::MeshCore::Ui::AppStateEventType::ContactLocationChanged);
 }
 
 bool HeltecMesh::onContactLoaded(const ContactInfo &contact)
@@ -1097,7 +1097,7 @@ void HeltecMesh::onDiscoveredContact(ContactInfo &contact, bool is_new, uint8_t 
         memcpy(p->path, path, path_byte_len);
         if (memcmp(&previous, p, sizeof(previous)) != 0)
         {
-            notifyUiDomain(heltec::meshcore::ui::AppStateEventType::RecentHeardChanged);
+            notifyUiDomain(Heltec::MeshCore::Ui::AppStateEventType::RecentHeardChanged);
         }
     }
 
@@ -1406,7 +1406,7 @@ void HeltecMesh::onChannelDataRecv(const mesh::GroupChannel &channel, mesh::Pack
                                    uint16_t data_type, const uint8_t *data, size_t data_len)
 {
     (void)pkt;
-    if (data_type != heltec::meshcore::team::kDataTypeDev)
+    if (data_type != Heltec::MeshCore::Team::kDataTypeDev)
     {
         return;
     }

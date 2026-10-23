@@ -2,7 +2,6 @@
 
 #include "config/LoraBandPresets.h"
 #include "heltec/ui/core/BizFacade.hpp"
-#include "ui/widgets/HtSelectorView.hpp"
 #include "ui/widgets/WidgetClasses.hpp"
 #include "ui/core/OperationHints.hpp"
 #include "ui/core/HtEvent.h"
@@ -13,10 +12,10 @@
 
 #include <lvgl.h>
 
-namespace heltec::meshcore::ui
+namespace Heltec::MeshCore::Ui
 {
 
-RadioParamSyncOverlay::RadioParamSyncOverlay(biz::IBizFacade &biz)
+RadioParamSyncOverlay::RadioParamSyncOverlay(Biz::IBizFacade &biz)
     : FramedOverlay(biz, ht_radio_sync_overlay_class)
 {
 }
@@ -43,7 +42,7 @@ bool RadioParamSyncOverlay::buildSurface()
 
 
     setStaticTitle("Radio param preset");
-    setStaticToolTip(operation_hint::kRadioPreset);
+    setStaticToolTip(OperationHint::kRadioPreset);
 
     _list = ht_class_create(&ht_radio_sync_list_class, _content);
     if (!_list)
@@ -294,7 +293,7 @@ void RadioParamSyncOverlay::renderRows()
     }
 #if defined(HELTEC_HAS_KEY_FRAME) && HELTEC_HAS_KEY_FRAME
     lv_obj_invalidate(_list);
-    heltec::meshcore::dal::display_port::requestSelectionRefresh();
+    Heltec::MeshCore::Dal::DisplayPort::requestSelectionRefresh();
 #endif
 #endif
 }
@@ -361,8 +360,8 @@ void RadioParamSyncOverlay::applySelection()
         lv_obj_add_state(_roller, LV_STATE_DISABLED);
 #endif
     _biz.setLoRaBandPresetIndex((int)_select);
-    _biz.showAlert("LoRa band set", 800);
+    showAlert("LoRa band set", 800);
     emitEvent(EventType::RadioSyncClose);
 }
 
-} // namespace heltec::meshcore::ui
+} // namespace Heltec::MeshCore::Ui

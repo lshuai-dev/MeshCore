@@ -16,7 +16,7 @@
 #include <limits.h>
 #include <string.h>
 
-namespace heltec::meshcore::team
+namespace Heltec::MeshCore::Team
 {
 namespace
 {
@@ -793,6 +793,6 @@ void TeamService::clearMembers()
     ++_change_sequence;
 }
 
-} // namespace heltec::meshcore::team
+} // namespace Heltec::MeshCore::Team
 
 #endif

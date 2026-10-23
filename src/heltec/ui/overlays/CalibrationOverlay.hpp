@@ -4,18 +4,18 @@
 
 #include <stdint.h>
 
-namespace heltec::meshcore::biz
+namespace Heltec::MeshCore::Biz
 {
 class IBizFacade;
 }
 struct _lv_obj_t;
-namespace heltec::meshcore::ui
+namespace Heltec::MeshCore::Ui
 {
 
 class CalibrationOverlay : public DialogOverlay
 {
   public:
-    explicit CalibrationOverlay(biz::IBizFacade &biz)
+    explicit CalibrationOverlay(Biz::IBizFacade &biz)
         : DialogOverlay(biz, Options{Variant::Fullscreen, false, true, false})
     {
     }
@@ -65,4 +65,4 @@ class CalibrationOverlay : public DialogOverlay
     lv_timer_t *_timeout_timer = nullptr;
 };
 
-} // namespace heltec::meshcore::ui
+} // namespace Heltec::MeshCore::Ui

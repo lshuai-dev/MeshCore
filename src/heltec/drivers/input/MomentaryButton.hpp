@@ -11,7 +11,7 @@
 #define HELTEC_UI_BUTTON_COUNT 1
 #endif
 
-namespace heltec::meshcore::dal::momentary_button
+namespace Heltec::MeshCore::Dal::MomentaryButton
 {
 
 struct KeyMap
@@ -55,4 +55,4 @@ bool anyPhysicalPressed();
 /** True while GPIO edges, a held key, or a multi-click decision is pending. */
 bool hasPendingGesture();
 
-} // namespace heltec::meshcore::dal::momentary_button
+} // namespace Heltec::MeshCore::Dal::MomentaryButton

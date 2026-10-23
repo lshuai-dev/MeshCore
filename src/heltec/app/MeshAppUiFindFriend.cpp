@@ -12,7 +12,7 @@
 #define COMPASS_HEADING_OFFSET_DEG 0
 #endif
 
-namespace heltec::meshcore::biz
+namespace Heltec::MeshCore::Biz
 {
 namespace
 {
@@ -79,35 +79,35 @@ bool load_ff_settings(int &mode, int &wp_valid, double &wp_lat, double &wp_lon, 
 #endif
 }
 
-FindFriendTargetFreshness to_ui_freshness(nav::TargetFreshness freshness)
+FindFriendTargetFreshness to_ui_freshness(Nav::TargetFreshness freshness)
 {
     switch (freshness)
     {
-    case nav::TargetFreshness::Unknown:
+    case Nav::TargetFreshness::Unknown:
         return FindFriendTargetFreshness::Unknown;
-    case nav::TargetFreshness::Fresh:
+    case Nav::TargetFreshness::Fresh:
         return FindFriendTargetFreshness::Fresh;
-    case nav::TargetFreshness::Aging:
+    case Nav::TargetFreshness::Aging:
         return FindFriendTargetFreshness::Aging;
-    case nav::TargetFreshness::Stale:
+    case Nav::TargetFreshness::Stale:
         return FindFriendTargetFreshness::Stale;
-    case nav::TargetFreshness::NotApplicable:
+    case Nav::TargetFreshness::NotApplicable:
     default:
         return FindFriendTargetFreshness::NotApplicable;
     }
 }
 
-FindFriendConfidence to_ui_confidence(nav::Confidence confidence)
+FindFriendConfidence to_ui_confidence(Nav::Confidence confidence)
 {
     switch (confidence)
     {
-    case nav::Confidence::Low:
+    case Nav::Confidence::Low:
         return FindFriendConfidence::Low;
-    case nav::Confidence::Medium:
+    case Nav::Confidence::Medium:
         return FindFriendConfidence::Medium;
-    case nav::Confidence::High:
+    case Nav::Confidence::High:
         return FindFriendConfidence::High;
-    case nav::Confidence::Unavailable:
+    case Nav::Confidence::Unavailable:
     default:
         return FindFriendConfidence::Unavailable;
     }
@@ -177,7 +177,7 @@ void MeshAppUi::ensureFindFriendPrefsLoaded() const
         return;
 
     _ff_mode = mode ? 1 : 0;
-    _ff_wp_valid = wp_valid && nav::FindFriendNavEstimator::coordinateValid(la, lo);
+    _ff_wp_valid = wp_valid && Nav::FindFriendNavEstimator::coordinateValid(la, lo);
     _ff_wp_lat_e6 = deg_to_e6(la);
     _ff_wp_lon_e6 = deg_to_e6(lo);
     _ff_gps_track_interval_min = track_interval_min;
@@ -227,8 +227,8 @@ bool MeshAppUi::setFindFriendEnabled(bool enabled)
     resetFindFriendNavState();
     persistFfPrefs(_ff_mode, _ff_wp_valid, e6_to_deg(_ff_wp_lat_e6), e6_to_deg(_ff_wp_lon_e6));
     reconcileGpsPower();
-    notifyAppState(heltec::meshcore::ui::AppStateEventType::ConfigChanged);
-    notifyAppState(heltec::meshcore::ui::AppStateEventType::FindFriendChanged);
+    notifyAppState(Heltec::MeshCore::Ui::AppStateEventType::ConfigChanged);
+    notifyAppState(Heltec::MeshCore::Ui::AppStateEventType::FindFriendChanged);
     return true;
 }
 
@@ -245,20 +245,20 @@ bool MeshAppUi::setFindFriendMode(int mode)
     syncFindFriendTeamPin();
     resetFindFriendNavState();
     persistFfPrefs(_ff_mode, _ff_wp_valid, e6_to_deg(_ff_wp_lat_e6), e6_to_deg(_ff_wp_lon_e6));
-    notifyAppState(heltec::meshcore::ui::AppStateEventType::ConfigChanged);
-    notifyAppState(heltec::meshcore::ui::AppStateEventType::FindFriendChanged);
+    notifyAppState(Heltec::MeshCore::Ui::AppStateEventType::ConfigChanged);
+    notifyAppState(Heltec::MeshCore::Ui::AppStateEventType::FindFriendChanged);
     return true;
 }
 
 bool MeshAppUi::setFindFriendWaypoint(double lat_deg, double lon_deg)
 {
-    if (!nav::FindFriendNavEstimator::coordinateValid(lat_deg, lon_deg))
+    if (!Nav::FindFriendNavEstimator::coordinateValid(lat_deg, lon_deg))
         return false;
     ensureFindFriendPrefsLoaded();
 
     setFfWaypointCache(lat_deg, lon_deg);
     persistFfPrefs(_ff_mode, _ff_wp_valid, e6_to_deg(_ff_wp_lat_e6), e6_to_deg(_ff_wp_lon_e6));
-    notifyAppState(heltec::meshcore::ui::AppStateEventType::FindFriendChanged);
+    notifyAppState(Heltec::MeshCore::Ui::AppStateEventType::FindFriendChanged);
     return true;
 }
 
@@ -289,7 +289,7 @@ bool MeshAppUi::findFriendMemberLabel(int index, char *buf, size_t buf_len) cons
 #if defined(ENV_INCLUDE_GPS) && ENV_INCLUDE_GPS
     if (the_mesh.teamService().enabled())
     {
-        heltec::meshcore::team::TeamMember member{};
+        Heltec::MeshCore::Team::TeamMember member{};
         if (!the_mesh.teamService().memberAt(static_cast<size_t>(index), member))
             return false;
         const bool online = millis() - member.last_seen_ms <= 20UL * 60UL * 1000UL;
@@ -340,7 +340,7 @@ bool MeshAppUi::findFriendMemberHasGps(int index) const
 #if defined(ENV_INCLUDE_GPS) && ENV_INCLUDE_GPS
     if (the_mesh.teamService().enabled())
     {
-        heltec::meshcore::team::TeamMember member{};
+        Heltec::MeshCore::Team::TeamMember member{};
         return the_mesh.teamService().memberAt(static_cast<size_t>(index), member) &&
                member.location_valid;
     }
@@ -365,7 +365,7 @@ int MeshAppUi::resolveFindFriendTargetContactIndex() const
 #if defined(ENV_INCLUDE_GPS) && ENV_INCLUDE_GPS
         if (the_mesh.teamService().enabled())
         {
-            heltec::meshcore::team::TeamMember member{};
+            Heltec::MeshCore::Team::TeamMember member{};
             if (the_mesh.teamService().memberAt(static_cast<size_t>(i), member) &&
                 memcmp(member.public_key, _ff_target_pub_key, PUB_KEY_SIZE) == 0)
             {
@@ -385,7 +385,7 @@ bool MeshAppUi::setFindFriendTargetKeyFromIndex(int index) const
 #if defined(ENV_INCLUDE_GPS) && ENV_INCLUDE_GPS
     if (the_mesh.teamService().enabled())
     {
-        heltec::meshcore::team::TeamMember member{};
+        Heltec::MeshCore::Team::TeamMember member{};
         if (index < 0 || !the_mesh.teamService().memberAt(static_cast<size_t>(index), member))
             return false;
         memcpy(_ff_target_pub_key, member.public_key, PUB_KEY_SIZE);
@@ -421,7 +421,7 @@ void MeshAppUi::setFindFriendTargetContactIndex(int index)
     syncFindFriendTeamPin();
 
     resetFindFriendNavState();
-    notifyAppState(heltec::meshcore::ui::AppStateEventType::FindFriendChanged);
+    notifyAppState(Heltec::MeshCore::Ui::AppStateEventType::FindFriendChanged);
 }
 
 bool MeshAppUi::tryAutoPickFindFriendTarget()
@@ -456,7 +456,7 @@ FindFriendUi MeshAppUi::findFriendUi() const
     u.compass_hw = cm.has_hardware;
     u.compass_quality = cm.quality;
     u.heading_valid = cm.heading_valid;
-    u.heading_deg = nav::FindFriendNavEstimator::wrapHeading360(
+    u.heading_deg = Nav::FindFriendNavEstimator::wrapHeading360(
         cm.heading_deg + static_cast<float>(COMPASS_HEADING_OFFSET_DEG));
     u.declination_configured = kCompassDeclinationConfigured;
     if (!_ff_enabled)
@@ -469,7 +469,7 @@ FindFriendUi MeshAppUi::findFriendUi() const
     u.gps_age_ms = gps.fix_valid_ms;
     u.gps_satellites = gps.satellites;
     u.waypoint_valid = (_ff_wp_valid != 0) &&
-                       nav::FindFriendNavEstimator::coordinateValid(microdeg_to_deg(_ff_wp_lat_e6),
+                       Nav::FindFriendNavEstimator::coordinateValid(microdeg_to_deg(_ff_wp_lat_e6),
                                                                     microdeg_to_deg(_ff_wp_lon_e6));
     u.waypoint_lat = microdeg_to_deg(_ff_wp_lat_e6);
     u.waypoint_lon = microdeg_to_deg(_ff_wp_lon_e6);
@@ -487,7 +487,7 @@ FindFriendUi MeshAppUi::findFriendUi() const
 #if defined(ENV_INCLUDE_GPS) && ENV_INCLUDE_GPS
             if (the_mesh.teamService().enabled())
             {
-                heltec::meshcore::team::TeamMember member{};
+                Heltec::MeshCore::Team::TeamMember member{};
                 if (the_mesh.teamService().memberAt(static_cast<size_t>(target_index), member))
                 {
                     lv_snprintf(u.target_label, sizeof(u.target_label), "%.*s",
@@ -524,7 +524,7 @@ FindFriendUi MeshAppUi::findFriendUi() const
 
     u.target_valid = have_tgt;
 
-    nav::FindFriendNavInput input{};
+    Nav::FindFriendNavInput input{};
     input.now_ms = millis();
     input.gps_valid = gps.fix_valid;
     input.gps_lat_deg = gps.lat_deg;
@@ -540,12 +540,12 @@ FindFriendUi MeshAppUi::findFriendUi() const
     input.heading_valid = cm.heading_valid;
     // ICMCompassProvider has already converted magnetic north using
     // COMPASS_DECLINATION_DEG before this heading reaches the facade.
-    input.heading_deg = nav::FindFriendNavEstimator::wrapHeading360(
+    input.heading_deg = Nav::FindFriendNavEstimator::wrapHeading360(
         cm.heading_deg + static_cast<float>(COMPASS_HEADING_OFFSET_DEG));
     input.compass_quality = static_cast<uint8_t>(cm.quality < 0 ? 0 : cm.quality);
     input.declination_configured = kCompassDeclinationConfigured;
 
-    const nav::FindFriendNavOutput estimated = _ff_nav_estimator.update(input);
+    const Nav::FindFriendNavOutput estimated = _ff_nav_estimator.update(input);
     u.gps_fix = estimated.gps_valid;
     u.here_lat = estimated.filtered_lat_deg;
     u.here_lon = estimated.filtered_lon_deg;
@@ -567,4 +567,4 @@ FindFriendUi MeshAppUi::findFriendUi() const
     return u;
 }
 
-} // namespace heltec::meshcore::biz
+} // namespace Heltec::MeshCore::Biz

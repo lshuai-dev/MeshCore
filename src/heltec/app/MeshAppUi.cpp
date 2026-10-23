@@ -1,23 +1,22 @@
 #include "MeshAppUi.hpp"
 
 #include "HeltecMesh.h"
-#include "ui/app/App.hpp"
 #include "ui/core/AppStateNotifier.hpp"
 #include "ui/core/UiTask.hpp"
 
-namespace heltec::meshcore::biz
+namespace Heltec::MeshCore::Biz
 {
 
-MeshAppUi::MeshAppUi(heltec::meshcore::power::PowerMgr &power) : _power(power)
+MeshAppUi::MeshAppUi(Heltec::MeshCore::Power::PowerMgr &power) : _power(power)
 {
-    heltec::meshcore::ui::app_state_notifier().bind(handleAppStateEvent, this);
+    Heltec::MeshCore::Ui::app_state_notifier().bind(handleAppStateEvent, this);
 }
 
 void MeshAppUi::handleAppStateEvent(void *user_data,
-                                    const heltec::meshcore::ui::AppStateEvent &event)
+                                    const Heltec::MeshCore::Ui::AppStateEvent &event)
 {
     auto *const app = static_cast<MeshAppUi *>(user_data);
-    if (!app || event.type != heltec::meshcore::ui::AppStateEventType::GpsChanged)
+    if (!app || event.type != Heltec::MeshCore::Ui::AppStateEventType::GpsChanged)
     {
         return;
     }
@@ -48,51 +47,46 @@ void MeshAppUi::pollRuntime()
     {
         _team_runtime_fingerprint = team_fingerprint;
         _team_runtime_fingerprint_valid = true;
-        notifyAppState(heltec::meshcore::ui::AppStateEventType::TeamChanged);
-        notifyAppState(heltec::meshcore::ui::AppStateEventType::FindFriendChanged);
+        notifyAppState(Heltec::MeshCore::Ui::AppStateEventType::TeamChanged);
+        notifyAppState(Heltec::MeshCore::Ui::AppStateEventType::FindFriendChanged);
     }
 #endif
 }
 
-void MeshAppUi::handlePowerChanged(heltec::meshcore::power::PowerChangeMask changes,
-                                   const heltec::meshcore::power::PowerSnapshot &snapshot)
+void MeshAppUi::handlePowerChanged(Heltec::MeshCore::Power::PowerChangeMask changes,
+                                   const Heltec::MeshCore::Power::PowerSnapshot &snapshot)
 {
-    using heltec::meshcore::power::hasChange;
-    using heltec::meshcore::power::PowerChange;
+    using Heltec::MeshCore::Power::hasChange;
+    using Heltec::MeshCore::Power::PowerChange;
     if (hasChange(changes, PowerChange::Battery) || hasChange(changes, PowerChange::Source))
     {
-        heltec::meshcore::ui::AppStateEvent ev{};
-        ev.type = heltec::meshcore::ui::AppStateEventType::BatteryChanged;
+        Heltec::MeshCore::Ui::AppStateEvent ev{};
+        ev.type = Heltec::MeshCore::Ui::AppStateEventType::BatteryChanged;
         ev.battery.millivolts = snapshot.battery_mv;
         ev.battery.percent = snapshot.battery_percent;
         ev.battery.charging = false;
         ev.battery.source_known = snapshot.source != mesh::PowerSource::Unknown;
         ev.battery.external_powered = snapshot.source == mesh::PowerSource::External;
-        heltec::meshcore::ui::app_state_notifier().notify(ev);
+        Heltec::MeshCore::Ui::app_state_notifier().notify(ev);
     }
     if (hasChange(changes, PowerChange::Gps))
         notifyGpsChanged();
 }
 
-void MeshAppUi::notifyAppState(heltec::meshcore::ui::AppStateEventType type)
+void MeshAppUi::notifyAppState(Heltec::MeshCore::Ui::AppStateEventType type)
 {
-    heltec::meshcore::ui::AppStateEvent ev{};
+    Heltec::MeshCore::Ui::AppStateEvent ev{};
     ev.type = type;
-    heltec::meshcore::ui::app_state_notifier().notify(ev);
+    Heltec::MeshCore::Ui::app_state_notifier().notify(ev);
 }
 
 void MeshAppUi::notifyCompanionChanged()
 {
-    heltec::meshcore::ui::AppStateEvent ev{};
-    ev.type = heltec::meshcore::ui::AppStateEventType::CompanionChanged;
-    ev.companion.connected = heltec::meshcore::ui::ui_task().hasConnection();
+    Heltec::MeshCore::Ui::AppStateEvent ev{};
+    ev.type = Heltec::MeshCore::Ui::AppStateEventType::CompanionChanged;
+    ev.companion.connected = Heltec::MeshCore::Ui::ui_task().hasConnection();
     ev.companion.pairing_pin = the_mesh.getBLEPin();
-    heltec::meshcore::ui::app_state_notifier().notify(ev);
-}
-
-void MeshAppUi::showAlert(const char *text, int duration_ms)
-{
-    heltec::meshcore::ui::ui_task().showAlert(text, duration_ms);
+    Heltec::MeshCore::Ui::app_state_notifier().notify(ev);
 }
 
 #if !defined(ENV_INCLUDE_COMPASS) || !(ENV_INCLUDE_COMPASS)
@@ -123,4 +117,4 @@ bool MeshAppUi::restoreCompassCalibration()
 }
 #endif
 
-} // namespace heltec::meshcore::biz
+} // namespace Heltec::MeshCore::Biz

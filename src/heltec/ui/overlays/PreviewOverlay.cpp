@@ -1,12 +1,11 @@
 #include "PreviewOverlay.hpp"
 #include "ui/core/HtEvent.h"
-#include "ui/widgets/HtSelectorView.hpp"
 #include "ui/core/OperationHints.hpp"
 #include "ui/widgets/WidgetClasses.hpp"
 
 #include <cstring>
 
-namespace heltec::meshcore::ui {
+namespace Heltec::MeshCore::Ui {
 
 namespace {
 
@@ -20,7 +19,7 @@ void setMessageScrollY(void *object, int32_t value)
 
 } // namespace
 
-PreviewOverlay::PreviewOverlay(biz::IBizFacade &biz)
+PreviewOverlay::PreviewOverlay(Biz::IBizFacade &biz)
     : FramedOverlay(biz, ht_preview_overlay_class) {
 }
 
@@ -69,7 +68,7 @@ bool PreviewOverlay::buildSurface() {
     lv_obj_align(_message_label, LV_ALIGN_TOP_LEFT, 0, 0);
     lv_label_set_long_mode(_message_label, LV_LABEL_LONG_WRAP);
 
-    setStaticToolTip(operation_hint::kPreviewClose);
+    setStaticToolTip(OperationHint::kPreviewClose);
 
     _age_timer = lv_timer_create(ageTimerCallback, 1000U, this);
     if (!_age_timer) return false;
@@ -189,4 +188,4 @@ void PreviewOverlay::dismissByUser() {
     emitEvent(EventType::PreviewClose);
 }
 
-} // namespace heltec::meshcore::ui
+} // namespace Heltec::MeshCore::Ui

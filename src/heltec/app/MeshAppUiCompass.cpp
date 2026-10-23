@@ -12,7 +12,7 @@ extern ICMCompassProvider compassProvider;
 extern HeltecMesh the_mesh;
 #endif
 
-namespace heltec::meshcore::biz
+namespace Heltec::MeshCore::Biz
 {
 
 #if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
@@ -81,4 +81,4 @@ bool MeshAppUi::restoreCompassCalibration()
 
 #endif // ENV_INCLUDE_COMPASS
 
-} // namespace heltec::meshcore::biz
+} // namespace Heltec::MeshCore::Biz

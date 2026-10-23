@@ -1,6 +1,6 @@
 #include "AppStateNotifier.hpp"
 
-namespace heltec::meshcore::ui
+namespace Heltec::MeshCore::Ui
 {
 
 AppStateNotifier &app_state_notifier()
@@ -47,4 +47,4 @@ void AppStateNotifier::notify(const AppStateEvent &event)
     }
 }
 
-} // namespace heltec::meshcore::ui
+} // namespace Heltec::MeshCore::Ui

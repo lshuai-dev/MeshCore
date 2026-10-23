@@ -3,18 +3,18 @@
 
 #include <stdint.h>
 
-namespace heltec::meshcore::biz
+namespace Heltec::MeshCore::Biz
 {
 class IBizFacade;
 }
 struct _lv_obj_t;
-namespace heltec::meshcore::ui
+namespace Heltec::MeshCore::Ui
 {
 
 class RadioParamSyncOverlay : public FramedOverlay
 {
   public:
-    explicit RadioParamSyncOverlay(biz::IBizFacade &biz);
+    explicit RadioParamSyncOverlay(Biz::IBizFacade &biz);
 
     void onEnter() override;
     void onExit() override;
@@ -50,4 +50,4 @@ class RadioParamSyncOverlay : public FramedOverlay
     char _current_row_text[32] = {};
 };
 
-} // namespace heltec::meshcore::ui
+} // namespace Heltec::MeshCore::Ui

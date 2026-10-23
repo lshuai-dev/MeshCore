@@ -6,7 +6,7 @@
 
 #include <lvgl.h>
 
-namespace heltec::meshcore::ui
+namespace Heltec::MeshCore::Ui
 {
 
 inline void compass_style_info_label(lv_obj_t *lb, const char *text, lv_label_long_mode_t wrap)
@@ -110,4 +110,4 @@ inline void compass_format_distance_m(char *buf, size_t len, double meters)
     }
 }
 
-} // namespace heltec::meshcore::ui
+} // namespace Heltec::MeshCore::Ui

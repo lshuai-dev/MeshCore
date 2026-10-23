@@ -2,7 +2,7 @@
 
 #include <stdint.h>
 
-namespace heltec::meshcore::dal::touch_port
+namespace Heltec::MeshCore::Dal::TouchPort
 {
 
 bool init(uint16_t hor_res, uint16_t ver_res);
@@ -23,11 +23,11 @@ void set_wake_handler(WakeFn fn);
 using SampleHookFn = void (*)(bool pressed, int16_t x, int16_t y, bool *suppress);
 void set_sample_hook(SampleHookFn fn);
 
-} // namespace heltec::meshcore::dal::touch_port
+} // namespace Heltec::MeshCore::Dal::TouchPort
 
 #if !(defined(HELTEC_UI_HAS_TOUCH) && HELTEC_UI_HAS_TOUCH)
 
-namespace heltec::meshcore::dal::touch_port
+namespace Heltec::MeshCore::Dal::TouchPort
 {
 
 inline bool init(uint16_t, uint16_t)
@@ -60,6 +60,6 @@ inline void set_sample_hook(SampleHookFn)
 {
 }
 
-} // namespace heltec::meshcore::dal::touch_port
+} // namespace Heltec::MeshCore::Dal::TouchPort
 
 #endif

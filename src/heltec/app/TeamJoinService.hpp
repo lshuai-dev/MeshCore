@@ -14,7 +14,7 @@
 
 class HeltecMesh;
 
-namespace heltec::meshcore::team
+namespace Heltec::MeshCore::Team
 {
 
 enum class JoinState : uint8_t
@@ -152,4 +152,4 @@ class TeamJoinService
     uint8_t _member_nonce[kNonceSize] = {};
 };
 
-} // namespace heltec::meshcore::team
+} // namespace Heltec::MeshCore::Team

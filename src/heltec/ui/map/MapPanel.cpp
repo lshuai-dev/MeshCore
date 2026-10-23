@@ -15,11 +15,11 @@
 #include <esp_task_wdt.h>
 #endif
 
-namespace heltec::meshcore::ui
+namespace Heltec::MeshCore::Ui
 {
-} // namespace heltec::meshcore::ui
+} // namespace Heltec::MeshCore::Ui
 
-namespace heltec::meshcore::ui::map
+namespace Heltec::MeshCore::Ui::Map
 {
 namespace
 {
@@ -193,7 +193,7 @@ bool MapPanel::createTileSlot(int idx)
     t.root = ht_class_create(&ht_map_tile_class, _tile_layer);
     if (!t.root)
         return false;
-    lv_obj_set_size(t.root, map::kTileSizePx, map::kTileSizePx);
+    lv_obj_set_size(t.root, Map::kTileSizePx, Map::kTileSizePx);
     lv_obj_clear_flag(t.root, LV_OBJ_FLAG_SCROLLABLE | LV_OBJ_FLAG_CLICKABLE);
     lv_obj_add_flag(t.root, LV_OBJ_FLAG_HIDDEN);
 
@@ -204,14 +204,14 @@ bool MapPanel::createTileSlot(int idx)
         t.root = nullptr;
         return false;
     }
-    lv_obj_set_size(t.img, map::kTileSizePx, map::kTileSizePx);
+    lv_obj_set_size(t.img, Map::kTileSizePx, Map::kTileSizePx);
     lv_obj_set_pos(t.img, 0, 0);
     lv_obj_clear_flag(t.img, LV_OBJ_FLAG_SCROLLABLE | LV_OBJ_FLAG_CLICKABLE);
     lv_obj_add_flag(t.img, LV_OBJ_FLAG_HIDDEN);
     t.placeholder = ht_label_create(&ht_map_tile_placeholder_class, t.root);
     if (t.placeholder)
     {
-        lv_obj_set_width(t.placeholder, map::kTileSizePx - 8);
+        lv_obj_set_width(t.placeholder, Map::kTileSizePx - 8);
         lv_obj_align(t.placeholder, LV_ALIGN_CENTER, 0, 0);
         lv_label_set_long_mode(t.placeholder, LV_LABEL_LONG_WRAP);
         lv_label_set_text_static(t.placeholder, t.placeholder_text);
@@ -1025,7 +1025,7 @@ bool MapPanel::locationToPoint(float latitude, float longitude, lv_point_t &poin
     return true;
 }
 
-void MapPanel::set_markers(const heltec::meshcore::biz::MapPlotMarker *markers, int count)
+void MapPanel::set_markers(const Heltec::MeshCore::Biz::MapPlotMarker *markers, int count)
 {
     int n = (markers && count > 0) ? count : 0;
     if (n > kMaxMarkers)
@@ -1151,6 +1151,6 @@ void MapPanel::scroll_step(int16_t delta_x, int16_t delta_y)
     finish_pan();
 }
 
-} // namespace heltec::meshcore::ui::map
+} // namespace Heltec::MeshCore::Ui::Map
 
 #endif

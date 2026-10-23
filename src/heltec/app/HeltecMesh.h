@@ -18,7 +18,7 @@
 #include <helpers/TransportKeyStore.h>
 #include <Target.h>
 
-namespace heltec::meshcore::power
+namespace Heltec::MeshCore::Power
 {
 class PowerMgr;
 }
@@ -136,7 +136,7 @@ class HeltecMesh : public BaseChatMesh, public DataStoreHost
                DataStore &store, AbstractUITask *ui = nullptr);
 
     void begin(bool has_display);
-    void attachPowerMgr(heltec::meshcore::power::PowerMgr *power)
+    void attachPowerMgr(Heltec::MeshCore::Power::PowerMgr *power)
     {
         _power_mgr = power;
     }
@@ -153,19 +153,19 @@ class HeltecMesh : public BaseChatMesh, public DataStoreHost
 #if defined(ENV_INCLUDE_GPS) && ENV_INCLUDE_GPS
     /** Synchronize Team identity data into the regular contact table. */
     bool syncTeamMemberContact(const uint8_t *public_key, const char *name, size_t name_len);
-    heltec::meshcore::team::TeamService &teamService()
+    Heltec::MeshCore::Team::TeamService &teamService()
     {
         return _team_service;
     }
-    const heltec::meshcore::team::TeamService &teamService() const
+    const Heltec::MeshCore::Team::TeamService &teamService() const
     {
         return _team_service;
     }
-    heltec::meshcore::team::TeamJoinService &teamJoinService()
+    Heltec::MeshCore::Team::TeamJoinService &teamJoinService()
     {
         return _team_join_service;
     }
-    const heltec::meshcore::team::TeamJoinService &teamJoinService() const
+    const Heltec::MeshCore::Team::TeamJoinService &teamJoinService() const
     {
         return _team_join_service;
     }
@@ -340,8 +340,8 @@ class HeltecMesh : public BaseChatMesh, public DataStoreHost
 
   private:
 #if defined(ENV_INCLUDE_GPS) && ENV_INCLUDE_GPS
-    friend class heltec::meshcore::team::TeamService;
-    friend class heltec::meshcore::team::TeamJoinService;
+    friend class Heltec::MeshCore::Team::TeamService;
+    friend class Heltec::MeshCore::Team::TeamJoinService;
 #endif
     mesh::Packet *createPolicySelfAdvert(bool require_live_location);
     void recordContactLocationReceipt(const uint8_t pub_key[PUB_KEY_SIZE], bool advertised,
@@ -389,8 +389,8 @@ class HeltecMesh : public BaseChatMesh, public DataStoreHost
 
     DataStore *_store;
 #if defined(ENV_INCLUDE_GPS) && ENV_INCLUDE_GPS
-    heltec::meshcore::team::TeamService _team_service{};
-    heltec::meshcore::team::TeamJoinService _team_join_service{};
+    Heltec::MeshCore::Team::TeamService _team_service{};
+    Heltec::MeshCore::Team::TeamJoinService _team_join_service{};
 #endif
     NodePrefs _prefs;
     uint32_t pending_login;
@@ -399,7 +399,7 @@ class HeltecMesh : public BaseChatMesh, public DataStoreHost
     uint32_t pending_req;                          // pending _BINARY_REQ
     BaseSerialInterface *_serial;
     AbstractUITask *_ui;
-    heltec::meshcore::power::PowerMgr *_power_mgr = nullptr;
+    Heltec::MeshCore::Power::PowerMgr *_power_mgr = nullptr;
 
     ContactsIterator _iter;
     uint32_t _iter_filter_since;

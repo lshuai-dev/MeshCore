@@ -3,25 +3,22 @@
 #include <lvgl.h>
 #include <stdint.h>
 
-namespace heltec::meshcore::ui
+namespace Heltec::MeshCore::Ui
 {
 
-class InputHost
+class IUiInputHost
 {
   public:
-    virtual ~InputHost() = default;
+    virtual ~IUiInputHost() = default;
 
     virtual bool isReady() const = 0;
     virtual bool isDisplayOn() const = 0;
     virtual void toggleDisplay(uint32_t now_ms) = 0;
     virtual void onBacklightTurnedOn() = 0;
     virtual void notifyDisplayActivity(uint32_t now_ms) = 0;
-    virtual void reconcileInput() = 0;
     virtual void ensureTileKeypadFocus() = 0;
-    virtual bool blocksCloseTopLayer() const = 0;
     virtual bool acceptsKeyboardCycle() const = 0;
-    virtual bool interceptInputKey(uint32_t key) = 0;
     virtual lv_obj_t *frameRoot() const = 0;
 };
 
-} // namespace heltec::meshcore::ui
+} // namespace Heltec::MeshCore::Ui

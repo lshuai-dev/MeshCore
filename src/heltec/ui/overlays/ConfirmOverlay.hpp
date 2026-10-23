@@ -7,18 +7,18 @@
 
 struct _lv_obj_t;
 
-namespace heltec::meshcore::biz
+namespace Heltec::MeshCore::Biz
 {
 class IBizFacade;
 }
 
-namespace heltec::meshcore::ui
+namespace Heltec::MeshCore::Ui
 {
 
 class ConfirmOverlay final : public DialogOverlay
 {
   public:
-    explicit ConfirmOverlay(biz::IBizFacade &biz)
+    explicit ConfirmOverlay(Biz::IBizFacade &biz)
         : DialogOverlay(biz, Options{Variant::Modal, true, true, true})
     {
     }
@@ -46,4 +46,4 @@ class ConfirmOverlay final : public DialogOverlay
     uint32_t _entered_ms = 0;
 };
 
-} // namespace heltec::meshcore::ui
+} // namespace Heltec::MeshCore::Ui

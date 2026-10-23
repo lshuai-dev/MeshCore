@@ -3,7 +3,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
-namespace heltec::meshcore::nav
+namespace Heltec::MeshCore::Nav
 {
 
 enum class TargetFreshness : uint8_t
@@ -112,4 +112,4 @@ class FindFriendNavEstimator
     bool _near_target = false;
 };
 
-} // namespace heltec::meshcore::nav
+} // namespace Heltec::MeshCore::Nav

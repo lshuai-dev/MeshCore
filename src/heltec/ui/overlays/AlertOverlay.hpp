@@ -2,16 +2,16 @@
 #include "../core/DialogOverlay.hpp"
 struct _lv_obj_t;
 
-namespace heltec::meshcore::biz {
+namespace Heltec::MeshCore::Biz {
 class IBizFacade;
 }
 
-namespace heltec::meshcore::ui {
+namespace Heltec::MeshCore::Ui {
 
 /** @brief 短时提示 overlay；由 UiApp::activate 驱动显隐。 */
 class AlertOverlay : public DialogOverlay {
   public:
-    explicit AlertOverlay(biz::IBizFacade &biz)
+    explicit AlertOverlay(Biz::IBizFacade &biz)
         : DialogOverlay(biz, Options{ Variant::Alert, false, false, false }) {
     }
 
@@ -29,4 +29,4 @@ class AlertOverlay : public DialogOverlay {
     uint32_t _entered_ms = 0;
 };
 
-} // namespace heltec::meshcore::ui
+} // namespace Heltec::MeshCore::Ui

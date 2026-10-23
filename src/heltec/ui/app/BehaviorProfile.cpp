@@ -1,6 +1,6 @@
 #include "ui/app/BehaviorProfile.hpp"
 
-namespace heltec::meshcore::ui
+namespace Heltec::MeshCore::Ui
 {
 namespace
 {
@@ -24,4 +24,4 @@ void ui_set_behavior_profile(const UiBehaviorProfile *profile)
     s_active_behavior_profile = profile;
 }
 
-} // namespace heltec::meshcore::ui
+} // namespace Heltec::MeshCore::Ui

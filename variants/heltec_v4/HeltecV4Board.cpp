@@ -20,10 +20,10 @@ void HeltecV4Board::begin() {
     periph_power.claim();
 
 #if defined(LV_CONF_SKIP) && LV_CONF_SKIP
-    (void)heltec::meshcore::dal::display_port::init();
+    (void)Heltec::MeshCore::Dal::DisplayPort::init();
 
-    using heltec::meshcore::dal::momentary_button::Config;
-    using heltec::meshcore::dal::momentary_button::KeyMap;
+    using Heltec::MeshCore::Dal::MomentaryButton::Config;
+    using Heltec::MeshCore::Dal::MomentaryButton::KeyMap;
 
     Config cnf{};
     cnf.debounce_ms = 50;
@@ -33,8 +33,8 @@ void HeltecV4Board::begin() {
     cnf.buttons[0].pin_mode = INPUT_PULLDOWN;
     cnf.buttons[0].active_level = LOW;
     cnf.buttons[0].map = KeyMap(LV_KEY_NEXT, LV_KEY_ESC, LV_KEY_PREV, LV_KEY_ENTER);
-    heltec::meshcore::dal::momentary_button::configure(cnf);
-    heltec::meshcore::dal::momentary_button::initialize();
+    Heltec::MeshCore::Dal::MomentaryButton::configure(cnf);
+    Heltec::MeshCore::Dal::MomentaryButton::initialize();
 #endif
 
     esp_reset_reason_t reason = esp_reset_reason();

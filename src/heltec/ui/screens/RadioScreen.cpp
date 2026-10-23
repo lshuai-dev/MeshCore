@@ -6,7 +6,7 @@
 #include "ui/theme/WidgetTheme.hpp"
 #include <lvgl.h>
 
-namespace heltec::meshcore::ui
+namespace Heltec::MeshCore::Ui
 {
 
 namespace
@@ -78,7 +78,7 @@ bool RadioScreen::buildSurface()
 #endif
 
 #if defined(HAS_LNA_CONTROL) && HAS_LNA_CONTROL
-    addFocusableObject(_sw_lna, _sw_lna ? lv_obj_get_parent(_sw_lna) : nullptr);
+    addNavigableObject(_sw_lna, _sw_lna ? lv_obj_get_parent(_sw_lna) : nullptr);
 #endif
 
     return true;
@@ -139,16 +139,16 @@ void RadioScreen::handleLNAValueChanged(lv_event_t *e)
     if (!self->_biz.setLnaEnabled(requested_on))
     {
         self->setLnaSwitchState(self->_biz.lnaEnabled());
-        self->_biz.showAlert("LNA unavailable", 2000);
+        self->showAlert("LNA unavailable", 2000);
         return;
     }
     const bool actual_on = self->_biz.lnaEnabled();
     self->setLnaSwitchState(actual_on);
-    self->_biz.showAlert(actual_on ? "LNA: ON" : "LNA: OFF", 800);
+    self->showAlert(actual_on ? "LNA: ON" : "LNA: OFF", 800);
 }
 #endif
 
-void RadioScreen::updateRadio(const biz::IBizFacade::RadioStatus &s)
+void RadioScreen::updateRadio(const Biz::IBizFacade::RadioStatus &s)
 {
     const int32_t freq_milli = (int32_t)(s.freq_mhz * 1000.0f + 0.5f);
     const int32_t bw_centi = (int32_t)(s.bw_khz * 100.0f + 0.5f);
@@ -190,7 +190,7 @@ void RadioScreen::updateRadio(const biz::IBizFacade::RadioStatus &s)
 
 void RadioScreen::refreshSnapshot()
 {
-    const biz::IBizFacade::RadioStatus radio = _biz.radioStatus();
+    const Biz::IBizFacade::RadioStatus radio = _biz.radioStatus();
     updateRadio(radio);
 #if defined(HAS_LNA_CONTROL) && HAS_LNA_CONTROL
     setLnaSwitchState(_biz.lnaEnabled());
@@ -211,4 +211,4 @@ void RadioScreen::onActivated()
     refreshSnapshot();
 }
 
-} // namespace heltec::meshcore::ui
+} // namespace Heltec::MeshCore::Ui

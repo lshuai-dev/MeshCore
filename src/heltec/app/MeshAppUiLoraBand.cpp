@@ -7,12 +7,12 @@
 #include <Arduino.h>
 #include <Target.h>
 
-namespace heltec::meshcore::biz
+namespace Heltec::MeshCore::Biz
 {
 
 void MeshAppUi::requestRadioParamPresetPicker()
 {
-    heltec::meshcore::ui::UiApp::instance().openRadioParamSyncOverlay();
+    Heltec::MeshCore::Ui::UiApp::instance().openRadioParamSyncOverlay();
 }
 
 void MeshAppUi::setLoRaBandPresetIndex(int preset_index)
@@ -41,7 +41,7 @@ void MeshAppUi::setLoRaBandPresetIndex(int preset_index)
     p->lora_band_configured = 1;
     the_mesh.savePrefs();
     notifyRadioChanged();
-    notifyAppState(heltec::meshcore::ui::AppStateEventType::ConfigChanged);
+    notifyAppState(Heltec::MeshCore::Ui::AppStateEventType::ConfigChanged);
 }
 
 int MeshAppUi::currentLoRaBandPresetIndex() const
@@ -127,7 +127,7 @@ IBizFacade::ForwardingApplyResult MeshAppUi::setForwardingEnabled(bool enabled, 
     {
     case HeltecMesh::RadioConfigApplyResult::Ok:
         notifyRadioChanged();
-        notifyAppState(heltec::meshcore::ui::AppStateEventType::ConfigChanged);
+        notifyAppState(Heltec::MeshCore::Ui::AppStateEventType::ConfigChanged);
         return ForwardingApplyResult::Ok;
     case HeltecMesh::RadioConfigApplyResult::UnsupportedForwardingFrequency:
         return ForwardingApplyResult::UnsupportedFrequency;
@@ -140,4 +140,4 @@ IBizFacade::ForwardingApplyResult MeshAppUi::setForwardingEnabled(bool enabled, 
     return ForwardingApplyResult::Unavailable;
 }
 
-} // namespace heltec::meshcore::biz
+} // namespace Heltec::MeshCore::Biz

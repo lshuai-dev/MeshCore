@@ -22,7 +22,7 @@
 #define DISPLAY_ORIENTATION_PORTRAIT 0
 #endif
 
-namespace heltec::meshcore::ui {
+namespace Heltec::MeshCore::Ui {
 
 namespace {
 #if DISPLAY_ORIENTATION_PORTRAIT
@@ -54,13 +54,13 @@ void format_age_short(char *buf, size_t len, bool known, uint32_t age_ms) {
     }
 }
 
-void format_nav_distance(char *buf, size_t len, const biz::FindFriendUi &u) {
+void format_nav_distance(char *buf, size_t len, const Biz::FindFriendUi &u) {
     if (!buf || len == 0) return;
     if (u.distance_m < 0.0) {
         lv_snprintf(buf, len, "--");
         return;
     }
-    const char *approximate = u.confidence == biz::FindFriendConfidence::Low ? "~" : "";
+    const char *approximate = u.confidence == Biz::FindFriendConfidence::Low ? "~" : "";
     if (u.distance_m >= 10000.0) {
         const uint32_t km = static_cast<uint32_t>(u.distance_m / 1000.0 + 0.5);
         lv_snprintf(buf, len, "%s%lukm", approximate, (unsigned long)km);
@@ -84,7 +84,7 @@ void format_nav_distance(char *buf, size_t len, const biz::FindFriendUi &u) {
     lv_snprintf(buf, len, "%s%lum", approximate, (unsigned long)rounded);
 }
 
-void format_arrival_distance(char *buf, size_t len, const biz::FindFriendUi &u) {
+void format_arrival_distance(char *buf, size_t len, const Biz::FindFriendUi &u) {
     if (!buf || len == 0) return;
     char distance[16] = {};
     format_nav_distance(distance, sizeof(distance), u);
@@ -131,7 +131,7 @@ void FindFriendScreen::showInfoOnly(const char *info) {
     setInfoText(info);
 }
 
-void FindFriendScreen::showHeadingOnly(const biz::FindFriendUi &ui, const char *info) {
+void FindFriendScreen::showHeadingOnly(const Biz::FindFriendUi &ui, const char *info) {
     _dial.setVisible(true);
     _dial.setFriendNeedle(0, false, false, false, false);
     _direction_valid = false;
@@ -286,27 +286,27 @@ void FindFriendScreen::createInfoRows() {
     if (_lbl_status) lv_label_set_text_static(_lbl_status, _status_text);
 }
 
-void FindFriendScreen::render(const biz::FindFriendUi &u) {
+void FindFriendScreen::render(const Biz::FindFriendUi &u) {
     _dial.setCenterMarkerVisible(false);
 
-    const biz::IBizFacade::TeamStatus team = _biz.teamStatus();
+    const Biz::IBizFacade::TeamStatus team = _biz.teamStatus();
     const auto team_state =
-        static_cast<heltec::meshcore::team::JoinState>(team.pair_state);
+        static_cast<Heltec::MeshCore::Team::JoinState>(team.pair_state);
     if (_biz.findFriendEnabled() && _biz.findFriendMode() == 0 && !team.has_team) {
-        if (team_state == heltec::meshcore::team::JoinState::Searching) {
+        if (team_state == Heltec::MeshCore::Team::JoinState::Searching) {
             setStatusText("Searching Team...");
             showHeadingOnly(u, "Waiting for Team offers");
             return;
         }
-        if (team_state == heltec::meshcore::team::JoinState::TimedOut ||
-            team_state == heltec::meshcore::team::JoinState::Error) {
+        if (team_state == Heltec::MeshCore::Team::JoinState::TimedOut ||
+            team_state == Heltec::MeshCore::Team::JoinState::Error) {
             setStatusText("Team search timed out");
             showHeadingOnly(u, "Select search again");
             return;
         }
     }
-    if (static_cast<heltec::meshcore::team::JoinState>(team.pair_state) ==
-        heltec::meshcore::team::JoinState::WaitingForApproval) {
+    if (static_cast<Heltec::MeshCore::Team::JoinState>(team.pair_state) ==
+        Heltec::MeshCore::Team::JoinState::WaitingForApproval) {
         char code[24] = {};
         lv_snprintf(code, sizeof(code), "code %04u", static_cast<unsigned>(team.pairing_code));
         setStatusText("Waiting for Leader");
@@ -336,7 +336,7 @@ void FindFriendScreen::render(const biz::FindFriendUi &u) {
             append_status_line(status, sizeof(status), target_summary);
         }
 
-        if (u.target_freshness == biz::FindFriendTargetFreshness::Aging) {
+        if (u.target_freshness == Biz::FindFriendTargetFreshness::Aging) {
             append_status_line(status, sizeof(status), "Target aging");
         }
     }
@@ -380,8 +380,8 @@ void FindFriendScreen::render(const biz::FindFriendUi &u) {
             showInfoOnly("");
         } else if (!u.target_valid) {
             showInfoOnly("no location");
-        } else if (u.target_freshness == biz::FindFriendTargetFreshness::Unknown ||
-                   u.target_freshness == biz::FindFriendTargetFreshness::Stale) {
+        } else if (u.target_freshness == Biz::FindFriendTargetFreshness::Unknown ||
+                   u.target_freshness == Biz::FindFriendTargetFreshness::Stale) {
             showInfoOnly("target stale");
         } else if (u.near_target) {
             _dial.setVisible(true);
@@ -434,8 +434,8 @@ void FindFriendScreen::render(const biz::FindFriendUi &u) {
         setInfoText("");
     } else if (!u.target_valid) {
         setInfoText("no location");
-    } else if (u.target_freshness == biz::FindFriendTargetFreshness::Unknown ||
-               u.target_freshness == biz::FindFriendTargetFreshness::Stale) {
+    } else if (u.target_freshness == Biz::FindFriendTargetFreshness::Unknown ||
+               u.target_freshness == Biz::FindFriendTargetFreshness::Stale) {
         setInfoText("target stale");
     } else if (u.near_target) {
         char distance[sizeof(_info_text)] = {};
@@ -536,13 +536,13 @@ void FindFriendScreen::onUIEvent(const UiEvent &event) {
 
     const auto *submit = static_cast<const UiWaypointKeyboardSubmit *>(event.payload);
     if (_biz.setFindFriendWaypoint(submit->lat, submit->lon)) {
-        _biz.showAlert("Waypoint saved", 2000);
+        showAlert("Waypoint saved", 2000);
         syncControls();
     } else {
-        _biz.showAlert("Save failed", 2000);
+        showAlert("Save failed", 2000);
     }
 }
 
-} // namespace heltec::meshcore::ui
+} // namespace Heltec::MeshCore::Ui
 
 #endif // ENV_INCLUDE_GPS

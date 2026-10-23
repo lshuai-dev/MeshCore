@@ -360,7 +360,7 @@ def build():
     ])
     para(doc, "当前版本统一将可操作列表行加入焦点组，解决小屏页面项目超出可视区域后的键盘翻页和自动滚动问题。V4 R8 TFT 对列表行高度、间距和选中状态进行了单独优化；导航图标、选中状态及布局也会按设备屏幕类型变化。")
     page(doc)
-    code_excerpt(doc, "14.1 按键焦点映射代码", "src/heltec/ui/core/FocusKeyMapper.cpp", 1, 72, [
+    code_excerpt(doc, "14.1 页面内部导航代码", "src/heltec/ui/core/HtGridNav.cpp", 1, 72, [
         "该代码把设备按键转换为上一项、下一项、确认和返回等通用界面动作。",
         "映射层只处理人机交互，不读取或修改无线通信数据。"
     ])

@@ -196,7 +196,7 @@ bool ICMCompassProvider::getResult(CompassResult *result)
     return true;
 }
 
-bool ICMCompassProvider::fillUiSnapshot(heltec::meshcore::biz::CompassUi &ui) const
+bool ICMCompassProvider::fillUiSnapshot(Heltec::MeshCore::Biz::CompassUi &ui) const
 {
     ui = {};
     if (!_ready)
@@ -222,7 +222,7 @@ bool ICMCompassProvider::fillUiSnapshot(heltec::meshcore::biz::CompassUi &ui) co
     return true;
 }
 
-bool ICMCompassProvider::shouldNotifyUi(const heltec::meshcore::biz::CompassUi &ui, uint32_t now_ms)
+bool ICMCompassProvider::shouldNotifyUi(const Heltec::MeshCore::Biz::CompassUi &ui, uint32_t now_ms)
 {
     const bool state_changed = !_last_notify_snapshot ||
                                ui.heading_valid != _last_notify_heading_valid ||
@@ -367,15 +367,15 @@ void ICMCompassProvider::loop()
     updateCalibrationIfChanged();
 
     {
-        heltec::meshcore::biz::CompassUi ui{};
+        Heltec::MeshCore::Biz::CompassUi ui{};
         if (fillUiSnapshot(ui) && shouldNotifyUi(ui, now))
         {
-            heltec::meshcore::ui::AppStateEvent ev{};
-            ev.type = heltec::meshcore::ui::AppStateEventType::CompassChanged;
+            Heltec::MeshCore::Ui::AppStateEvent ev{};
+            ev.type = Heltec::MeshCore::Ui::AppStateEventType::CompassChanged;
             ev.compass.heading_valid = ui.heading_valid;
             ev.compass.heading_deg = ui.heading_deg;
             ev.compass.quality = ui.quality;
-            heltec::meshcore::ui::app_state_notifier().notify(ev);
+            Heltec::MeshCore::Ui::app_state_notifier().notify(ev);
         }
     }
 }

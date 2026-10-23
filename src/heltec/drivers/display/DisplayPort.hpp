@@ -1,6 +1,6 @@
 #pragma once
 
-namespace heltec::meshcore::dal::display_port
+namespace Heltec::MeshCore::Dal::DisplayPort
 {
 
 bool init();
@@ -24,4 +24,4 @@ void requestSelectionRefresh(const char *reason = nullptr);
 void requestDeferredRefresh(const char *reason = nullptr);
 #endif
 
-} // namespace heltec::meshcore::dal::display_port
+} // namespace Heltec::MeshCore::Dal::DisplayPort

@@ -3,12 +3,12 @@
 #include <stddef.h>
 #include <stdint.h>
 
-namespace heltec::meshcore::biz
+namespace Heltec::MeshCore::Biz
 {
 class IBizFacade;
 }
 
-namespace heltec::meshcore::ui
+namespace Heltec::MeshCore::Ui
 {
 
 class SendMessageModel
@@ -44,12 +44,12 @@ class SendMessageModel
 
     static void safeCopy(char *dest, size_t dest_size, const char *src);
 
-    void reset(const biz::IBizFacade &biz);
-    void syncContacts(const biz::IBizFacade &biz);
-    void rebuildTargetCategories(const biz::IBizFacade &biz);
-    void rebuildTargetList(const biz::IBizFacade &biz, int list_kind);
+    void reset(const Biz::IBizFacade &biz);
+    void syncContacts(const Biz::IBizFacade &biz);
+    void rebuildTargetCategories(const Biz::IBizFacade &biz);
+    void rebuildTargetList(const Biz::IBizFacade &biz, int list_kind);
     void rebuildMainRows();
-    void moveSelection(const biz::IBizFacade &biz, int delta);
+    void moveSelection(const Biz::IBizFacade &biz, int delta);
 
     Page page() const
     {
@@ -64,7 +64,7 @@ class SendMessageModel
     int wrapIndex(int index) const;
 
     int rowCount() const;
-    const char *rowLabel(const biz::IBizFacade &biz, int index) const;
+    const char *rowLabel(const Biz::IBizFacade &biz, int index) const;
 
     const Target &target() const
     {
@@ -121,7 +121,7 @@ class SendMessageModel
     int _list_count = 0;
     int _list_kind = 0;
 
-    void loadContactWindow(const biz::IBizFacade &biz, int start);
+    void loadContactWindow(const Biz::IBizFacade &biz, int start);
 };
 
-} // namespace heltec::meshcore::ui
+} // namespace Heltec::MeshCore::Ui

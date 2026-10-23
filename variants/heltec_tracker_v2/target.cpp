@@ -12,7 +12,7 @@ HeltecTrackerV2Board board;
 
 WRAPPER_CLASS radio_driver(radio, board);
 
-namespace heltec::meshcore::board {
+namespace Heltec::MeshCore::Board {
 bool lnaCanControl() { return ::board.isLnaCanControl(); }
 bool setLnaEnable(bool enabled) { return ::board.setLNAEnable(enabled); }
 }
@@ -51,7 +51,7 @@ AutoDiscoverRTCClock rtc_clock(fallback_clock);
   };
   }  // namespace
 
-  heltec::gps::GpsRmcSpeedStream gps_serial(Serial1);
+  Heltec::Gps::GpsRmcSpeedStream gps_serial(Serial1);
   TrackerV2LocationProvider nmea(gps_serial, &rtc_clock, GPS_RESET,
                                  &board.periph_power);
   #if defined(HELTEC_SENSOR_MANAGER) && HELTEC_SENSOR_MANAGER

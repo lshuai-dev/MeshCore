@@ -1,7 +1,7 @@
 #pragma once
 #include "Capabilities.hpp"
 
-namespace heltec::meshcore::ui::operation_hint
+namespace Heltec::MeshCore::Ui::OperationHint
 {
 
 #if HELTEC_UI_HAS_TOUCH
@@ -41,4 +41,4 @@ constexpr const char *kCalibrationRetry = "Hold:retry U2:close";
 
 #endif
 
-} // namespace heltec::meshcore::ui::operation_hint
+} // namespace Heltec::MeshCore::Ui::OperationHint

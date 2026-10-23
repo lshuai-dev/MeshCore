@@ -12,14 +12,14 @@
 #include <string.h>
 #include <stdio.h>
 
-namespace heltec::meshcore::biz
+namespace Heltec::MeshCore::Biz
 {
 
 IBizFacade::TeamStatus MeshAppUi::teamStatus() const
 {
     TeamStatus status{};
 #if defined(ENV_INCLUDE_GPS) && ENV_INCLUDE_GPS
-    status.is_leader = the_mesh.teamService().role() == heltec::meshcore::team::TeamRole::Leader;
+    status.is_leader = the_mesh.teamService().role() == Heltec::MeshCore::Team::TeamRole::Leader;
     status.has_team = the_mesh.teamService().hasTeam();
     status.member_count = static_cast<int>(the_mesh.teamService().memberCount());
     status.member_revision = the_mesh.teamService().memberRevision();
@@ -27,7 +27,7 @@ IBizFacade::TeamStatus MeshAppUi::teamStatus() const
     status.join_window_open = the_mesh.teamJoinService().joinWindowOpen();
     if (status.is_leader)
     {
-        heltec::meshcore::team::PendingJoin pending{};
+        Heltec::MeshCore::Team::PendingJoin pending{};
         if (the_mesh.teamJoinService().pendingJoin(pending))
         {
             status.pairing_code = pending.pairing_code;
@@ -50,7 +50,7 @@ int MeshAppUi::teamOnlineCount() const
     const auto &team = the_mesh.teamService();
     for (size_t slot = 0; slot < HELTEC_TEAM_MAX_MEMBERS; ++slot)
     {
-        const heltec::meshcore::team::TeamMember *const member = team.memberSlot(slot);
+        const Heltec::MeshCore::Team::TeamMember *const member = team.memberSlot(slot);
         if (member && now_ms - member->last_seen_ms <= HELTEC_TEAM_MEMBER_TIMEOUT_SEC * 1000UL)
         {
             ++online;
@@ -63,7 +63,7 @@ int MeshAppUi::teamOnlineCount() const
 }
 
 #if defined(HELTEC_GEOFENCE) && HELTEC_GEOFENCE
-team::GeofenceState MeshAppUi::teamGeofenceState() const
+Team::GeofenceState MeshAppUi::teamGeofenceState() const
 {
     return the_mesh.teamService().geofenceState();
 }
@@ -73,7 +73,7 @@ uint8_t MeshAppUi::teamGeofencePointCount() const
     return the_mesh.teamService().geofencePointCount();
 }
 
-bool MeshAppUi::teamGeofencePoint(uint8_t index, team::GeofencePoint &point) const
+bool MeshAppUi::teamGeofencePoint(uint8_t index, Team::GeofencePoint &point) const
 {
     const auto &service = the_mesh.teamService();
     if (index >= service.geofencePointCount())
@@ -89,7 +89,7 @@ bool MeshAppUi::beginTeamGeofenceEdit()
 
 void MeshAppUi::cancelTeamGeofenceEdit()
 {
-    if (the_mesh.teamService().geofenceState() == team::GeofenceState::Editing)
+    if (the_mesh.teamService().geofenceState() == Team::GeofenceState::Editing)
         the_mesh.teamService().cancelGeofenceEdit();
 }
 
@@ -98,7 +98,7 @@ void MeshAppUi::deleteTeamGeofence()
     the_mesh.teamService().deleteGeofence();
 }
 
-team::GeofenceAddResult MeshAppUi::addTeamGeofencePoint(int32_t latitude_e7,
+Team::GeofenceAddResult MeshAppUi::addTeamGeofencePoint(int32_t latitude_e7,
                                                         int32_t longitude_e7)
 {
     return the_mesh.teamService().addGeofencePoint(latitude_e7, longitude_e7);
@@ -112,23 +112,23 @@ bool MeshAppUi::teamGeofenceMemberAlarm(const uint8_t member_id[6]) const
 void MeshAppUi::pollTeamGeofenceAlerts()
 {
 #if defined(ENV_INCLUDE_GPS) && ENV_INCLUDE_GPS
-    team::GeofenceAlert alert{};
+    Team::GeofenceAlert alert{};
     if (!the_mesh.teamService().popGeofenceAlert(alert))
         return;
     char message[64] = {};
-    if (alert.result == team::GeofenceMemberResult::AlarmStarted)
+    if (alert.result == Team::GeofenceMemberResult::AlarmStarted)
     {
         snprintf(message, sizeof(message), "%.*s outside fence",
                  static_cast<int>(alert.name_len), alert.name);
-        showAlert(message, 3000);
-        heltec::meshcore::ui::ui_task().playAlertFeedback();
+        Heltec::MeshCore::Ui::ui_task().showAlert(message, 3000);
+        Heltec::MeshCore::Ui::ui_task().playAlertFeedback();
     }
-    else if (alert.result == team::GeofenceMemberResult::AlarmCleared)
+    else if (alert.result == Team::GeofenceMemberResult::AlarmCleared)
     {
         snprintf(message, sizeof(message), "%.*s back inside",
                  static_cast<int>(alert.name_len), alert.name);
-        showAlert(message, 1800);
-        heltec::meshcore::ui::ui_task().playAlertFeedback();
+        Heltec::MeshCore::Ui::ui_task().showAlert(message, 1800);
+        Heltec::MeshCore::Ui::ui_task().playAlertFeedback();
     }
 #endif
 }
@@ -140,11 +140,11 @@ bool MeshAppUi::teamPendingDetails(char *name, size_t length, uint64_t &session,
     session = 0;
     code = 0;
 #if defined(ENV_INCLUDE_GPS) && ENV_INCLUDE_GPS
-    if (the_mesh.teamService().role() != heltec::meshcore::team::TeamRole::Leader)
+    if (the_mesh.teamService().role() != Heltec::MeshCore::Team::TeamRole::Leader)
         return false;
     if (!name || length == 0)
         return false;
-    heltec::meshcore::team::PendingJoin pending{};
+    Heltec::MeshCore::Team::PendingJoin pending{};
     if (!the_mesh.teamJoinService().pendingJoin(pending))
         return false;
     snprintf(name, length, "%.*s", pending.name_len, pending.name);
@@ -170,11 +170,11 @@ int MeshAppUi::teamOfferCount() const
 bool MeshAppUi::teamOfferLabel(int index, char *label, size_t length) const
 {
 #if defined(ENV_INCLUDE_GPS) && ENV_INCLUDE_GPS
-    if (the_mesh.teamService().role() != heltec::meshcore::team::TeamRole::Member)
+    if (the_mesh.teamService().role() != Heltec::MeshCore::Team::TeamRole::Member)
         return false;
     if (!label || length == 0 || index < 0)
         return false;
-    heltec::meshcore::team::TeamOffer offer{};
+    Heltec::MeshCore::Team::TeamOffer offer{};
     if (!the_mesh.teamJoinService().offerAt(static_cast<size_t>(index), offer))
         return false;
     snprintf(label, length, "%.*s", offer.name_len, offer.name);
@@ -190,7 +190,7 @@ bool MeshAppUi::teamOfferLabel(int index, char *label, size_t length) const
 bool MeshAppUi::teamSelectOffer(int index)
 {
 #if defined(ENV_INCLUDE_GPS) && ENV_INCLUDE_GPS
-    if (the_mesh.teamService().role() != heltec::meshcore::team::TeamRole::Member)
+    if (the_mesh.teamService().role() != Heltec::MeshCore::Team::TeamRole::Member)
         return false;
     return index >= 0 && the_mesh.teamJoinService().selectOffer(static_cast<size_t>(index));
 #else
@@ -202,7 +202,7 @@ bool MeshAppUi::teamSelectOffer(int index)
 bool MeshAppUi::teamStartSearch()
 {
 #if defined(ENV_INCLUDE_GPS) && ENV_INCLUDE_GPS
-    if (the_mesh.teamService().role() != heltec::meshcore::team::TeamRole::Member)
+    if (the_mesh.teamService().role() != Heltec::MeshCore::Team::TeamRole::Member)
         return false;
     return the_mesh.teamJoinService().discoverTeams();
 #else
@@ -215,11 +215,11 @@ bool MeshAppUi::teamSetRole(bool leader)
 #if defined(ENV_INCLUDE_GPS) && ENV_INCLUDE_GPS
     teamCancel();
     (void)teamLeave();
-    const auto role = leader ? heltec::meshcore::team::TeamRole::Leader
-                             : heltec::meshcore::team::TeamRole::Member;
+    const auto role = leader ? Heltec::MeshCore::Team::TeamRole::Leader
+                             : Heltec::MeshCore::Team::TeamRole::Member;
     const bool changed = the_mesh.teamService().setRole(role);
-    notifyAppState(heltec::meshcore::ui::AppStateEventType::TeamChanged);
-    notifyAppState(heltec::meshcore::ui::AppStateEventType::FindFriendChanged);
+    notifyAppState(Heltec::MeshCore::Ui::AppStateEventType::TeamChanged);
+    notifyAppState(Heltec::MeshCore::Ui::AppStateEventType::FindFriendChanged);
     return changed;
 #else
     (void)leader;
@@ -230,7 +230,7 @@ bool MeshAppUi::teamSetRole(bool leader)
 bool MeshAppUi::teamSetActive(bool active)
 {
 #if defined(ENV_INCLUDE_GPS) && ENV_INCLUDE_GPS
-    if (the_mesh.teamService().role() != heltec::meshcore::team::TeamRole::Leader)
+    if (the_mesh.teamService().role() != Heltec::MeshCore::Team::TeamRole::Leader)
         return false;
     if (!active)
         return teamLeave();
@@ -245,7 +245,7 @@ bool MeshAppUi::teamSetActive(bool active)
 bool MeshAppUi::teamSetJoining(bool open)
 {
 #if defined(ENV_INCLUDE_GPS) && ENV_INCLUDE_GPS
-    if (the_mesh.teamService().role() != heltec::meshcore::team::TeamRole::Leader)
+    if (the_mesh.teamService().role() != Heltec::MeshCore::Team::TeamRole::Leader)
         return false;
     if (!the_mesh.teamService().enabled())
         return false;
@@ -260,24 +260,24 @@ bool MeshAppUi::teamSetJoining(bool open)
 #endif
 }
 
-bool MeshAppUi::teamMessageTarget(int member_index, ui::UiSendMessageTarget &target) const
+bool MeshAppUi::teamMessageTarget(int member_index, Ui::UiSendMessageTarget &target) const
 {
-    target = ui::UiSendMessageTarget{};
+    target = Ui::UiSendMessageTarget{};
 #if defined(ENV_INCLUDE_GPS) && ENV_INCLUDE_GPS
     const auto &team = the_mesh.teamService();
     if (!team.enabled())
         return false;
     if (member_index == -1)
     {
-        target.kind = ui::UiMessageTargetKind::Channel;
+        target.kind = Ui::UiMessageTargetKind::Channel;
         target.channel_idx = HELTEC_TEAM_CHANNEL_INDEX;
         snprintf(target.label, sizeof(target.label), "%s", team.credentials().name);
         return true;
     }
-    heltec::meshcore::team::TeamMember member{};
+    Heltec::MeshCore::Team::TeamMember member{};
     if (member_index < 0 || !team.memberAt(static_cast<size_t>(member_index), member))
         return false;
-    target.kind = ui::UiMessageTargetKind::Direct;
+    target.kind = Ui::UiMessageTargetKind::Direct;
     memcpy(target.pub_key_prefix, member.public_key, sizeof(target.pub_key_prefix));
     snprintf(target.label, sizeof(target.label), "%.*s", member.name_len, member.name);
     return true;
@@ -288,19 +288,19 @@ bool MeshAppUi::teamMessageTarget(int member_index, ui::UiSendMessageTarget &tar
 }
 
 bool MeshAppUi::mapMessageTarget(const uint8_t *prefix, size_t length,
-                                  ui::UiSendMessageTarget &target) const
+                                  Ui::UiSendMessageTarget &target) const
 {
-    target = ui::UiSendMessageTarget{};
+    target = Ui::UiSendMessageTarget{};
     if (!prefix || length != sizeof(target.pub_key_prefix))
         return false;
 #if defined(ENV_INCLUDE_GPS) && ENV_INCLUDE_GPS
     const auto &team = the_mesh.teamService();
     for (size_t slot = 0; slot < HELTEC_TEAM_MAX_MEMBERS; ++slot)
     {
-        const heltec::meshcore::team::TeamMember *const member = team.memberSlot(slot);
+        const Heltec::MeshCore::Team::TeamMember *const member = team.memberSlot(slot);
         if (!member || memcmp(member->public_key, prefix, length) != 0)
             continue;
-        target.kind = ui::UiMessageTargetKind::Direct;
+        target.kind = Ui::UiMessageTargetKind::Direct;
         memcpy(target.pub_key_prefix, member->public_key, sizeof(target.pub_key_prefix));
         snprintf(target.label, sizeof(target.label), "%.*s", member->name_len, member->name);
         return true;
@@ -319,7 +319,7 @@ bool MeshAppUi::mapMessageTarget(const uint8_t *prefix, size_t length,
 bool MeshAppUi::teamDecidePending(uint64_t session, bool approve)
 {
 #if defined(ENV_INCLUDE_GPS) && ENV_INCLUDE_GPS
-    if (the_mesh.teamService().role() != heltec::meshcore::team::TeamRole::Leader)
+    if (the_mesh.teamService().role() != Heltec::MeshCore::Team::TeamRole::Leader)
         return false;
     return approve ? the_mesh.teamJoinService().approvePending(session) :
                      the_mesh.teamJoinService().rejectPending(session);
@@ -347,4 +347,4 @@ void MeshAppUi::teamCancel()
 #endif
 }
 
-} // namespace heltec::meshcore::biz
+} // namespace Heltec::MeshCore::Biz

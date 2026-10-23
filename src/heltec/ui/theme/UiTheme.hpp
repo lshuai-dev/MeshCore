@@ -8,7 +8,7 @@
 struct _lv_disp_t;
 typedef struct _lv_disp_t lv_disp_t;
 
-namespace heltec::meshcore::ui
+namespace Heltec::MeshCore::Ui
 {
 // Stable, centralized device-theme boundary. Device variants provide color and
 // metric values through this module; screens and widgets do not depend on a
@@ -186,4 +186,4 @@ inline lv_color_t ui_navigation_focus_color()
     return ui_color_accent();
 }
 bool ui_theme_init(lv_disp_t *disp);
-} // namespace heltec::meshcore::ui
+} // namespace Heltec::MeshCore::Ui

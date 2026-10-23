@@ -8,7 +8,7 @@
 #include <lvgl.h>
 #include <stdio.h>
 
-namespace heltec::meshcore::ui
+namespace Heltec::MeshCore::Ui
 {
 
 namespace
@@ -188,20 +188,20 @@ void CalibrationOverlay::render()
         {
             lv_snprintf(_footer_text, sizeof(_footer_text), "Q:%d %u/%u %lus %s", (int)_last_q,
                         (unsigned)_quality_streak, (unsigned)kStreakNeed, (unsigned long)remain_s,
-                        operation_hint::kCalibrationCancel);
+                        OperationHint::kCalibrationCancel);
         }
         else
         {
             lv_snprintf(_footer_text, sizeof(_footer_text), "Q:- %u/%u %lus %s",
                         (unsigned)_quality_streak, (unsigned)kStreakNeed, (unsigned long)remain_s,
-                        operation_hint::kCalibrationCancel);
+                        OperationHint::kCalibrationCancel);
         }
         break;
     }
 
     case Phase::Success:
         lv_snprintf(_body_text, sizeof(_body_text), "Calibration OK");
-        lv_snprintf(_footer_text, sizeof(_footer_text), "%s", operation_hint::kCalibrationClose);
+        lv_snprintf(_footer_text, sizeof(_footer_text), "%s", OperationHint::kCalibrationClose);
         break;
 
     case Phase::Fail:
@@ -209,19 +209,19 @@ void CalibrationOverlay::render()
         {
             lv_snprintf(_body_text, sizeof(_body_text), "No compass module\nHardware missing");
             lv_snprintf(_footer_text, sizeof(_footer_text), "%s",
-                        operation_hint::kCalibrationClose);
+                        OperationHint::kCalibrationClose);
         }
         else if (_save_failed)
         {
             lv_snprintf(_body_text, sizeof(_body_text), "Quality OK\nSave failed");
             lv_snprintf(_footer_text, sizeof(_footer_text), "%s",
-                        operation_hint::kCalibrationRetry);
+                        OperationHint::kCalibrationRetry);
         }
         else
         {
             lv_snprintf(_body_text, sizeof(_body_text), "Calibration failed\nQuality still low");
             lv_snprintf(_footer_text, sizeof(_footer_text), "%s",
-                        operation_hint::kCalibrationRetry);
+                        OperationHint::kCalibrationRetry);
         }
         break;
     }
@@ -331,13 +331,13 @@ void CalibrationOverlay::onActivated()
     render();
 }
 
-} // namespace heltec::meshcore::ui
+} // namespace Heltec::MeshCore::Ui
 
 #else
 
 #include "CalibrationOverlay.hpp"
 
-namespace heltec::meshcore::ui
+namespace Heltec::MeshCore::Ui
 {
 
 bool CalibrationOverlay::buildSurface()
@@ -376,6 +376,6 @@ void CalibrationOverlay::timeoutTimerCb(lv_timer_t *)
 {
 }
 
-} // namespace heltec::meshcore::ui
+} // namespace Heltec::MeshCore::Ui
 
 #endif

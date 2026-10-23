@@ -2,18 +2,18 @@
 #include <lvgl.h>
 #include <stdint.h>
 
-namespace heltec::meshcore::ui
+namespace Heltec::MeshCore::Ui
 {
 
 typedef struct
 {
     lv_obj_t obj;
     lv_obj_t *content;
-} ht_navigator_t;
+} ht_gridNav_t;
 
-extern const lv_obj_class_t ht_navigator_class;
+extern const lv_obj_class_t ht_gridNav_class;
 
-lv_obj_t *ht_navigator_create(lv_obj_t *parent, void *user_data = nullptr);
+lv_obj_t *ht_gridNav_create(lv_obj_t *parent, void *user_data = nullptr);
 
 /**
  * Static navigation item description used during UI construction.
@@ -29,8 +29,8 @@ struct UiNavigationItem
     bool footer;
 };
 
-lv_obj_t *ui_navigator_create_grid(lv_obj_t *parent);
-bool ui_navigator_is(lv_obj_t *obj);
-lv_obj_t *ui_navigator_content(lv_obj_t *obj);
+lv_obj_t *ui_gridNav_create_grid(lv_obj_t *parent);
+bool ui_gridNav_is(lv_obj_t *obj);
+lv_obj_t *ui_gridNav_content(lv_obj_t *obj);
 
-} // namespace heltec::meshcore::ui
+} // namespace Heltec::MeshCore::Ui

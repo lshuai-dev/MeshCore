@@ -2,7 +2,7 @@
 #include "ui/core/HtEvent.h"
 #include "ui/widgets/WidgetClasses.hpp"
 
-namespace heltec::meshcore::ui {
+namespace Heltec::MeshCore::Ui {
 constexpr uint32_t kClickGuardMs = 500;
 
 bool AlertOverlay::buildSurface() {
@@ -71,4 +71,4 @@ bool AlertOverlay::onKey(uint32_t key) {
     return false;
 }
 
-} // namespace heltec::meshcore::ui
+} // namespace Heltec::MeshCore::Ui

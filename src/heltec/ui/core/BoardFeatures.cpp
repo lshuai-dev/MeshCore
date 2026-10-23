@@ -1,6 +1,6 @@
 #include "heltec/core/BoardFeatures.hpp"
 
-namespace heltec::meshcore::board
+namespace Heltec::MeshCore::Board
 {
 bool __attribute__((weak)) lnaCanControl()
 {
@@ -10,4 +10,4 @@ bool __attribute__((weak)) setLnaEnable(bool)
 {
     return false;
 }
-} // namespace heltec::meshcore::board
+} // namespace Heltec::MeshCore::Board

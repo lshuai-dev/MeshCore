@@ -9,7 +9,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
-namespace heltec::meshcore::team
+namespace Heltec::MeshCore::Team
 {
 
 constexpr uint16_t kDataTypeDev = 0xFF48;
@@ -91,4 +91,4 @@ Subtype frame_subtype(const uint8_t *data, size_t length);
 bool sequence_is_newer(uint16_t candidate, uint16_t current);
 bool valid_utf8(const uint8_t *data, size_t length);
 
-} // namespace heltec::meshcore::team
+} // namespace Heltec::MeshCore::Team

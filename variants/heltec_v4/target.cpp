@@ -13,7 +13,7 @@ HeltecV4Board board;
 
 WRAPPER_CLASS radio_driver(radio, board);
 
-namespace heltec::meshcore::board {
+namespace Heltec::MeshCore::Board {
 bool lnaCanControl() { return ::board.isLnaCanControl(); }
 bool setLnaEnable(bool enabled) { return ::board.setLNAEnable(enabled); }
 }
@@ -28,7 +28,7 @@ AutoDiscoverRTCClock rtc_clock(fallback_clock);
 #if ENV_INCLUDE_GPS
   #include <helpers/sensors/MicroNMEALocationProvider.h>
   #include <heltec/sensors/GpsRmcSpeedStream.h>
-  heltec::gps::GpsRmcSpeedStream gps_serial(Serial1);
+  Heltec::Gps::GpsRmcSpeedStream gps_serial(Serial1);
   MicroNMEALocationProvider nmea = MicroNMEALocationProvider(gps_serial, &rtc_clock);
   #if defined(HELTEC_SENSOR_MANAGER) && HELTEC_SENSOR_MANAGER
   HeltecEnvironmentSensorManager sensors(nmea);

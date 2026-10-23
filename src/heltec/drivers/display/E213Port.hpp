@@ -1,6 +1,6 @@
 #pragma once
 
-namespace heltec::meshcore::dal::e213 {
+namespace Heltec::MeshCore::Dal::E213 {
 
 bool init();
 void deinit();
@@ -38,4 +38,4 @@ void requestSelectionRefresh(const char* reason = nullptr);
 // Background changes are merged with the next critical commit when possible.
 void requestDeferredRefresh(const char* reason = nullptr);
 
-}  // namespace heltec::meshcore::dal::e213
+}  // namespace Heltec::MeshCore::Dal::E213

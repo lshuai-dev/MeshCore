@@ -14,10 +14,10 @@
 #include <cstring>
 #include <lvgl.h>
 
-namespace heltec::meshcore::ui
+namespace Heltec::MeshCore::Ui
 {
 
-SendMessageOverlay::SendMessageOverlay(biz::IBizFacade &biz)
+SendMessageOverlay::SendMessageOverlay(Biz::IBizFacade &biz)
     : FramedOverlay(biz, ht_send_message_touch_overlay_class)
 {
 }
@@ -48,7 +48,7 @@ void fitToDisplay(_lv_obj_t *obj)
 
 void SendMessageOverlay::syncOverlayGroup()
 {
-    if (!_list || !focusGroup())
+    if (!_list)
         return;
     const bool empty = rowCount() <= 0;
     if (_empty_focus)
@@ -56,8 +56,8 @@ void SendMessageOverlay::syncOverlayGroup()
         if (empty)
         {
             lv_obj_clear_flag(_empty_focus, LV_OBJ_FLAG_HIDDEN);
-            if (lv_obj_get_group(_empty_focus) == focusGroup())
-                lv_group_focus_obj(_empty_focus);
+            if (_gridNav.contains(_empty_focus))
+                (void)_gridNav.focus(_empty_focus);
         }
         else
         {
@@ -105,7 +105,7 @@ bool SendMessageOverlay::buildSurface()
     fitToDisplay(_root);
     lv_obj_add_flag(_root, LV_OBJ_FLAG_CLICKABLE);
     setStaticTitle("send message");
-    setStaticToolTip(operation_hint::kMessageSelect);
+    setStaticToolTip(OperationHint::kMessageSelect);
 
     _list_mid = ht_class_create(&ht_send_message_list_class, _content);
     if (!_list_mid)
@@ -141,8 +141,9 @@ bool SendMessageOverlay::buildSurface()
     lv_obj_add_flag(_empty_focus, LV_OBJ_FLAG_HIDDEN);
     _syncing_focus = true;
     for (int i = 0; i < kMaxListItems; ++i)
-        lv_group_add_obj(focusGroup(), _row_objs[i]);
-    lv_group_add_obj(focusGroup(), _empty_focus);
+        _gridNav.add(_row_objs[i]);
+    _gridNav.add(_empty_focus);
+    (void)_gridNav.enterControls();
     _syncing_focus = false;
     setTarget(_model.target());
     return true;
@@ -218,7 +219,7 @@ void SendMessageOverlay::clearTouchList()
         if (!_row_objs[i])
             continue;
         lv_obj_add_flag(_row_objs[i], LV_OBJ_FLAG_HIDDEN);
-        ht_container_set_focused(_row_objs[i], false);
+        ht_container_set_selected(_row_objs[i], false);
     }
 }
 
@@ -310,19 +311,19 @@ void SendMessageOverlay::syncSelectionVisual()
             continue;
         if (i == selected)
         {
-            ht_container_set_focused(row, true);
+            ht_container_set_selected(row, true);
         }
         else
         {
-            ht_container_set_focused(row, false);
+            ht_container_set_selected(row, false);
         }
     }
-    if (focusGroup() && selected < kMaxListItems && _row_objs[selected])
+    if (selected < kMaxListItems && _row_objs[selected])
     {
         _syncing_focus = true;
         lv_obj_t *const target = _row_objs[selected] ? _row_objs[selected] : _empty_focus;
-        if (target && lv_obj_get_group(target) == focusGroup())
-            lv_group_focus_obj(target);
+        if (target && _gridNav.contains(target))
+            (void)_gridNav.focus(target);
         _syncing_focus = false;
     }
 }
@@ -331,8 +332,7 @@ void SendMessageOverlay::renderTouchList()
 {
     if (!_list)
         return;
-    if (focusGroup())
-        lv_group_set_editing(focusGroup(), false);
+    _gridNav.setEditing(false);
     clearTouchList();
 
     const int count = rowCount();
@@ -363,7 +363,7 @@ void SendMessageOverlay::renderRows()
         return;
 
     const char *title = "send message";
-    const char *footer_text = operation_hint::kMessageSelect;
+    const char *footer_text = OperationHint::kMessageSelect;
     if (_model.page() == Page::TargetCategory)
     {
         title = "to";
@@ -421,7 +421,7 @@ void SendMessageOverlay::scheduleSendResultAlert(bool ok)
     if (lv_async_call(showSendResultAlertAsync, this) != LV_RES_OK)
     {
         _send_alert_scheduled = false;
-        _biz.showAlert(ok ? "Queued" : "Failed", 1600);
+        showAlert(ok ? "Queued" : "Failed", 1600);
     }
 }
 
@@ -431,7 +431,7 @@ void SendMessageOverlay::showSendResultAlertAsync(void *user_data)
     if (!self)
         return;
     self->_send_alert_scheduled = false;
-    self->_biz.showAlert(self->_send_alert_ok ? "Queued" : "Failed", 1600);
+    self->showAlert(self->_send_alert_ok ? "Queued" : "Failed", 1600);
 }
 
 void SendMessageOverlay::submitCustomMessage(const char *text)
@@ -522,7 +522,7 @@ void SendMessageOverlay::applySelection()
             rebuildTargetList();
             if (_model.listCount() <= 0)
             {
-                _biz.showAlert("No group channels", 900);
+                showAlert("No group channels", 900);
                 return;
             }
             _model.setPage(Page::TargetList);
@@ -536,7 +536,7 @@ void SendMessageOverlay::applySelection()
             rebuildTargetList();
             if (_model.listCount() <= 0)
             {
-                _biz.showAlert("No contacts", 900);
+                showAlert("No contacts", 900);
                 return;
             }
             _model.setPage(Page::TargetList);
@@ -610,6 +610,6 @@ void SendMessageOverlay::hideVisual()
     clearTouchList();
 }
 
-} // namespace heltec::meshcore::ui
+} // namespace Heltec::MeshCore::Ui
 
 #endif // HELTEC_UI_HAS_TOUCH

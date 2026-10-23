@@ -2,10 +2,10 @@
 
 #include "WidgetTheme.hpp"
 
-namespace heltec::meshcore::ui
+namespace Heltec::MeshCore::Ui
 {
 
 void ui_component_theme_configure();
 bool ui_compass_apply_theme(_lv_obj_t *obj);
 
-} // namespace heltec::meshcore::ui
+} // namespace Heltec::MeshCore::Ui

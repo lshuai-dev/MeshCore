@@ -14,9 +14,9 @@
 #include <cstring>
 #include <lvgl.h>
 
-namespace heltec::meshcore::ui
+namespace Heltec::MeshCore::Ui
 {
-KeyboardOverlay::KeyboardOverlay(biz::IBizFacade &biz)
+KeyboardOverlay::KeyboardOverlay(Biz::IBizFacade &biz)
     : AbstractOverlay(biz, ht_keyboard_overlay_class)
 {
 }
@@ -299,7 +299,7 @@ void request_keyboard_refresh(lv_obj_t *root)
     if (!root || lv_obj_has_flag(root, LV_OBJ_FLAG_HIDDEN))
         return;
     lv_obj_invalidate(root);
-    heltec::meshcore::dal::display_port::requestSelectionRefresh();
+    Heltec::MeshCore::Dal::DisplayPort::requestSelectionRefresh();
 }
 #endif
 
@@ -390,50 +390,12 @@ void KeyboardOverlay::on_keyboard_value_pre(lv_event_t *e)
 #endif
             lv_event_stop_processing(e);
         }
-        else if (strcmp(txt, LV_SYMBOL_CLOSE) == 0)
-        {
-            reset_keyboard_interaction(kb);
-            self->emitEvent(EventType::KeyboardClose);
-            lv_event_stop_processing(e);
-            lv_event_stop_bubbling(e);
-        }
         return;
     }
 
-    if (strcmp(txt, LV_SYMBOL_OK) == 0)
-    {
-        if (self->_skip_next_ok_value && lv_tick_elaps(self->_skip_next_ok_value_ms) < 250)
-        {
-            self->_skip_next_ok_value = false;
-            self->_skip_next_ok_value_ms = 0;
-            reset_keyboard_interaction(kb);
-            lv_event_stop_processing(e);
-            return;
-        }
-        self->_skip_next_ok_value = false;
-        self->_skip_next_ok_value_ms = 0;
-        reset_keyboard_interaction(kb);
-        self->submitWaypointInput();
-        lv_event_stop_processing(e);
-        return;
-    }
-    if (strcmp(txt, LV_SYMBOL_BACKSPACE) == 0)
-    {
-        if (self->_active_waypoint_editor)
-        {
-            lv_textarea_del_char(self->_active_waypoint_editor);
-            lv_obj_invalidate(self->_active_waypoint_editor);
-        }
-        reset_keyboard_interaction(kb);
-#if defined(HELTEC_HAS_KEY_FRAME) && HELTEC_HAS_KEY_FRAME
-        request_keyboard_refresh(self->_root);
-#endif
-        lv_event_stop_processing(e);
-        return;
-    }
     if (strcmp(txt, "LAT") == 0)
     {
-        self->selectWaypointEditor(self->_textarea);
+        self->selectCoordinateField(CoordinateField::Latitude);
         reset_keyboard_interaction(kb);
 #if defined(HELTEC_HAS_KEY_FRAME) && HELTEC_HAS_KEY_FRAME
         request_keyboard_refresh(self->_root);
@@ -443,7 +405,7 @@ void KeyboardOverlay::on_keyboard_value_pre(lv_event_t *e)
     }
     if (strcmp(txt, "LON") == 0)
     {
-        self->selectWaypointEditor(self->_longitude_textarea);
+        self->selectCoordinateField(CoordinateField::Longitude);
         reset_keyboard_interaction(kb);
 #if defined(HELTEC_HAS_KEY_FRAME) && HELTEC_HAS_KEY_FRAME
         request_keyboard_refresh(self->_root);
@@ -466,16 +428,6 @@ void KeyboardOverlay::on_keyboard_value_pre(lv_event_t *e)
         lv_event_stop_processing(e);
         return;
     }
-    if (self->_active_waypoint_editor && txt[0] != '\0')
-    {
-        lv_textarea_add_text(self->_active_waypoint_editor, txt);
-        lv_obj_invalidate(self->_active_waypoint_editor);
-        reset_keyboard_interaction(kb);
-#if defined(HELTEC_HAS_KEY_FRAME) && HELTEC_HAS_KEY_FRAME
-        request_keyboard_refresh(self->_root);
-#endif
-        lv_event_stop_processing(e);
-    }
 }
 
 void KeyboardOverlay::on_waypoint_editor_clicked(lv_event_t *e)
@@ -485,45 +437,63 @@ void KeyboardOverlay::on_waypoint_editor_clicked(lv_event_t *e)
     KeyboardOverlay *self = static_cast<KeyboardOverlay *>(lv_event_get_user_data(e));
     if (!self || self->_compose_mode != ComposeMode::Waypoint)
         return;
-    self->selectWaypointEditor(lv_event_get_target(e));
+    self->selectCoordinateField(lv_event_get_target(e) == self->_longitude_textarea
+                                    ? CoordinateField::Longitude
+                                    : CoordinateField::Latitude);
 }
 
-void KeyboardOverlay::selectWaypointEditor(lv_obj_t *editor)
+void KeyboardOverlay::saveCoordinateField()
 {
-    if (_compose_mode != ComposeMode::Waypoint ||
-        (editor != _textarea && editor != _longitude_textarea))
+#if !defined(HELTEC_UI_HAS_TOUCH) || !HELTEC_UI_HAS_TOUCH
+    if (_compose_mode != ComposeMode::Waypoint || !_textarea)
         return;
 
-    _active_waypoint_editor = editor;
-    lv_keyboard_set_textarea(_keyboard, editor);
+    char *const destination = _coordinate_field == CoordinateField::Latitude
+                                  ? _latitude_buffer
+                                  : _longitude_buffer;
+    const char *const text = lv_textarea_get_text(_textarea);
+    lv_snprintf(destination, sizeof(_latitude_buffer), "%s", text ? text : "");
+#endif
+}
+
+void KeyboardOverlay::selectCoordinateField(CoordinateField field)
+{
+    if (_compose_mode != ComposeMode::Waypoint || !_textarea)
+        return;
+
+    saveCoordinateField();
+    _coordinate_field = field;
 #if defined(HELTEC_UI_HAS_TOUCH) && HELTEC_UI_HAS_TOUCH
+    lv_obj_t *const editor = field == CoordinateField::Latitude
+                                 ? _textarea
+                                 : _longitude_textarea;
+    if (!editor)
+        return;
+    lv_keyboard_set_textarea(_keyboard, editor);
     lv_snprintf(_title_text, sizeof(_title_text), "Waypoint coordinates");
 #else
-    const bool latitude = editor == _textarea;
+    const bool latitude = field == CoordinateField::Latitude;
+    const char *const text = latitude ? _latitude_buffer : _longitude_buffer;
+    lv_textarea_set_text(_textarea, text);
     lv_snprintf(_title_text, sizeof(_title_text), "Waypoint: %s",
                 latitude ? "LAT" : "LON");
 #endif
     lv_label_set_text_static(_hint, _title_text);
 
+#if defined(HELTEC_UI_HAS_TOUCH) && HELTEC_UI_HAS_TOUCH
     lv_obj_t *editors[] = { _textarea, _longitude_textarea };
     for (lv_obj_t *item : editors)
     {
         if (!item)
             continue;
         const bool active = item == editor;
-#if defined(HELTEC_UI_HAS_TOUCH) && HELTEC_UI_HAS_TOUCH
         lv_obj_clear_flag(item, LV_OBJ_FLAG_HIDDEN);
-#else
-        if (active)
-            lv_obj_clear_flag(item, LV_OBJ_FLAG_HIDDEN);
-        else
-            lv_obj_add_flag(item, LV_OBJ_FLAG_HIDDEN);
-#endif
         if (active)
             lv_obj_add_state(item, LV_STATE_CHECKED);
         else
             lv_obj_clear_state(item, LV_STATE_CHECKED);
     }
+#endif
     lv_obj_invalidate(_root);
 }
 
@@ -538,7 +508,7 @@ void KeyboardOverlay::setWaypointHint(const char *text)
 
 void KeyboardOverlay::fillWaypointFromGps()
 {
-    const biz::IBizFacade::GpsStatus gps = _biz.gpsStatus();
+    const Biz::IBizFacade::GpsStatus gps = _biz.gpsStatus();
     if (!gps.fix_valid)
     {
         setWaypointHint("GPS fix unavailable");
@@ -549,10 +519,16 @@ void KeyboardOverlay::fillWaypointFromGps()
     char longitude[20] = {};
     lv_snprintf(latitude, sizeof(latitude), "%.6f", gps.lat_deg);
     lv_snprintf(longitude, sizeof(longitude), "%.6f", gps.lon_deg);
+#if defined(HELTEC_UI_HAS_TOUCH) && HELTEC_UI_HAS_TOUCH
     lv_textarea_set_text(_textarea, latitude);
     lv_textarea_set_text(_longitude_textarea, longitude);
-    selectWaypointEditor(_longitude_textarea);
-    setWaypointHint("GPS coordinates loaded");
+    selectCoordinateField(CoordinateField::Longitude);
+#else
+    selectCoordinateField(CoordinateField::Longitude);
+    lv_snprintf(_latitude_buffer, sizeof(_latitude_buffer), "%s", latitude);
+    lv_snprintf(_longitude_buffer, sizeof(_longitude_buffer), "%s", longitude);
+    lv_textarea_set_text(_textarea, _longitude_buffer);
+#endif
 }
 
 void KeyboardOverlay::on_keyboard_key_pre(lv_event_t *e)
@@ -563,40 +539,6 @@ void KeyboardOverlay::on_keyboard_key_pre(lv_event_t *e)
     if (!self)
         return;
     const uint32_t key = lv_event_get_key(e);
-    if (key == LV_KEY_ENTER)
-    {
-        const uint16_t btn_id = self->_keyboard ? lv_btnmatrix_get_selected_btn(self->_keyboard)
-                                                : LV_BTNMATRIX_BTN_NONE;
-        const char *btn_txt = (self->_keyboard && btn_id != LV_BTNMATRIX_BTN_NONE)
-                                  ? lv_btnmatrix_get_btn_text(self->_keyboard, btn_id)
-                                  : nullptr;
-        if (btn_txt && strcmp(btn_txt, LV_SYMBOL_CLOSE) == 0)
-        {
-            reset_keyboard_interaction(self->_keyboard);
-            self->emitEvent(EventType::KeyboardClose);
-            lv_event_stop_processing(e);
-            lv_event_stop_bubbling(e);
-            return;
-        }
-    }
-    if (self->_compose_mode == ComposeMode::Waypoint && key == LV_KEY_ENTER)
-    {
-        const uint16_t btn_id = self->_keyboard ? lv_btnmatrix_get_selected_btn(self->_keyboard)
-                                                : LV_BTNMATRIX_BTN_NONE;
-        const char *btn_txt = (self->_keyboard && btn_id != LV_BTNMATRIX_BTN_NONE)
-                                  ? lv_btnmatrix_get_btn_text(self->_keyboard, btn_id)
-                                  : nullptr;
-        if (btn_txt && strcmp(btn_txt, LV_SYMBOL_OK) == 0)
-        {
-            self->_skip_next_ok_value = true;
-            self->_skip_next_ok_value_ms = lv_tick_get();
-            reset_keyboard_interaction(self->_keyboard);
-            self->submitWaypointInput();
-            lv_event_stop_processing(e);
-            lv_event_stop_bubbling(e);
-            return;
-        }
-    }
     if (key == LV_KEY_ESC)
     {
         lv_event_stop_processing(e);
@@ -619,7 +561,7 @@ void KeyboardOverlay::on_keyboard_key_post(lv_event_t *e)
         if (self->_root && !lv_obj_has_flag(self->_root, LV_OBJ_FLAG_HIDDEN))
         {
             lv_obj_invalidate(self->_keyboard);
-            heltec::meshcore::dal::display_port::requestSelectionRefresh("keyboard-selection");
+            Heltec::MeshCore::Dal::DisplayPort::requestSelectionRefresh("keyboard-selection");
         }
 #endif
     }
@@ -628,7 +570,7 @@ void KeyboardOverlay::on_keyboard_key_post(lv_event_t *e)
              !lv_obj_has_flag(self->_root, LV_OBJ_FLAG_HIDDEN))
     {
         lv_obj_invalidate(self->_root);
-        heltec::meshcore::dal::display_port::requestSelectionRefresh();
+        Heltec::MeshCore::Dal::DisplayPort::requestSelectionRefresh();
     }
 #endif
 }
@@ -648,7 +590,7 @@ void KeyboardOverlay::on_keyboard_events(lv_event_t *e)
     }
     else if (code == LV_EVENT_CANCEL)
     {
-        self->emitEvent(EventType::KeyboardClose);
+        self->requestClose();
     }
     else if (code == LV_EVENT_VALUE_CHANGED)
     {
@@ -664,6 +606,47 @@ bool KeyboardOverlay::buildSurface()
     if (!AbstractOverlay::buildSurface())
         return false;
     return ensureContent();
+}
+
+void KeyboardOverlay::requestClose()
+{
+    if (_close_pending)
+    {
+        return;
+    }
+    _close_pending = true;
+    if (lv_async_call(closeAsync, this) != LV_RES_OK)
+    {
+        _close_pending = false;
+        (void)emitEvent(EventType::KeyboardClose);
+    }
+}
+
+void KeyboardOverlay::closeAsync(void *user_data)
+{
+    auto *const self = static_cast<KeyboardOverlay *>(user_data);
+    if (!self || !self->_close_pending)
+    {
+        return;
+    }
+    self->_close_pending = false;
+    (void)self->emitEvent(EventType::KeyboardClose);
+}
+
+void KeyboardOverlay::submitWaypointAsync(void *user_data)
+{
+    auto *const self = static_cast<KeyboardOverlay *>(user_data);
+    if (!self || !self->_waypoint_submit_pending)
+    {
+        return;
+    }
+
+    UiWaypointKeyboardSubmit submit;
+    submit.lat = self->_pending_latitude;
+    submit.lon = self->_pending_longitude;
+    self->_waypoint_submit_pending = false;
+    (void)self->emitEvent(EventType::KeyboardClose);
+    (void)self->emitEvent(EventType::WaypointKeyboardSubmit, &submit);
 }
 
 bool KeyboardOverlay::ensureContent()
@@ -748,17 +731,12 @@ bool KeyboardOverlay::ensureContent()
     lv_obj_set_height(_longitude_label, LV_SIZE_CONTENT);
     lv_obj_add_flag(_longitude_label, LV_OBJ_FLAG_HIDDEN);
     lv_obj_t *const longitude_parent = _longitude_row;
-#else
-    lv_obj_t *const longitude_parent = _root;
-#endif
     _longitude_textarea = create_object(&ht_keyboard_editor_class, longitude_parent);
     if (!_longitude_textarea)
         return false;
-#if defined(HELTEC_UI_HAS_TOUCH) && HELTEC_UI_HAS_TOUCH
     lv_obj_set_width(_longitude_textarea, 0);
     lv_obj_set_flex_grow(_longitude_textarea, 1);
-#endif
-    lv_textarea_set_one_line(_longitude_textarea, true);
+    lv_textarea_set_one_line(_longitude_textarea, false);
     lv_textarea_set_max_length(_longitude_textarea, sizeof(_longitude_buffer) - 1U);
     lv_textarea_set_text_buffer(_longitude_textarea, _longitude_buffer,
                                 sizeof(_longitude_buffer));
@@ -768,6 +746,7 @@ bool KeyboardOverlay::ensureContent()
                         LV_EVENT_PRESSED, this);
     lv_obj_add_event_cb(_longitude_textarea, &KeyboardOverlay::on_waypoint_editor_clicked,
                         LV_EVENT_PRESSED, this);
+#endif
     _keyboard = create_object(&ht_keyboard_matrix_class, _root);
     if (!_keyboard)
         return false;
@@ -851,14 +830,13 @@ bool KeyboardOverlay::prepareMessageInput(const UiMessageKeyboardRequest &reques
     if (!_root || !_hint || !_textarea || !_keyboard)
         return false;
     _compose_mode = ComposeMode::Message;
-    _active_waypoint_editor = nullptr;
+    _coordinate_field = CoordinateField::Latitude;
     _message_purpose = request.purpose;
     _preset_index = request.preset_index;
     _message_max_bytes = request.max_bytes > 0 && request.max_bytes <= kMaxText
                              ? request.max_bytes
                              : kMaxText;
-    _skip_next_ok_value = false;
-    _skip_next_ok_value_ms = 0;
+    _waypoint_submit_pending = false;
     _submitted_text[0] = '\0';
     ui_theme_set_waypoint_keyboard_active(_keyboard, _textarea, _longitude_textarea, false);
 #if defined(HELTEC_UI_HAS_TOUCH) && HELTEC_UI_HAS_TOUCH
@@ -881,11 +859,15 @@ bool KeyboardOverlay::prepareMessageInput(const UiMessageKeyboardRequest &reques
 
 bool KeyboardOverlay::prepareWaypointInput()
 {
-    if (!_root || !_hint || !_textarea || !_longitude_textarea || !_keyboard)
+    if (!_root || !_hint || !_textarea || !_keyboard)
         return false;
+#if defined(HELTEC_UI_HAS_TOUCH) && HELTEC_UI_HAS_TOUCH
+    if (!_longitude_textarea)
+        return false;
+#endif
     _compose_mode = ComposeMode::Waypoint;
-    _skip_next_ok_value = false;
-    _skip_next_ok_value_ms = 0;
+    _coordinate_field = CoordinateField::Latitude;
+    _waypoint_submit_pending = false;
     _submitted_text[0] = '\0';
     ui_theme_set_waypoint_keyboard_active(_keyboard, _textarea, _longitude_textarea, true);
 #if defined(HELTEC_UI_HAS_TOUCH) && HELTEC_UI_HAS_TOUCH
@@ -895,17 +877,23 @@ bool KeyboardOverlay::prepareWaypointInput()
 #endif
     lv_label_set_text_static(_hint, _title_text);
     lv_textarea_set_max_length(_textarea, sizeof(_longitude_buffer) - 1U);
+    _latitude_buffer[0] = '\0';
+    _longitude_buffer[0] = '\0';
     lv_textarea_set_text(_textarea, "");
+#if defined(HELTEC_UI_HAS_TOUCH) && HELTEC_UI_HAS_TOUCH
     lv_textarea_set_text(_longitude_textarea, "");
+#endif
     lv_textarea_set_accepted_chars(_textarea, "0123456789.-");
+#if defined(HELTEC_UI_HAS_TOUCH) && HELTEC_UI_HAS_TOUCH
     lv_textarea_set_accepted_chars(_longitude_textarea, "0123456789.-");
+#endif
     lv_keyboard_set_mode(_keyboard, waypoint_keyboard_mode());
     reset_keyboard_interaction(_keyboard);
     apply_waypoint_keyboard_layout(_root, _keyboard, _textarea, _longitude_textarea, _hint);
 #if defined(HELTEC_UI_HAS_TOUCH) && HELTEC_UI_HAS_TOUCH
     applyTouchCoordinateLayout(true);
 #endif
-    selectWaypointEditor(_textarea);
+    selectCoordinateField(CoordinateField::Latitude);
     lv_obj_update_layout(_root);
     return true;
 }
@@ -915,22 +903,27 @@ void KeyboardOverlay::onEnter()
     if (!_root || !_textarea || !_keyboard)
         return;
     lv_obj_clear_flag(_keyboard, LV_OBJ_FLAG_HIDDEN);
+    _close_pending = false;
     setFocusObject(_keyboard);
+    _gridNav.setCaptureMode(HtGridNav::CaptureMode::Persistent);
+    _gridNav.setHorizontalNavigation(true);
     if (_compose_mode == ComposeMode::Waypoint)
     {
         apply_waypoint_keyboard_layout(_root, _keyboard, _textarea, _longitude_textarea, _hint);
-        selectWaypointEditor(_active_waypoint_editor ? _active_waypoint_editor : _textarea);
+        selectCoordinateField(_coordinate_field);
     }
     lv_obj_update_layout(_root);
     if (_compose_mode == ComposeMode::Waypoint)
         lv_obj_scroll_to_y(_root, 0, LV_ANIM_OFF);
-    if (focusGroup())
-        lv_group_set_editing(focusGroup(), true);
+    _gridNav.setEditing(true);
     lv_obj_invalidate(_root);
 }
 
 void KeyboardOverlay::onExit()
 {
+    _gridNav.setEditing(false);
+    _gridNav.setHorizontalNavigation(false);
+    _gridNav.setCaptureMode(HtGridNav::CaptureMode::Transient);
     AbstractOverlay::onExit();
     if (_textarea)
     {
@@ -944,7 +937,8 @@ void KeyboardOverlay::onExit()
         lv_textarea_set_accepted_chars(_longitude_textarea, nullptr);
     }
     lv_obj_clear_state(_textarea, LV_STATE_CHECKED);
-    lv_obj_clear_state(_longitude_textarea, LV_STATE_CHECKED);
+    if (_longitude_textarea)
+        lv_obj_clear_state(_longitude_textarea, LV_STATE_CHECKED);
     if (_keyboard)
     {
         ui_theme_set_waypoint_keyboard_active(_keyboard, _textarea, _longitude_textarea, false);
@@ -954,17 +948,13 @@ void KeyboardOverlay::onExit()
         lv_keyboard_set_mode(_keyboard, message_keyboard_mode());
         apply_message_keyboard_layout(_root, _keyboard, _textarea, _longitude_textarea, _hint);
     }
-    if (focusGroup())
-        lv_group_set_editing(focusGroup(), false);
     if (_root)
         lv_obj_add_flag(_root, LV_OBJ_FLAG_SCROLLABLE);
     _compose_mode = ComposeMode::Message;
-    _active_waypoint_editor = nullptr;
+    _coordinate_field = CoordinateField::Latitude;
     _message_purpose = UiMessageKeyboardPurpose::SendCustom;
     _preset_index = 0;
     _message_max_bytes = kMaxText;
-    _skip_next_ok_value = false;
-    _skip_next_ok_value_ms = 0;
 }
 
 bool KeyboardOverlay::onKey(uint32_t key)
@@ -973,25 +963,7 @@ bool KeyboardOverlay::onKey(uint32_t key)
     {
         return true;
     }
-    if (key == LV_KEY_ENTER && _keyboard)
-    {
-        const uint16_t btn_id = lv_btnmatrix_get_selected_btn(_keyboard);
-        const char *btn_txt = btn_id != LV_BTNMATRIX_BTN_NONE
-                                  ? lv_btnmatrix_get_btn_text(_keyboard, btn_id)
-                                  : nullptr;
-        if (btn_txt && strcmp(btn_txt, LV_SYMBOL_CLOSE) == 0)
-        {
-            reset_keyboard_interaction(_keyboard);
-            emitEvent(EventType::KeyboardClose);
-            return true;
-        }
-    }
     return false;
-}
-
-bool KeyboardOverlay::handleInputKey(uint32_t key)
-{
-    return onKey(key);
 }
 
 void KeyboardOverlay::submitMessageInput()
@@ -1003,12 +975,12 @@ void KeyboardOverlay::submitMessageInput()
     const size_t len = txt ? strlen(txt) : 0;
     if (len == 0)
     {
-        _biz.showAlert("Empty message", 800);
+        showAlert("Empty message", 800);
         return;
     }
     if (len > _message_max_bytes)
     {
-        _biz.showAlert("Text too long", 800);
+        showAlert("Text too long", 800);
         return;
     }
 
@@ -1028,20 +1000,28 @@ void KeyboardOverlay::submitMessageInput()
 
 void KeyboardOverlay::submitWaypointInput()
 {
-    if (!_textarea || !_longitude_textarea)
+    if (!_textarea || _waypoint_submit_pending)
         return;
 
+#if defined(HELTEC_UI_HAS_TOUCH) && HELTEC_UI_HAS_TOUCH
+    if (!_longitude_textarea)
+        return;
     const char *latitude = lv_textarea_get_text(_textarea);
     const char *longitude = lv_textarea_get_text(_longitude_textarea);
+#else
+    saveCoordinateField();
+    const char *latitude = _latitude_buffer;
+    const char *longitude = _longitude_buffer;
+#endif
     if (!latitude || latitude[0] == '\0')
     {
-        selectWaypointEditor(_textarea);
+        selectCoordinateField(CoordinateField::Latitude);
         setWaypointHint("Latitude is required");
         return;
     }
     if (!longitude || longitude[0] == '\0')
     {
-        selectWaypointEditor(_longitude_textarea);
+        selectCoordinateField(CoordinateField::Longitude);
         setWaypointHint("Longitude is required");
         return;
     }
@@ -1050,7 +1030,7 @@ void KeyboardOverlay::submitWaypointInput()
     const CoordinateParseResult lat_result = parse_coordinate(latitude, -90.0, 90.0, lat);
     if (lat_result != CoordinateParseResult::Valid)
     {
-        selectWaypointEditor(_textarea);
+        selectCoordinateField(CoordinateField::Latitude);
         setWaypointHint(lat_result == CoordinateParseResult::OutOfRange
                             ? "Latitude must be -90 to 90"
                             : "Invalid latitude");
@@ -1059,20 +1039,20 @@ void KeyboardOverlay::submitWaypointInput()
     const CoordinateParseResult lon_result = parse_coordinate(longitude, -180.0, 180.0, lon);
     if (lon_result != CoordinateParseResult::Valid)
     {
-        selectWaypointEditor(_longitude_textarea);
+        selectCoordinateField(CoordinateField::Longitude);
         setWaypointHint(lon_result == CoordinateParseResult::OutOfRange
                             ? "Longitude must be -180 to 180"
                             : "Invalid longitude");
         return;
     }
 
-    // Close before returning the parsed value so the owning screen is active.
-    emitEvent(EventType::KeyboardClose);
-
-    UiWaypointKeyboardSubmit submit;
-    submit.lat = lat;
-    submit.lon = lon;
-    emitEvent(EventType::WaypointKeyboardSubmit, &submit);
+    _pending_latitude = lat;
+    _pending_longitude = lon;
+    _waypoint_submit_pending = true;
+    if (lv_async_call(submitWaypointAsync, this) != LV_RES_OK)
+    {
+        submitWaypointAsync(this);
+    }
 }
 
 #else /* !LV_USE_KEYBOARD */
@@ -1107,11 +1087,6 @@ bool KeyboardOverlay::onKey(uint32_t /*key*/)
     return false;
 }
 
-bool KeyboardOverlay::handleInputKey(uint32_t /*key*/)
-{
-    return false;
-}
-
 void KeyboardOverlay::submitMessageInput()
 {
 }
@@ -1140,7 +1115,11 @@ void KeyboardOverlay::on_waypoint_editor_clicked(lv_event_t * /*e*/)
 {
 }
 
-void KeyboardOverlay::selectWaypointEditor(lv_obj_t * /*editor*/)
+void KeyboardOverlay::selectCoordinateField(CoordinateField /*field*/)
+{
+}
+
+void KeyboardOverlay::saveCoordinateField()
 {
 }
 
@@ -1154,4 +1133,4 @@ void KeyboardOverlay::fillWaypointFromGps()
 
 #endif /* LV_USE_KEYBOARD */
 
-} // namespace heltec::meshcore::ui
+} // namespace Heltec::MeshCore::Ui

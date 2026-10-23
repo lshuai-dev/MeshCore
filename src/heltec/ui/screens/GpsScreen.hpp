@@ -2,18 +2,18 @@
 #include "heltec/ui/core/AbstractScreen.hpp"
 #include "heltec/ui/core/AppStateEvent.hpp"
 
-namespace heltec::meshcore::biz
+namespace Heltec::MeshCore::Biz
 {
 class IBizFacade;
 }
 
-namespace heltec::meshcore::ui
+namespace Heltec::MeshCore::Ui
 {
 
 class GPSScreen : public AbstractScreen
 {
   public:
-    GPSScreen(biz::IBizFacade &biz, const char *title, const lv_img_dsc_t *icon)
+    GPSScreen(Biz::IBizFacade &biz, const char *title, const lv_img_dsc_t *icon)
         : AbstractScreen(biz, title, icon)
     {
     }
@@ -26,7 +26,7 @@ class GPSScreen : public AbstractScreen
   private:
     void onAppStateChanged(const AppStateEvent &event) override;
     void onActivated() override;
-    void updateGps(const biz::IBizFacade::GpsStatus &s);
+    void updateGps(const Biz::IBizFacade::GpsStatus &s);
     void refreshSnapshot();
     void setSwitchState(_lv_obj_t *sw, bool on);
     bool ensureGpsEnabled(_lv_obj_t *dependent_switch);
@@ -49,4 +49,4 @@ class GPSScreen : public AbstractScreen
     bool _syncing_switches = false;
 };
 
-} // namespace heltec::meshcore::ui
+} // namespace Heltec::MeshCore::Ui

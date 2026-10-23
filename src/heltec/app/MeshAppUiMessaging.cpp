@@ -2,13 +2,12 @@
 #include "MeshCore.h"
 #include "Utils.h"
 #include "MeshAppUi.hpp"
-#include "ui/app/App.hpp"
 #include "ui/core/UiTask.hpp"
 
 #include <cstdio>
 #include <cstring>
 
-namespace heltec::meshcore::biz
+namespace Heltec::MeshCore::Biz
 {
 
 namespace
@@ -62,7 +61,7 @@ static bool personalContactEligible(const ContactInfo &ci)
 }
 
 #if defined(ENV_INCLUDE_GPS) && ENV_INCLUDE_GPS
-static bool teamMemberHasContact(const heltec::meshcore::team::TeamMember &member)
+static bool teamMemberHasContact(const Heltec::MeshCore::Team::TeamMember &member)
 {
     return the_mesh.lookupContactByPubKey(member.public_key, PUB_KEY_SIZE) != nullptr;
 }
@@ -83,7 +82,7 @@ static bool isJoinChannel(int index)
 
 void showSendResult(int rc)
 {
-    auto &t = heltec::meshcore::ui::ui_task();
+    auto &t = Heltec::MeshCore::Ui::ui_task();
     if (rc == MSG_SEND_FAILED)
     {
         t.showAlert("send failed", 900);
@@ -175,7 +174,7 @@ static bool resolvePublicChannel(mesh::GroupChannel &out_channel, const char **o
 bool MeshAppUi::sendAdvert()
 {
     const bool queued = the_mesh.advert();
-    showAlert(queued ? "Advert sent!" : "Advert failed", 1000);
+    Heltec::MeshCore::Ui::ui_task().showAlert(queued ? "Advert sent!" : "Advert failed", 1000);
     return queued;
 }
 
@@ -193,7 +192,7 @@ int MeshAppUi::sendMessagePersonalCount() const
         ++count;
     }
 #if defined(ENV_INCLUDE_GPS) && ENV_INCLUDE_GPS
-    heltec::meshcore::team::TeamMember member{};
+    Heltec::MeshCore::Team::TeamMember member{};
     const size_t team_count = the_mesh.teamService().memberCount();
     for (size_t index = 0; index < team_count; ++index)
     {
@@ -230,7 +229,7 @@ bool MeshAppUi::sendMessagePersonalAt(int index, uint8_t pub_key_prefix[6], char
         ++seen;
     }
 #if defined(ENV_INCLUDE_GPS) && ENV_INCLUDE_GPS
-    heltec::meshcore::team::TeamMember member{};
+    Heltec::MeshCore::Team::TeamMember member{};
     const size_t team_count = the_mesh.teamService().memberCount();
     for (size_t team_index = 0; team_index < team_count; ++team_index)
     {
@@ -332,7 +331,7 @@ bool MeshAppUi::sendDirectMessage(const uint8_t pub_key_prefix[6], const char *t
     ContactInfo *recipient = the_mesh.lookupMessagePeer(pub_key_prefix, 6);
     if (!recipient)
     {
-        heltec::meshcore::ui::ui_task().showAlert("Send failed", 900);
+        Heltec::MeshCore::Ui::ui_task().showAlert("Send failed", 900);
         return false;
     }
     const uint32_t ts = the_mesh.getRTCClock()->getCurrentTimeUnique();
@@ -353,7 +352,7 @@ bool MeshAppUi::sendGroupMessage(int channel_idx, const char *text)
         return false;
 #ifndef MAX_GROUP_CHANNELS
     (void)channel_idx;
-    heltec::meshcore::ui::ui_task().showAlert("Group channels not supported", 1000);
+    Heltec::MeshCore::Ui::ui_task().showAlert("Group channels not supported", 1000);
     return false;
 #else
     mesh::GroupChannel channel{};
@@ -373,13 +372,13 @@ bool MeshAppUi::sendGroupMessage(int channel_idx, const char *text)
     }
     if (!found)
     {
-        heltec::meshcore::ui::ui_task().showAlert("No channel", 900);
+        Heltec::MeshCore::Ui::ui_task().showAlert("No channel", 900);
         return false;
     }
     const uint32_t ts = the_mesh.getRTCClock()->getCurrentTimeUnique();
     const int len = static_cast<int>(strlen(text));
     const bool ok = the_mesh.sendGroupMessage(ts, channel, the_mesh.getNodeName(), text, len);
-    heltec::meshcore::ui::ui_task().showAlert(ok ? "Queued" : "Failed", 900);
+    Heltec::MeshCore::Ui::ui_task().showAlert(ok ? "Queued" : "Failed", 900);
     return ok;
 #endif
 }
@@ -408,4 +407,4 @@ bool MeshAppUi::sendBroadcast(const char *text, int len)
 #endif
 }
 
-} // namespace heltec::meshcore::biz
+} // namespace Heltec::MeshCore::Biz

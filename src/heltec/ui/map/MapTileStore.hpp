@@ -6,7 +6,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
-namespace heltec::meshcore::ui::map
+namespace Heltec::MeshCore::Ui::Map
 {
 
 /** Prepare CS pins (fast, safe to call repeatedly). */
@@ -46,4 +46,4 @@ bool map_tile_store_find_first_tile(const char *style, uint8_t zoom, uint32_t &x
 /** If center lat/lon has no tile on SD, move to the first tile found. Returns true if adjusted. */
 bool map_tile_store_snap_center_to_tiles(const char *style, uint8_t zoom, float &lat, float &lon);
 
-} // namespace heltec::meshcore::ui::map
+} // namespace Heltec::MeshCore::Ui::Map

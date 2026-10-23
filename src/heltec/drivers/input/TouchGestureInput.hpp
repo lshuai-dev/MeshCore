@@ -2,7 +2,7 @@
 
 #include <stdint.h>
 
-namespace heltec::meshcore::dal::touch_gesture_input
+namespace Heltec::MeshCore::Dal::TouchGestureInput
 {
 
 /** Return true to protect a point from a custom gesture action. */
@@ -16,4 +16,4 @@ void setDoubleTapBlocker(BlockAtPointFn fn);
 void feed(bool pressed, int16_t x, int16_t y, uint32_t now_ms, bool native_scroll_active,
           bool *suppress_pointer);
 
-} // namespace heltec::meshcore::dal::touch_gesture_input
+} // namespace Heltec::MeshCore::Dal::TouchGestureInput

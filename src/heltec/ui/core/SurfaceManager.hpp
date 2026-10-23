@@ -4,7 +4,7 @@
 
 #include <stdint.h>
 
-namespace heltec::meshcore::ui
+namespace Heltec::MeshCore::Ui
 {
 
 class UiSurface;
@@ -14,6 +14,8 @@ class SurfaceManager
 {
   public:
     static constexpr uint8_t kMaxPresentedSurfaces = 4;
+
+    bool registerSurface(UiSurface *surface);
 
     /* Replaces the single base surface; TileView owns old screen visibility. */
     void setRoot(UiSurface *surface);
@@ -27,11 +29,11 @@ class SurfaceManager
 
     bool dispatchToActive(EventType type, const void *payload = nullptr);
     void dispatchAppStateToActive(const AppStateEvent &event);
-    void reconcile();
 
   private:
+    bool init();
     static bool isAvailable(const UiSurface *surface);
-    static bool isFocusEligible(const _lv_obj_t *object);
+    bool isRegistered(const UiSurface *surface) const;
     void enter(UiSurface *surface);
     void exit(UiSurface *surface);
     void bindInput(UiSurface *surface);
@@ -39,10 +41,10 @@ class SurfaceManager
     int find(const UiSurface *surface) const;
     void remove(uint8_t index);
 
-    UiSurface *_root = nullptr;
-    UiSurface *_bound_surface = nullptr;
-    UiSurface *_presented[kMaxPresentedSurfaces] = {};
-    uint8_t _presented_count = 0;
+    lv_group_t *_input_group = nullptr;
+    UiSurface *_base_surface = nullptr;
+    UiSurface *_surface_stack[kMaxPresentedSurfaces] = {};
+    uint8_t _surface_count = 0;
 };
 
-} // namespace heltec::meshcore::ui
+} // namespace Heltec::MeshCore::Ui

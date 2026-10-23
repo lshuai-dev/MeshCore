@@ -7,7 +7,7 @@
 
 #include <lvgl.h>
 
-namespace heltec::meshcore::ui
+namespace Heltec::MeshCore::Ui
 {
 namespace
 {
@@ -131,7 +131,7 @@ static void initWidgetStyles()
     lv_style_set_bg_opa(&s_cascading_item_selected_style, LV_OPA_COVER);
     lv_style_set_text_color(&s_cascading_item_selected_style, ui_color_highlight_fg());
 
-    ui_widget_theme_set_cascading_menu_styles(
+    ui_widget_theme_set_context_menu_roller_styles(
         {&s_cascading_page_style, &s_cascading_item_style,
          &s_cascading_item_selected_style});
 
@@ -239,4 +239,4 @@ lv_theme_t *init_ui_pixel_theme(lv_disp_t *disp, const lv_font_t *font)
     return &pixel_theme.theme;
 }
 
-} // namespace heltec::meshcore::ui
+} // namespace Heltec::MeshCore::Ui

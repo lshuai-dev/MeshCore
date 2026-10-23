@@ -16,17 +16,17 @@
 #define HELTEC_GPS_TRACK_MAX_POINTS 600
 #endif
 
-namespace heltec::meshcore::biz
+namespace Heltec::MeshCore::Biz
 {
 class MeshAppUi final : public IBizFacade
 {
   public:
-    explicit MeshAppUi(heltec::meshcore::power::PowerMgr &power);
+    explicit MeshAppUi(Heltec::MeshCore::Power::PowerMgr &power);
 
     void pollRuntime();
     void reconcileGpsPower();
-    void handlePowerChanged(heltec::meshcore::power::PowerChangeMask changes,
-                            const heltec::meshcore::power::PowerSnapshot &snapshot);
+    void handlePowerChanged(Heltec::MeshCore::Power::PowerChangeMask changes,
+                            const Heltec::MeshCore::Power::PowerSnapshot &snapshot);
 
     bool sendAdvert() override;
     // Called by the non-UI application shell; UI surfaces use UiEvent instead.
@@ -69,13 +69,13 @@ class MeshAppUi final : public IBizFacade
     TeamStatus teamStatus() const override;
     int teamOnlineCount() const override;
 #if defined(HELTEC_GEOFENCE) && HELTEC_GEOFENCE
-    team::GeofenceState teamGeofenceState() const override;
+    Team::GeofenceState teamGeofenceState() const override;
     uint8_t teamGeofencePointCount() const override;
-    bool teamGeofencePoint(uint8_t index, team::GeofencePoint &point) const override;
+    bool teamGeofencePoint(uint8_t index, Team::GeofencePoint &point) const override;
     bool beginTeamGeofenceEdit() override;
     void cancelTeamGeofenceEdit() override;
     void deleteTeamGeofence() override;
-    team::GeofenceAddResult addTeamGeofencePoint(int32_t latitude_e7,
+    Team::GeofenceAddResult addTeamGeofencePoint(int32_t latitude_e7,
                                                  int32_t longitude_e7) override;
     bool teamGeofenceMemberAlarm(const uint8_t member_id[6]) const override;
 #endif
@@ -106,9 +106,9 @@ class MeshAppUi final : public IBizFacade
     bool teamSetRole(bool leader) override;
     bool teamSetActive(bool active) override;
     bool teamSetJoining(bool open) override;
-    bool teamMessageTarget(int member_index, ui::UiSendMessageTarget &target) const override;
+    bool teamMessageTarget(int member_index, Ui::UiSendMessageTarget &target) const override;
     bool mapMessageTarget(const uint8_t *prefix, size_t length,
-                          ui::UiSendMessageTarget &target) const override;
+                          Ui::UiSendMessageTarget &target) const override;
     bool teamDecidePending(uint64_t session, bool approve) override;
     bool teamLeave() override;
     void teamCancel() override;
@@ -153,15 +153,13 @@ class MeshAppUi final : public IBizFacade
     const MapPlotUi &mapPlotUi() const override;
 #endif
 
-    void showAlert(const char *text, int duration_ms) override;
-
   private:
-    heltec::meshcore::power::PowerMgr &_power;
+    Heltec::MeshCore::Power::PowerMgr &_power;
     mutable MessagePresetStore _message_presets{};
-    static void notifyAppState(heltec::meshcore::ui::AppStateEventType type);
+    static void notifyAppState(Heltec::MeshCore::Ui::AppStateEventType type);
     static void notifyCompanionChanged();
     static void handleAppStateEvent(void *user_data,
-                                    const heltec::meshcore::ui::AppStateEvent &event);
+                                    const Heltec::MeshCore::Ui::AppStateEvent &event);
     void notifyRadioChanged();
     bool applyGpsPowerPolicy();
     void notifyGpsChanged();
@@ -186,7 +184,7 @@ class MeshAppUi final : public IBizFacade
     mutable int _ff_target_contact_idx = -1;
     mutable bool _ff_target_pub_key_valid = false;
     mutable uint8_t _ff_target_pub_key[32] = {};
-    mutable nav::FindFriendNavEstimator _ff_nav_estimator{};
+    mutable Nav::FindFriendNavEstimator _ff_nav_estimator{};
     mutable int _ff_mode = 0;
     mutable int _ff_wp_valid = 0;
     mutable int32_t _ff_wp_lat_e6 = 0;
@@ -213,4 +211,4 @@ class MeshAppUi final : public IBizFacade
 #endif
 };
 
-} // namespace heltec::meshcore::biz
+} // namespace Heltec::MeshCore::Biz

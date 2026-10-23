@@ -5,7 +5,7 @@
 
 #include <lvgl.h>
 
-namespace heltec::meshcore::ui {
+namespace Heltec::MeshCore::Ui {
 
 void AppStateUiDispatcher::bindNotifier(AppStateNotifier &notifier) {
     notifier.bind(
@@ -121,4 +121,4 @@ void AppStateUiDispatcher::dispatchPending() {
     }
 }
 
-} // namespace heltec::meshcore::ui
+} // namespace Heltec::MeshCore::Ui

@@ -5,26 +5,26 @@
 namespace
 {
 
-static heltec::meshcore::ui::ht_navigator_t *navigator_data(lv_obj_t *obj)
+static Heltec::MeshCore::Ui::ht_gridNav_t *navigator_data(lv_obj_t *obj)
 {
-    if (!obj || !lv_obj_check_type(obj, &heltec::meshcore::ui::ht_navigator_class))
+    if (!obj || !lv_obj_check_type(obj, &Heltec::MeshCore::Ui::ht_gridNav_class))
     {
         return nullptr;
     }
-    return reinterpret_cast<heltec::meshcore::ui::ht_navigator_t *>(obj);
+    return reinterpret_cast<Heltec::MeshCore::Ui::ht_gridNav_t *>(obj);
 }
 
-static _lv_obj_t *ui_navigator_create_grid_impl(_lv_obj_t *parent)
+static _lv_obj_t *ui_gridNav_create_grid_impl(_lv_obj_t *parent)
 {
     if (!parent)
         return nullptr;
 
-    lv_obj_t *obj = heltec::meshcore::ui::ht_navigator_create(parent, nullptr);
+    lv_obj_t *obj = Heltec::MeshCore::Ui::ht_gridNav_create(parent, nullptr);
     if (!obj)
     {
         return nullptr;
     }
-    heltec::meshcore::ui::ht_navigator_t *w = navigator_data(obj);
+    Heltec::MeshCore::Ui::ht_gridNav_t *w = navigator_data(obj);
     if (!w)
     {
         lv_obj_del(obj);
@@ -33,8 +33,8 @@ static _lv_obj_t *ui_navigator_create_grid_impl(_lv_obj_t *parent)
     w->content = nullptr;
     lv_obj_clear_flag(obj, LV_OBJ_FLAG_SCROLLABLE | LV_OBJ_FLAG_CLICKABLE);
     lv_obj_add_flag(obj, LV_OBJ_FLAG_FLOATING | LV_OBJ_FLAG_OVERFLOW_VISIBLE | LV_OBJ_FLAG_HIDDEN);
-    w->content = heltec::meshcore::ui::ht_class_create(
-        &heltec::meshcore::ui::ht_navigation_content_class, obj);
+    w->content = Heltec::MeshCore::Ui::ht_class_create(
+        &Heltec::MeshCore::Ui::ht_navigation_content_class, obj);
     if (!w->content)
     {
         lv_obj_del(obj);
@@ -49,23 +49,12 @@ static _lv_obj_t *ui_navigator_create_grid_impl(_lv_obj_t *parent)
 
 } // namespace
 
-namespace heltec::meshcore::ui
+namespace Heltec::MeshCore::Ui
 {
 
-namespace
-{
-
-void navigator_constructor(const lv_obj_class_t *class_p, lv_obj_t *obj)
-{
-    (void)class_p;
-    (void)obj;
-}
-
-} // namespace
-
-const lv_obj_class_t ht_navigator_class = {
+const lv_obj_class_t ht_gridNav_class = {
     &lv_obj_class,
-    navigator_constructor,
+    nullptr,
     nullptr,
 #if LV_USE_USER_DATA
     nullptr,
@@ -75,12 +64,12 @@ const lv_obj_class_t ht_navigator_class = {
     LV_SIZE_CONTENT,
     LV_OBJ_CLASS_EDITABLE_INHERIT,
     LV_OBJ_CLASS_GROUP_DEF_INHERIT,
-    sizeof(ht_navigator_t),
+    sizeof(ht_gridNav_t),
 };
 
-lv_obj_t *ht_navigator_create(lv_obj_t *parent, void *user_data)
+lv_obj_t *ht_gridNav_create(lv_obj_t *parent, void *user_data)
 {
-    lv_obj_t *const obj = lv_obj_class_create_obj(&ht_navigator_class, parent);
+    lv_obj_t *const obj = lv_obj_class_create_obj(&ht_gridNav_class, parent);
     if (!obj) {
         return nullptr;
     }
@@ -90,27 +79,27 @@ lv_obj_t *ht_navigator_create(lv_obj_t *parent, void *user_data)
     return obj;
 }
 
-_lv_obj_t *ui_navigator_create_grid(_lv_obj_t *parent)
+_lv_obj_t *ui_gridNav_create_grid(_lv_obj_t *parent)
 {
 #if HELTEC_UI_HAS_TOUCH
-    return ui_navigator_create_grid_impl(parent);
+    return ui_gridNav_create_grid_impl(parent);
 #else
     (void)parent;
     return nullptr;
 #endif
 }
 
-bool ui_navigator_is(_lv_obj_t *obj)
+bool ui_gridNav_is(_lv_obj_t *obj)
 {
     return obj && navigator_data(obj) != nullptr;
 }
 
-_lv_obj_t *ui_navigator_content(_lv_obj_t *obj)
+_lv_obj_t *ui_gridNav_content(_lv_obj_t *obj)
 {
-    heltec::meshcore::ui::ht_navigator_t *w = navigator_data(obj);
+    Heltec::MeshCore::Ui::ht_gridNav_t *w = navigator_data(obj);
     if (!w)
-        return ui_navigator_is(obj) ? obj : nullptr;
+        return ui_gridNav_is(obj) ? obj : nullptr;
     return w->content ? w->content : obj;
 }
 
-} // namespace heltec::meshcore::ui
+} // namespace Heltec::MeshCore::Ui

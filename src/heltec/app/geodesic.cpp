@@ -2,7 +2,7 @@
 
 #include <math.h>
 
-namespace heltec::meshcore::geo
+namespace Heltec::MeshCore::Geo
 {
 namespace
 {
@@ -170,4 +170,4 @@ double geodesic_distance_m(double lat1_deg, double lon1_deg, double lat2_deg, do
     return distance_m;
 }
 
-} // namespace heltec::meshcore::geo
+} // namespace Heltec::MeshCore::Geo

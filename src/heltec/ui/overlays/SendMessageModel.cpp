@@ -5,7 +5,7 @@
 #include <cstdio>
 #include <cstring>
 
-namespace heltec::meshcore::ui
+namespace Heltec::MeshCore::Ui
 {
 
 void SendMessageModel::safeCopy(char *dest, size_t dest_size, const char *src)
@@ -21,7 +21,7 @@ void SendMessageModel::safeCopy(char *dest, size_t dest_size, const char *src)
     dest[dest_size - 1] = '\0';
 }
 
-void SendMessageModel::reset(const biz::IBizFacade &biz)
+void SendMessageModel::reset(const Biz::IBizFacade &biz)
 {
     _page = Page::Main;
     _select = 0;
@@ -33,13 +33,13 @@ void SendMessageModel::reset(const biz::IBizFacade &biz)
     rebuildMainRows();
 }
 
-void SendMessageModel::syncContacts(const biz::IBizFacade &biz)
+void SendMessageModel::syncContacts(const Biz::IBizFacade &biz)
 {
     _contact_total = biz.sendMessagePersonalCount();
     loadContactWindow(biz, 0);
 }
 
-void SendMessageModel::loadContactWindow(const biz::IBizFacade &biz, int start)
+void SendMessageModel::loadContactWindow(const Biz::IBizFacade &biz, int start)
 {
     const int max_start = _contact_total > kMaxContacts ? _contact_total - kMaxContacts : 0;
     if (start < 0)
@@ -62,7 +62,7 @@ void SendMessageModel::loadContactWindow(const biz::IBizFacade &biz, int start)
     }
 }
 
-void SendMessageModel::rebuildTargetCategories(const biz::IBizFacade &biz)
+void SendMessageModel::rebuildTargetCategories(const Biz::IBizFacade &biz)
 {
     _cat_count = 0;
     _category_ids[_cat_count++] = 0;
@@ -77,7 +77,7 @@ void SendMessageModel::rebuildTargetCategories(const biz::IBizFacade &biz)
     }
 }
 
-void SendMessageModel::moveSelection(const biz::IBizFacade &biz, int delta)
+void SendMessageModel::moveSelection(const Biz::IBizFacade &biz, int delta)
 {
     const int count = rowCount();
     if (count <= 0 || delta == 0)
@@ -128,7 +128,7 @@ void SendMessageModel::moveSelection(const biz::IBizFacade &biz, int delta)
     setSelectedIndex(global - _contact_window_start);
 }
 
-void SendMessageModel::rebuildTargetList(const biz::IBizFacade &biz, int list_kind)
+void SendMessageModel::rebuildTargetList(const Biz::IBizFacade &biz, int list_kind)
 {
     _list_kind = list_kind;
     _list_count = 0;
@@ -211,7 +211,7 @@ int SendMessageModel::rowCount() const
     return 0;
 }
 
-const char *SendMessageModel::rowLabel(const biz::IBizFacade &biz, int index) const
+const char *SendMessageModel::rowLabel(const Biz::IBizFacade &biz, int index) const
 {
     static const char *const category_labels[] = { "broadcast", "group", "personal" };
     switch (_page)
@@ -267,4 +267,4 @@ bool SendMessageModel::contactAt(int index, uint8_t pub_key_prefix[6], char *lab
     return true;
 }
 
-} // namespace heltec::meshcore::ui
+} // namespace Heltec::MeshCore::Ui

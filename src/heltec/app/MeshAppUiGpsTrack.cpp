@@ -4,10 +4,11 @@
 #include "Geodesic.hpp"
 #include "MeshAppUi.hpp"
 #include "Target.h"
+#include "ui/core/UiTask.hpp"
 
 #include <Arduino.h>
 
-namespace heltec::meshcore::biz
+namespace Heltec::MeshCore::Biz
 {
 namespace
 {
@@ -33,7 +34,7 @@ bool should_record_track_point(int32_t lat_e6, int32_t lon_e6, int32_t last_lat_
         return false;
 
     const double moved_m =
-        geo::geodesic_distance_m((double)last_lat_e6 * 1.0e-6, (double)last_lon_e6 * 1.0e-6,
+        Geo::geodesic_distance_m((double)last_lat_e6 * 1.0e-6, (double)last_lon_e6 * 1.0e-6,
                                  (double)lat_e6 * 1.0e-6, (double)lon_e6 * 1.0e-6);
     const double min_m = (double)HELTEC_GPS_TRACK_MIN_DIST_CM / 100.0;
     return moved_m + 1e-6 >= min_m;
@@ -79,8 +80,8 @@ bool MeshAppUi::setGpsTrackRecording(bool enabled)
             }
         }
         reconcileGpsPower();
-        notifyAppState(heltec::meshcore::ui::AppStateEventType::ConfigChanged);
-        notifyAppState(heltec::meshcore::ui::AppStateEventType::FindFriendChanged);
+        notifyAppState(Heltec::MeshCore::Ui::AppStateEventType::ConfigChanged);
+        notifyAppState(Heltec::MeshCore::Ui::AppStateEventType::FindFriendChanged);
         return true;
     }
 
@@ -100,8 +101,8 @@ bool MeshAppUi::setGpsTrackRecording(bool enabled)
         }
     }
     reconcileGpsPower();
-    notifyAppState(heltec::meshcore::ui::AppStateEventType::ConfigChanged);
-    notifyAppState(heltec::meshcore::ui::AppStateEventType::FindFriendChanged);
+    notifyAppState(Heltec::MeshCore::Ui::AppStateEventType::ConfigChanged);
+    notifyAppState(Heltec::MeshCore::Ui::AppStateEventType::FindFriendChanged);
     return true;
 #else
     (void)enabled;
@@ -139,7 +140,7 @@ void MeshAppUi::pollGpsTrack()
             return;
         if (!ds->beginGpsTrackRecording(start_ts))
         {
-            showAlert("Track start failed", 2000);
+            Heltec::MeshCore::Ui::ui_task().showAlert("Track start failed", 2000);
             _gps_track_armed = false;
             _gps_track_has_last = false;
             _gps_track_point_count = 0;
@@ -183,4 +184,4 @@ void MeshAppUi::pollGpsTrack()
 #endif
 }
 
-} // namespace heltec::meshcore::biz
+} // namespace Heltec::MeshCore::Biz

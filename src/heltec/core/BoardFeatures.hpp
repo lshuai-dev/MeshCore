@@ -1,7 +1,7 @@
 #pragma once
 
-namespace heltec::meshcore::board
+namespace Heltec::MeshCore::Board
 {
 bool lnaCanControl();
 bool setLnaEnable(bool enabled);
-} // namespace heltec::meshcore::board
+} // namespace Heltec::MeshCore::Board

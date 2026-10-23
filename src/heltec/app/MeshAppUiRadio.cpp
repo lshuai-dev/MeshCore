@@ -9,7 +9,7 @@
 #define HELTEC_UI_RADIO_STATUS_POLL_MS 1000U
 #endif
 
-namespace heltec::meshcore::biz
+namespace Heltec::MeshCore::Biz
 {
 
 namespace
@@ -31,7 +31,7 @@ void MeshAppUi::notifyRadioChanged()
     _radio_status_cache = radioStatus();
     _radio_status_cache_valid = true;
     _radio_status_poll_ms = millis();
-    notifyAppState(heltec::meshcore::ui::AppStateEventType::RadioChanged);
+    notifyAppState(Heltec::MeshCore::Ui::AppStateEventType::RadioChanged);
 }
 
 void MeshAppUi::pollRadioStatus()
@@ -49,7 +49,7 @@ void MeshAppUi::pollRadioStatus()
         return;
     _radio_status_cache = cur;
     _radio_status_cache_valid = true;
-    notifyAppState(heltec::meshcore::ui::AppStateEventType::RadioChanged);
+    notifyAppState(Heltec::MeshCore::Ui::AppStateEventType::RadioChanged);
 }
 
 IBizFacade::RadioStatus MeshAppUi::radioStatus() const
@@ -73,4 +73,4 @@ IBizFacade::RadioStatus MeshAppUi::radioStatus() const
     return s;
 }
 
-} // namespace heltec::meshcore::biz
+} // namespace Heltec::MeshCore::Biz

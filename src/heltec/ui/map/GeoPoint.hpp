@@ -3,7 +3,7 @@
 #include <math.h>
 #include <stdint.h>
 
-namespace heltec::meshcore::ui::map
+namespace Heltec::MeshCore::Ui::Map
 {
 
 constexpr int kTileSizePx = 256;
@@ -164,4 +164,4 @@ inline float metersPerPixel(float lat_deg, uint8_t zoom)
     return (float)(156543.03392 * cosf(lat_rad) / (double)(1U << clampMapZoom(zoom)));
 }
 
-} // namespace heltec::meshcore::ui::map
+} // namespace Heltec::MeshCore::Ui::Map

@@ -2,15 +2,15 @@
 #include "../core/AbstractScreen.hpp"
 #include "../core/AppStateEvent.hpp"
 
-namespace heltec::meshcore::biz {
+namespace Heltec::MeshCore::Biz {
 class IBizFacade;
 }
 
-namespace heltec::meshcore::ui {
+namespace Heltec::MeshCore::Ui {
 
 class RadioScreen : public AbstractScreen {
   public:
-    RadioScreen(biz::IBizFacade &biz, const char *title, const lv_img_dsc_t *icon)
+    RadioScreen(Biz::IBizFacade &biz, const char *title, const lv_img_dsc_t *icon)
         : AbstractScreen(biz, title, icon) {
     }
 
@@ -20,7 +20,7 @@ class RadioScreen : public AbstractScreen {
   private:
     void onAppStateChanged(const AppStateEvent &event) override;
     void onActivated() override;
-    void updateRadio(const biz::IBizFacade::RadioStatus &radio);
+    void updateRadio(const Biz::IBizFacade::RadioStatus &radio);
     void refreshSnapshot();
 #if defined(HAS_LNA_CONTROL) && HAS_LNA_CONTROL
     void setLnaSwitchState(bool on);
@@ -39,4 +39,4 @@ class RadioScreen : public AbstractScreen {
     char _line_text[4][32] = {};
 };
 
-} // namespace heltec::meshcore::ui
+} // namespace Heltec::MeshCore::Ui

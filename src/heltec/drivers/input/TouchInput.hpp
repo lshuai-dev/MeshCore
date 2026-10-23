@@ -8,7 +8,7 @@
 #define HELTEC_TOUCH_INPUT 0
 #endif
 
-namespace heltec::meshcore::dal::touch_input
+namespace Heltec::MeshCore::Dal::TouchInput
 {
 
 using WakeFn = bool (*)();
@@ -32,7 +32,7 @@ void bindUi(const UiHooks &hooks);
 /** Schedule touch init after display/LVGL is up (deferred by poll()). */
 void armInit(uint16_t hor_res, uint16_t ver_res, uint32_t delay_ms = 400);
 
-/** Run deferred init when due; call from ui_task::loop(). */
+/** Run deferred init when due; call from UiTask::loop(). */
 void poll();
 
 bool isReady();
@@ -52,4 +52,4 @@ inline bool isReady()
 }
 #endif
 
-} // namespace heltec::meshcore::dal::touch_input
+} // namespace Heltec::MeshCore::Dal::TouchInput

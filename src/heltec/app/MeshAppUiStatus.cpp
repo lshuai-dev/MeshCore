@@ -7,7 +7,7 @@
 #include <cstdio>
 #include <cstring>
 
-namespace heltec::meshcore::biz
+namespace Heltec::MeshCore::Biz
 {
 
 void MeshAppUi::formatNodeIdLine(char *buf, size_t buf_len) const
@@ -28,12 +28,12 @@ uint32_t MeshAppUi::currentTimeSeconds() const
 
 int MeshAppUi::messageCount() const
 {
-    return heltec::meshcore::ui::ui_task().msgCount();
+    return Heltec::MeshCore::Ui::ui_task().msgCount();
 }
 
 bool MeshAppUi::hasCompanionConnection() const
 {
-    return heltec::meshcore::ui::ui_task().hasConnection();
+    return Heltec::MeshCore::Ui::ui_task().hasConnection();
 }
 
 uint32_t MeshAppUi::companionPairingPin() const
@@ -69,4 +69,4 @@ int MeshAppUi::fillRecentlyHeard(RecentlyHeardItem *items, int max_items) const
     return count;
 }
 
-} // namespace heltec::meshcore::biz
+} // namespace Heltec::MeshCore::Biz

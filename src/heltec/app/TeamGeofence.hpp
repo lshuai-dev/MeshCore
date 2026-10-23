@@ -2,7 +2,7 @@
 
 #include <stdint.h>
 
-namespace heltec::meshcore::team
+namespace Heltec::MeshCore::Team
 {
 
 struct GeofencePoint
@@ -57,4 +57,4 @@ class TeamGeofence
     GeofenceState _state = GeofenceState::Empty;
 };
 
-} // namespace heltec::meshcore::team
+} // namespace Heltec::MeshCore::Team

@@ -64,10 +64,10 @@ void T1Board::begin() {
 #endif
 
   delay(50);  // let TFT rail settle before SPI init
-  (void)heltec::meshcore::dal::display_port::init();
+  (void)Heltec::MeshCore::Dal::DisplayPort::init();
 
-  using heltec::meshcore::dal::momentary_button::Config;
-  using heltec::meshcore::dal::momentary_button::KeyMap;
+  using Heltec::MeshCore::Dal::MomentaryButton::Config;
+  using Heltec::MeshCore::Dal::MomentaryButton::KeyMap;
 
   Config cnf{};
   cnf.multi_click_window_ms = 350;
@@ -81,8 +81,8 @@ void T1Board::begin() {
   cnf.buttons[1].active_level = LOW;
   cnf.buttons[1].long_repeat_ms = 220;
   cnf.buttons[1].map = KeyMap(LV_KEY_NEXT, LV_KEY_ESC, LV_KEY_RIGHT, 0);
-  heltec::meshcore::dal::momentary_button::configure(cnf);
-  heltec::meshcore::dal::momentary_button::initialize();
+  Heltec::MeshCore::Dal::MomentaryButton::configure(cnf);
+  Heltec::MeshCore::Dal::MomentaryButton::initialize();
 
 #ifdef PIN_BUZZER
   pinMode(PIN_BUZZER, OUTPUT);

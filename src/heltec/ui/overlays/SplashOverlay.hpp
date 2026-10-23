@@ -3,7 +3,7 @@
 
 struct _lv_obj_t;
 
-namespace heltec::meshcore::ui
+namespace Heltec::MeshCore::Ui
 {
 
 class SplashOverlay
@@ -36,4 +36,4 @@ class SplashOverlay
     bool _visible = false;
 };
 
-} // namespace heltec::meshcore::ui
+} // namespace Heltec::MeshCore::Ui

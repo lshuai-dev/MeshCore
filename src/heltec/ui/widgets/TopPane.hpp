@@ -6,7 +6,7 @@
 #include <stdint.h>
 
 struct _lv_obj_t;
-namespace heltec::meshcore::ui
+namespace Heltec::MeshCore::Ui
 {
 
 class TopPane
@@ -47,4 +47,4 @@ class TopPane
     char _battery_text[5] = {};
 };
 
-} // namespace heltec::meshcore::ui
+} // namespace Heltec::MeshCore::Ui

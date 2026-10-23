@@ -9,7 +9,7 @@
 
 struct _lv_group_t;
 
-namespace heltec::meshcore::dal::key_input
+namespace Heltec::MeshCore::Dal::KeyInput
 {
 
 using DownStateFn = bool (*)();
@@ -29,4 +29,4 @@ void set_poll_hook(PollFn fn);
 /** Queue a key for LVGL delivery. Returns false only when key is invalid or the queue is full. */
 bool post(uint32_t key, KeyDelivery delivery = KeyDelivery::Tracked);
 
-} // namespace heltec::meshcore::dal::key_input
+} // namespace Heltec::MeshCore::Dal::KeyInput

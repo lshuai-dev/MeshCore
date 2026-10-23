@@ -8,16 +8,16 @@
 #include <helpers/sensors/LocationProvider.h>
 #include <heltec/sensors/GpsRmcSpeedStream.h>
 
-namespace heltec::meshcore::biz
+namespace Heltec::MeshCore::Biz
 {
 bool MeshAppUi::applyGpsPowerPolicy()
 {
 #if !defined(ENV_INCLUDE_GPS) || !(ENV_INCLUDE_GPS)
     _power.setGpsAllowed(false);
-    _power.setGpsDemand(power::GpsDemand::Track, false);
-    _power.setGpsDemand(power::GpsDemand::LocationContinuous, false);
-    _power.setGpsDemand(power::GpsDemand::LocationAcquire, false);
-    _power.setGpsDemand(power::GpsDemand::FindFriend, false);
+    _power.setGpsDemand(Power::GpsDemand::Track, false);
+    _power.setGpsDemand(Power::GpsDemand::LocationContinuous, false);
+    _power.setGpsDemand(Power::GpsDemand::LocationAcquire, false);
+    _power.setGpsDemand(Power::GpsDemand::FindFriend, false);
     return true;
 #else
     NodePrefs *p = the_mesh.getNodePrefs();
@@ -42,10 +42,10 @@ bool MeshAppUi::applyGpsPowerPolicy()
     const bool find_friend_foreground = _find_friend_foreground_active && find_friend_enabled;
 
     _power.setGpsAllowed(gps_enabled);
-    _power.setGpsDemand(power::GpsDemand::Track, track_active);
-    _power.setGpsDemand(power::GpsDemand::LocationContinuous, team_share);
-    _power.setGpsDemand(power::GpsDemand::LocationAcquire, false);
-    _power.setGpsDemand(power::GpsDemand::FindFriend, find_friend_foreground);
+    _power.setGpsDemand(Power::GpsDemand::Track, track_active);
+    _power.setGpsDemand(Power::GpsDemand::LocationContinuous, team_share);
+    _power.setGpsDemand(Power::GpsDemand::LocationAcquire, false);
+    _power.setGpsDemand(Power::GpsDemand::FindFriend, find_friend_foreground);
     return _power.reconcileGpsPower(now_ms);
 #endif
 }
@@ -68,7 +68,7 @@ void MeshAppUi::setFindFriendForegroundActive(bool active)
 
 void MeshAppUi::setGpsForegroundActive(bool active)
 {
-    _power.setGpsDemand(power::GpsDemand::GpsScreen, active);
+    _power.setGpsDemand(Power::GpsDemand::GpsScreen, active);
     if (active)
     {
         (void)_power.reconcileGpsPower(millis());
@@ -77,7 +77,7 @@ void MeshAppUi::setGpsForegroundActive(bool active)
 
 void MeshAppUi::setMapForegroundActive(bool active)
 {
-    _power.setGpsDemand(power::GpsDemand::MapScreen, active);
+    _power.setGpsDemand(Power::GpsDemand::MapScreen, active);
     if (active)
     {
         (void)_power.reconcileGpsPower(millis());
@@ -87,8 +87,8 @@ void MeshAppUi::setMapForegroundActive(bool active)
 void MeshAppUi::notifyGpsChanged()
 {
     const GpsStatus gps = gpsStatus();
-    heltec::meshcore::ui::AppStateEvent event{};
-    event.type = heltec::meshcore::ui::AppStateEventType::GpsChanged;
+    Heltec::MeshCore::Ui::AppStateEvent event{};
+    event.type = Heltec::MeshCore::Ui::AppStateEventType::GpsChanged;
     event.gps.enabled = gps.enabled;
     event.gps.available = gps.available;
     event.gps.powered = gps.powered;
@@ -101,7 +101,7 @@ void MeshAppUi::notifyGpsChanged()
     event.gps.lon_deg = gps.lon_deg;
     event.gps.alt_m = gps.alt_m;
     event.gps.speed_kph = gps.speed_kph;
-    heltec::meshcore::ui::app_state_notifier().notify(event);
+    Heltec::MeshCore::Ui::app_state_notifier().notify(event);
 }
 
 void MeshAppUi::setGpsEnabled(bool enabled)
@@ -148,7 +148,7 @@ void MeshAppUi::setGpsEnabled(bool enabled)
 #endif
 
     the_mesh.savePrefs();
-    notifyAppState(heltec::meshcore::ui::AppStateEventType::ConfigChanged);
+    notifyAppState(Heltec::MeshCore::Ui::AppStateEventType::ConfigChanged);
     notifyGpsChanged();
 }
 
@@ -194,10 +194,10 @@ IBizFacade::GpsStatus MeshAppUi::gpsStatus() const
     s.lon_deg = s.lon_micro / 1000000.0;
 
     float speed_kph = -1.0f;
-    if (heltec::gps::rmcSpeedKph(speed_kph))
+    if (Heltec::Gps::rmcSpeedKph(speed_kph))
         s.speed_kph = speed_kph;
 
     return s;
 }
 
-} // namespace heltec::meshcore::biz
+} // namespace Heltec::MeshCore::Biz

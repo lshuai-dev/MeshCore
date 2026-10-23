@@ -15,7 +15,7 @@
 #define M_PI 3.14159265358979323846
 #endif
 
-namespace heltec::meshcore::ui {
+namespace Heltec::MeshCore::Ui {
 namespace {
 static uint8_t navButtonId(_lv_obj_t *btn) {
     return static_cast<uint8_t>(reinterpret_cast<uintptr_t>(lv_obj_get_user_data(btn)));
@@ -24,10 +24,6 @@ static uint8_t navButtonId(_lv_obj_t *btn) {
 static bool isNavStepKey(uint32_t key) {
     return key == LV_KEY_PREV || key == LV_KEY_LEFT || key == LV_KEY_UP || key == LV_KEY_NEXT ||
            key == LV_KEY_RIGHT || key == LV_KEY_DOWN;
-}
-
-static int navStepDelta(uint32_t key) {
-    return (key == LV_KEY_PREV || key == LV_KEY_LEFT || key == LV_KEY_UP) ? -1 : 1;
 }
 
 static void layoutRootToTileView(_lv_obj_t *root, _lv_obj_t *tileview) {
@@ -300,42 +296,32 @@ void RadialNavigator::updateGeometry() {
     _updating_geometry = false;
 }
 
-RadialNavigator::RadialNavigator(biz::IBizFacade &biz) : UiSurface(biz, ht_navigation_root_class) {
+RadialNavigator::RadialNavigator(Biz::IBizFacade &biz) : UiSurface(biz, ht_navigation_root_class) {
 }
 
 bool RadialNavigator::buildSurface() {
     layoutRootToTileView(_root, _tileview);
     lv_obj_clear_flag(_root, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_clear_flag(_root, LV_OBJ_FLAG_OVERFLOW_VISIBLE);
-    lv_group_set_wrap(group(), false);
+    _gridNav.setWrap(true);
+    _gridNav.setFocusChangedCallback(
+        [](lv_obj_t *focused, void *user_data) {
+            auto *self = static_cast<RadialNavigator *>(user_data);
+            if (!self || !focused || lv_obj_get_parent(focused) != self->_nav) return;
+
+            self->_ring_layout_focus = navButtonId(focused);
+            self->_ring_focus_slot = static_cast<uint8_t>(lv_obj_get_index(focused));
+            if (!self->panelVisible()) return;
+            self->layoutRing(true);
+            self->sendTilePreview(self->_ring_layout_focus);
+        },
+        this);
 
     _nav = ht_class_create(&ht_navigation_ring_class, _root);
     if (!_nav) return false;
     lv_obj_clear_flag(_nav, LV_OBJ_FLAG_SCROLLABLE | LV_OBJ_FLAG_CLICKABLE);
     lv_obj_add_flag(_nav, LV_OBJ_FLAG_FLOATING | LV_OBJ_FLAG_OVERFLOW_VISIBLE | LV_OBJ_FLAG_HIDDEN);
-    lv_group_add_obj(focusGroup(), _nav);
-    lv_obj_add_event_cb(
-        _nav,
-        [](lv_event_t *e) {
-            if (LV_EVENT_KEY != lv_event_get_code(e)) return;
-            auto *self = static_cast<RadialNavigator *>(lv_event_get_user_data(e));
-            if (!self || !self->onKey(lv_event_get_key(e))) return;
-            lv_event_stop_processing(e);
-            lv_event_stop_bubbling(e);
-        },
-        LV_EVENT_KEY, this);
-    lv_obj_add_event_cb(
-        _nav,
-        [](lv_event_t *e) {
-            if (lv_event_get_code(e) != LV_EVENT_CLICKED) return;
-            auto *self = static_cast<RadialNavigator *>(lv_event_get_user_data(e));
-            if (!self || !self->panelVisible() || !self->_tileview) return;
-            if (self->_ring_layout_focus >= kMaxButtons) return;
-            ht_event_send(self->_tileview, EventType::TileCommit, &self->_ring_layout_focus);
-            lv_event_stop_processing(e);
-            lv_event_stop_bubbling(e);
-        },
-        LV_EVENT_CLICKED, this);
+    _gridNav.bindRoot(_nav);
 
     lv_obj_add_event_cb(
         _root,
@@ -358,7 +344,7 @@ void RadialNavigator::setTileView(_lv_obj_t *tileview) {
 }
 
 void RadialNavigator::setIcon(uint8_t id, const lv_img_dsc_t *img) {
-    if (id >= kMaxButtons || !img || !_nav || !group()) return;
+    if (id >= kMaxButtons || !img || !_nav) return;
     lv_img_header_t icon_header{};
     if (LV_RES_OK != lv_img_decoder_get_info(img, &icon_header)) return;
     if (icon_header.w == 0 || icon_header.h == 0 || icon_header.w > UINT8_MAX ||
@@ -372,7 +358,18 @@ void RadialNavigator::setIcon(uint8_t id, const lv_img_dsc_t *img) {
         icon = ht_class_create(&ht_radial_navigation_icon_class, host);
         if (!icon) return;
         lv_obj_set_user_data(icon, reinterpret_cast<void *>(static_cast<uintptr_t>(id)));
-        lv_obj_clear_flag(icon, LV_OBJ_FLAG_CLICKABLE | LV_OBJ_FLAG_SCROLL_ON_FOCUS);
+        _gridNav.add(icon);
+        lv_obj_clear_flag(icon, LV_OBJ_FLAG_SCROLL_ON_FOCUS);
+        lv_obj_add_event_cb(
+            icon,
+            [](lv_event_t *event) {
+                if (lv_event_get_code(event) != LV_EVENT_CLICKED) return;
+                auto *self = static_cast<RadialNavigator *>(lv_event_get_user_data(event));
+                if (!self || !self->commitFocused()) return;
+                lv_event_stop_processing(event);
+                lv_event_stop_bubbling(event);
+            },
+            LV_EVENT_CLICKED, this);
         invalidateSlotCache();
     }
 
@@ -442,18 +439,9 @@ _lv_obj_t *RadialNavigator::frameRoot() const {
     return _root;
 }
 
-void RadialNavigator::stepNavFocus(int delta) {
-    if (!itemHost() || delta == 0) return;
-    const uint8_t n = btnCount();
-    if (n == 0) return;
-    int next = (static_cast<int>(_ring_focus_slot) + delta) % static_cast<int>(n);
-    if (next < 0) next += static_cast<int>(n);
-    _lv_obj_t *btn = lv_obj_get_child(itemHost(), static_cast<uint32_t>(next));
-    if (!btn) return;
-    _ring_focus_slot = static_cast<uint8_t>(next);
-    _ring_layout_focus = navButtonId(btn);
-    layoutRing(true);
-    sendTilePreview(_ring_layout_focus);
+bool RadialNavigator::commitFocused() {
+    if (!panelVisible() || !_tileview || _ring_layout_focus >= kMaxButtons) return false;
+    return ht_event_send(_tileview, EventType::TileCommit, &_ring_layout_focus);
 }
 
 bool RadialNavigator::onKey(uint32_t lv_key) {
@@ -464,12 +452,12 @@ bool RadialNavigator::onKey(uint32_t lv_key) {
         }
         return true;
     }
+    if (lv_key == LV_KEY_ENTER) return false;
     if (isNavStepKey(lv_key)) {
         if (_lv_obj_t *frame = frameRoot()) {
             ht_event_send(frame, EventType::NavActivity);
         }
-        stepNavFocus(navStepDelta(lv_key));
-        return true;
+        return false;
     }
     return false;
 }
@@ -482,11 +470,14 @@ void RadialNavigator::openPanel() {
     lv_obj_clear_flag(_nav, LV_OBJ_FLAG_HIDDEN);
     lv_obj_move_foreground(_nav);
     layoutRing(false);
-    if (_lv_group_t *g = group()) {
-        lv_group_focus_obj(_nav);
+    _lv_obj_t *focused = findCellById(_ring_layout_focus);
+    if (focused) {
+        (void)_gridNav.focus(focused);
+    } else {
+        (void)_gridNav.enterControls();
     }
 }
 
-} // namespace heltec::meshcore::ui
+} // namespace Heltec::MeshCore::Ui
 
 #endif // !HELTEC_UI_HAS_TOUCH

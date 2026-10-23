@@ -2,7 +2,7 @@
 
 #include <lvgl.h>
 
-namespace heltec::meshcore::ui
+namespace Heltec::MeshCore::Ui
 {
 void HomeScreen::refreshSnapshot()
 {
@@ -97,11 +97,11 @@ bool HomeScreen::buildSurface()
         lv_obj_set_style_text_align(label, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
         lv_obj_clear_flag(label, LV_OBJ_FLAG_SCROLLABLE | LV_OBJ_FLAG_SCROLL_ON_FOCUS);
         lv_label_set_long_mode(label, LV_LABEL_LONG_CLIP);
-        addFocusableObject(label);
+        addNavigableObject(label);
     }
     lv_label_set_long_mode(_lblStatus, LV_LABEL_LONG_WRAP);
 
     return true;
 }
 
-} // namespace heltec::meshcore::ui
+} // namespace Heltec::MeshCore::Ui

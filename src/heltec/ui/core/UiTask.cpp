@@ -6,14 +6,13 @@
 #include "heltec/drivers/input/MomentaryButton.hpp"
 #include "heltec/drivers/input/TouchInput.hpp"
 #include "ui/core/AppStateNotifier.hpp"
-#include "ui/core/Host.hpp"
 
 #include <Arduino.h>
 #include <lvgl.h>
 
 extern HeltecMesh the_mesh;
 
-namespace heltec::meshcore::ui {
+namespace Heltec::MeshCore::Ui {
 
 #if defined(HAS_BUZZER_VOLUME_CONTROL) && HAS_BUZZER_VOLUME_CONTROL
 #if !defined(PIN_BUZZER)
@@ -68,12 +67,6 @@ static void ensure_buzzer_hw() {
 #endif
 #endif
 
-void UiTask::attachHost(IUiHost *host) {
-    // UiTask and IUiHost run on the same cooperative Arduino loop. A future
-    // concurrent producer must marshal at its own task or ISR boundary.
-    _ui_host = host;
-}
-
 #ifdef PIN_STATUS_LED
 void UiTask::pollStatusLed() {
     const uint32_t now = millis();
@@ -96,7 +89,7 @@ void UiTask::begin(NodePrefs *node_prefs) {
     _node_prefs = node_prefs;
 #if defined(HAS_LNA_CONTROL) && HAS_LNA_CONTROL
     if (_node_prefs && (!isLnaCanControl() ||
-                        !heltec::meshcore::board::setLnaEnable(_node_prefs->lna_enabled != 0))) {
+                        !Heltec::MeshCore::Board::setLnaEnable(_node_prefs->lna_enabled != 0))) {
         _node_prefs->lna_enabled = 0;
     }
 #endif
@@ -105,7 +98,7 @@ void UiTask::begin(NodePrefs *node_prefs) {
     app_state_notifier().notify(config_ev);
 #if HELTEC_TOUCH_INPUT
     if (lv_disp_t *d = lv_disp_get_default()) {
-        heltec::meshcore::dal::touch_input::armInit((uint16_t)lv_disp_get_hor_res(d),
+        Heltec::MeshCore::Dal::TouchInput::armInit((uint16_t)lv_disp_get_hor_res(d),
                                                     (uint16_t)lv_disp_get_ver_res(d));
     }
 #endif
@@ -161,9 +154,9 @@ void UiTask::newMsg(uint8_t path_len, const char *from_name, const char *text, i
         snprintf(entry.origin, sizeof(entry.origin), "(%u) %s:", (unsigned)path_len, from_name);
     }
     snprintf(entry.text, sizeof(entry.text), "%s", text);
-    if (_ui_host && _ui_host->isReady()) {
-        _ui_host->openPreviewOverlay(_preview_count, entry.received_ms, entry.origin, entry.text);
-    }
+    AppStateEvent event{};
+    event.type = AppStateEventType::PreviewChanged;
+    app_state_notifier().notify(event);
 }
 
 void UiTask::notify(UIEventType t) {
@@ -214,18 +207,18 @@ void UiTask::loop() {
 #endif
     const uint32_t alert_now = millis();
     if (_alert_expiry_ms != 0 && (int32_t)(alert_now - _alert_expiry_ms) >= 0) {
-        if (_ui_host) _ui_host->closeAlertOverlay();
+        dismissAlert();
     }
-    if (!heltec::meshcore::dal::display_port::isBacklightOn())
+    if (!Heltec::MeshCore::Dal::DisplayPort::isBacklightOn())
     {
         // LVGL input polling is suspended with the display. Continue processing
         // GPIO edges so a completed button gesture can wake the display.
-        heltec::meshcore::dal::momentary_button::poll();
+        Heltec::MeshCore::Dal::MomentaryButton::poll();
     }
 #if HELTEC_TOUCH_INPUT
-    if (heltec::meshcore::dal::display_port::isBacklightOn())
+    if (Heltec::MeshCore::Dal::DisplayPort::isBacklightOn())
     {
-        heltec::meshcore::dal::touch_input::poll();
+        Heltec::MeshCore::Dal::TouchInput::poll();
     }
 #endif
 #ifdef PIN_STATUS_LED
@@ -316,7 +309,7 @@ void UiTask::setBuzzerVolumeLevel(uint8_t level) {
 
 bool UiTask::isLnaCanControl() const {
 #if defined(HAS_LNA_CONTROL) && HAS_LNA_CONTROL
-    return heltec::meshcore::board::lnaCanControl();
+    return Heltec::MeshCore::Board::lnaCanControl();
 #else
     return false;
 #endif
@@ -334,7 +327,7 @@ bool UiTask::setLnaEnabled(bool enabled) {
 #if defined(HAS_LNA_CONTROL) && HAS_LNA_CONTROL
     if (!isLnaCanControl()) return false;
     if (lnaEnabled() == enabled) return true;
-    if (!heltec::meshcore::board::setLnaEnable(enabled)) return false;
+    if (!Heltec::MeshCore::Board::setLnaEnable(enabled)) return false;
     if (_node_prefs) {
         _node_prefs->lna_enabled = enabled ? 1 : 0;
         the_mesh.savePrefs();
@@ -390,9 +383,9 @@ void UiTask::showAlert(const char *text, int duration_millis) {
     }
     const uint32_t now = millis();
     _alert_expiry_ms = (duration_millis > 0) ? (now + (uint32_t)duration_millis) : 0;
-    if (_ui_host && _ui_host->isReady() && _alert[0] != '\0') {
-        _ui_host->openAlertOverlay(_alert);
-    }
+    AppStateEvent event{};
+    event.type = AppStateEventType::AlertChanged;
+    app_state_notifier().notify(event);
 }
 
 void UiTask::playAlertFeedback() {
@@ -404,12 +397,17 @@ void UiTask::playAlertFeedback() {
 }
 
 bool UiTask::isAlertActive() const {
-    return _alert_expiry_ms != 0 && (int32_t)(millis() - _alert_expiry_ms) < 0 && _alert[0] != '\0';
+    return _alert[0] != '\0' &&
+           (_alert_expiry_ms == 0 || (int32_t)(millis() - _alert_expiry_ms) < 0);
 }
 
 void UiTask::dismissAlert() {
+    if (_alert_expiry_ms == 0 && _alert[0] == '\0') return;
     _alert_expiry_ms = 0;
     _alert[0] = '\0';
+    AppStateEvent event{};
+    event.type = AppStateEventType::AlertChanged;
+    app_state_notifier().notify(event);
 }
 
 uint32_t UiTask::previewAgeSeconds() const {
@@ -421,17 +419,25 @@ uint32_t UiTask::previewAgeSeconds() const {
 bool UiTask::advancePreview() {
     if (_preview_count == 0) return false;
     --_preview_count;
-    if (_preview_count == 0) return false;
-    _preview_head =
-        static_cast<uint8_t>((_preview_head + kPreviewCapacity - 1U) % kPreviewCapacity);
-    return true;
+    if (_preview_count != 0) {
+        _preview_head =
+            static_cast<uint8_t>((_preview_head + kPreviewCapacity - 1U) % kPreviewCapacity);
+    }
+    AppStateEvent event{};
+    event.type = AppStateEventType::PreviewChanged;
+    app_state_notifier().notify(event);
+    return _preview_count != 0;
 }
 
 void UiTask::dismissPreview() {
+    if (_preview_count == 0) return;
     _preview_count = 0;
     _preview_head = kPreviewCapacity - 1;
     for (PreviewEntry &entry : _preview_entries)
         entry = PreviewEntry{};
+    AppStateEvent event{};
+    event.type = AppStateEventType::PreviewChanged;
+    app_state_notifier().notify(event);
 }
 
-} // namespace heltec::meshcore::ui
+} // namespace Heltec::MeshCore::Ui

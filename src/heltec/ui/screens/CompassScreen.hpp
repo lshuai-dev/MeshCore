@@ -4,19 +4,19 @@
 #include "../core/AppStateEvent.hpp"
 #include "CompassDialWidget.hpp"
 
-namespace heltec::meshcore::biz
+namespace Heltec::MeshCore::Biz
 {
 class IBizFacade;
 struct CompassUi;
-} // namespace heltec::meshcore::biz
+} // namespace Heltec::MeshCore::Biz
 
-namespace heltec::meshcore::ui
+namespace Heltec::MeshCore::Ui
 {
 
 class CompassScreen : public AbstractScreen
 {
   public:
-    CompassScreen(biz::IBizFacade &biz, const char *title, const lv_img_dsc_t *icon)
+    CompassScreen(Biz::IBizFacade &biz, const char *title, const lv_img_dsc_t *icon)
         : AbstractScreen(biz, title, icon)
     {
     }
@@ -31,9 +31,9 @@ class CompassScreen : public AbstractScreen
   private:
     void onAppStateChanged(const AppStateEvent &event) override;
     void onActivated() override;
-    void refresh_ui(const biz::CompassUi &c);
+    void refresh_ui(const Biz::CompassUi &c);
     void refresh();
-    void showUnavailable(const biz::CompassUi &c, const char *hdg_text);
+    void showUnavailable(const Biz::CompassUi &c, const char *hdg_text);
     void clearMagLabels();
     void updateDialHeading(float heading_deg);
     void maybeScheduleAutoCal();
@@ -55,4 +55,4 @@ class CompassScreen : public AbstractScreen
     uint32_t _auto_cal_due_ms = 0;
 };
 
-} // namespace heltec::meshcore::ui
+} // namespace Heltec::MeshCore::Ui

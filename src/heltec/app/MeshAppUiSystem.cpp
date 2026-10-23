@@ -7,7 +7,7 @@
 
 #include <Arduino.h>
 
-namespace heltec::meshcore::biz
+namespace Heltec::MeshCore::Biz
 {
 
 namespace
@@ -34,7 +34,7 @@ bool MeshAppUi::factoryReset()
     if (!ds)
         return false;
 
-    heltec::meshcore::ui::ui_task().disableSerial();
+    Heltec::MeshCore::Ui::ui_task().disableSerial();
 #if defined(ENV_INCLUDE_GPS) && ENV_INCLUDE_GPS
     the_mesh.teamJoinService().closeJoinWindow();
     if (the_mesh.teamService().hasTeam() && !the_mesh.teamService().leaveTeam())
@@ -64,7 +64,7 @@ bool MeshAppUi::clearUserData()
     _ff_target_contact_idx = -1;
 #endif
 
-    heltec::meshcore::ui::ui_task().setMessageCount(0);
+    Heltec::MeshCore::Ui::ui_task().setMessageCount(0);
 
     return true;
 }
@@ -90,14 +90,14 @@ void MeshAppUi::setDisplayAutoOffIndex(int index)
     const uint8_t sec = kDisplayAutoOffSec[index];
     if (p->display_auto_off_sec == sec)
     {
-        heltec::meshcore::ui::UiApp::instance().setDisplayAutoOffMs((uint32_t)sec * 1000u);
+        Heltec::MeshCore::Ui::UiApp::instance().setDisplayAutoOffMs((uint32_t)sec * 1000u);
         return;
     }
 
     p->display_auto_off_sec = sec;
     the_mesh.savePrefs();
-    heltec::meshcore::ui::UiApp::instance().setDisplayAutoOffMs((uint32_t)sec * 1000u);
-    notifyAppState(heltec::meshcore::ui::AppStateEventType::ConfigChanged);
+    Heltec::MeshCore::Ui::UiApp::instance().setDisplayAutoOffMs((uint32_t)sec * 1000u);
+    notifyAppState(Heltec::MeshCore::Ui::AppStateEventType::ConfigChanged);
 }
 
 int MeshAppUi::displayAutoOffOptionCount() const
@@ -114,20 +114,20 @@ const char *MeshAppUi::displayAutoOffOptionLabel(int index) const
 
 bool MeshAppUi::isLnaCanControl() const
 {
-    return heltec::meshcore::ui::ui_task().isLnaCanControl();
+    return Heltec::MeshCore::Ui::ui_task().isLnaCanControl();
 }
 
 bool MeshAppUi::lnaEnabled() const
 {
-    return heltec::meshcore::ui::ui_task().lnaEnabled();
+    return Heltec::MeshCore::Ui::ui_task().lnaEnabled();
 }
 
 bool MeshAppUi::setLnaEnabled(bool enabled)
 {
-    if (!heltec::meshcore::ui::ui_task().setLnaEnabled(enabled))
+    if (!Heltec::MeshCore::Ui::ui_task().setLnaEnabled(enabled))
         return false;
-    notifyAppState(heltec::meshcore::ui::AppStateEventType::ConfigChanged);
+    notifyAppState(Heltec::MeshCore::Ui::AppStateEventType::ConfigChanged);
     return true;
 }
 
-} // namespace heltec::meshcore::biz
+} // namespace Heltec::MeshCore::Biz

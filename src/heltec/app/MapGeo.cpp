@@ -2,7 +2,7 @@
 
 #include <math.h>
 
-namespace heltec::meshcore::geo
+namespace Heltec::MeshCore::Geo
 {
 
 float lat_long_to_meters(double lat_a, double lon_a, double lat_b, double lon_b)
@@ -45,4 +45,4 @@ void offset_from_center(double center_lat, double center_lon, double lat, double
     east_m = sinf(bearing) * dist_m;
 }
 
-} // namespace heltec::meshcore::geo
+} // namespace Heltec::MeshCore::Geo

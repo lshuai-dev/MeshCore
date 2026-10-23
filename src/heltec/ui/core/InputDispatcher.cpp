@@ -1,18 +1,29 @@
 #include "InputDispatcher.hpp"
 
-#include "InputHost.hpp"
+#include "UiInputHost.hpp"
 #include "heltec/drivers/input/KeyInput.hpp"
 #include "ui/core/HtEvent.h"
 
 #include <lvgl.h>
 
-namespace heltec::meshcore::ui {
+namespace Heltec::MeshCore::Ui {
 
-bool InputDispatcher::dispatch(InputHost &host, InputCommand command, uint32_t now_ms) {
+bool InputDispatcher::dispatch(IUiInputHost &host, InputCommand command, uint32_t now_ms) {
     (void)now_ms;
     if (!host.isReady()) return true;
 
-    host.reconcileInput();
+    /* Long-repeat gestures are emitted from the keypad read callback. Avoid
+       rebinding its group while LVGL is processing that same input device. */
+    if (command == InputCommand::CycleKeyboardNext)
+    {
+        if (!host.acceptsKeyboardCycle())
+        {
+            return true;
+        }
+        return Heltec::MeshCore::Dal::KeyInput::post(
+            LV_KEY_RIGHT,
+            Heltec::MeshCore::Dal::KeyInput::KeyDelivery::IndependentPulse);
+    }
 
     switch (command) {
 
@@ -33,25 +44,12 @@ bool InputDispatcher::dispatch(InputHost &host, InputCommand command, uint32_t n
         return true;
 
     case InputCommand::CloseTopLayer:
-        if (host.blocksCloseTopLayer())
-        {
-            return true;
-        }
         // Let the active LVGL focused object decide what ESC means for its local state.
         return false;
-
-    case InputCommand::CycleKeyboardNext:
-        if (!host.acceptsKeyboardCycle())
-        {
-            return true;
-        }
-        return heltec::meshcore::dal::key_input::post(
-            LV_KEY_RIGHT,
-            heltec::meshcore::dal::key_input::KeyDelivery::IndependentPulse);
 
     default:
         return false;
     }
 }
 
-} // namespace heltec::meshcore::ui
+} // namespace Heltec::MeshCore::Ui

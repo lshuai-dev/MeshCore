@@ -5,14 +5,14 @@
 
 #include <stdint.h>
 
-namespace heltec::meshcore::biz
+namespace Heltec::MeshCore::Biz
 {
 class IBizFacade;
 }
 
 struct _lv_obj_t;
 
-namespace heltec::meshcore::ui
+namespace Heltec::MeshCore::Ui
 {
 
 struct UiSendMessageTarget;
@@ -21,7 +21,7 @@ struct UiSendMessageTarget;
 class SendMessageOverlay : public FramedOverlay
 {
   public:
-    explicit SendMessageOverlay(biz::IBizFacade &biz);
+    explicit SendMessageOverlay(Biz::IBizFacade &biz);
     void submitCustomMessage(const char *text);
     void prepareTarget(const UiSendMessageTarget *target);
 
@@ -94,4 +94,4 @@ class SendMessageOverlay : public FramedOverlay
     bool _send_alert_scheduled = false;
 };
 
-} // namespace heltec::meshcore::ui
+} // namespace Heltec::MeshCore::Ui

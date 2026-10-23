@@ -9,7 +9,7 @@
 #error "HELTEC_GEO_COMPACT must be 0 or 1"
 #endif
 
-namespace heltec::meshcore::geo
+namespace Heltec::MeshCore::Geo
 {
 
 /**
@@ -28,4 +28,4 @@ void geodesic_inverse_wgs84(double lat1_deg, double lon1_deg, double lat2_deg, d
 /** Distance in meters using the selected compile-time model. */
 double geodesic_distance_m(double lat1_deg, double lon1_deg, double lat2_deg, double lon2_deg);
 
-} // namespace heltec::meshcore::geo
+} // namespace Heltec::MeshCore::Geo

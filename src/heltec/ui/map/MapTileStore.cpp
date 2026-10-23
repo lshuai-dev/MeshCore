@@ -22,7 +22,7 @@
 #include <esp_task_wdt.h>
 #endif
 
-namespace heltec::meshcore::ui::map
+namespace Heltec::MeshCore::Ui::Map
 {
 namespace
 {
@@ -166,7 +166,7 @@ static void afterSdTransfer(SPIClass &spi)
 
 static void prepareSdBus()
 {
-    dal::spi1::prepareSdBus(sdSpi());
+    Dal::Spi1::prepareSdBus(sdSpi());
     sdSpi().setFrequency(s_active_hz);
 }
 
@@ -230,7 +230,7 @@ static bool sdIsDir(const char *rel_path)
 static bool sdBeginAtHz(SPIClass &spi, uint32_t hz)
 {
     ensureSdSpiBus(spi);
-    dal::spi1::prepareSdBus(spi);
+    Dal::Spi1::prepareSdBus(spi);
     spi.setFrequency(hz);
     const SdSpiConfig cfg(PIN_MAP_SD_CS, SHARED_SPI, SD_SCK_HZ(hz), &spi);
     const bool ok = s_sd.begin(cfg);
@@ -250,7 +250,7 @@ static bool sdBeginAtHz(SPIClass &spi, uint32_t hz)
 static bool cardAnswersCmd0(SPIClass &spi)
 {
     ensureSdSpiBus(spi);
-    dal::spi1::prepareSdBus(spi);
+    Dal::Spi1::prepareSdBus(spi);
     const SPISettings init_settings(400000U, MSBFIRST, SPI_MODE0);
     const uint32_t started_ms = millis();
     bool answered = false;
@@ -1343,6 +1343,6 @@ bool map_tile_store_snap_center_to_tiles(const char *style, uint8_t zoom, float 
     return true;
 }
 
-} // namespace heltec::meshcore::ui::map
+} // namespace Heltec::MeshCore::Ui::Map
 
 #endif

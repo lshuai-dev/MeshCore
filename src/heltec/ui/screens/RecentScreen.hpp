@@ -4,10 +4,10 @@
 #include "../core/BizFacade.hpp"
 struct _lv_timer_t;
 
-namespace heltec::meshcore::ui {
+namespace Heltec::MeshCore::Ui {
 class RecentScreen : public AbstractScreen {
   public:
-    RecentScreen(biz::IBizFacade &biz, const char *title, const lv_img_dsc_t *icon)
+    RecentScreen(Biz::IBizFacade &biz, const char *title, const lv_img_dsc_t *icon)
         : AbstractScreen(biz, title, icon) {
     }
     void onEnter() override;
@@ -30,7 +30,7 @@ class RecentScreen : public AbstractScreen {
     void movePage(int delta);
     static void refreshTimerCallback(_lv_timer_t *timer);
 
-    biz::IBizFacade::RecentlyHeardItem _items[kAdvertCapacity]{};
+    Biz::IBizFacade::RecentlyHeardItem _items[kAdvertCapacity]{};
     _lv_obj_t *_rows[kMaxRowControls] = {};
     _lv_obj_t *_names[kMaxRowControls] = {};
     _lv_obj_t *_ages[kMaxRowControls] = {};
@@ -42,4 +42,4 @@ class RecentScreen : public AbstractScreen {
     uint8_t _window_start = 0;
 };
 
-} // namespace heltec::meshcore::ui
+} // namespace Heltec::MeshCore::Ui

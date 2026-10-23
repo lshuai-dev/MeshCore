@@ -16,7 +16,7 @@
 #include <SHA256.h>
 #include <string.h>
 
-namespace heltec::meshcore::team
+namespace Heltec::MeshCore::Team
 {
 namespace
 {
@@ -935,6 +935,6 @@ void TeamJoinService::cancel()
     _state = JoinState::Idle;
 }
 
-} // namespace heltec::meshcore::team
+} // namespace Heltec::MeshCore::Team
 
 #endif

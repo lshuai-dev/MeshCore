@@ -18,7 +18,7 @@
 #define HELTEC_TOUCH_TOP_ACTION_SIDE_MARGIN_PCT 10
 #endif
 
-namespace heltec::meshcore::ui
+namespace Heltec::MeshCore::Ui
 {
 namespace
 {
@@ -325,7 +325,7 @@ void UiApp::handleNativeTouchGesture(lv_event_t *e)
 
     int16_t start_x = 0;
     int16_t start_y = 0;
-    if (!heltec::meshcore::dal::touch_port::getPressStart(start_x, start_y))
+    if (!Heltec::MeshCore::Dal::TouchPort::getPressStart(start_x, start_y))
     {
         lv_point_t point{};
         lv_indev_get_point(indev, &point);
@@ -396,6 +396,6 @@ bool UiApp::touchGestureBlockQuickPingDoubleTap(int16_t x, int16_t y)
 }
 #endif
 
-} // namespace heltec::meshcore::ui
+} // namespace Heltec::MeshCore::Ui
 
 #endif // HELTEC_UI_HAS_TOUCH

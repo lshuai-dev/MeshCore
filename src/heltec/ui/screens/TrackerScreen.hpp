@@ -10,12 +10,12 @@
 
 #include "heltec/ui/map/MapPanel.hpp"
 
-namespace heltec::meshcore::biz
+namespace Heltec::MeshCore::Biz
 {
 class IBizFacade;
 }
 
-namespace heltec::meshcore::ui
+namespace Heltec::MeshCore::Ui
 {
 
 extern const lv_obj_class_t ht_tracker_screen_root_class;
@@ -23,7 +23,7 @@ extern const lv_obj_class_t ht_tracker_screen_root_class;
 class TrackerScreen : public AbstractScreen
 {
   public:
-    TrackerScreen(biz::IBizFacade &biz, const char *title, const lv_img_dsc_t *icon);
+    TrackerScreen(Biz::IBizFacade &biz, const char *title, const lv_img_dsc_t *icon);
     void onEnter() override;
     void onExit() override;
     bool hitMapViewport(lv_coord_t x, lv_coord_t y) const;
@@ -63,7 +63,7 @@ class TrackerScreen : public AbstractScreen
     static void on_map_gesture(lv_event_t *e);
     static void mapWorkTimerCb(lv_timer_t *timer);
 
-    map::MapPanel _panel;
+    Map::MapPanel _panel;
     _lv_obj_t *_toolbar = nullptr;
     _lv_obj_t *_lbl_status = nullptr;
     _lv_obj_t *_map_viewport = nullptr;
@@ -79,8 +79,8 @@ class TrackerScreen : public AbstractScreen
     void syncFenceOverlay();
     void addFencePointAt(lv_coord_t screen_x, lv_coord_t screen_y);
     _lv_obj_t *_fence_overlay = nullptr;
-    lv_point_t _fence_points[heltec::meshcore::team::TeamGeofence::kMaxPoints] = {};
-    bool _fence_point_visible[heltec::meshcore::team::TeamGeofence::kMaxPoints] = {};
+    lv_point_t _fence_points[Heltec::MeshCore::Team::TeamGeofence::kMaxPoints] = {};
+    bool _fence_point_visible[Heltec::MeshCore::Team::TeamGeofence::kMaxPoints] = {};
 #endif
     char _status_text[112] = "Map";
     lv_point_t _pan_origin = { 0, 0 };
@@ -109,6 +109,6 @@ class TrackerScreen : public AbstractScreen
     uint32_t _next_team_refresh_ms = 0;
 };
 
-} // namespace heltec::meshcore::ui
+} // namespace Heltec::MeshCore::Ui
 
 #endif // ENV_INCLUDE_MAP

@@ -4,7 +4,7 @@
 
 #include <stdint.h>
 
-namespace heltec::meshcore::ui
+namespace Heltec::MeshCore::Ui
 {
 
 using AppStateSink = void (*)(void *user_data, const AppStateEvent &event);
@@ -30,4 +30,4 @@ class AppStateNotifier
 
 AppStateNotifier &app_state_notifier();
 
-} // namespace heltec::meshcore::ui
+} // namespace Heltec::MeshCore::Ui

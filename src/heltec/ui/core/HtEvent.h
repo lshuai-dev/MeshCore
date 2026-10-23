@@ -3,7 +3,7 @@
 #include <lvgl.h>
 #include <stdint.h>
 
-namespace heltec::meshcore::ui {
+namespace Heltec::MeshCore::Ui {
 
 enum class EventType : uint8_t {
     NavOpen,
@@ -23,6 +23,7 @@ enum class EventType : uint8_t {
     QuickPingClose,
     PreviewNext,
     PreviewClose,
+    AlertOpen,
     AlertClose,
     RadioSyncClose,
     RepeatModeClose,
@@ -39,6 +40,11 @@ enum class EventType : uint8_t {
 struct UiEvent {
     EventType type;
     const void *payload;
+};
+
+struct UiAlertRequest {
+    const char *text = nullptr;
+    uint16_t duration_ms = 0;
 };
 
 enum class UiConfirmAction : uint8_t {
@@ -93,4 +99,4 @@ extern lv_event_code_t HT_EVENT_USER;
 bool ht_event_send(lv_obj_t *target, EventType type, const void *payload = nullptr);
 const UiEvent *ht_event_get(const lv_event_t *event);
 
-} // namespace heltec::meshcore::ui
+} // namespace Heltec::MeshCore::Ui

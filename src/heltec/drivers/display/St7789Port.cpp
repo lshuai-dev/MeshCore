@@ -37,7 +37,7 @@
 #error "PIN_TFT_MISO must be defined for the nRF52 ST7789 port"
 #endif
 
-namespace heltec::meshcore::dal::st7789
+namespace Heltec::MeshCore::Dal::ST7789
 {
 namespace
 {
@@ -54,13 +54,13 @@ static SPIClass &s_display_spi = SPI1;
 
 static void prepareDisplayBus(SPIClass &spi)
 {
-    spi1::prepareDisplayBus(spi);
+    Spi1::prepareDisplayBus(spi);
 }
 #endif
 
 static constexpr uint32_t kTftSpiHz = 40000000;
-static constexpr int kScrWidth = display_config::kWidth;
-static constexpr int kScrHeight = display_config::kHeight;
+static constexpr int kScrWidth = DisplayConfig::kWidth;
+static constexpr int kScrHeight = DisplayConfig::kHeight;
 #ifndef ST7789_DRAW_PART_LINES
 #define ST7789_DRAW_PART_LINES 160
 #endif
@@ -234,7 +234,7 @@ class St7789Panel
   public:
     St7789Panel(SPIClass &spi, int8_t cs, int8_t dc, int8_t rst)
         : _spi(&spi), _cs(cs), _dc(dc), _rst(rst), _spi_hz(kTftSpiHz),
-          _x_gap(display_config::kXOffset), _y_gap(display_config::kYOffset)
+          _x_gap(DisplayConfig::kXOffset), _y_gap(DisplayConfig::kYOffset)
     {
     }
 
@@ -440,7 +440,7 @@ static void hw_begin()
     s_display_spi.setFrequency(kTftSpiHz);
 #endif
     s_panel.hardReset();
-    s_panel.initPanel(display_config::kRotation & 3U);
+    s_panel.initPanel(DisplayConfig::kRotation & 3U);
     apply_backlight(false);
     s_hw_inited = true;
 #if defined(MESH_DEBUG) && MESH_DEBUG
@@ -515,39 +515,39 @@ void reinitPanelAfterSharedReset()
     if (!s_hw_inited)
         return;
     s_panel.hardReset();
-    s_panel.initPanel(display_config::kRotation & 3U);
+    s_panel.initPanel(DisplayConfig::kRotation & 3U);
 }
 
-} // namespace heltec::meshcore::dal::st7789
+} // namespace Heltec::MeshCore::Dal::ST7789
 
-namespace heltec::meshcore::dal::display_port
+namespace Heltec::MeshCore::Dal::DisplayPort
 {
 bool init()
 {
-    return st7789::init();
+    return ST7789::init();
 }
 void deinit()
 {
-    st7789::deinit();
+    ST7789::deinit();
 }
 void setBacklightOn(bool on)
 {
-    st7789::setBacklightOn(on);
+    ST7789::setBacklightOn(on);
 }
 bool isBacklightOn()
 {
-    return st7789::isBacklightOn();
+    return ST7789::isBacklightOn();
 }
 void suspend()
 {
-    st7789::suspend();
+    ST7789::suspend();
 }
 void resume()
 {
-    st7789::resume();
+    ST7789::resume();
 }
 void reinitPanelAfterSharedReset()
 {
-    st7789::reinitPanelAfterSharedReset();
+    ST7789::reinitPanelAfterSharedReset();
 }
-} // namespace heltec::meshcore::dal::display_port
+} // namespace Heltec::MeshCore::Dal::DisplayPort

@@ -32,12 +32,12 @@ CHAPTERS = [
     (11, "指南针与查找朋友", 160, ["src/heltec/ui/screens/CompassCommon.hpp", "src/heltec/ui/screens/CompassScreen.hpp", "src/heltec/ui/screens/CompassScreen.cpp", "src/heltec/ui/screens/FindFriendScreen.hpp", "src/heltec/ui/screens/FindFriendScreenControls.cpp"]),
     (12, "地图与跟踪页面", 140, ["src/heltec/ui/map/map_panel_ids.hpp", "src/heltec/ui/map/MapPanel.hpp", "src/heltec/ui/map/MapPanel.cpp"]),
     (13, "系统设置与转发模式", 200, ["src/heltec/ui/screens/SystemScreen.hpp", "src/heltec/ui/screens/SystemScreenRows.cpp", "src/heltec/ui/overlays/RepeatModeOverlay.hpp", "src/heltec/ui/overlays/RepeatModeOverlay.cpp"]),
-    (14, "输入、导航与显示适配", 220, ["src/heltec/ui/core/InputTypes.hpp", "src/heltec/ui/core/InputAdapter.cpp", "src/heltec/ui/core/InputDispatcher.cpp", "src/heltec/ui/core/InputPipeline.cpp", "src/heltec/ui/core/FocusKeyMapper.cpp", "src/heltec/drivers/input/KeyInput.cpp", "src/heltec/drivers/input/MomentaryButton.cpp"]),
+    (14, "输入、导航与显示适配", 220, ["src/heltec/ui/core/InputTypes.hpp", "src/heltec/ui/core/InputAdapter.cpp", "src/heltec/ui/core/InputDispatcher.cpp", "src/heltec/ui/core/InputPipeline.cpp", "src/heltec/ui/core/HtGridNav.cpp", "src/heltec/drivers/input/KeyInput.cpp", "src/heltec/drivers/input/MomentaryButton.cpp"]),
     (15, "连接方式与外部应用协同", 120, ["src/heltec/app/MeshAppUiLink.cpp", "src/heltec/ui/widgets/TopPane.hpp", "src/heltec/ui/widgets/TopPane.cpp"]),
     (16, "数据保存与恢复", 140, ["src/heltec/ui/screens/SystemScreenActions.cpp", "src/heltec/ui/core/ui_deferred_queue.hpp", "src/heltec/ui/core/ui_deferred_queue.cpp"]),
     (17, "当前版本功能变更", 120, ["src/heltec/ui/app/AppNavigation.cpp", "src/heltec/ui/theme/ui_theme_metrics.hpp", "src/heltec/ui/theme/ui_theme_metrics.cpp"]),
     (18, "编译、烧录与验收", 150, ["src/heltec/drivers/display/Ssd1306Port.cpp", "src/heltec/drivers/display/St7735Port.cpp", "src/heltec/drivers/display/St7789Port.cpp"]),
-    (19, "常见问题", 120, ["src/heltec/ui/overlays/AlertOverlay.hpp", "src/heltec/ui/overlays/AlertOverlay.cpp", "src/heltec/ui/core/Feedback.hpp", "src/heltec/ui/core/OperationHints.hpp"]),
+    (19, "常见问题", 120, ["src/heltec/ui/overlays/AlertOverlay.hpp", "src/heltec/ui/overlays/AlertOverlay.cpp", "src/heltec/ui/core/OperationHints.hpp"]),
     (20, "软件功能总结", 90, ["src/heltec/ui/theme/ThemeMonoFlat.cpp", "src/heltec/ui/theme/ThemePixel.cpp", "src/heltec/ui/theme/WidgetTheme.hpp"]),
 ]
 

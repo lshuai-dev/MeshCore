@@ -2,7 +2,7 @@
 #include "ui/theme/UiTheme.hpp"
 #include <lvgl.h>
 
-namespace heltec::meshcore::ui
+namespace Heltec::MeshCore::Ui
 {
 namespace
 {
@@ -184,8 +184,6 @@ bool TopPane::create(_lv_obj_t *parent)
     lv_obj_clear_flag(_title, LV_OBJ_FLAG_SCROLLABLE | LV_OBJ_FLAG_SCROLL_ON_FOCUS);
     lv_obj_set_style_anim_speed(_title, kTitleScrollSpeed, LV_PART_MAIN);
     lv_label_set_long_mode(_title, LV_LABEL_LONG_SCROLL_CIRCULAR);
-    lv_obj_add_flag(_title, LV_OBJ_FLAG_EVENT_BUBBLE);
-
     _lv_obj_t *right_slot = ht_class_create(&ht_top_pane_right_slot_class, _root);
     if (!right_slot)
     {
@@ -399,4 +397,4 @@ void TopPane::renderBattery()
 #endif
 }
 
-} // namespace heltec::meshcore::ui
+} // namespace Heltec::MeshCore::Ui

@@ -2,13 +2,13 @@
 #include "Capabilities.hpp"
 #include <lvgl.h>
 
-namespace heltec::meshcore::ui {
+namespace Heltec::MeshCore::Ui {
 namespace {
 
 AdaptedInput dualKeyButton(uint8_t slot, ButtonGesture gesture) {
     AdaptedInput out;
     if (gesture == ButtonGesture::Click) {
-        out.lv_key = (slot == 0) ? LV_KEY_PREV : LV_KEY_NEXT;
+        out.lv_key = (slot == 0) ? LV_KEY_UP : LV_KEY_DOWN;
     } else if (gesture == ButtonGesture::Double) {
         if (slot == 0) {
             out.command = InputCommand::CloseTopLayer;
@@ -31,7 +31,7 @@ AdaptedInput dualKeyButton(uint8_t slot, ButtonGesture gesture) {
 AdaptedInput singleKeyButton(ButtonGesture gesture) {
     AdaptedInput out;
     if (gesture == ButtonGesture::Click) {
-        out.lv_key = LV_KEY_NEXT;
+        out.lv_key = LV_KEY_DOWN;
     } else if (gesture == ButtonGesture::Double) {
         out.command = InputCommand::CloseTopLayer;
         out.lv_key = LV_KEY_ESC;
@@ -78,8 +78,13 @@ AdaptedInput InputAdapter::adaptKeyboard(const InputEvent &event) const {
     AdaptedInput out;
     if (!event.keyboard.pressed) return out;
     out.lv_key = event.keyboard.code;
+    if (out.lv_key == LV_KEY_NEXT) {
+        out.lv_key = LV_KEY_DOWN;
+    } else if (out.lv_key == LV_KEY_PREV) {
+        out.lv_key = LV_KEY_UP;
+    }
     if (out.lv_key == LV_KEY_ESC) out.command = InputCommand::CloseTopLayer;
     return out;
 }
 
-} // namespace heltec::meshcore::ui
+} // namespace Heltec::MeshCore::Ui

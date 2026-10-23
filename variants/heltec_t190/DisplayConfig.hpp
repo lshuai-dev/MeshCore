@@ -2,7 +2,7 @@
 
 #include <stdint.h>
 
-namespace heltec::meshcore::display_config
+namespace Heltec::MeshCore::DisplayConfig
 {
 inline constexpr int16_t kWidth = 320;
 inline constexpr int16_t kHeight = 170;

@@ -7,7 +7,7 @@
 #include <stdint.h>
 #include <string.h>
 
-namespace heltec::meshcore::ui::map
+namespace Heltec::MeshCore::Ui::Map
 {
 namespace
 {
@@ -219,6 +219,6 @@ void map_preferences_save(const MapPreferences &prefs)
     f.close();
 }
 
-} // namespace heltec::meshcore::ui::map
+} // namespace Heltec::MeshCore::Ui::Map
 
 #endif

@@ -5,7 +5,7 @@
 #include <Arduino.h>
 #include <SPI.h>
 
-namespace heltec::meshcore::dal::spi1
+namespace Heltec::MeshCore::Dal::Spi1
 {
 
 static constexpr uint32_t kDisplaySpiHz = 40000000;
@@ -39,6 +39,6 @@ inline void prepareSdBus(SPIClass &spi)
     (void)spi;
 }
 
-} // namespace heltec::meshcore::dal::spi1
+} // namespace Heltec::MeshCore::Dal::Spi1
 
 #endif

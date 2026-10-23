@@ -7,7 +7,7 @@
 
 #include <lvgl.h>
 
-namespace heltec::meshcore::ui
+namespace Heltec::MeshCore::Ui
 {
 void format_micro_degrees(char *buffer, size_t capacity, long value)
 {
@@ -106,9 +106,9 @@ bool GPSScreen::buildSurface()
         lv_label_set_long_mode(label, LV_LABEL_LONG_CLIP);
     }
 
-    addFocusableObject(_sw_gps, row_power);
+    addNavigableObject(_sw_gps, row_power);
 #if defined(ENV_INCLUDE_GPS) && ENV_INCLUDE_GPS
-    addFocusableObject(_sw_track, row_track);
+    addNavigableObject(_sw_track, row_track);
 #endif
 
     _lv_obj_t *const info_labels[] = {
@@ -145,7 +145,7 @@ void GPSScreen::setSwitchState(_lv_obj_t *sw, bool on)
 
 bool GPSScreen::ensureGpsEnabled(_lv_obj_t *dependent_switch)
 {
-    biz::IBizFacade::GpsStatus gps = _biz.gpsStatus();
+    Biz::IBizFacade::GpsStatus gps = _biz.gpsStatus();
     if (gps.enabled)
         return true;
 
@@ -156,7 +156,7 @@ bool GPSScreen::ensureGpsEnabled(_lv_obj_t *dependent_switch)
         return true;
 
     setSwitchState(dependent_switch, false);
-    _biz.showAlert("gps unavailable", 2000);
+    showAlert("gps unavailable", 2000);
     return false;
 }
 
@@ -221,9 +221,9 @@ void GPSScreen::onGpsSwitchValueChanged(lv_event_t *e)
     if (sw == self->_sw_gps)
     {
         self->_biz.setGpsEnabled(requested_on);
-        const biz::IBizFacade::GpsStatus actual = self->_biz.gpsStatus();
+        const Biz::IBizFacade::GpsStatus actual = self->_biz.gpsStatus();
         self->updateGps(actual);
-        self->_biz.showAlert(actual.enabled ? "gps: on"
+        self->showAlert(actual.enabled ? "gps: on"
                                             : (requested_on ? "gps unavailable" : "gps: off"),
                              requested_on && !actual.enabled ? 2000 : 800);
         return;
@@ -240,7 +240,7 @@ void GPSScreen::onGpsSwitchValueChanged(lv_event_t *e)
             return;
         }
         self->setSwitchState(self->_sw_track, self->_biz.gpsTrackRecording());
-        self->_biz.showAlert(requested_on ? "gps track on" : "gps track off", 800);
+        self->showAlert(requested_on ? "gps track on" : "gps track off", 800);
     }
 #endif
 }
@@ -283,7 +283,7 @@ void GPSScreen::onActivated()
     refreshSnapshot();
 }
 
-void GPSScreen::updateGps(const biz::IBizFacade::GpsStatus &s)
+void GPSScreen::updateGps(const Biz::IBizFacade::GpsStatus &s)
 {
     const bool show_fix_data = s.available && s.enabled && s.fix_valid;
 
@@ -380,4 +380,4 @@ void GPSScreen::updateGps(const biz::IBizFacade::GpsStatus &s)
     }
 }
 
-} // namespace heltec::meshcore::ui
+} // namespace Heltec::MeshCore::Ui

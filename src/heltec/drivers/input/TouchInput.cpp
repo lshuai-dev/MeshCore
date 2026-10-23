@@ -11,7 +11,7 @@
 #include <Arduino.h>
 #include <lvgl.h>
 
-namespace heltec::meshcore::dal::touch_input
+namespace Heltec::MeshCore::Dal::TouchInput
 {
 namespace
 {
@@ -53,7 +53,7 @@ static void gestureHook(bool pressed, int16_t x, int16_t y, bool *suppress)
         return;
     }
 #endif
-    touch_gesture_input::feed(pressed, x, y, millis(), touch_port::isNativeScrolling(), suppress);
+    TouchGestureInput::feed(pressed, x, y, millis(), TouchPort::isNativeScrolling(), suppress);
 }
 #endif
 
@@ -61,25 +61,25 @@ static void gestureHook(bool pressed, int16_t x, int16_t y, bool *suppress)
 
 void bindUi(const UiHooks &hooks)
 {
-    touch_port::set_wake_handler(hooks.wake);
+    TouchPort::set_wake_handler(hooks.wake);
 #if defined(HELTEC_TOUCH_GESTURE) && HELTEC_TOUCH_GESTURE
-    touch_gesture_input::init();
+    TouchGestureInput::init();
 #if defined(HELTEC_V4_R8_TFT)
     s_raw_pointer_passthrough_fn = hooks.raw_pointer_passthrough;
     s_raw_pointer_passthrough_active = false;
 #endif
-    touch_gesture_input::setLongEnterBlocker(hooks.block_long_enter);
-    touch_gesture_input::setDoubleTapBlocker(hooks.block_double_tap);
-    touch_port::set_sample_hook(gestureHook);
+    TouchGestureInput::setLongEnterBlocker(hooks.block_long_enter);
+    TouchGestureInput::setDoubleTapBlocker(hooks.block_double_tap);
+    TouchPort::set_sample_hook(gestureHook);
 #else
-    touch_port::set_sample_hook(nullptr);
+    TouchPort::set_sample_hook(nullptr);
     (void)hooks;
 #endif
 }
 
 void armInit(uint16_t hor_res, uint16_t ver_res, uint32_t delay_ms)
 {
-    if (touch_port::isReady())
+    if (TouchPort::isReady())
     {
         s_init_done = true;
         s_armed = false;
@@ -99,14 +99,14 @@ void poll()
     if ((int32_t)(millis() - s_init_after_ms) < 0)
         return;
     s_armed = false;
-    s_init_done = touch_port::init(s_hor, s_ver);
+    s_init_done = TouchPort::init(s_hor, s_ver);
 }
 
 bool isReady()
 {
-    return touch_port::isReady();
+    return TouchPort::isReady();
 }
 
-} // namespace heltec::meshcore::dal::touch_input
+} // namespace Heltec::MeshCore::Dal::TouchInput
 
 #endif // HELTEC_TOUCH_INPUT

@@ -1,15 +1,15 @@
 #pragma once
 #include "Surface.hpp"
 struct _lv_obj_t;
-namespace heltec::meshcore::biz {
+namespace Heltec::MeshCore::Biz {
 class IBizFacade;
 }
 
-namespace heltec::meshcore::ui {
+namespace Heltec::MeshCore::Ui {
 class AbstractScreen : public UiSurface {
   public:
-    AbstractScreen(biz::IBizFacade &biz, const char *title, const lv_img_dsc_t *icon);
-    AbstractScreen(biz::IBizFacade &biz, const char *title, const lv_img_dsc_t *icon,const lv_obj_class_t &root_class);
+    AbstractScreen(Biz::IBizFacade &biz, const char *title, const lv_img_dsc_t *icon);
+    AbstractScreen(Biz::IBizFacade &biz, const char *title, const lv_img_dsc_t *icon,const lv_obj_class_t &root_class);
     virtual ~AbstractScreen() = default;
 
     const char *title() const;
@@ -20,12 +20,12 @@ class AbstractScreen : public UiSurface {
   protected:
     bool buildSurface() override;
     bool onKey(uint32_t key) override;
-    void addFocusableObject(_lv_obj_t *object, _lv_obj_t *frame = nullptr, bool propagate_focus = true);
+    void addNavigableObject(_lv_obj_t *object, _lv_obj_t *frame = nullptr,
+                            bool propagate_focus = true);
 
   private:
     void focusRoot();
     void focusControls();
-    static lv_obj_tree_walk_res_t addFocusObjectFromTree(_lv_obj_t *object, void *user_data);
     static void deferredActivateControls(void *user_data);
     static void deferredActivateRoot(void *user_data);
     static void handleRootEvent(lv_event_t *event);
@@ -39,4 +39,4 @@ class AbstractScreen : public UiSurface {
     const lv_img_dsc_t *_icon;
 };
 
-} // namespace heltec::meshcore::ui
+} // namespace Heltec::MeshCore::Ui

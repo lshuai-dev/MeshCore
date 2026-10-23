@@ -2,7 +2,7 @@
 
 #include <Arduino.h>
 
-namespace heltec::meshcore::power
+namespace Heltec::MeshCore::Power
 {
 
 PowerConfig defaultPowerConfig()
@@ -407,4 +407,4 @@ void PowerMgr::loop(uint32_t now_ms)
     processSystemTransition(now_ms);
 }
 
-} // namespace heltec::meshcore::power
+} // namespace Heltec::MeshCore::Power

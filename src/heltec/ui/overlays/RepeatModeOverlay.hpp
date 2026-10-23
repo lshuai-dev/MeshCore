@@ -8,13 +8,13 @@
 
 struct _lv_obj_t;
 
-namespace heltec::meshcore::ui
+namespace Heltec::MeshCore::Ui
 {
 
 class RepeatModeOverlay : public FramedOverlay
 {
   public:
-    explicit RepeatModeOverlay(biz::IBizFacade &biz);
+    explicit RepeatModeOverlay(Biz::IBizFacade &biz);
 
     void onEnter() override;
 #if HELTEC_UI_HAS_TOUCH
@@ -51,4 +51,4 @@ class RepeatModeOverlay : public FramedOverlay
     bool _applying = false;
 };
 
-} // namespace heltec::meshcore::ui
+} // namespace Heltec::MeshCore::Ui

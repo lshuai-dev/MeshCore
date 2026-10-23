@@ -1,7 +1,7 @@
 #pragma once
 #include "AbstractOverlay.hpp"
 
-namespace heltec::meshcore::ui
+namespace Heltec::MeshCore::Ui
 {
 class DialogOverlay : public AbstractOverlay
 {
@@ -29,7 +29,7 @@ class DialogOverlay : public AbstractOverlay
     };
 
   protected:
-    DialogOverlay(biz::IBizFacade &biz, Options options);
+    DialogOverlay(Biz::IBizFacade &biz, Options options);
 
     bool buildSurface() override;
     _lv_obj_t *panel() const;
@@ -48,4 +48,4 @@ class DialogOverlay : public AbstractOverlay
     _lv_obj_t *_actions = nullptr;
 };
 
-} // namespace heltec::meshcore::ui
+} // namespace Heltec::MeshCore::Ui

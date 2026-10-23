@@ -3,7 +3,7 @@
 #if HELTEC_UI_HAS_TOUCH
 
 #include "heltec/ui/core/AbstractOverlay.hpp"
-namespace heltec::meshcore::ui
+namespace Heltec::MeshCore::Ui
 {
 extern const lv_obj_class_t ht_quick_ping_overlay_class;
 extern const lv_obj_class_t ht_quick_ping_backdrop_class;
@@ -18,17 +18,17 @@ extern const lv_obj_class_t ht_quick_ping_dropdown_class;
 extern const lv_obj_class_t ht_quick_ping_message_dropdown_class;
 extern const lv_obj_class_t ht_quick_ping_message_editor_class;
 extern const lv_obj_class_t ht_quick_ping_keyboard_class;
-} // namespace heltec::meshcore::ui
+} // namespace Heltec::MeshCore::Ui
 
 #include <stddef.h>
 #include <stdint.h>
 
-namespace heltec::meshcore::biz
+namespace Heltec::MeshCore::Biz
 {
 class IBizFacade;
 }
 
-namespace heltec::meshcore::ui
+namespace Heltec::MeshCore::Ui
 {
 
 struct UiSendMessageTarget;
@@ -36,7 +36,7 @@ struct UiSendMessageTarget;
 class QuickPingOverlay final : public AbstractOverlay
 {
   public:
-    explicit QuickPingOverlay(biz::IBizFacade &biz);
+    explicit QuickPingOverlay(Biz::IBizFacade &biz);
     void prepareTarget(const UiSendMessageTarget *target);
     bool preparePresetEdit(uint8_t index, const char *text);
 
@@ -157,6 +157,7 @@ class QuickPingOverlay final : public AbstractOverlay
     _lv_obj_t *_keyboard = nullptr;
     _lv_obj_t *_keyboard_editor = nullptr;
     _lv_obj_t *_keyboard_counter = nullptr;
+    _lv_obj_t *_keyboard_return_focus = nullptr;
 
     CachedGroup _groups[kMaxGroups] = {};
     CachedContact _contacts[kMaxContacts] = {};
@@ -170,7 +171,7 @@ class QuickPingOverlay final : public AbstractOverlay
     int _contact_index = 0;
     uint8_t _message_index = 0;
     bool _syncing_dropdowns = false;
-    bool _rebuilding_focus_group = false;
+    bool _rebuilding_navigation = false;
     bool _keyboard_open_pending = false;
     // A touch on the keyboard OK button can produce more than one LVGL event
     // (for example VALUE_CHANGED followed by READY). Keep one successful
@@ -193,6 +194,6 @@ class QuickPingOverlay final : public AbstractOverlay
     char _keyboard_count_text[8] = {};
 };
 
-} // namespace heltec::meshcore::ui
+} // namespace Heltec::MeshCore::Ui
 
 #endif

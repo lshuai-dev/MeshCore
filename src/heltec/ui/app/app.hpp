@@ -5,9 +5,8 @@
 #include "ui/core/AppStateDispatcher.hpp"
 #include "ui/core/BizFacade.hpp"
 #include "ui/core/Capabilities.hpp"
-#include "ui/core/Host.hpp"
 #include "ui/core/HtEvent.h"
-#include "ui/core/InputHost.hpp"
+#include "ui/core/UiInputHost.hpp"
 #include "ui/core/Surface.hpp"
 #include "ui/core/SurfaceManager.hpp"
 #include "ui/widgets/TopPane.hpp"
@@ -45,20 +44,19 @@
 #if HELTEC_UI_HAS_TOUCH
 #include "ui/overlays/QuickPingOverlay.hpp"
 #else
-#include "ui/menus/CascadingMenu.hpp"
 #include "ui/menus/ContextMenu.hpp"
 #endif
 #if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
 #include "ui/overlays/CalibrationOverlay.hpp"
 #endif
 
-namespace heltec::meshcore::ui {
+namespace Heltec::MeshCore::Ui {
 
 class AbstractScreen;
 
-class UiApp final : public IUiHost, public InputHost {
+class UiApp final : public IUiInputHost {
   public:
-    UiApp(biz::IBizFacade &biz, heltec::meshcore::power::PowerMgr &power);
+    UiApp(Biz::IBizFacade &biz, Heltec::MeshCore::Power::PowerMgr &power);
     static UiApp &instance();
 
     void init();
@@ -77,10 +75,9 @@ class UiApp final : public IUiHost, public InputHost {
     bool openCalibrationOverlay();
 #endif
     void openWaypointKeyboard();
-    void closePreviewOverlay() override;
 
-    void handlePowerChanged(heltec::meshcore::power::PowerChangeMask changes,
-                            const heltec::meshcore::power::PowerSnapshot &snapshot);
+    void handlePowerChanged(Heltec::MeshCore::Power::PowerChangeMask changes,
+                            const Heltec::MeshCore::Power::PowerSnapshot &snapshot);
 
     void setDisplayAutoOffMs(uint32_t ms);
 
@@ -94,24 +91,14 @@ class UiApp final : public IUiHost, public InputHost {
     static constexpr uint8_t kNoScheduledTile = 0xFF;
 
     void openPreviewOverlay(uint8_t unread, uint32_t received_ms, const char *origin,
-                            const char *text) override;
-    void openAlertOverlay(const char *text) override;
-    void closeAlertOverlay() override;
+                            const char *text);
+    void openAlertOverlay(const char *text);
 
     void notifyDisplayActivity(uint32_t now_ms) override;
     bool isDisplayOn() const override;
     void toggleDisplay(uint32_t now_ms) override;
     void onBacklightTurnedOn() override;
-    void reconcileInput() override;
     void ensureTileKeypadFocus() override;
-    bool blocksCloseTopLayer() const override
-    {
-#if HELTEC_UI_ENABLE_KEYBOARD
-        return _surfaces.isActive(&_keyboardOvl);
-#else
-        return false;
-#endif
-    }
     bool acceptsKeyboardCycle() const override
     {
 #if HELTEC_UI_ENABLE_KEYBOARD
@@ -126,18 +113,6 @@ class UiApp final : public IUiHost, public InputHost {
 #else
         return false;
 #endif
-    }
-    bool interceptInputKey(uint32_t key) override
-    {
-#if HELTEC_UI_ENABLE_KEYBOARD
-        if (_surfaces.isActive(&_keyboardOvl))
-        {
-            return _keyboardOvl.handleInputKey(key);
-        }
-#else
-        (void)key;
-#endif
-        return false;
     }
     lv_obj_t *frameRoot() const override {
         return _frame_root;
@@ -220,8 +195,8 @@ class UiApp final : public IUiHost, public InputHost {
     void previewNavTile(uint8_t tile_idx);
     void onTileActiveChanged();
     bool switchAdjacentTile(int8_t dir);
-    biz::IBizFacade &_biz;
-    heltec::meshcore::power::PowerMgr &_power;
+    Biz::IBizFacade &_biz;
+    Heltec::MeshCore::Power::PowerMgr &_power;
     AppStateUiDispatcher _app_state_dispatcher;
     SurfaceManager _surfaces;
     TopPane _top_pane;
@@ -248,12 +223,6 @@ class UiApp final : public IUiHost, public InputHost {
 #endif
     SystemScreen _scrSystem;
 
-#if !defined(HELTEC_UI_HAS_TOUCH) || !HELTEC_UI_HAS_TOUCH
-    CascadingMenu _ctxRadioMenu;
-#if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
-    CascadingMenu _ctxCompassMenu;
-#endif
-#endif
 #if HELTEC_UI_HAS_TOUCH
     QuickPingOverlay _quickPingOverlay;
 #endif
@@ -287,4 +256,4 @@ class UiApp final : public IUiHost, public InputHost {
     lv_obj_t *_tileview = nullptr;
 };
 
-} // namespace heltec::meshcore::ui
+} // namespace Heltec::MeshCore::Ui

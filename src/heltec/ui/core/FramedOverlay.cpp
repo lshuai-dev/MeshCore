@@ -1,8 +1,8 @@
 #include "FramedOverlay.hpp"
 #include "ui/widgets/WidgetClasses.hpp"
 
-namespace heltec::meshcore::ui {
-FramedOverlay::FramedOverlay(biz::IBizFacade &biz, const lv_obj_class_t &root_class,
+namespace Heltec::MeshCore::Ui {
+FramedOverlay::FramedOverlay(Biz::IBizFacade &biz, const lv_obj_class_t &root_class,
                              const lv_obj_class_t *content_class)
     : AbstractOverlay(biz, root_class),
       _content_class(content_class ? content_class : &ht_framed_overlay_content_class) {
@@ -89,4 +89,4 @@ void FramedOverlay::setStaticToolTip(const char *text) {
     }
 }
 
-} // namespace heltec::meshcore::ui
+} // namespace Heltec::MeshCore::Ui

@@ -3,7 +3,7 @@
 
 #include <lvgl.h>
 
-namespace heltec::meshcore::ui
+namespace Heltec::MeshCore::Ui
 {
 
 namespace
@@ -26,7 +26,7 @@ void apply_variant_state(lv_obj_t *object, DialogOverlay::Variant variant)
 
 } // namespace
 
-DialogOverlay::DialogOverlay(biz::IBizFacade &biz, Options options)
+DialogOverlay::DialogOverlay(Biz::IBizFacade &biz, Options options)
     : AbstractOverlay(biz, ht_dialog_overlay_class), _options(options)
 {
 }
@@ -134,4 +134,4 @@ void DialogOverlay::backdropEventCb(lv_event_t *event)
     lv_event_stop_bubbling(event);
 }
 
-} // namespace heltec::meshcore::ui
+} // namespace Heltec::MeshCore::Ui

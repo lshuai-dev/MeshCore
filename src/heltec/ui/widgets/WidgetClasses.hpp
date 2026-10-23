@@ -2,7 +2,7 @@
 
 #include <lvgl.h>
 
-namespace heltec::meshcore::ui {
+namespace Heltec::MeshCore::Ui {
 extern const lv_obj_class_t ht_dialog_overlay_class;
 extern const lv_obj_class_t ht_dialog_panel_class;
 extern const lv_obj_class_t ht_dialog_content_class;
@@ -51,11 +51,11 @@ extern const lv_obj_class_t ht_context_menu_title_class;
 extern const lv_obj_class_t ht_context_menu_nav_row_class;
 #endif
 
-extern const lv_obj_class_t ht_cascading_menu_roller_class;
-extern const lv_obj_class_t ht_cascading_menu_item_class;
-extern const lv_obj_class_t ht_cascading_menu_label_class;
+extern const lv_obj_class_t ht_context_menu_roller_class;
+extern const lv_obj_class_t ht_context_menu_item_class;
+extern const lv_obj_class_t ht_context_menu_label_class;
 #if LV_USE_MENU
-extern const lv_obj_class_t ht_cascading_menu_page_class;
+extern const lv_obj_class_t ht_context_menu_page_class;
 #endif
 
 extern const lv_obj_class_t ht_app_background_class;
@@ -176,4 +176,4 @@ inline lv_obj_t *ht_label_create_static(lv_obj_t *parent, const char *text) {
     return ht_label_create_static(&lv_label_class, parent, text);
 }
 
-} // namespace heltec::meshcore::ui
+} // namespace Heltec::MeshCore::Ui

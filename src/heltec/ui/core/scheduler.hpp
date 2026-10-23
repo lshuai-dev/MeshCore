@@ -2,7 +2,7 @@
 
 #include <stdint.h>
 
-namespace heltec::meshcore::ui
+namespace Heltec::MeshCore::Ui
 {
 
 using UiMotionExec = void (*)(void *target, int32_t value);
@@ -34,4 +34,4 @@ bool ui_motion_start(const UiMotionSpec &spec);
 uint8_t ui_motion_cancel(void *target, UiMotionExec exec = nullptr);
 bool ui_motion_active(void *target, UiMotionExec exec = nullptr);
 
-} // namespace heltec::meshcore::ui
+} // namespace Heltec::MeshCore::Ui

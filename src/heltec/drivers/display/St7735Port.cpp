@@ -11,7 +11,7 @@
 #error "PIN_TFT_MISO must be defined for the nRF52 ST7735 port"
 #endif
 
-namespace heltec::meshcore::dal::st7735
+namespace Heltec::MeshCore::Dal::St7735
 {
 namespace
 {
@@ -567,35 +567,35 @@ void resume()
     apply_backlight(true);
 }
 
-} // namespace heltec::meshcore::dal::st7735
+} // namespace Heltec::MeshCore::Dal::St7735
 
-namespace heltec::meshcore::dal::display_port
+namespace Heltec::MeshCore::Dal::DisplayPort
 {
 bool init()
 {
-    return st7735::init();
+    return St7735::init();
 }
 void deinit()
 {
-    st7735::deinit();
+    St7735::deinit();
 }
 void setBacklightOn(bool on)
 {
-    st7735::setBacklightOn(on);
+    St7735::setBacklightOn(on);
 }
 bool isBacklightOn()
 {
-    return st7735::isBacklightOn();
+    return St7735::isBacklightOn();
 }
 void suspend()
 {
-    st7735::suspend();
+    St7735::suspend();
 }
 void resume()
 {
-    st7735::resume();
+    St7735::resume();
 }
 void reinitPanelAfterSharedReset()
 {
 }
-} // namespace heltec::meshcore::dal::display_port
+} // namespace Heltec::MeshCore::Dal::DisplayPort

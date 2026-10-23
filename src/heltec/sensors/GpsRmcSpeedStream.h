@@ -5,7 +5,7 @@
 #include <limits.h>
 #include <string.h>
 
-namespace heltec::gps
+namespace Heltec::Gps
 {
 
 struct RmcSpeedState
@@ -79,4 +79,4 @@ class GpsRmcSpeedStream final : public Stream
     MicroNMEA _parser;
 };
 
-} // namespace heltec::gps
+} // namespace Heltec::Gps

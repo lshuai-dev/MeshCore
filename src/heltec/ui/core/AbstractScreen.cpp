@@ -1,15 +1,12 @@
 #include "AbstractScreen.hpp"
 #include "ui/widgets/HtContainer.hpp"
 #include "ui/core/HtEvent.h"
-#include "ui/widgets/HtScrollView.hpp"
 #if defined(HELTEC_HAS_KEY_FRAME) && HELTEC_HAS_KEY_FRAME
 #include "heltec/drivers/display/DisplayPort.hpp"
 #endif
 
-namespace heltec::meshcore::ui {
+namespace Heltec::MeshCore::Ui {
 namespace {
-
-constexpr lv_obj_flag_t kFocusItemFlag = LV_OBJ_FLAG_USER_1;
 
 bool focus_object_available(const lv_obj_t *object) {
     if (!object || !lv_obj_is_valid(object) || lv_obj_has_state(object, LV_STATE_DISABLED)) {
@@ -25,11 +22,11 @@ bool focus_object_available(const lv_obj_t *object) {
 
 } // namespace
 
-AbstractScreen::AbstractScreen(biz::IBizFacade &biz, const char *title, const lv_img_dsc_t *icon)
-    : AbstractScreen(biz, title, icon, ht_scroll_view_class) {
+AbstractScreen::AbstractScreen(Biz::IBizFacade &biz, const char *title, const lv_img_dsc_t *icon)
+    : AbstractScreen(biz, title, icon, lv_obj_class) {
 }
 
-AbstractScreen::AbstractScreen(biz::IBizFacade &biz, const char *title, const lv_img_dsc_t *icon,
+AbstractScreen::AbstractScreen(Biz::IBizFacade &biz, const char *title, const lv_img_dsc_t *icon,
                                const lv_obj_class_t &root_class)
     : UiSurface(biz, root_class), _title(title), _icon(icon) {
 }
@@ -38,10 +35,10 @@ bool AbstractScreen::buildSurface() {
     lv_obj_set_size(_root, lv_pct(100), lv_pct(100));
     lv_obj_set_flex_flow(_root, LV_FLEX_FLOW_COLUMN);
     lv_obj_set_flex_align(_root, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_START);
-    lv_obj_set_user_data(_root, this);
-
-    lv_obj_add_flag(_root,
-                    LV_OBJ_FLAG_CLICKABLE | LV_OBJ_FLAG_CLICK_FOCUSABLE | LV_OBJ_FLAG_EVENT_BUBBLE);
+    lv_obj_add_flag(_root, LV_OBJ_FLAG_SCROLLABLE | LV_OBJ_FLAG_SCROLL_WITH_ARROW);
+    lv_obj_set_scroll_dir(_root, LV_DIR_VER);
+    lv_obj_set_scrollbar_mode(_root, LV_SCROLLBAR_MODE_AUTO);
+    lv_obj_add_flag(_root, LV_OBJ_FLAG_CLICKABLE | LV_OBJ_FLAG_CLICK_FOCUSABLE);
     lv_obj_add_event_cb(_root, handleRootEvent, LV_EVENT_CLICKED, this);
     focusRoot();
     return true;
@@ -58,7 +55,7 @@ const lv_img_dsc_t *AbstractScreen::icon() const {
 void AbstractScreen::onEnter() {
     (void)lv_async_call_cancel(deferredActivateControls, this);
     (void)lv_async_call_cancel(deferredActivateRoot, this);
-    if (!focusGroup() || !_root) return;
+    if (!_root) return;
     lv_obj_scroll_to_y(_root, 0, LV_ANIM_OFF);
     focusRoot();
 }
@@ -66,51 +63,24 @@ void AbstractScreen::onEnter() {
 void AbstractScreen::onExit() {
     (void)lv_async_call_cancel(deferredActivateControls, this);
     (void)lv_async_call_cancel(deferredActivateRoot, this);
-    if (focusGroup()) {
-        lv_group_set_editing(focusGroup(), false);
-    }
+    _gridNav.setEditing(false);
     // Tile screens stay visible when focus moves to nav pane / overlay; only overlays hide on exit.
 }
 
 void AbstractScreen::focusRoot() {
-    if (!focusGroup() || !_root || !lv_obj_is_valid(_root)) {
+    if (!_root || !lv_obj_is_valid(_root)) {
         return;
     }
-    lv_group_set_editing(focusGroup(), false);
-    lv_group_remove_all_objs(focusGroup());
-    lv_group_add_obj(focusGroup(), _root);
+    _gridNav.enterBrowse();
 }
 
 void AbstractScreen::focusControls() {
-    if (!focusGroup()) {
-        return;
-    }
-    lv_group_set_editing(focusGroup(), false);
-    lv_group_remove_all_objs(focusGroup());
-    lv_obj_tree_walk(_root, addFocusObjectFromTree, focusGroup());
-    if (!lv_group_get_focused(focusGroup()) && _root && lv_obj_is_valid(_root)) {
-        lv_group_add_obj(focusGroup(), _root);
-    }
-}
-
-lv_obj_tree_walk_res_t AbstractScreen::addFocusObjectFromTree(_lv_obj_t *object, void *user_data) {
-    auto *const group = static_cast<lv_group_t *>(user_data);
-    if (!object || !group) {
-        return LV_OBJ_TREE_WALK_END;
-    }
-    if (lv_obj_has_flag(object, LV_OBJ_FLAG_HIDDEN)) {
-        return LV_OBJ_TREE_WALK_SKIP_CHILDREN;
-    }
-    if (lv_obj_has_flag(object, kFocusItemFlag) && focus_object_available(object)) {
-        lv_group_add_obj(group, object);
-    }
-    return LV_OBJ_TREE_WALK_NEXT;
+    (void)_gridNav.enterControls();
 }
 
 void AbstractScreen::deferredActivateControls(void *user_data) {
     auto *const screen = static_cast<AbstractScreen *>(user_data);
-    if (!screen || !screen->focusGroup() ||
-        lv_group_get_focused(screen->focusGroup()) != screen->_root) {
+    if (!screen || screen->_gridNav.mode() != HtGridNav::Mode::Browse) {
         return;
     }
     screen->focusControls();
@@ -118,8 +88,7 @@ void AbstractScreen::deferredActivateControls(void *user_data) {
 
 void AbstractScreen::deferredActivateRoot(void *user_data) {
     auto *const screen = static_cast<AbstractScreen *>(user_data);
-    if (!screen || !screen->focusGroup() ||
-        lv_group_get_focused(screen->focusGroup()) == screen->_root) {
+    if (!screen || screen->_gridNav.mode() == HtGridNav::Mode::Browse) {
         return;
     }
     screen->focusRoot();
@@ -127,8 +96,8 @@ void AbstractScreen::deferredActivateRoot(void *user_data) {
 
 void AbstractScreen::handleRootEvent(lv_event_t *event) {
     auto *const screen = static_cast<AbstractScreen *>(lv_event_get_user_data(event));
-    if (!screen || !screen->focusGroup() || lv_event_get_target(event) != screen->_root ||
-        lv_group_get_focused(screen->focusGroup()) != screen->_root) {
+    if (!screen || lv_event_get_target(event) != screen->_root ||
+        screen->_gridNav.mode() != HtGridNav::Mode::Browse) {
         return;
     }
     (void)lv_async_call(deferredActivateControls, screen);
@@ -139,83 +108,87 @@ void AbstractScreen::handleFocusChangedEvent(lv_event_t *event) {
     _lv_obj_t *const frame = static_cast<_lv_obj_t *>(lv_event_get_user_data(event));
     if (!frame) return;
     if (lv_obj_check_type(frame, &ht_container_class)) {
-        ht_container_set_focused(frame, code == LV_EVENT_FOCUSED);
+        ht_container_set_selected(frame, code == LV_EVENT_FOCUSED);
     }
     lv_obj_invalidate(frame);
 }
 
 void AbstractScreen::handleFramePressedEvent(lv_event_t *event) {
     if (lv_event_get_code(event) != LV_EVENT_PRESSED) return;
-    _lv_obj_t *const control = static_cast<_lv_obj_t *>(lv_event_get_user_data(event));
-    if (!focus_object_available(control)) return;
-    if (lv_group_t *const group = lv_obj_get_group(control)) {
-        lv_group_focus_obj(control);
+    auto *const screen = static_cast<AbstractScreen *>(lv_event_get_user_data(event));
+    lv_obj_t *const frame = lv_event_get_current_target(event);
+    if (!screen || !frame) return;
+
+    struct FindContext {
+        AbstractScreen *screen = nullptr;
+        lv_obj_t *control = nullptr;
+    } context;
+    context.screen = screen;
+    lv_obj_tree_walk(
+        frame,
+        [](lv_obj_t *object, void *user_data) {
+            auto *const find = static_cast<FindContext *>(user_data);
+            if (find && find->screen->_gridNav.contains(object) &&
+                focus_object_available(object)) {
+                find->control = object;
+                return LV_OBJ_TREE_WALK_END;
+            }
+            return LV_OBJ_TREE_WALK_NEXT;
+        },
+        &context);
+    if (context.control) {
+        (void)screen->_gridNav.focus(context.control);
     }
 }
 
 #if defined(HELTEC_HAS_KEY_FRAME) && HELTEC_HAS_KEY_FRAME
 void AbstractScreen::keyFrameFocusEvent(lv_event_t *event) {
     if (lv_event_get_code(event) == LV_EVENT_FOCUSED) {
-        heltec::meshcore::dal::display_port::requestSelectionRefresh();
+        Heltec::MeshCore::Dal::DisplayPort::requestSelectionRefresh();
     }
 }
 #endif
 
-void AbstractScreen::addFocusableObject(_lv_obj_t *object, _lv_obj_t *frame, bool propagate_focus) {
-    if (!object || lv_obj_has_flag(object, kFocusItemFlag)) return;
+void AbstractScreen::addNavigableObject(_lv_obj_t *object, _lv_obj_t *frame,
+                                        bool propagate_focus) {
+    if (!object || _gridNav.contains(object)) return;
 
     _lv_obj_t *const focus_frame = frame ? frame : object;
     if (propagate_focus) {
         lv_obj_clear_flag(focus_frame, LV_OBJ_FLAG_CLICK_FOCUSABLE);
-        lv_obj_add_event_cb(object, handleFocusChangedEvent, LV_EVENT_FOCUSED, focus_frame);
-        lv_obj_add_event_cb(object, handleFocusChangedEvent, LV_EVENT_DEFOCUSED, focus_frame);
+        if (!lv_obj_check_type(focus_frame, &ht_container_class)) {
+            lv_obj_add_event_cb(object, handleFocusChangedEvent, LV_EVENT_FOCUSED, focus_frame);
+            lv_obj_add_event_cb(object, handleFocusChangedEvent, LV_EVENT_DEFOCUSED, focus_frame);
+        }
     }
     if (focus_frame != object) {
         lv_obj_clear_flag(focus_frame, LV_OBJ_FLAG_CLICK_FOCUSABLE);
         lv_obj_add_event_cb(focus_frame, handleFramePressedEvent,
                             static_cast<lv_event_code_t>(LV_EVENT_PRESSED | LV_EVENT_PREPROCESS),
-                            object);
+                            this);
     }
-    lv_obj_add_flag(object, LV_OBJ_FLAG_CLICKABLE | LV_OBJ_FLAG_EVENT_BUBBLE);
-    lv_obj_add_flag(object, LV_OBJ_FLAG_SCROLL_ON_FOCUS);
-    lv_obj_add_event_cb(object, lv_event_stop_bubbling,
-                        static_cast<lv_event_code_t>(LV_EVENT_FOCUSED | LV_EVENT_PREPROCESS),
-                        object);
-    lv_obj_add_event_cb(object, lv_event_stop_bubbling,
-                        static_cast<lv_event_code_t>(LV_EVENT_DEFOCUSED | LV_EVENT_PREPROCESS),
-                        object);
-    for (lv_obj_t *parent = lv_obj_get_parent(object); parent && parent != _root;
-         parent = lv_obj_get_parent(parent)) {
-        lv_obj_add_flag(parent, LV_OBJ_FLAG_EVENT_BUBBLE);
-    }
-    lv_obj_add_flag(object, LV_OBJ_FLAG_CLICK_FOCUSABLE);
-    lv_obj_add_flag(object, kFocusItemFlag);
+    lv_obj_add_flag(object, LV_OBJ_FLAG_CLICKABLE);
+    _gridNav.add(object);
 #if defined(HELTEC_HAS_KEY_FRAME) && HELTEC_HAS_KEY_FRAME
     lv_obj_add_event_cb(object, keyFrameFocusEvent, LV_EVENT_FOCUSED, nullptr);
 #endif
 }
 
 bool AbstractScreen::onKey(uint32_t key) {
-    lv_group_t *const active_group = focusGroup();
-    if (active_group && lv_group_get_focused(active_group) != _root) {
-        if (key == LV_KEY_DOWN || key == LV_KEY_RIGHT || key == LV_KEY_NEXT) {
-            lv_group_set_wrap(active_group, true);
-            lv_group_focus_next(active_group);
-            return true;
-        }
-        if (key == LV_KEY_UP || key == LV_KEY_LEFT || key == LV_KEY_PREV) {
-            lv_group_set_wrap(active_group, true);
-            lv_group_focus_prev(active_group);
-            return true;
-        }
-    }
-    if (key == LV_KEY_ESC) {
-        if (active_group && lv_group_get_focused(active_group) != _root) {
+    if (_gridNav.mode() == HtGridNav::Mode::Controls) {
+        if (key == LV_KEY_ESC && !_gridNav.isEditing()) {
             (void)lv_async_call(deferredActivateRoot, this);
             return true;
         }
+        return _gridNav.handleKey(key);
+    }
+    if (key == LV_KEY_ESC) {
         return emitEvent(EventType::NavOpen);
+    }
+    if (key == LV_KEY_ENTER) {
+        (void)lv_async_call(deferredActivateControls, this);
+        return true;
     }
     return false;
 }
-} // namespace heltec::meshcore::ui
+} // namespace Heltec::MeshCore::Ui

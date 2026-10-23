@@ -3,7 +3,7 @@
 #include "ui/theme/UiTheme.hpp"
 #include "ui/theme/ThemeMonoFlat.hpp"
 
-namespace heltec::meshcore::ui
+namespace Heltec::MeshCore::Ui
 {
 namespace
 {
@@ -43,4 +43,4 @@ lv_theme_t *init_ui_e213_theme(lv_disp_t *disp, const lv_font_t *font)
     return init_ui_mono_flat_theme_with_colors(disp, font, kE213ThemeColors);
 }
 
-} // namespace heltec::meshcore::ui
+} // namespace Heltec::MeshCore::Ui

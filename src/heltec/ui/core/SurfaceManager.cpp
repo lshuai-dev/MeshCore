@@ -6,7 +6,7 @@
 
 #include <lvgl.h>
 
-namespace heltec::meshcore::ui
+namespace Heltec::MeshCore::Ui
 {
 
 bool SurfaceManager::isAvailable(const UiSurface *surface)
@@ -15,33 +15,51 @@ bool SurfaceManager::isAvailable(const UiSurface *surface)
     return root && lv_obj_is_valid(root);
 }
 
-bool SurfaceManager::isFocusEligible(const lv_obj_t *object)
+bool SurfaceManager::init()
 {
-    if (!object || !lv_obj_is_valid(object) || lv_obj_has_state(object, LV_STATE_DISABLED))
+    if (_input_group != nullptr)
+    {
+        return true;
+    }
+    _input_group = lv_group_create();
+    if (_input_group == nullptr)
     {
         return false;
     }
-    for (const lv_obj_t *parent = object; parent; parent = lv_obj_get_parent(parent))
-    {
-        if (lv_obj_has_flag(parent, LV_OBJ_FLAG_HIDDEN))
-        {
-            return false;
-        }
-    }
+    lv_group_set_wrap(_input_group, false);
+    lv_group_set_default(_input_group);
+    Heltec::MeshCore::Dal::KeyInput::set_group(_input_group);
     return true;
+}
+
+bool SurfaceManager::registerSurface(UiSurface *surface)
+{
+    if (!init() || !isAvailable(surface))
+    {
+        return false;
+    }
+    if (isRegistered(surface))
+    {
+        return true;
+    }
+    lv_group_add_obj(_input_group, surface->root());
+    return lv_obj_get_group(surface->root()) == _input_group;
+}
+
+bool SurfaceManager::isRegistered(const UiSurface *surface) const
+{
+    return isAvailable(surface) && _input_group != nullptr &&
+           lv_obj_get_group(surface->root()) == _input_group;
 }
 
 UiSurface *SurfaceManager::active() const
 {
-    for (uint8_t index = _presented_count; index > 0; --index)
+    if (_input_group == nullptr)
     {
-        UiSurface *const surface = _presented[index - 1U];
-        if (isAvailable(surface) && !lv_obj_has_flag(surface->root(), LV_OBJ_FLAG_HIDDEN))
-        {
-            return surface;
-        }
+        return nullptr;
     }
-    return isAvailable(_root) ? _root : nullptr;
+    lv_obj_t *const root = lv_group_get_focused(_input_group);
+    return root != nullptr ? static_cast<UiSurface *>(lv_obj_get_user_data(root)) : nullptr;
 }
 
 void SurfaceManager::enter(UiSurface *surface)
@@ -65,7 +83,7 @@ void SurfaceManager::exit(UiSurface *surface)
     }
 
     surface->onExit();
-    if (surface != _root)
+    if (surface != _base_surface)
     {
         lv_obj_add_flag(surface->root(), LV_OBJ_FLAG_HIDDEN);
     }
@@ -73,45 +91,24 @@ void SurfaceManager::exit(UiSurface *surface)
 
 void SurfaceManager::bindInput(UiSurface *surface)
 {
-    if (!isAvailable(surface))
+    if (!isAvailable(surface) || !registerSurface(surface))
     {
         clearInput();
         return;
     }
-
-    lv_group_t *const group = surface->group();
-    if (!group)
-    {
-        clearInput();
-        return;
-    }
-
-    const bool changed = _bound_surface != surface;
-    const bool preserve_editing = lv_group_get_editing(group);
-    lv_group_set_default(group);
-    heltec::meshcore::dal::key_input::set_group(group);
-    lv_obj_t *const focused = lv_group_get_focused(group);
-    const bool focus_valid = isFocusEligible(focused) && lv_obj_get_group(focused) == group;
-    if (!focus_valid && lv_group_get_obj_count(group) > 0)
-    {
-        lv_group_focus_next(group);
-    }
-    if (preserve_editing)
-    {
-        lv_group_set_editing(group, true);
-    }
-    _bound_surface = surface;
-    if (changed)
+    Heltec::MeshCore::Dal::KeyInput::set_group(_input_group);
+    UiSurface *const previous = active();
+    lv_group_focus_obj(surface->root());
+    if (previous != surface)
     {
         surface->onActivated();
     }
+    surface->_gridNav.restoreFocus();
 }
 
 void SurfaceManager::clearInput()
 {
-    lv_group_set_default(nullptr);
-    heltec::meshcore::dal::key_input::set_group(nullptr);
-    _bound_surface = nullptr;
+    Heltec::MeshCore::Dal::KeyInput::set_group(nullptr);
 }
 
 int SurfaceManager::find(const UiSurface *surface) const
@@ -120,9 +117,9 @@ int SurfaceManager::find(const UiSurface *surface) const
     {
         return -1;
     }
-    for (uint8_t index = 0; index < _presented_count; ++index)
+    for (uint8_t index = 0; index < _surface_count; ++index)
     {
-        if (_presented[index] == surface)
+        if (_surface_stack[index] == surface)
         {
             return static_cast<int>(index);
         }
@@ -132,15 +129,15 @@ int SurfaceManager::find(const UiSurface *surface) const
 
 void SurfaceManager::remove(uint8_t index)
 {
-    if (index >= _presented_count)
+    if (index >= _surface_count)
     {
         return;
     }
-    for (uint8_t current = index; current + 1U < _presented_count; ++current)
+    for (uint8_t current = index; current + 1U < _surface_count; ++current)
     {
-        _presented[current] = _presented[current + 1U];
+        _surface_stack[current] = _surface_stack[current + 1U];
     }
-    _presented[--_presented_count] = nullptr;
+    _surface_stack[--_surface_count] = nullptr;
 }
 
 void SurfaceManager::setRoot(UiSurface *surface)
@@ -149,21 +146,21 @@ void SurfaceManager::setRoot(UiSurface *surface)
     {
         return;
     }
-    if (_root == surface)
+    if (_base_surface == surface)
     {
-        reconcile();
         return;
     }
 
     /* The manager owns one base slot. Screen roots remain visible because
        the application TileView controls their clipping and visibility. */
-    if (_root)
+    if (_base_surface)
     {
-        exit(_root);
+        exit(_base_surface);
     }
-    _root = surface;
-    enter(_root);
-    bindInput(active());
+    _base_surface = surface;
+    (void)registerSurface(_base_surface);
+    enter(_base_surface);
+    bindInput(_base_surface);
 }
 
 bool SurfaceManager::show(UiSurface *surface, bool visible)
@@ -185,12 +182,14 @@ bool SurfaceManager::show(UiSurface *surface, bool visible)
         remove(static_cast<uint8_t>(index));
         if (was_active)
         {
-            bindInput(active());
+            UiSurface *const next =
+                _surface_count > 0 ? _surface_stack[_surface_count - 1U] : _base_surface;
+            bindInput(next);
         }
         return true;
     }
 
-    if (!isAvailable(surface) || surface == _root)
+    if (!isAvailable(surface) || surface == _base_surface)
     {
         return false;
     }
@@ -205,17 +204,20 @@ bool SurfaceManager::show(UiSurface *surface, bool visible)
         }
         remove(static_cast<uint8_t>(existing));
     }
-    else if (_presented_count >= kMaxPresentedSurfaces)
+    else if (_surface_count >= kMaxPresentedSurfaces)
     {
         return false;
     }
 
-    _presented[_presented_count++] = surface;
+    (void)registerSurface(surface);
+    _surface_stack[_surface_count++] = surface;
     enter(surface);
     if (!isAvailable(surface))
     {
-        remove(static_cast<uint8_t>(_presented_count - 1U));
-        reconcile();
+        remove(static_cast<uint8_t>(_surface_count - 1U));
+        UiSurface *const next =
+            _surface_count > 0 ? _surface_stack[_surface_count - 1U] : _base_surface;
+        bindInput(next);
         return false;
     }
     bindInput(surface);
@@ -233,7 +235,7 @@ bool SurfaceManager::isVisible(const UiSurface *surface) const
     {
         return false;
     }
-    const bool managed = surface == _root || find(surface) >= 0;
+    const bool managed = surface == _base_surface || find(surface) >= 0;
     return managed && !lv_obj_has_flag(surface->root(), LV_OBJ_FLAG_HIDDEN);
 }
 
@@ -252,23 +254,4 @@ void SurfaceManager::dispatchAppStateToActive(const AppStateEvent &event)
     }
 }
 
-void SurfaceManager::reconcile()
-{
-    uint8_t index = 0;
-    while (index < _presented_count)
-    {
-        UiSurface *const surface = _presented[index];
-        if (!isAvailable(surface))
-        {
-            remove(index);
-            continue;
-        }
-        /* Hidden roots remain presented: they may be temporarily hidden by
-           an animation or by an internal overlay state. Only show(false)
-           performs the lifecycle exit and removes a surface. */
-        ++index;
-    }
-    bindInput(active());
-}
-
-} // namespace heltec::meshcore::ui
+} // namespace Heltec::MeshCore::Ui

@@ -1,16 +1,16 @@
 #pragma once
 #include "../core/FramedOverlay.hpp"
 
-namespace heltec::meshcore::biz {
+namespace Heltec::MeshCore::Biz {
 class IBizFacade;
 }
 struct _lv_obj_t;
 struct _lv_timer_t;
-namespace heltec::meshcore::ui {
+namespace Heltec::MeshCore::Ui {
 
 class PreviewOverlay : public FramedOverlay {
   public:
-    explicit PreviewOverlay(biz::IBizFacade &biz);
+    explicit PreviewOverlay(Biz::IBizFacade &biz);
 
     void applyContent(uint8_t unread, uint32_t received_ms, const char *origin, const char *text);
     void dismissByUser();
@@ -41,4 +41,4 @@ class PreviewOverlay : public FramedOverlay {
     char _message_text[161] = {};
 };
 
-} // namespace heltec::meshcore::ui
+} // namespace Heltec::MeshCore::Ui

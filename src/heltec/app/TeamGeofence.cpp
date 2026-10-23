@@ -2,7 +2,7 @@
 
 #include <math.h>
 
-namespace heltec::meshcore::team
+namespace Heltec::MeshCore::Team
 {
 namespace
 {
@@ -112,4 +112,4 @@ bool TeamGeofence::contains(int32_t latitude_e7, int32_t longitude_e7) const
     return inside;
 }
 
-} // namespace heltec::meshcore::team
+} // namespace Heltec::MeshCore::Team

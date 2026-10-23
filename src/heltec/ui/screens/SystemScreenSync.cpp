@@ -1,4 +1,5 @@
 #include "SystemScreen.hpp"
+#include "ui/widgets/DropdownViewport.hpp"
 #include "ui/theme/UiTheme.hpp"
 #if defined(HELTEC_HAS_KEY_FRAME) && HELTEC_HAS_KEY_FRAME
 #include "heltec/drivers/display/DisplayPort.hpp"
@@ -6,14 +7,14 @@
 
 #include <Arduino.h>
 
-namespace heltec::meshcore::ui
+namespace Heltec::MeshCore::Ui
 {
 namespace
 {
 #if defined(HELTEC_HAS_KEY_FRAME) && HELTEC_HAS_KEY_FRAME
 void request_dropdown_refresh()
 {
-    heltec::meshcore::dal::display_port::requestSelectionRefresh();
+    Heltec::MeshCore::Dal::DisplayPort::requestSelectionRefresh();
 }
 #else
 void request_dropdown_refresh()
@@ -38,19 +39,19 @@ void sync_switch(_lv_obj_t *sw, bool on, bool *syncing)
         *syncing = false;
 }
 
-const char *forwarding_error_text(biz::IBizFacade::ForwardingApplyResult result)
+const char *forwarding_error_text(Biz::IBizFacade::ForwardingApplyResult result)
 {
     switch (result)
     {
-    case biz::IBizFacade::ForwardingApplyResult::InvalidSelection:
+    case Biz::IBizFacade::ForwardingApplyResult::InvalidSelection:
         return "Invalid frequency";
-    case biz::IBizFacade::ForwardingApplyResult::UnsupportedFrequency:
+    case Biz::IBizFacade::ForwardingApplyResult::UnsupportedFrequency:
         return "Frequency unsupported";
-    case biz::IBizFacade::ForwardingApplyResult::InvalidRadioParams:
+    case Biz::IBizFacade::ForwardingApplyResult::InvalidRadioParams:
         return "Invalid radio params";
-    case biz::IBizFacade::ForwardingApplyResult::Unavailable:
+    case Biz::IBizFacade::ForwardingApplyResult::Unavailable:
         return "Forwarding unavailable";
-    case biz::IBizFacade::ForwardingApplyResult::Ok:
+    case Biz::IBizFacade::ForwardingApplyResult::Ok:
         return nullptr;
     }
     return "Forwarding failed";
@@ -67,7 +68,7 @@ void SystemScreen::onSwitchValueChanged(lv_event_t *e)
 
     _lv_obj_t *const sw = lv_event_get_target(e);
     const bool on = lv_obj_has_state(sw, LV_STATE_CHECKED);
-    biz::IBizFacade &app = self->_biz;
+    Biz::IBizFacade &app = self->_biz;
 
     if (sw == self->_swForwarding)
     {
@@ -80,25 +81,25 @@ void SystemScreen::onSwitchValueChanged(lv_event_t *e)
                 return;
             if (app.forwardingFrequencyCount() <= 0)
             {
-                self->_feedback.showAlert("No forwarding frequency", 2000);
+                self->showAlert("No forwarding frequency", 2000);
                 return;
             }
             if (!self->emitEvent(EventType::RepeatModeOpen))
             {
-                self->_feedback.showAlert("Unable to open frequency picker", 2000);
+                self->showAlert("Unable to open frequency picker", 2000);
             }
             return;
         }
 
-        const biz::IBizFacade::ForwardingApplyResult result = app.setForwardingEnabled(false, -1);
+        const Biz::IBizFacade::ForwardingApplyResult result = app.setForwardingEnabled(false, -1);
         self->setSwitchState(self->_swForwarding, app.forwardingEnabled());
         const char *error = forwarding_error_text(result);
-        self->_feedback.showAlert(error ? error : "Repeat mode disabled", error ? 2000 : 1000);
+        self->showAlert(error ? error : "Repeat mode disabled", error ? 2000 : 1000);
     }
     else if (sw == self->_swBle)
     {
         app.setCompanionLinkEnabled(on);
-        self->_feedback.showAlert(on ? "Bluetooth: ON" : "Bluetooth: OFF", 800);
+        self->showAlert(on ? "Bluetooth: ON" : "Bluetooth: OFF", 800);
 #ifdef PIN_BUZZER
 #if !defined(HAS_BUZZER_VOLUME_CONTROL) || !HAS_BUZZER_VOLUME_CONTROL
     }
@@ -106,7 +107,7 @@ void SystemScreen::onSwitchValueChanged(lv_event_t *e)
     {
         app.setBuzzerEnabled(on);
         self->setSwitchState(self->_swBuzzer, app.buzzerEnabled());
-        self->_feedback.showAlert(on ? "Buzzer: ON" : "Buzzer: OFF", 800);
+        self->showAlert(on ? "Buzzer: ON" : "Buzzer: OFF", 800);
 #endif
 #endif
     }
@@ -150,6 +151,8 @@ void SystemScreen::onDropdownStateEvent(lv_event_t *e)
     const lv_event_code_t code = lv_event_get_code(e);
     if (code == LV_EVENT_READY)
     {
+        lv_obj_t *const viewport = lv_obj_get_parent(self->_root);
+        dropdown_viewport_realign(dropdown, viewport != nullptr ? viewport : self->_root);
         if (self->_open_dropdown && self->_open_dropdown != dropdown)
         {
             self->closeOpenDropdown();
@@ -157,8 +160,7 @@ void SystemScreen::onDropdownStateEvent(lv_event_t *e)
         self->_open_dropdown = dropdown;
         self->_open_dropdown_original_index = lv_dropdown_get_selected(dropdown);
         lv_obj_add_state(dropdown, LV_STATE_EDITED);
-        if (self->group())
-            lv_group_set_editing(self->group(), true);
+        self->_gridNav.setEditing(true);
         request_dropdown_refresh();
     }
     else if (code == LV_EVENT_CANCEL)
@@ -166,8 +168,7 @@ void SystemScreen::onDropdownStateEvent(lv_event_t *e)
         if (self->_open_dropdown == dropdown)
             self->_open_dropdown = nullptr;
         lv_obj_clear_state(dropdown, LV_STATE_EDITED);
-        if (self->group())
-            lv_group_set_editing(self->group(), false);
+        self->_gridNav.setEditing(false);
         request_dropdown_refresh();
     }
 }
@@ -181,7 +182,7 @@ void SystemScreen::onDropdownValueChanged(lv_event_t *e)
         return;
 
     _lv_obj_t *const dd = lv_event_get_target(e);
-    biz::IBizFacade &app = self->_biz;
+    Biz::IBizFacade &app = self->_biz;
     const auto *choice = self->dropdownChoice(dd);
     if (!choice)
         return;
@@ -198,13 +199,13 @@ void SystemScreen::onDropdownValueChanged(lv_event_t *e)
         const bool forwarding_was_enabled = app.forwardingEnabled();
         app.setLoRaBandPresetIndex(sel - 1);
         self->syncControlsFromApp(app);
-        self->_feedback.showAlert(
+        self->showAlert(
             forwarding_was_enabled ? "Region saved; forwarding off" : "LoRa region saved", 2000);
     }
     else if (dd == self->_choice_screen_off.dropdown)
     {
         app.setDisplayAutoOffIndex(sel);
-        self->_feedback.showAlert("Screen off saved", 2000);
+        self->showAlert("Screen off saved", 2000);
     }
     else if (dd == self->_choice_message_preset.dropdown)
     {
@@ -239,7 +240,7 @@ void SystemScreen::setDropdownIndex(_lv_obj_t *dd, uint16_t index, bool fire_cha
         lv_event_send(choice->dropdown, LV_EVENT_VALUE_CHANGED, nullptr);
 }
 
-uint16_t SystemScreen::regionDropdownIndex(const biz::IBizFacade &app) const
+uint16_t SystemScreen::regionDropdownIndex(const Biz::IBizFacade &app) const
 {
     // Forwarding frequencies are not LoRa region presets. Index zero is the
     // non-actionable Custom/fwd status entry prepended by SystemScreen::create().
@@ -249,7 +250,7 @@ uint16_t SystemScreen::regionDropdownIndex(const biz::IBizFacade &app) const
     return exact >= 0 ? (uint16_t)(exact + 1) : 0;
 }
 
-void SystemScreen::syncDropdownsFromApp(const biz::IBizFacade &app)
+void SystemScreen::syncDropdownsFromApp(const Biz::IBizFacade &app)
 {
     setDropdownIndex(_choice_region.dropdown, regionDropdownIndex(app), false);
     setDropdownIndex(_choice_screen_off.dropdown,
@@ -262,7 +263,7 @@ void SystemScreen::setSwitchState(_lv_obj_t *sw, bool on)
     sync_switch(sw, on, &_syncing_switch);
 }
 
-void SystemScreen::syncSwitchesFromApp(const biz::IBizFacade &app)
+void SystemScreen::syncSwitchesFromApp(const Biz::IBizFacade &app)
 {
     setSwitchState(_swForwarding, app.forwardingEnabled());
     setSwitchState(_swBle, app.companionLinkEnabled());
@@ -276,7 +277,7 @@ void SystemScreen::syncSwitchesFromApp(const biz::IBizFacade &app)
 #endif
 }
 
-void SystemScreen::syncControlsFromApp(const biz::IBizFacade &app)
+void SystemScreen::syncControlsFromApp(const Biz::IBizFacade &app)
 {
     syncSwitchesFromApp(app);
     syncDropdownsFromApp(app);
@@ -336,7 +337,7 @@ void SystemScreen::setBuzzerVolumeLevel(uint8_t level, bool show_feedback)
 #else
     static const char *const labels[] = { "Volume: OFF", "Volume: 1x", "Volume: 2x", "Volume: 3x" };
 #endif
-    _feedback.showAlert(labels[level], 1000);
+    showAlert(labels[level], 1000);
 }
 
 void SystemScreen::onBuzzerVolumeButtonClicked(lv_event_t *e)
@@ -371,4 +372,4 @@ void SystemScreen::onBuzzerVolumeButtonClicked(lv_event_t *e)
 
 #endif
 
-} // namespace heltec::meshcore::ui
+} // namespace Heltec::MeshCore::Ui

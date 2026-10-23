@@ -7,18 +7,14 @@
 #include "HeltecBuzzer.h"
 #endif
 
-namespace heltec::meshcore::ui
+namespace Heltec::MeshCore::Ui
 {
-class IUiHost;
-
 class UiTask final : public AbstractUITask
 {
   public:
     UiTask(mesh::MainBoard *board, BaseSerialInterface *serial) : AbstractUITask(board, serial)
     {
     }
-
-    void attachHost(IUiHost *host);
 
     void msgRead(int msgcount) override;
     void newMsg(uint8_t path_len, const char *from_name, const char *text, int msgcount) override;
@@ -82,7 +78,6 @@ class UiTask final : public AbstractUITask
     void dismissAlert();
 
   private:
-    IUiHost *_ui_host = nullptr;
     NodePrefs *_node_prefs = nullptr;
 #ifdef PIN_BUZZER
     HeltecBuzzer _buzzer;
@@ -116,4 +111,4 @@ class UiTask final : public AbstractUITask
 // Global singleton instance created in Main.cpp for LVGL builds.
 UiTask &ui_task();
 
-} // namespace heltec::meshcore::ui
+} // namespace Heltec::MeshCore::Ui

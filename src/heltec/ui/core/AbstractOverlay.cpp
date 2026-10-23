@@ -2,13 +2,13 @@
 
 #include "ui/widgets/WidgetClasses.hpp"
 
-namespace heltec::meshcore::ui {
+namespace Heltec::MeshCore::Ui {
 
-AbstractOverlay::AbstractOverlay(biz::IBizFacade &biz)
+AbstractOverlay::AbstractOverlay(Biz::IBizFacade &biz)
     : AbstractOverlay(biz, ht_overlay_root_class) {
 }
 
-AbstractOverlay::AbstractOverlay(biz::IBizFacade &biz, const lv_obj_class_t &root_class)
+AbstractOverlay::AbstractOverlay(Biz::IBizFacade &biz, const lv_obj_class_t &root_class)
     : UiSurface(biz, root_class) {
 }
 
@@ -38,21 +38,16 @@ void AbstractOverlay::onEnter() {
 }
 
 void AbstractOverlay::setFocusObject(_lv_obj_t *object) {
-    if (!focusGroup() || !object || !lv_obj_is_valid(object)) return;
-    lv_group_set_editing(focusGroup(), false);
-    // Reopening a single-target overlay does not require reallocating its group node.
-    if (lv_obj_get_group(object) == focusGroup() && lv_group_get_obj_count(focusGroup()) == 1) {
-        lv_group_focus_obj(object);
-        return;
-    }
-    lv_group_remove_all_objs(focusGroup());
-    lv_obj_add_flag(object, LV_OBJ_FLAG_CLICKABLE | LV_OBJ_FLAG_EVENT_BUBBLE);
-    lv_obj_add_flag(object, LV_OBJ_FLAG_SCROLL_ON_FOCUS);
-    lv_group_add_obj(focusGroup(), object);
+    if (!object || !lv_obj_is_valid(object)) return;
+    _gridNav.clear();
+    lv_obj_add_flag(object, LV_OBJ_FLAG_CLICKABLE);
+    if (object == _root) return;
+    _gridNav.add(object);
+    (void)_gridNav.enterControls();
 }
 
 _lv_obj_t *AbstractOverlay::focusTarget() const {
     return _root;
 }
 
-} // namespace heltec::meshcore::ui
+} // namespace Heltec::MeshCore::Ui

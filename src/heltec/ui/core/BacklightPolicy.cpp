@@ -1,8 +1,8 @@
 #include "BacklightPolicy.hpp"
 
-#include "InputHost.hpp"
+#include "UiInputHost.hpp"
 
-namespace heltec::meshcore::ui
+namespace Heltec::MeshCore::Ui
 {
 
 BacklightMode BacklightPolicy::mode()
@@ -14,7 +14,7 @@ BacklightMode BacklightPolicy::mode()
 #endif
 }
 
-bool BacklightPolicy::handle(InputHost &host, const InputEvent &event)
+bool BacklightPolicy::handle(IUiInputHost &host, const InputEvent &event)
 {
     const uint32_t now_ms = event.timestamp_ms;
     const bool backlight_on = host.isDisplayOn();
@@ -41,7 +41,7 @@ bool BacklightPolicy::handle(InputHost &host, const InputEvent &event)
     return false;
 }
 
-bool BacklightPolicy::handleCommand(InputHost &host, InputCommand command, uint32_t now_ms)
+bool BacklightPolicy::handleCommand(IUiInputHost &host, InputCommand command, uint32_t now_ms)
 {
     if (command == InputCommand::ToggleBacklight)
     {
@@ -61,4 +61,4 @@ bool BacklightPolicy::handleCommand(InputHost &host, InputCommand command, uint3
     return false;
 }
 
-} // namespace heltec::meshcore::ui
+} // namespace Heltec::MeshCore::Ui

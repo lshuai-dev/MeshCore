@@ -2,7 +2,7 @@
 
 #include <lvgl.h>
 
-namespace heltec::meshcore::ui {
+namespace Heltec::MeshCore::Ui {
 
 namespace {
 class UiScheduler {
@@ -188,4 +188,4 @@ void UiScheduler::tick() {
     if (!any_active && _timer) lv_timer_pause(_timer);
 }
 
-} // namespace heltec::meshcore::ui
+} // namespace Heltec::MeshCore::Ui

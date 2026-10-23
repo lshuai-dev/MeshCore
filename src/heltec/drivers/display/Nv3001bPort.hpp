@@ -1,6 +1,6 @@
 #pragma once
 
-namespace heltec::meshcore::dal::nv3001b
+namespace Heltec::MeshCore::Dal::NV3001B
 {
 
 bool init();
@@ -10,4 +10,4 @@ bool isBacklightOn();
 void suspend();
 void resume();
 
-} // namespace heltec::meshcore::dal::nv3001b
+} // namespace Heltec::MeshCore::Dal::NV3001B

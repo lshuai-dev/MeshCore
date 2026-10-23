@@ -2,7 +2,7 @@
 
 #include "InputTypes.hpp"
 
-namespace heltec::meshcore::ui {
+namespace Heltec::MeshCore::Ui {
 
 class InputAdapter {
   public:
@@ -15,4 +15,4 @@ class InputAdapter {
     AdaptedInput adaptKeyboard(const InputEvent &event) const;
 };
 
-} // namespace heltec::meshcore::ui
+} // namespace Heltec::MeshCore::Ui

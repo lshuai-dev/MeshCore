@@ -18,7 +18,7 @@ AutoDiscoverRTCClock rtc_clock(fallback_clock);
 #if ENV_INCLUDE_GPS
   #include <helpers/sensors/MicroNMEALocationProvider.h>
   #include <heltec/sensors/GpsRmcSpeedStream.h>
-  heltec::gps::GpsRmcSpeedStream gps_serial(Serial1);
+  Heltec::Gps::GpsRmcSpeedStream gps_serial(Serial1);
   MicroNMEALocationProvider nmea = MicroNMEALocationProvider(gps_serial, &rtc_clock);
   EnvironmentSensorManager sensors = EnvironmentSensorManager(nmea);
 #else

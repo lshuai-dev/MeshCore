@@ -5,7 +5,6 @@
 #include "ui/core/DialogOverlay.hpp"
 #include "ui/core/FramedOverlay.hpp"
 #include "ui/widgets/HtContainer.hpp"
-#include "ui/widgets/HtScrollView.hpp"
 #include "ui/core/ScreenId.hpp"
 #include "ui/widgets/WidgetClasses.hpp"
 #include "ui/core/Capabilities.hpp"
@@ -34,7 +33,7 @@
 
 #include <lvgl.h>
 
-namespace heltec::meshcore::ui
+namespace Heltec::MeshCore::Ui
 {
 namespace
 {
@@ -812,8 +811,8 @@ static void init_keyboard_child_styles()
 #endif
 
     lv_style_init(&s_keyboard_active_textarea_style);
-    lv_style_set_border_width(&s_keyboard_active_textarea_style, 2);
 #if defined(HELTEC_UI_HAS_TOUCH) && HELTEC_UI_HAS_TOUCH
+    lv_style_set_border_width(&s_keyboard_active_textarea_style, 2);
     lv_style_set_border_color(&s_keyboard_active_textarea_style, ui_color_accent());
     lv_style_set_border_opa(&s_keyboard_active_textarea_style, LV_OPA_COVER);
     lv_style_set_border_side(&s_keyboard_active_textarea_style, LV_BORDER_SIDE_FULL);
@@ -1827,16 +1826,10 @@ static bool is_screen_tree_object(_lv_obj_t *obj)
 {
     for (_lv_obj_t *current = obj; current; current = lv_obj_get_parent(current))
     {
-        if (lv_obj_check_type(current, &ht_scroll_view_class))
+        if (is_screen_root(current))
         {
             return true;
         }
-#if defined(ENV_INCLUDE_MAP) && ENV_INCLUDE_MAP
-        if (lv_obj_check_type(current, &ht_tracker_screen_root_class))
-        {
-            return true;
-        }
-#endif
     }
     return false;
 }
@@ -2901,7 +2894,7 @@ static bool apply_overlay_child_theme(_lv_obj_t *obj)
            apply_send_message_overlay_child_theme(obj) || apply_splash_overlay_child_theme(obj);
 }
 
-static void style_navigator_content_host(lv_obj_t *content)
+static void style_gridNav_content_host(lv_obj_t *content)
 {
     if (!content)
         return;
@@ -2913,7 +2906,7 @@ static void style_navigator_content_host(lv_obj_t *content)
 }
 
 #if HELTEC_UI_HAS_TOUCH
-static void apply_navigator_grid_cell_theme(lv_obj_t *cell)
+static void apply_gridNav_grid_cell_theme(lv_obj_t *cell)
 {
     if (!cell)
         return;
@@ -2926,7 +2919,7 @@ static void apply_navigator_grid_cell_theme(lv_obj_t *cell)
                      LV_PART_MAIN | LV_STATE_FOCUSED);
 }
 
-static void apply_navigator_grid_icon_area_theme(lv_obj_t *area)
+static void apply_gridNav_grid_icon_area_theme(lv_obj_t *area)
 {
     if (!area)
         return;
@@ -2938,7 +2931,7 @@ static void apply_navigator_grid_icon_area_theme(lv_obj_t *area)
 #endif
 }
 
-static void apply_navigator_grid_title_bar_theme(lv_obj_t *bar)
+static void apply_gridNav_grid_title_bar_theme(lv_obj_t *bar)
 {
     if (!bar)
         return;
@@ -2947,7 +2940,7 @@ static void apply_navigator_grid_title_bar_theme(lv_obj_t *bar)
     lv_obj_add_style(bar, &s_nav_footer_bar_style, LV_PART_MAIN | LV_STATE_USER_1);
 }
 
-static void apply_navigator_grid_title_label_theme(lv_obj_t *label)
+static void apply_gridNav_grid_title_label_theme(lv_obj_t *label)
 {
     if (!label)
         return;
@@ -2956,7 +2949,7 @@ static void apply_navigator_grid_title_label_theme(lv_obj_t *label)
 }
 #endif
 
-static void apply_navigator_panel_chrome(lv_obj_t *obj)
+static void apply_gridNav_panel_chrome(lv_obj_t *obj)
 {
     if (!obj)
         return;
@@ -3093,14 +3086,14 @@ static bool apply_navigation_theme(_lv_obj_t *obj)
     if (!obj)
         return false;
 
-    if (lv_obj_check_type(obj, &ht_navigator_class) &&
+    if (lv_obj_check_type(obj, &ht_gridNav_class) &&
         !lv_obj_check_type(obj, &ht_navigation_ring_class))
     {
-        apply_navigator_panel_chrome(obj);
-        if (_lv_obj_t *content = ui_navigator_content(obj))
+        apply_gridNav_panel_chrome(obj);
+        if (_lv_obj_t *content = ui_gridNav_content(obj))
         {
             if (content != obj)
-                style_navigator_content_host(content);
+                style_gridNav_content_host(content);
         }
         return true;
     }
@@ -3116,28 +3109,28 @@ static bool apply_navigation_theme(_lv_obj_t *obj)
 
     if (lv_obj_check_type(obj, &ht_navigation_content_class))
     {
-        style_navigator_content_host(obj);
+        style_gridNav_content_host(obj);
         return true;
     }
 #if HELTEC_UI_HAS_TOUCH
     if (lv_obj_check_type(obj, &ht_navigation_cell_class))
     {
-        apply_navigator_grid_cell_theme(obj);
+        apply_gridNav_grid_cell_theme(obj);
         return true;
     }
     if (lv_obj_check_type(obj, &ht_navigation_icon_area_class))
     {
-        apply_navigator_grid_icon_area_theme(obj);
+        apply_gridNav_grid_icon_area_theme(obj);
         return true;
     }
     if (lv_obj_check_type(obj, &ht_navigation_title_bar_class))
     {
-        apply_navigator_grid_title_bar_theme(obj);
+        apply_gridNav_grid_title_bar_theme(obj);
         return true;
     }
     if (lv_obj_check_type(obj, &ht_navigation_title_label_class))
     {
-        apply_navigator_grid_title_label_theme(obj);
+        apply_gridNav_grid_title_label_theme(obj);
         return true;
     }
 #endif
@@ -3189,6 +3182,8 @@ bool ui_widget_theme_apply(_lv_obj_t *obj)
         init_screen_system_styles();
         lv_obj_add_style(obj, &s_screen_row_layout_style, LV_PART_MAIN);
         lv_obj_add_style(obj, &s_container_focus_style,
+                         LV_PART_MAIN | LV_STATE_USER_1);
+        lv_obj_add_style(obj, &s_container_focus_style,
                          LV_PART_MAIN | LV_STATE_FOCUSED);
         lv_obj_add_style(obj, &s_container_focus_style,
                          LV_PART_MAIN | LV_STATE_FOCUS_KEY);
@@ -3209,6 +3204,8 @@ bool ui_widget_theme_apply(_lv_obj_t *obj)
     if (lv_obj_has_class(obj, &ht_container_class))
     {
         init_screen_system_styles();
+        lv_obj_add_style(obj, &s_container_focus_style,
+                         LV_PART_MAIN | LV_STATE_USER_1);
         lv_obj_add_style(obj, &s_container_focus_style,
                          LV_PART_MAIN | LV_STATE_FOCUSED);
         lv_obj_add_style(obj, &s_container_focus_style,
@@ -3232,4 +3229,4 @@ bool ui_widget_theme_apply(_lv_obj_t *obj)
     return screen_applied || dropdown_applied || custom_applied;
 }
 
-} // namespace heltec::meshcore::ui
+} // namespace Heltec::MeshCore::Ui

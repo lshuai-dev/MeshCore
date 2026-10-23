@@ -5,10 +5,10 @@
 
 #include <cmath>
 
-using heltec::meshcore::nav::Confidence;
-using heltec::meshcore::nav::FindFriendNavEstimator;
-using heltec::meshcore::nav::FindFriendNavInput;
-using heltec::meshcore::nav::TargetFreshness;
+using Heltec::MeshCore::Nav::Confidence;
+using Heltec::MeshCore::Nav::FindFriendNavEstimator;
+using Heltec::MeshCore::Nav::FindFriendNavInput;
+using Heltec::MeshCore::Nav::TargetFreshness;
 
 namespace {
 
@@ -57,7 +57,7 @@ TEST(FindFriendNav, MedianFilterRejectsOneGpsOutlier) {
   FindFriendNavEstimator estimator;
   FindFriendNavInput input = baseInput();
   const double samples[] = {31.230400, 31.230410, 35.0, 31.230390, 31.230420};
-  heltec::meshcore::nav::FindFriendNavOutput output{};
+  Heltec::MeshCore::Nav::FindFriendNavOutput output{};
   for (size_t i = 0; i < 5; ++i) {
     input.now_ms += 1000;
     input.gps_lat_deg = samples[i];
@@ -132,7 +132,7 @@ TEST(FindFriendNav, NearbyStateUsesExitHysteresis) {
 
 TEST(Geodesic, CoincidentAndSubMeterCoordinates)
 {
-    using heltec::meshcore::geo::geodesic_inverse_wgs84;
+    using Heltec::MeshCore::Geo::geodesic_inverse_wgs84;
     double distance = 0.0;
     double bearing = 0.0;
     geodesic_inverse_wgs84(31.0, 121.0, 31.0, 121.0, distance, &bearing);
@@ -146,14 +146,14 @@ TEST(Geodesic, CoincidentAndSubMeterCoordinates)
 #if HELTEC_GEO_COMPACT
 TEST(Geodesic, CompactUsesMeanRadiusSphere)
 {
-    const double distance = heltec::meshcore::geo::geodesic_distance_m(0.0, 0.0, 0.0, 1.0);
+    const double distance = Heltec::MeshCore::Geo::geodesic_distance_m(0.0, 0.0, 0.0, 1.0);
     EXPECT_NEAR(111195.0802335, distance, 0.001);
 }
 #endif
 
 TEST(Geodesic, DateLineAndAntipodal)
 {
-    using heltec::meshcore::geo::geodesic_inverse_wgs84;
+    using Heltec::MeshCore::Geo::geodesic_inverse_wgs84;
     double distance = 0.0;
     double bearing = 0.0;
     geodesic_inverse_wgs84(0.0, 179.999, 0.0, -179.999, distance, &bearing);
@@ -168,7 +168,7 @@ TEST(Geodesic, DateLineAndAntipodal)
 
 TEST(Geodesic, PolarAndSymmetricDistance)
 {
-    using heltec::meshcore::geo::geodesic_distance_m;
+    using Heltec::MeshCore::Geo::geodesic_distance_m;
     const double forward = geodesic_distance_m(89.999, 0.0, 89.999, 90.0);
     const double reverse = geodesic_distance_m(89.999, 90.0, 89.999, 0.0);
     EXPECT_TRUE(std::isfinite(forward));

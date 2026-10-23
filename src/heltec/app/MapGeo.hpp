@@ -2,7 +2,7 @@
 
 #include <stdint.h>
 
-namespace heltec::meshcore::geo
+namespace Heltec::MeshCore::Geo
 {
 
 constexpr double kPi = 3.14159265358979323846;
@@ -33,4 +33,4 @@ float bearing_rad(double lat1, double lon1, double lat2, double lon2);
 void offset_from_center(double center_lat, double center_lon, double lat, double lon, float &east_m,
                         float &north_m);
 
-} // namespace heltec::meshcore::geo
+} // namespace Heltec::MeshCore::Geo

@@ -4,7 +4,7 @@
 #include "ui/theme/UiTheme.hpp"
 #include "ui/theme/WidgetTheme.hpp"
 
-namespace heltec::meshcore::ui
+namespace Heltec::MeshCore::Ui
 {
 namespace
 {
@@ -388,6 +388,6 @@ void CompassDialWidget::invalidateNeedle()
         lv_obj_invalidate(needle);
 }
 
-} // namespace heltec::meshcore::ui
+} // namespace Heltec::MeshCore::Ui
 
 #endif // ENV_INCLUDE_GPS || ENV_INCLUDE_COMPASS

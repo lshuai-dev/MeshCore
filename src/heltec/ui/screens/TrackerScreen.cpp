@@ -78,7 +78,7 @@ uint32_t ms_until(uint32_t now_ms, uint32_t due_ms)
     return delta <= 0 ? 0U : (uint32_t)delta;
 }
 
-bool usable_gps(const heltec::meshcore::biz::IBizFacade::GpsStatus &gps)
+bool usable_gps(const Heltec::MeshCore::Biz::IBizFacade::GpsStatus &gps)
 {
     return gps.fix_valid && isfinite(gps.lat_deg) && isfinite(gps.lon_deg) &&
            gps.lat_deg >= -90.0 && gps.lat_deg <= 90.0 && gps.lon_deg >= -180.0 &&
@@ -86,7 +86,7 @@ bool usable_gps(const heltec::meshcore::biz::IBizFacade::GpsStatus &gps)
 }
 } // namespace
 
-namespace heltec::meshcore::ui
+namespace Heltec::MeshCore::Ui
 {
 
 const lv_obj_class_t ht_tracker_screen_root_class = {
@@ -104,7 +104,7 @@ const lv_obj_class_t ht_tracker_screen_root_class = {
     sizeof(lv_obj_t),
 };
 
-TrackerScreen::TrackerScreen(biz::IBizFacade &biz, const char *title, const lv_img_dsc_t *icon)
+TrackerScreen::TrackerScreen(Biz::IBizFacade &biz, const char *title, const lv_img_dsc_t *icon)
     : AbstractScreen(biz, title, icon, ht_tracker_screen_root_class)
 {
 }
@@ -125,7 +125,6 @@ _lv_obj_t *add_tool_btn_label(_lv_obj_t *btn, const char *text)
         return nullptr;
     lv_obj_align(lb, LV_ALIGN_CENTER, 0, 0);
     lv_obj_clear_flag(lb, LV_OBJ_FLAG_CLICKABLE);
-    lv_obj_add_flag(lb, LV_OBJ_FLAG_EVENT_BUBBLE);
     return lb;
 }
 
@@ -254,7 +253,7 @@ void TrackerScreen::on_map_gesture(lv_event_t *e)
             self->_panel.setPanDragging(false);
             self->_panel.refreshOverlays();
 #if defined(HELTEC_GEOFENCE) && HELTEC_GEOFENCE
-            if (self->_biz.teamGeofenceState() == heltec::meshcore::team::GeofenceState::Editing)
+            if (self->_biz.teamGeofenceState() == Heltec::MeshCore::Team::GeofenceState::Editing)
                 self->addFencePointAt(p.x, p.y);
 #endif
         }
@@ -282,7 +281,7 @@ void TrackerScreen::update_status_line()
     if (!_lbl_status || !_panel_attached)
         return;
     char sd_buf[20];
-    const char *fs = heltec::meshcore::ui::map::map_tile_store_fs_label();
+    const char *fs = Heltec::MeshCore::Ui::Map::map_tile_store_fs_label();
     const char *sd_tag = "noSD";
     if (_panel.sd_tiles())
     {
@@ -377,8 +376,8 @@ void TrackerScreen::refreshMap(bool refresh_sd_tiles)
         return;
     if (refresh_sd_tiles)
         _panel.refreshSdTiles();
-    const biz::MapPlotUi &plot = _biz.mapPlotUi();
-    biz::IBizFacade::GpsStatus gps = _biz.gpsStatus();
+    const Biz::MapPlotUi &plot = _biz.mapPlotUi();
+    Biz::IBizFacade::GpsStatus gps = _biz.gpsStatus();
     const bool gps_usable = usable_gps(gps);
     _panel.set_gps((float)gps.lat_deg, (float)gps.lon_deg, gps_usable);
     if (gps_usable && _auto_center_on_first_fix && !_user_panned)
@@ -387,7 +386,7 @@ void TrackerScreen::refreshMap(bool refresh_sd_tiles)
         _auto_center_on_first_fix = false;
     }
     _panel.set_markers(plot.markers, plot.marker_count);
-    const biz::IBizFacade::TeamStatus team = _biz.teamStatus();
+    const Biz::IBizFacade::TeamStatus team = _biz.teamStatus();
     _team_member_count_cached = team.has_team ? team.member_count : 0;
     _team_location_count = plot.marker_count;
     _team_online_count = plot.online_count;
@@ -407,7 +406,7 @@ void TrackerScreen::center_map_on_current_gps()
 {
     if (!_panel_attached)
         return;
-    biz::IBizFacade::GpsStatus gps = _biz.gpsStatus();
+    Biz::IBizFacade::GpsStatus gps = _biz.gpsStatus();
     if (!usable_gps(gps))
     {
         syncMapToolbarVisibility();
@@ -427,7 +426,7 @@ void TrackerScreen::center_map_on_current_gps()
 void TrackerScreen::syncFenceTools()
 {
     const auto state = _biz.teamGeofenceState();
-    const biz::IBizFacade::TeamStatus team = _biz.teamStatus();
+    const Biz::IBizFacade::TeamStatus team = _biz.teamStatus();
     const bool can_edit = team.has_team && team.is_leader;
     if (_btn_fence)
     {
@@ -435,17 +434,17 @@ void TrackerScreen::syncFenceTools()
             lv_obj_clear_flag(_btn_fence, LV_OBJ_FLAG_HIDDEN);
         else
             lv_obj_add_flag(_btn_fence, LV_OBJ_FLAG_HIDDEN);
-        if (can_edit && state != heltec::meshcore::team::GeofenceState::Active)
+        if (can_edit && state != Heltec::MeshCore::Team::GeofenceState::Active)
             lv_obj_clear_state(_btn_fence, LV_STATE_DISABLED);
         else
             lv_obj_add_state(_btn_fence, LV_STATE_DISABLED);
-        if (state == heltec::meshcore::team::GeofenceState::Editing)
+        if (state == Heltec::MeshCore::Team::GeofenceState::Editing)
             lv_obj_add_state(_btn_fence, LV_STATE_CHECKED);
         else
             lv_obj_clear_state(_btn_fence, LV_STATE_CHECKED);
         if (_lv_obj_t *label = lv_obj_get_child(_btn_fence, 0))
             lv_label_set_text_static(label,
-                                     state == heltec::meshcore::team::GeofenceState::Editing
+                                     state == Heltec::MeshCore::Team::GeofenceState::Editing
                                          ? LV_SYMBOL_CLOSE
                                          : "F");
     }
@@ -455,7 +454,7 @@ void TrackerScreen::syncFenceTools()
             lv_obj_clear_flag(_btn_fence_delete, LV_OBJ_FLAG_HIDDEN);
         else
             lv_obj_add_flag(_btn_fence_delete, LV_OBJ_FLAG_HIDDEN);
-        if (can_edit && state == heltec::meshcore::team::GeofenceState::Active)
+        if (can_edit && state == Heltec::MeshCore::Team::GeofenceState::Active)
             lv_obj_clear_state(_btn_fence_delete, LV_STATE_DISABLED);
         else
             lv_obj_add_state(_btn_fence_delete, LV_STATE_DISABLED);
@@ -470,7 +469,7 @@ void TrackerScreen::syncFenceOverlay()
     memset(_fence_point_visible, 0, sizeof(_fence_point_visible));
     for (uint8_t index = 0; index < _biz.teamGeofencePointCount(); ++index)
     {
-        heltec::meshcore::team::GeofencePoint point{};
+        Heltec::MeshCore::Team::GeofencePoint point{};
         if (!_biz.teamGeofencePoint(index, point))
             continue;
         _fence_point_visible[index] = _panel.locationToPoint(
@@ -513,7 +512,7 @@ void TrackerScreen::onFenceOverlayDraw(lv_event_t *event)
         const lv_point_t end = absolute_point(self->_fence_points[index]);
         lv_draw_line(draw_ctx, &line_dsc, &start, &end);
     }
-    if (self->_biz.teamGeofenceState() == heltec::meshcore::team::GeofenceState::Active && count > 2U &&
+    if (self->_biz.teamGeofenceState() == Heltec::MeshCore::Team::GeofenceState::Active && count > 2U &&
         self->_fence_point_visible[count - 1U] && self->_fence_point_visible[0])
     {
         const lv_point_t start = absolute_point(self->_fence_points[count - 1U]);
@@ -547,10 +546,10 @@ void TrackerScreen::addFencePointAt(lv_coord_t screen_x, lv_coord_t screen_y)
         return;
     const auto result = _biz.addTeamGeofencePoint(static_cast<int32_t>(latitude * 10000000.0f),
                                                   static_cast<int32_t>(longitude * 10000000.0f));
-    if (result == heltec::meshcore::team::GeofenceAddResult::Completed)
-        _biz.showAlert("Fence active", 1200);
-    else if (result == heltec::meshcore::team::GeofenceAddResult::Full)
-        _biz.showAlert("Fence full; tap first point", 1500);
+    if (result == Heltec::MeshCore::Team::GeofenceAddResult::Completed)
+        showAlert("Fence active", 1200);
+    else if (result == Heltec::MeshCore::Team::GeofenceAddResult::Full)
+        showAlert("Fence full; tap first point", 1500);
     syncFenceOverlay();
     syncFenceTools();
 }
@@ -563,10 +562,10 @@ void TrackerScreen::onFenceToolLongPressed(lv_event_t *event)
     const auto *button = lv_event_get_target(event);
     if (button == self->_btn_fence)
     {
-        if (self->_biz.teamGeofenceState() == heltec::meshcore::team::GeofenceState::Editing)
+        if (self->_biz.teamGeofenceState() == Heltec::MeshCore::Team::GeofenceState::Editing)
             self->_biz.cancelTeamGeofenceEdit();
         else if (self->_biz.beginTeamGeofenceEdit())
-            self->_biz.showAlert("Fence marking started", 1500);
+            self->showAlert("Fence marking started", 1500);
     }
     else if (button == self->_btn_fence_delete)
     {
@@ -581,7 +580,7 @@ void TrackerScreen::syncMapToolbarVisibility()
 {
     if (!_btn_gps)
         return;
-    biz::IBizFacade::GpsStatus gps = _biz.gpsStatus();
+    Biz::IBizFacade::GpsStatus gps = _biz.gpsStatus();
     const bool gps_usable = usable_gps(gps);
     const int8_t gps_state = gps_usable ? 1 : 0;
     if (_toolbar_gps_usable == gps_state)
@@ -763,7 +762,7 @@ void TrackerScreen::onEnter()
     syncFenceTools();
 #endif
     _biz.setMapForegroundActive(true);
-    using namespace heltec::meshcore::ui::map;
+    using namespace Heltec::MeshCore::Ui::Map;
     map_tile_store_on_screen_enter();
     if (!_map_work_timer || _panel.poolBuildFailed())
     {
@@ -805,7 +804,7 @@ void TrackerScreen::onEnter()
 void TrackerScreen::onExit()
 {
 #if defined(HELTEC_GEOFENCE) && HELTEC_GEOFENCE
-    if (_biz.teamGeofenceState() == heltec::meshcore::team::GeofenceState::Editing)
+    if (_biz.teamGeofenceState() == Heltec::MeshCore::Team::GeofenceState::Editing)
     {
         _biz.cancelTeamGeofenceEdit();
         syncFenceOverlay();
@@ -983,7 +982,7 @@ bool TrackerScreen::processStartupWork()
         }
         if (_root)
             lv_obj_update_layout(_root);
-        biz::IBizFacade::GpsStatus gps = _biz.gpsStatus();
+        Biz::IBizFacade::GpsStatus gps = _biz.gpsStatus();
         const bool gps_usable = usable_gps(gps);
         float gps_home[2] = { (float)gps.lat_deg, (float)gps.lon_deg };
         _panel.load_prefs(gps_usable ? gps_home : nullptr);
@@ -991,7 +990,7 @@ bool TrackerScreen::processStartupWork()
         _auto_center_on_first_fix = !gps_usable;
         if (!gps_usable && !_panel.hasSavedCenter())
         {
-            const biz::MapPlotUi &plot = _biz.mapPlotUi();
+            const Biz::MapPlotUi &plot = _biz.mapPlotUi();
             if (plot.marker_count > 0)
             {
                 _panel.centerOnLocation(static_cast<float>(plot.markers[0].lat_micro) * 1.0e-6f,
@@ -1000,7 +999,7 @@ bool TrackerScreen::processStartupWork()
             }
         }
         _panel.syncViewportLayout();
-        _startup_phase = map::map_tile_store_ready() ? kStartupApplySd : kStartupProbeSd;
+        _startup_phase = Map::map_tile_store_ready() ? kStartupApplySd : kStartupProbeSd;
         return true;
     }
 
@@ -1009,7 +1008,7 @@ bool TrackerScreen::processStartupWork()
 #if defined(ESP_PLATFORM)
         esp_task_wdt_reset();
 #endif
-        const bool probe_done = map::map_tile_store_probe_once();
+        const bool probe_done = Map::map_tile_store_probe_once();
         if (!probe_done)
             return true;
         _startup_phase = kStartupApplySd;
@@ -1153,7 +1152,7 @@ void TrackerScreen::onAppStateChanged(const AppStateEvent &event)
 {
     if (event.type == AppStateEventType::TeamChanged)
     {
-        const biz::IBizFacade::TeamStatus team = _biz.teamStatus();
+        const Biz::IBizFacade::TeamStatus team = _biz.teamStatus();
         _team_member_count_cached = team.has_team ? team.member_count : 0;
         _team_refresh_enabled = team.has_team;
         _next_team_refresh_ms = _team_refresh_enabled ? millis() + kTeamRefreshPeriodMs : 0;
@@ -1251,19 +1250,19 @@ bool TrackerScreen::buildSurface()
             {
                 (void)add_tool_btn_label(_btn_zoom_out, "-");
                 lv_obj_add_event_cb(_btn_zoom_out, onZoomOutClicked, LV_EVENT_CLICKED, this);
-                addFocusableObject(_btn_zoom_out, nullptr, false);
+                addNavigableObject(_btn_zoom_out, nullptr, false);
             }
             if (_btn_zoom_in)
             {
                 (void)add_tool_btn_label(_btn_zoom_in, "+");
                 lv_obj_add_event_cb(_btn_zoom_in, onZoomInClicked, LV_EVENT_CLICKED, this);
-                addFocusableObject(_btn_zoom_in, nullptr, false);
+                addNavigableObject(_btn_zoom_in, nullptr, false);
             }
             if (_btn_gps)
             {
                 (void)add_tool_btn_label(_btn_gps, "G");
                 lv_obj_add_event_cb(_btn_gps, onGpsClicked, LV_EVENT_CLICKED, this);
-                addFocusableObject(_btn_gps, nullptr, false);
+                addNavigableObject(_btn_gps, nullptr, false);
             }
 #if defined(HELTEC_GEOFENCE) && HELTEC_GEOFENCE
             if (_btn_fence)
@@ -1271,14 +1270,14 @@ bool TrackerScreen::buildSurface()
                 (void)add_tool_btn_label(_btn_fence, "F");
                 lv_obj_add_event_cb(_btn_fence, onFenceToolLongPressed,
                                     LV_EVENT_LONG_PRESSED, this);
-                addFocusableObject(_btn_fence, nullptr, false);
+                addNavigableObject(_btn_fence, nullptr, false);
             }
             if (_btn_fence_delete)
             {
                 (void)add_tool_btn_label(_btn_fence_delete, "D");
                 lv_obj_add_event_cb(_btn_fence_delete, onFenceToolLongPressed,
                                     LV_EVENT_LONG_PRESSED, this);
-                addFocusableObject(_btn_fence_delete, nullptr, false);
+                addNavigableObject(_btn_fence_delete, nullptr, false);
             }
             syncFenceTools();
 #endif
@@ -1303,6 +1302,6 @@ bool TrackerScreen::buildSurface()
     return true;
 }
 
-} // namespace heltec::meshcore::ui
+} // namespace Heltec::MeshCore::Ui
 
 #endif // ENV_INCLUDE_MAP

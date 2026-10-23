@@ -9,7 +9,7 @@
 #define HELTEC_BUTTON_MAX_CLICKS 3
 #endif
 
-namespace heltec::meshcore::dal::momentary_button
+namespace Heltec::MeshCore::Dal::MomentaryButton
 {
 namespace
 {
@@ -95,8 +95,8 @@ static void emit_gesture(uint8_t slot, ButtonGesture gesture)
     const uint32_t key = (gesture == ButtonGesture::Long)
                              ? button.map.long_press
                              : key_for_clicks(button.map, static_cast<uint8_t>(gesture));
-    key_input::post(key, gesture == ButtonGesture::Long ? key_input::KeyDelivery::Pulse
-                                                        : key_input::KeyDelivery::Tracked);
+    KeyInput::post(key, gesture == ButtonGesture::Long ? KeyInput::KeyDelivery::Pulse
+                                                        : KeyInput::KeyDelivery::Tracked);
 }
 
 static void BTN_ISR enqueue_level(uint8_t slot)
@@ -449,9 +449,9 @@ void configure(const Config &cfg)
 bool initialize()
 {
     setup_gpio();
-    key_input::set_poll_hook(poll_buttons);
-    key_input::set_down_state_provider(any_button_active);
-    return key_input::initialize();
+    KeyInput::set_poll_hook(poll_buttons);
+    KeyInput::set_down_state_provider(any_button_active);
+    return KeyInput::initialize();
 }
 
 void set_gesture_emit(GestureEmitFn fn)
@@ -486,4 +486,4 @@ bool hasPendingGesture()
     return false;
 }
 
-} // namespace heltec::meshcore::dal::momentary_button
+} // namespace Heltec::MeshCore::Dal::MomentaryButton

@@ -9,7 +9,7 @@
 
 struct _lv_obj_t;
 
-namespace heltec::meshcore::ui::map
+namespace Heltec::MeshCore::Ui::Map
 {
 
 enum MapDirty : uint8_t
@@ -64,7 +64,7 @@ class MapPanel
     void save_prefs();
 
     void set_gps(float lat, float lon, bool valid);
-    void set_markers(const heltec::meshcore::biz::MapPlotMarker *markers, int count);
+    void set_markers(const Heltec::MeshCore::Biz::MapPlotMarker *markers, int count);
     bool screenToLocation(lv_coord_t screen_x, lv_coord_t screen_y, float &latitude,
                           float &longitude) const;
     bool locationToPoint(float latitude, float longitude, lv_point_t &point) const;
@@ -240,4 +240,4 @@ class MapPanel
     int _marker_count = 0;
 };
 
-} // namespace heltec::meshcore::ui::map
+} // namespace Heltec::MeshCore::Ui::Map
