@@ -46,7 +46,6 @@ class CalibrationOverlay : public DialogOverlay
     void checkTimeout();
     void startTimeoutTimer();
     void stopTimeoutTimer();
-    _lv_obj_t *focusTarget() const override;
     bool onKey(uint32_t key) override;
     static void timeoutTimerCb(lv_timer_t *timer);
 

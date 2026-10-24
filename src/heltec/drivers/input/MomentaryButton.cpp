@@ -95,8 +95,8 @@ static void emit_gesture(uint8_t slot, ButtonGesture gesture)
     const uint32_t key = (gesture == ButtonGesture::Long)
                              ? button.map.long_press
                              : key_for_clicks(button.map, static_cast<uint8_t>(gesture));
-    KeyInput::post(key, gesture == ButtonGesture::Long ? KeyInput::KeyDelivery::Pulse
-                                                        : KeyInput::KeyDelivery::Tracked);
+    KeyInput::postState(key, gesture == ButtonGesture::Long ? KeyInput::KeyDelivery::Pulse
+                                                             : KeyInput::KeyDelivery::Tracked);
 }
 
 static void BTN_ISR enqueue_level(uint8_t slot)

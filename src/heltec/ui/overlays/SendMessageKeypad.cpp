@@ -547,7 +547,6 @@ void SendMessageOverlay::onEnter()
 {
     if (!_root || !_list_mid)
         return;
-    AbstractOverlay::onEnter();
     _confirm_pending = false;
     _model.reset(_biz);
     if (_pending_target_valid)
@@ -573,7 +572,6 @@ void SendMessageOverlay::onExit()
         if (_row_objs[i])
             lv_obj_add_flag(_row_objs[i], LV_OBJ_FLAG_HIDDEN);
     }
-    AbstractOverlay::onExit();
     hideVisual();
 }
 

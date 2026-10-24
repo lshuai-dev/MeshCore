@@ -9,6 +9,7 @@ namespace
 
 static lv_indev_drv_t s_drv;
 static lv_indev_t *s_indev = nullptr;
+static lv_group_t *s_group = nullptr;
 static bool s_drv_registered = false;
 static DownStateFn s_down_state_provider = nullptr;
 static PollFn s_poll_hook = nullptr;
@@ -37,6 +38,18 @@ static DeliveryState s_state = DeliveryState::Idle;
 static uint32_t s_current_key = LV_KEY_ENTER;
 static bool s_release_wait_requested = false;
 static bool s_pulse_waits_for_physical_release = true;
+static uint32_t s_pending_key = 0;
+
+static void dispatch_pending_key(void *user_data)
+{
+    (void)user_data;
+    const uint32_t key = s_pending_key;
+    s_pending_key = 0;
+    if (key != 0 && s_group != nullptr)
+    {
+        (void)lv_group_send_data(s_group, key);
+    }
+}
 
 static bool is_down()
 {
@@ -52,6 +65,7 @@ static void reset_state()
     s_current_key = LV_KEY_ENTER;
     s_release_wait_requested = false;
     s_pulse_waits_for_physical_release = true;
+    s_pending_key = 0;
 }
 
 static bool enqueue_key(uint32_t key, KeyDelivery delivery)
@@ -187,6 +201,7 @@ bool initialize()
 
 void set_group(_lv_group_t *group)
 {
+    s_group = group;
     if (!s_indev)
         return;
     lv_indev_set_group(s_indev, group);
@@ -202,9 +217,24 @@ void set_poll_hook(PollFn fn)
     s_poll_hook = fn;
 }
 
-bool post(uint32_t key, KeyDelivery delivery)
+bool postState(uint32_t key, KeyDelivery delivery)
 {
     return enqueue_key(key, delivery);
+}
+
+bool postKey(uint32_t key)
+{
+    if (key == 0 || s_pending_key != 0)
+    {
+        return false;
+    }
+    s_pending_key = key;
+    if (lv_async_call(dispatch_pending_key, nullptr) != LV_RES_OK)
+    {
+        s_pending_key = 0;
+        return false;
+    }
+    return true;
 }
 
 } // namespace Heltec::MeshCore::Dal::KeyInput

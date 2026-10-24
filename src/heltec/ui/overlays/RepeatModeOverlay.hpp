@@ -28,7 +28,6 @@ class RepeatModeOverlay : public FramedOverlay
     static constexpr uint8_t kMaxFrequencyItems = 3;
     static constexpr size_t kFrequencyLabelCapacity = 28;
 
-    _lv_obj_t *focusTarget() const override;
     bool onKey(uint32_t key) override;
 
     void applySelection(uint8_t item_index);

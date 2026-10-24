@@ -68,6 +68,7 @@ static void ensure_buzzer_hw() {
 #endif
 
 #ifdef PIN_STATUS_LED
+// Status LED feedback.
 void UiTask::pollStatusLed() {
     const uint32_t now = millis();
     if ((int32_t)(now - _status_led_next_ms) < 0) return;
@@ -85,6 +86,7 @@ void UiTask::pollStatusLed() {
 }
 #endif
 
+// Initialization.
 void UiTask::begin(NodePrefs *node_prefs) {
     _node_prefs = node_prefs;
 #if defined(HAS_LNA_CONTROL) && HAS_LNA_CONTROL
@@ -128,15 +130,21 @@ void UiTask::begin(NodePrefs *node_prefs) {
 #endif
 }
 
+// MeshCore message and connection callbacks.
 void UiTask::msgRead(int msgcount) {
     setMessageCount(msgcount);
 }
 
 void UiTask::setMessageCount(int msgcount) {
-    _msg_count = msgcount;
-    AppStateEvent ev{};
-    ev.type = AppStateEventType::UnreadMessageCountChanged;
-    app_state_notifier().notify(ev);
+    if (_msg_count != msgcount) {
+        _msg_count = msgcount;
+        AppStateEvent event{};
+        event.type = AppStateEventType::UnreadMessageCountChanged;
+        app_state_notifier().notify(event);
+    }
+    if (msgcount == 0) {
+        dismissPreview();
+    }
 }
 
 void UiTask::newMsg(uint8_t path_len, const char *from_name, const char *text, int msgcount) {
@@ -158,6 +166,7 @@ void UiTask::newMsg(uint8_t path_len, const char *from_name, const char *text, i
     app_state_notifier().notify(event);
 }
 
+// MeshCore notification feedback.
 void UiTask::notify(UIEventType t) {
 #if defined(PIN_BUZZER) && PIN_BUZZER
     switch (t) {
@@ -188,6 +197,7 @@ void UiTask::setHasConnection(bool connected) {
     app_state_notifier().notify(ev);
 }
 
+// Periodic hardware servicing.
 void UiTask::loop() {
 #ifdef PIN_BUZZER
     if (_buzzer_startup_pending) {
@@ -223,14 +233,7 @@ void UiTask::loop() {
 #endif
 }
 
-bool UiTask::isBuzzerQuiet() const {
-#ifdef PIN_BUZZER
-    return _buzzer.isQuiet();
-#else
-    return true;
-#endif
-}
-
+// Buzzer settings and feedback.
 bool UiTask::isBuzzerPlaying() {
 #ifdef PIN_BUZZER
     return _buzzer.isPlaying();
@@ -304,6 +307,7 @@ void UiTask::setBuzzerVolumeLevel(uint8_t level) {
 #endif
 }
 
+// Board radio front-end control.
 bool UiTask::isLnaCanControl() const {
 #if defined(HAS_LNA_CONTROL) && HAS_LNA_CONTROL
     return Heltec::MeshCore::Board::lnaCanControl();
@@ -336,6 +340,7 @@ bool UiTask::setLnaEnabled(bool enabled) {
 #endif
 }
 
+// Shutdown feedback.
 void UiTask::finishShutdownFeedback() {
     _shutdown_feedback_active = false;
 #ifdef PIN_STATUS_LED
@@ -361,17 +366,7 @@ bool UiTask::shutdownFeedbackDone() {
     return true;
 }
 
-void UiTask::playShutdownMelody() {
-    startShutdownFeedback();
-#ifdef PIN_BUZZER
-    const uint32_t started = millis();
-    while (!shutdownFeedbackDone() && (millis() - started) < 2500U) {
-        _buzzer.loop();
-    }
-    finishShutdownFeedback();
-#endif
-}
-
+// Transient alert state consumed by UiApp.
 void UiTask::showAlert(const char *text, int duration_millis) {
     if (!text) {
         _alert[0] = '\0';
@@ -407,12 +402,7 @@ void UiTask::dismissAlert() {
     app_state_notifier().notify(event);
 }
 
-uint32_t UiTask::previewAgeSeconds() const {
-    if (_preview_count == 0) return 0;
-    const uint32_t age_ms = millis() - _preview_entries[_preview_head].received_ms;
-    return age_ms / 1000U;
-}
-
+// Volatile unread-message preview queue.
 bool UiTask::advancePreview() {
     if (_preview_count == 0) return false;
     --_preview_count;

@@ -123,7 +123,7 @@ bool dispatchCommand(IUiInputHost &host, InputCommand command)
         {
             return true;
         }
-        return Heltec::MeshCore::Dal::KeyInput::post(
+        return Heltec::MeshCore::Dal::KeyInput::postState(
             LV_KEY_RIGHT,
             Heltec::MeshCore::Dal::KeyInput::KeyDelivery::IndependentPulse);
     }
@@ -157,7 +157,12 @@ void emitKey(uint32_t key, bool pulse)
     if (key == 0)
         return;
     using Heltec::MeshCore::Dal::KeyInput::KeyDelivery;
-    Heltec::MeshCore::Dal::KeyInput::post(key, pulse ? KeyDelivery::Pulse : KeyDelivery::Tracked);
+    if (pulse)
+    {
+        (void)Heltec::MeshCore::Dal::KeyInput::postKey(key);
+        return;
+    }
+    (void)Heltec::MeshCore::Dal::KeyInput::postState(key, KeyDelivery::Tracked);
 }
 
 void dispatchAdapted(IUiInputHost &host, const InputEvent &event, const AdaptedInput &input,

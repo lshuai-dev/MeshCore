@@ -812,7 +812,6 @@ void NavigationPane::resetPanel()
 
 void NavigationPane::onEnter()
 {
-    UiSurface::onEnter();
     _close_animating = false;
     if (!_nav || btnCount() == 0)
         return;

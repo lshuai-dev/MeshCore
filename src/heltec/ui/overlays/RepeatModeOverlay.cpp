@@ -129,16 +129,12 @@ bool RepeatModeOverlay::build() {
     return true;
 }
 
-_lv_obj_t *RepeatModeOverlay::focusTarget() const {
-#if HELTEC_UI_HAS_TOUCH
-    return _touch_roller;
-#else
-    return nullptr;
-#endif
-}
-
 void RepeatModeOverlay::onEnter() {
-    AbstractOverlay::onEnter();
+#if HELTEC_UI_HAS_TOUCH
+    _gridNav.clear();
+    _gridNav.add(_touch_roller);
+    (void)_gridNav.enterControls();
+#endif
     setApplying(false);
 
     int selected_item = 0;

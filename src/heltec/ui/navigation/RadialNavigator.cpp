@@ -418,14 +418,12 @@ void RadialNavigator::ensureDefaultFocus() {
 }
 
 void RadialNavigator::onEnter() {
-    UiSurface::onEnter();
     if (!_root || !_nav || btnCount() == 0) return;
     openPanel();
 }
 
 void RadialNavigator::onExit() {
     resetPanel();
-    UiSurface::onExit();
 }
 
 void RadialNavigator::sendTilePreview(uint8_t tile_idx) {

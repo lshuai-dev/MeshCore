@@ -26,7 +26,10 @@ bool initialize();
 void set_group(_lv_group_t *group);
 void set_down_state_provider(DownStateFn fn);
 void set_poll_hook(PollFn fn);
-/** Queue a key for LVGL delivery. Returns false only when key is invalid or the queue is full. */
-bool post(uint32_t key, KeyDelivery delivery = KeyDelivery::Tracked);
+/** Queue simulated input-device state for LVGL delivery. */
+bool postState(uint32_t key, KeyDelivery delivery = KeyDelivery::Tracked);
+
+/** Send one completed logical key after the current LVGL event finishes. */
+bool postKey(uint32_t key);
 
 } // namespace Heltec::MeshCore::Dal::KeyInput

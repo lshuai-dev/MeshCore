@@ -31,10 +31,6 @@ class KeyboardOverlay : public AbstractOverlay
     bool build() override;
 
   private:
-    _lv_obj_t *focusTarget() const override
-    {
-        return _keyboard;
-    }
     bool onKey(uint32_t key) override;
 
     enum class ComposeMode : uint8_t

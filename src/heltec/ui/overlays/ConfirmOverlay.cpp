@@ -33,7 +33,6 @@ const char *confirmation_body(UiConfirmAction action)
 
 void ConfirmOverlay::onEnter()
 {
-    DialogOverlay::onEnter();
     if (!panel())
     {
         return;

@@ -339,15 +339,9 @@ void RadioParamSyncOverlay::onEnter()
     if (_roller)
         lv_obj_clear_state(_roller, LV_STATE_DISABLED);
 #endif
-    AbstractOverlay::onEnter();
     syncFromPrefs();
     configureListLayout();
     renderRows();
-}
-
-void RadioParamSyncOverlay::onExit()
-{
-    AbstractOverlay::onExit();
 }
 
 void RadioParamSyncOverlay::applySelection()

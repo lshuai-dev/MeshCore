@@ -166,7 +166,6 @@ void PreviewOverlay::onEnter() {
         lv_timer_reset(_age_timer);
         lv_timer_resume(_age_timer);
     }
-    AbstractOverlay::onEnter();
 }
 
 void PreviewOverlay::onExit() {

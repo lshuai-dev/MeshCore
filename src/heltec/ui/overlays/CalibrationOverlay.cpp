@@ -78,11 +78,6 @@ bool CalibrationOverlay::build()
     return true;
 }
 
-_lv_obj_t *CalibrationOverlay::focusTarget() const
-{
-    return panel() ? panel() : _root;
-}
-
 bool CalibrationOverlay::onKey(uint32_t key)
 {
     if (key == LV_KEY_ENTER)
@@ -112,7 +107,6 @@ void CalibrationOverlay::onEnter()
 {
     if (!_root || !panel())
         return;
-    DialogOverlay::onEnter();
     lv_obj_update_layout(panel());
     openSession();
     render();
@@ -132,7 +126,6 @@ void CalibrationOverlay::onExit()
     {
         (void)_biz.restoreCompassCalibration();
     }
-    DialogOverlay::onExit();
     _phase = Phase::Idle;
 }
 
@@ -345,10 +338,6 @@ bool CalibrationOverlay::build()
     if (!DialogOverlay::build())
         return false;
     return false;
-}
-_lv_obj_t *CalibrationOverlay::focusTarget() const
-{
-    return nullptr;
 }
 bool CalibrationOverlay::onKey(uint32_t)
 {

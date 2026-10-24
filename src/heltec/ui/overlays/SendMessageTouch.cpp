@@ -580,8 +580,6 @@ void SendMessageOverlay::onEnter()
         return;
     if (!_list)
         return;
-    // Fixed group members were registered during create(); do not replace them.
-    UiSurface::onEnter();
     fitToDisplay(lv_obj_get_parent(_root));
     fitToDisplay(_root);
     _model.reset(_biz);
@@ -599,7 +597,6 @@ void SendMessageOverlay::onEnter()
 
 void SendMessageOverlay::onExit()
 {
-    AbstractOverlay::onExit();
     hideVisual();
 }
 

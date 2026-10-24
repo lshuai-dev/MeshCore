@@ -24,7 +24,6 @@ class RadioParamSyncOverlay : public FramedOverlay
 
   protected:
     void onEnter() override;
-    void onExit() override;
     bool build() override;
 
   private:

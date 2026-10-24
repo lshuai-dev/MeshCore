@@ -507,7 +507,6 @@ bool QuickPingOverlay::build()
 
 void QuickPingOverlay::onEnter()
 {
-    UiSurface::onEnter(); // Keep startup-registered focus members.
     if (_backdrop && lv_obj_is_valid(_backdrop))
     {
         lv_obj_clear_flag(_backdrop, LV_OBJ_FLAG_HIDDEN);
@@ -547,7 +546,6 @@ void QuickPingOverlay::onExit()
     _preset_edit_active = false;
     closeDropdowns();
     setKeyboardVisible(false);
-    AbstractOverlay::onExit();
 }
 
 void QuickPingOverlay::slideExec(void *var, int32_t value)

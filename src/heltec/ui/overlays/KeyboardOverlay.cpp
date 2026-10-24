@@ -904,7 +904,9 @@ void KeyboardOverlay::onEnter()
         return;
     lv_obj_clear_flag(_keyboard, LV_OBJ_FLAG_HIDDEN);
     _close_pending = false;
-    setFocusObject(_keyboard);
+    _gridNav.clear();
+    _gridNav.add(_keyboard);
+    (void)_gridNav.enterControls();
     _gridNav.setCaptureMode(HtGridNav::CaptureMode::Persistent);
     _gridNav.setHorizontalNavigation(true);
     if (_compose_mode == ComposeMode::Waypoint)
@@ -924,7 +926,6 @@ void KeyboardOverlay::onExit()
     _gridNav.setEditing(false);
     _gridNav.setHorizontalNavigation(false);
     _gridNav.setCaptureMode(HtGridNav::CaptureMode::Transient);
-    AbstractOverlay::onExit();
     if (_textarea)
     {
         lv_textarea_set_text(_textarea, "");

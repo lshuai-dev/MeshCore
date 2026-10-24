@@ -36,7 +36,6 @@ bool AlertOverlay::build() {
 }
 
 void AlertOverlay::onEnter() {
-    DialogOverlay::onEnter();
     if (!_root) return;
     _entered_ms = lv_tick_get();
 

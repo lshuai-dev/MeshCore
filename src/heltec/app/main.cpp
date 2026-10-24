@@ -119,7 +119,7 @@ ArduinoSerialInterface serial_interface;
 #endif
 
 #include "ui/core/UiTask.hpp"
-static Heltec::MeshCore::Ui::UiTask s_ui_task(&board, &serial_interface);
+static Heltec::MeshCore::Ui::UiTask s_ui_task(&serial_interface);
 namespace Heltec::MeshCore::Ui
 {
 UiTask &ui_task()

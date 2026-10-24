@@ -13,7 +13,7 @@ namespace Heltec::MeshCore::Ui
 class UiTask final : public AbstractUITask
 {
   public:
-    UiTask(mesh::MainBoard *board, BaseSerialInterface *serial) : AbstractUITask(board, serial)
+    explicit UiTask(BaseSerialInterface *serial) : AbstractUITask(serial)
     {
     }
 
@@ -25,7 +25,6 @@ class UiTask final : public AbstractUITask
     /** Init buzzer from stored prefs (call once after mesh prefs are loaded). */
     void begin(NodePrefs *node_prefs);
 
-    bool isBuzzerQuiet() const;
     bool isBuzzerPlaying();
     void setBuzzerEnabled(bool enabled);
     uint8_t buzzerVolumeLevel() const;
@@ -35,7 +34,6 @@ class UiTask final : public AbstractUITask
     bool setLnaEnabled(bool enabled);
     void startShutdownFeedback();
     bool shutdownFeedbackDone();
-    void playShutdownMelody();
 
     int msgCount() const
     {
@@ -64,7 +62,6 @@ class UiTask final : public AbstractUITask
     {
         return _preview_entries[_preview_head].received_ms;
     }
-    uint32_t previewAgeSeconds() const;
     bool advancePreview();
     void dismissPreview();
 
