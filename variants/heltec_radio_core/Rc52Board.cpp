@@ -9,7 +9,7 @@
 #include <lvgl.h>
 #include "heltec/drivers/display/DisplayPort.hpp"
 #include "heltec/drivers/input/MomentaryButton.hpp"
-#include "heltec/ui/core/InputPipeline.hpp"
+#include "heltec/ui/core/InputRouter.hpp"
 #endif
 
 namespace
@@ -29,11 +29,11 @@ void pollNavigationExpander(lv_timer_t *timer)
     const uint8_t pressed_edges = s_navigation_expander->pollPressedEdges();
     if ((pressed_edges & 0x01U) != 0U)
     {
-        Heltec::MeshCore::Ui::InputPipeline::onSyntheticKey(LV_KEY_PREV, true);
+        Heltec::MeshCore::Ui::InputRouter::onSyntheticKey(LV_KEY_PREV, true);
     }
     if ((pressed_edges & 0x02U) != 0U)
     {
-        Heltec::MeshCore::Ui::InputPipeline::onSyntheticKey(LV_KEY_NEXT, true);
+        Heltec::MeshCore::Ui::InputRouter::onSyntheticKey(LV_KEY_NEXT, true);
     }
 }
 #endif
@@ -56,7 +56,6 @@ void initializeUserInterface(RefCountedDigitalPin &display_power,
     (void)Heltec::MeshCore::Dal::DisplayPort::init();
 
     using Heltec::MeshCore::Dal::MomentaryButton::Config;
-    using Heltec::MeshCore::Dal::MomentaryButton::KeyMap;
     Config config{};
     config.debounce_ms = 50;
     config.multi_click_window_ms = 350;
@@ -64,7 +63,6 @@ void initializeUserInterface(RefCountedDigitalPin &display_power,
     config.buttons[0].pin = PIN_USER_BTN;
     config.buttons[0].pin_mode = INPUT_PULLUP;
     config.buttons[0].active_level = LOW;
-    config.buttons[0].map = KeyMap(LV_KEY_NEXT, LV_KEY_ESC, LV_KEY_PREV, LV_KEY_ENTER);
     Heltec::MeshCore::Dal::MomentaryButton::configure(config);
     Heltec::MeshCore::Dal::MomentaryButton::initialize();
     if (io_expander.isReady())

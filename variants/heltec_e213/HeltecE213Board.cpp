@@ -28,7 +28,6 @@ void HeltecE213Board::begin() {
     (void)Heltec::MeshCore::Dal::DisplayPort::init();
 
     using Heltec::MeshCore::Dal::MomentaryButton::Config;
-    using Heltec::MeshCore::Dal::MomentaryButton::KeyMap;
 
     Config cnf{};
     // Keep stable-level filtering for line transients, but use a short enough
@@ -40,8 +39,6 @@ void HeltecE213Board::begin() {
     cnf.buttons[0].pin = E213_LVGL_USER_BUTTON_PIN;
     cnf.buttons[0].pin_mode = INPUT_PULLUP;
     cnf.buttons[0].active_level = LOW;
-    cnf.buttons[0].map =
-        KeyMap(E213_LV_KEY_NEXT, E213_LV_KEY_ESC, E213_LV_KEY_PREV, E213_LV_KEY_ENTER);
     Heltec::MeshCore::Dal::MomentaryButton::configure(cnf);
     (void)Heltec::MeshCore::Dal::MomentaryButton::initialize();
 #endif

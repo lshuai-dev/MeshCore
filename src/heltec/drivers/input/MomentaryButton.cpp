@@ -1,8 +1,5 @@
 #include "MomentaryButton.hpp"
 
-#include "KeyInput.hpp"
-#include "MomentaryButtonDetail.hpp"
-
 #include <Arduino.h>
 
 #ifndef HELTEC_BUTTON_MAX_CLICKS
@@ -44,7 +41,6 @@ struct ButtonState
     uint8_t clicks = 0;
     unsigned long last_release = 0;
     bool long_fired = false;
-    KeyMap map;
     volatile uint8_t edge_head = 0;
     volatile uint8_t edge_tail = 0;
     volatile uint8_t edge_level[kEdgeCap] = {};
@@ -55,20 +51,11 @@ static Config s_cfg;
 static ButtonState s_buttons[HELTEC_UI_BUTTON_COUNT];
 static bool s_gpio_ready = false;
 static bool s_irq_attached = false;
-static GestureEmitFn s_gesture_emit = nullptr;
+static GestureHandler s_gesture_handler = nullptr;
 
 static inline bool is_pressed(uint8_t level, uint8_t active_level)
 {
     return level == active_level;
-}
-
-static uint32_t key_for_clicks(const KeyMap &map, uint8_t count)
-{
-    if (count == 1)
-        return map.click;
-    if (count == 2)
-        return map.dbl;
-    return map.tri;
 }
 
 static ButtonGesture gesture_for_clicks(uint8_t count)
@@ -82,21 +69,10 @@ static ButtonGesture gesture_for_clicks(uint8_t count)
 
 static void emit_gesture(uint8_t slot, ButtonGesture gesture)
 {
-    if (s_gesture_emit)
+    if (s_gesture_handler)
     {
-        s_gesture_emit(slot, gesture);
-        return;
+        s_gesture_handler(slot, gesture);
     }
-
-    if (gesture == ButtonGesture::LongRepeat)
-        return;
-
-    const ButtonState &button = s_buttons[slot];
-    const uint32_t key = (gesture == ButtonGesture::Long)
-                             ? button.map.long_press
-                             : key_for_clicks(button.map, static_cast<uint8_t>(gesture));
-    KeyInput::postState(key, gesture == ButtonGesture::Long ? KeyInput::KeyDelivery::Pulse
-                                                             : KeyInput::KeyDelivery::Tracked);
 }
 
 static void BTN_ISR enqueue_level(uint8_t slot)
@@ -395,7 +371,6 @@ static void setup_gpio()
         button = ButtonState{};
         button.pin = config.pin;
         button.active_level = config.active_level;
-        button.map = config.map;
         if (button.pin < 0)
             continue;
 
@@ -449,14 +424,12 @@ void configure(const Config &cfg)
 bool initialize()
 {
     setup_gpio();
-    KeyInput::set_poll_hook(poll_buttons);
-    KeyInput::set_down_state_provider(any_button_active);
-    return KeyInput::initialize();
+    return s_gpio_ready;
 }
 
-void set_gesture_emit(GestureEmitFn fn)
+void setGestureHandler(GestureHandler handler)
 {
-    s_gesture_emit = fn;
+    s_gesture_handler = handler;
 }
 
 void poll()

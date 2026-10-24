@@ -1,6 +1,6 @@
 #include "BacklightPolicy.hpp"
 
-#include "UiInputHost.hpp"
+#include "ui/app/App.hpp"
 
 namespace Heltec::MeshCore::Ui
 {
@@ -14,10 +14,9 @@ BacklightMode BacklightPolicy::mode()
 #endif
 }
 
-bool BacklightPolicy::handle(IUiInputHost &host, const InputEvent &event)
+bool BacklightPolicy::handle(UiApp &app, uint32_t now_ms)
 {
-    const uint32_t now_ms = event.timestamp_ms;
-    const bool backlight_on = host.isDisplayOn();
+    const bool backlight_on = app.isDisplayOn();
 
     switch (mode())
     {
@@ -30,32 +29,11 @@ bool BacklightPolicy::handle(IUiInputHost &host, const InputEvent &event)
     default:
         if (!backlight_on)
         {
-            host.notifyDisplayActivity(now_ms);
+            app.notifyDisplayActivity(now_ms);
             return true;
         }
-        if (event.source != InputSource::None)
-            host.notifyDisplayActivity(now_ms);
+        app.notifyDisplayActivity(now_ms);
         break;
-    }
-
-    return false;
-}
-
-bool BacklightPolicy::handleCommand(IUiInputHost &host, InputCommand command, uint32_t now_ms)
-{
-    if (command == InputCommand::ToggleBacklight)
-    {
-        host.toggleDisplay(now_ms);
-        return true;
-    }
-
-    if (command == InputCommand::WakeBacklight)
-    {
-        if (!host.isDisplayOn())
-        {
-            host.notifyDisplayActivity(now_ms);
-            return true;
-        }
     }
 
     return false;

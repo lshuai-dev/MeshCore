@@ -14,19 +14,17 @@
 namespace Heltec::MeshCore::Dal::MomentaryButton
 {
 
-struct KeyMap
+enum class ButtonGesture : uint8_t
 {
-    uint32_t click = 0;
-    uint32_t dbl = 0;
-    uint32_t tri = 0;
-    uint32_t long_press = 0;
-
-    constexpr KeyMap() = default;
-    constexpr KeyMap(uint32_t click_, uint32_t dbl_, uint32_t tri_, uint32_t long_)
-        : click(click_), dbl(dbl_), tri(tri_), long_press(long_)
-    {
-    }
+    None = 0,
+    Click,
+    Double,
+    Triple,
+    Long,
+    LongRepeat,
 };
+
+using GestureHandler = void (*)(uint8_t slot, ButtonGesture gesture);
 
 struct ButtonConfig
 {
@@ -34,7 +32,6 @@ struct ButtonConfig
     uint8_t pin_mode = 0;
     uint8_t active_level = 1;
     uint16_t long_repeat_ms = 0;
-    KeyMap map;
 };
 
 struct Config
@@ -47,6 +44,7 @@ struct Config
 };
 
 void configure(const Config &cfg);
+void setGestureHandler(GestureHandler handler);
 bool initialize();
 /** Process queued GPIO edges without requiring the LVGL input timer. */
 void poll();

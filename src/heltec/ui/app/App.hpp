@@ -6,7 +6,6 @@
 #include "ui/core/BizFacade.hpp"
 #include "ui/core/Capabilities.hpp"
 #include "ui/core/HtEvent.h"
-#include "ui/core/UiInputHost.hpp"
 #include "ui/core/Surface.hpp"
 #include "ui/core/SurfaceManager.hpp"
 #include "ui/widgets/TopPane.hpp"
@@ -54,15 +53,31 @@ namespace Heltec::MeshCore::Ui {
 
 class AbstractScreen;
 
-class UiApp final : public IUiInputHost {
+class UiApp final {
   public:
     UiApp(Biz::IBizFacade &biz, Heltec::MeshCore::Power::PowerMgr &power);
     static UiApp &instance();
 
     void init();
     void tick();
-    bool isReady() const override {
+    bool isReady() const {
         return _inited;
+    }
+
+    bool acceptsKeyboardCycle() const
+    {
+#if HELTEC_UI_ENABLE_KEYBOARD
+        if (_surfaces.isActive(&_keyboardOvl))
+        {
+            return true;
+        }
+#endif
+#if HELTEC_UI_HAS_TOUCH
+        return _surfaces.isActive(&_quickPingOverlay) &&
+               _quickPingOverlay.acceptsKeyboardCycle();
+#else
+        return false;
+#endif
     }
 
     bool openSendMessageOverlay();
@@ -82,6 +97,7 @@ class UiApp final : public IUiInputHost {
     void setDisplayAutoOffMs(uint32_t ms);
 
   private:
+    friend class BacklightPolicy;
 #if HELTEC_UI_HAS_TOUCH
     using AppNavigation = NavigationPane;
 #else
@@ -94,29 +110,10 @@ class UiApp final : public IUiInputHost {
                             const char *text);
     void openAlertOverlay(const char *text);
 
-    void notifyDisplayActivity(uint32_t now_ms) override;
-    bool isDisplayOn() const override;
-    void toggleDisplay(uint32_t now_ms) override;
+    void notifyDisplayActivity(uint32_t now_ms);
+    bool isDisplayOn() const;
     void onBacklightTurnedOn();
-    void ensureTileKeypadFocus() override;
-    bool acceptsKeyboardCycle() const override
-    {
-#if HELTEC_UI_ENABLE_KEYBOARD
-        if (_surfaces.isActive(&_keyboardOvl))
-        {
-            return true;
-        }
-#endif
-#if HELTEC_UI_HAS_TOUCH
-        return _surfaces.isActive(&_quickPingOverlay) &&
-               _quickPingOverlay.acceptsKeyboardCycle();
-#else
-        return false;
-#endif
-    }
-    lv_obj_t *frameRoot() const override {
-        return _frame_root;
-    }
+    void ensureTileKeypadFocus();
 
 #if !defined(HELTEC_UI_HAS_TOUCH) || !HELTEC_UI_HAS_TOUCH
     bool openContextMenu();

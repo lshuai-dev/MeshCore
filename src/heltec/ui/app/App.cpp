@@ -6,7 +6,7 @@
 #include "ui/core/AppStateNotifier.hpp"
 #include "ui/core/BacklightPolicy.hpp"
 #include "ui/core/HtEvent.h"
-#include "ui/core/InputPipeline.hpp"
+#include "ui/core/InputRouter.hpp"
 #include "ui/core/Scheduler.hpp"
 #include "ui/core/ScreenId.hpp"
 #include "ui/core/Surface.hpp"
@@ -160,7 +160,7 @@ void UiApp::init() {
         this);
     _app_state_dispatcher.bindNotifier(app_state_notifier());
 
-    InputPipeline::init();
+    InputRouter::init();
 #if HELTEC_TOUCH_INPUT
     Heltec::MeshCore::Dal::TouchInput::UiHooks touch_hooks{};
     touch_hooks.wake = +[]() {
@@ -753,10 +753,6 @@ void UiApp::notifyDisplayActivity(uint32_t now_ms) {
 
 bool UiApp::isDisplayOn() const {
     return _power.snapshot().display_on;
-}
-
-void UiApp::toggleDisplay(uint32_t now_ms) {
-    (void)_power.setDisplayOn(!_power.snapshot().display_on, now_ms);
 }
 
 void UiApp::onBacklightTurnedOn() {

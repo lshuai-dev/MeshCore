@@ -23,7 +23,6 @@ void HeltecV4Board::begin() {
     (void)Heltec::MeshCore::Dal::DisplayPort::init();
 
     using Heltec::MeshCore::Dal::MomentaryButton::Config;
-    using Heltec::MeshCore::Dal::MomentaryButton::KeyMap;
 
     Config cnf{};
     cnf.debounce_ms = 50;
@@ -32,7 +31,6 @@ void HeltecV4Board::begin() {
     cnf.buttons[0].pin = PIN_USER_BTN;
     cnf.buttons[0].pin_mode = INPUT_PULLDOWN;
     cnf.buttons[0].active_level = LOW;
-    cnf.buttons[0].map = KeyMap(LV_KEY_NEXT, LV_KEY_ESC, LV_KEY_PREV, LV_KEY_ENTER);
     Heltec::MeshCore::Dal::MomentaryButton::configure(cnf);
     Heltec::MeshCore::Dal::MomentaryButton::initialize();
 #endif
