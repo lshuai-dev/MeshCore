@@ -7,234 +7,112 @@ namespace Heltec::MeshCore::Dal::KeyInput
 namespace
 {
 
-static lv_indev_drv_t s_drv;
-static lv_indev_t *s_indev = nullptr;
-static lv_group_t *s_group = nullptr;
-static bool s_drv_registered = false;
-static DownStateFn s_down_state_provider = nullptr;
-static PollFn s_poll_hook = nullptr;
-
-struct QueuedKey
-{
-    uint32_t key = 0;
-    KeyDelivery delivery = KeyDelivery::Tracked;
-};
-
 static constexpr uint8_t kQueueCapacity = 8;
-static QueuedKey s_queue[kQueueCapacity];
-static uint8_t s_queue_head = 0;
-static uint8_t s_queue_tail = 0;
-static uint8_t s_queue_count = 0;
 
-enum class DeliveryState : uint8_t
+static lv_group_t *s_group = nullptr;
+static uint32_t s_queue[kQueueCapacity] = {};
+static uint8_t s_head = 0;
+static uint8_t s_tail = 0;
+static uint8_t s_count = 0;
+static bool s_dispatch_pending = false;
+static bool s_dispatching = false;
+
+static void clearQueue()
 {
-    Idle,
-    TrackedPress,
-    PulseRelease,
-    WaitPhysicalRelease,
-};
+    s_head = 0;
+    s_tail = 0;
+    s_count = 0;
+}
 
-static DeliveryState s_state = DeliveryState::Idle;
-static uint32_t s_current_key = LV_KEY_ENTER;
-static bool s_release_wait_requested = false;
-static bool s_pulse_waits_for_physical_release = true;
-static uint32_t s_pending_key = 0;
+static bool scheduleDispatch();
 
-static void dispatch_pending_key(void *user_data)
+static void dispatchKey(void *user_data)
 {
     (void)user_data;
-    const uint32_t key = s_pending_key;
-    s_pending_key = 0;
-    if (key != 0 && s_group != nullptr)
+    if (s_count == 0)
     {
+        s_dispatch_pending = false;
+        return;
+    }
+
+    const uint32_t key = s_queue[s_head];
+    s_head = static_cast<uint8_t>((s_head + 1U) % kQueueCapacity);
+    --s_count;
+
+    // Keep the pending flag set while handlers run so recursive posts reuse
+    // the next callback instead of creating a second dispatcher.
+    if (s_group != nullptr)
+    {
+        s_dispatching = true;
         (void)lv_group_send_data(s_group, key);
+        s_dispatching = false;
+    }
+
+    s_dispatch_pending = false;
+    if (s_count > 0 && !scheduleDispatch())
+    {
+        clearQueue();
     }
 }
 
-static bool is_down()
+static bool scheduleDispatch()
 {
-    return s_down_state_provider && s_down_state_provider();
-}
-
-static void reset_state()
-{
-    s_queue_head = 0;
-    s_queue_tail = 0;
-    s_queue_count = 0;
-    s_state = DeliveryState::Idle;
-    s_current_key = LV_KEY_ENTER;
-    s_release_wait_requested = false;
-    s_pulse_waits_for_physical_release = true;
-    s_pending_key = 0;
-}
-
-static bool enqueue_key(uint32_t key, KeyDelivery delivery)
-{
-    if (key == 0)
-        return false;
-    if (s_queue_count >= kQueueCapacity)
+    if (s_dispatch_pending)
+    {
+        return true;
+    }
+    if (lv_async_call(dispatchKey, nullptr) != LV_RES_OK)
     {
         return false;
     }
-    s_queue[s_queue_tail].key = key;
-    s_queue[s_queue_tail].delivery = delivery;
-    s_queue_tail = (uint8_t)((s_queue_tail + 1) % kQueueCapacity);
-    ++s_queue_count;
+    s_dispatch_pending = true;
     return true;
-}
-
-static bool dequeue_key(QueuedKey &out)
-{
-    if (s_queue_count == 0)
-        return false;
-    out = s_queue[s_queue_head];
-    s_queue_head = (uint8_t)((s_queue_head + 1) % kQueueCapacity);
-    --s_queue_count;
-    return true;
-}
-
-static void wait_current_release()
-{
-    lv_indev_t *indev = s_indev;
-    if (!indev)
-        indev = lv_indev_get_act();
-    if (indev)
-        lv_indev_wait_release(indev);
-}
-
-static void read_cb(lv_indev_drv_t *drv, lv_indev_data_t *data)
-{
-    (void)drv;
-
-    data->key = s_current_key;
-
-    if (s_state == DeliveryState::PulseRelease)
-    {
-        data->state = LV_INDEV_STATE_RELEASED;
-        if (s_pulse_waits_for_physical_release)
-        {
-            s_release_wait_requested = true;
-            s_state = DeliveryState::WaitPhysicalRelease;
-        }
-        else
-        {
-            s_state = DeliveryState::Idle;
-            data->continue_reading = s_queue_count > 0;
-        }
-        return;
-    }
-
-    if (s_state == DeliveryState::WaitPhysicalRelease)
-    {
-        if (s_release_wait_requested)
-        {
-            wait_current_release();
-            s_release_wait_requested = false;
-        }
-        // The synthetic pulse has already delivered both PRESSED and RELEASED.
-        // While the physical button is still held, keep LVGL released so a new
-        // group or the focused keyboard button cannot receive a trailing press.
-        const bool pressed = is_down();
-        data->state = LV_INDEV_STATE_RELEASED;
-        if (!pressed)
-        {
-            s_state = DeliveryState::Idle;
-            data->continue_reading = s_queue_count > 0;
-        }
-        return;
-    }
-
-    if (s_poll_hook)
-        s_poll_hook();
-
-    if (s_state == DeliveryState::Idle)
-    {
-        QueuedKey queued;
-        if (dequeue_key(queued))
-        {
-            s_current_key = queued.key;
-            data->key = s_current_key;
-            data->state = LV_INDEV_STATE_PRESSED;
-            if (queued.delivery != KeyDelivery::Tracked)
-            {
-                s_pulse_waits_for_physical_release =
-                    queued.delivery == KeyDelivery::Pulse;
-                s_state = DeliveryState::PulseRelease;
-                data->continue_reading = true;
-            }
-            else
-            {
-                s_state = DeliveryState::TrackedPress;
-            }
-            return;
-        }
-        data->state = LV_INDEV_STATE_RELEASED;
-        return;
-    }
-
-    if (is_down())
-    {
-        data->state = LV_INDEV_STATE_PRESSED;
-        return;
-    }
-
-    data->state = LV_INDEV_STATE_RELEASED;
-    s_state = DeliveryState::Idle;
-    data->continue_reading = s_queue_count > 0;
 }
 
 } // namespace
 
-bool initialize()
-{
-    reset_state();
-    if (!s_drv_registered)
-    {
-        lv_indev_drv_init(&s_drv);
-        s_drv.type = LV_INDEV_TYPE_KEYPAD;
-        s_drv.read_cb = read_cb;
-        s_indev = lv_indev_drv_register(&s_drv);
-        s_drv_registered = true;
-    }
-    return s_indev != nullptr;
-}
-
-void set_group(_lv_group_t *group)
+void setGroup(_lv_group_t *group)
 {
     s_group = group;
-    if (!s_indev)
+    if (group != nullptr)
+    {
         return;
-    lv_indev_set_group(s_indev, group);
-}
+    }
 
-void set_down_state_provider(DownStateFn fn)
-{
-    s_down_state_provider = fn;
-}
+    clearQueue();
+    if (s_dispatching)
+    {
+        // Surface changes can occur synchronously inside dispatchKey(). Do not
+        // delete the LVGL async timer while its callback is still running.
+        return;
+    }
 
-void set_poll_hook(PollFn fn)
-{
-    s_poll_hook = fn;
-}
-
-bool postState(uint32_t key, KeyDelivery delivery)
-{
-    return enqueue_key(key, delivery);
+    (void)lv_async_call_cancel(dispatchKey, nullptr);
+    s_dispatch_pending = false;
 }
 
 bool postKey(uint32_t key)
 {
-    if (key == 0 || s_pending_key != 0)
+    if (key == 0 || s_count >= kQueueCapacity)
     {
         return false;
     }
-    s_pending_key = key;
-    if (lv_async_call(dispatch_pending_key, nullptr) != LV_RES_OK)
+
+    s_queue[s_tail] = key;
+    s_tail = static_cast<uint8_t>((s_tail + 1U) % kQueueCapacity);
+    ++s_count;
+    if (scheduleDispatch())
     {
-        s_pending_key = 0;
-        return false;
+        return true;
     }
-    return true;
+
+    clearQueue();
+    return false;
+}
+
+bool isDispatching()
+{
+    return s_dispatching;
 }
 
 } // namespace Heltec::MeshCore::Dal::KeyInput

@@ -8,7 +8,7 @@ class IBizFacade;
 
 namespace Heltec::MeshCore::Ui {
 
-class RadioScreen : public AbstractScreen {
+class RadioScreen final : public AbstractScreen {
   public:
     RadioScreen(Biz::IBizFacade &biz, const char *title, const lv_img_dsc_t *icon)
         : AbstractScreen(biz, title, icon) {

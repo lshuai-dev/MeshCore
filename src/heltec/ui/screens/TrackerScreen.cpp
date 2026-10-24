@@ -6,7 +6,7 @@
 #include "heltec/ui/map/MapTileStore.hpp"
 #include "ui/theme/UiTheme.hpp"
 #include "ui/widgets/WidgetClasses.hpp"
-#include "ui/core/HtEvent.h"
+#include "ui/core/UiMessage.hpp"
 
 #include <Arduino.h>
 #include <lvgl.h>

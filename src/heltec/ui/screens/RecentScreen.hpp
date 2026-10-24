@@ -5,7 +5,7 @@
 struct _lv_timer_t;
 
 namespace Heltec::MeshCore::Ui {
-class RecentScreen : public AbstractScreen {
+class RecentScreen final : public AbstractScreen {
   public:
     RecentScreen(Biz::IBizFacade &biz, const char *title, const lv_img_dsc_t *icon)
         : AbstractScreen(biz, title, icon) {

@@ -30,11 +30,11 @@ void pollNavigationExpander(lv_timer_t *timer)
     const uint8_t pressed_edges = s_navigation_expander->pollPressedEdges();
     if ((pressed_edges & 0x01U) != 0U)
     {
-        Heltec::MeshCore::Ui::InputRouter::onSyntheticKey(LV_KEY_PREV, true);
+        Heltec::MeshCore::Ui::InputRouter::onSyntheticKey(LV_KEY_PREV);
     }
     if ((pressed_edges & 0x02U) != 0U)
     {
-        Heltec::MeshCore::Ui::InputRouter::onSyntheticKey(LV_KEY_NEXT, true);
+        Heltec::MeshCore::Ui::InputRouter::onSyntheticKey(LV_KEY_NEXT);
     }
 }
 #endif

@@ -1,5 +1,4 @@
 #pragma once
-#include "Capabilities.hpp"
 #include "Surface.hpp"
 struct _lv_obj_t;
 namespace Heltec::MeshCore::Biz {

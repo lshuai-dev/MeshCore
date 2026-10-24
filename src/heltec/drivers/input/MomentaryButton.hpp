@@ -7,10 +7,6 @@
 
 #include <stdint.h>
 
-#ifndef HELTEC_UI_BUTTON_COUNT
-#define HELTEC_UI_BUTTON_COUNT 1
-#endif
-
 namespace Heltec::MeshCore::Dal::MomentaryButton
 {
 

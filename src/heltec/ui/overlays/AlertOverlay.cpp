@@ -1,5 +1,5 @@
 #include "AlertOverlay.hpp"
-#include "ui/core/HtEvent.h"
+#include "ui/core/UiMessage.hpp"
 #include "ui/widgets/WidgetClasses.hpp"
 
 namespace Heltec::MeshCore::Ui {
@@ -22,7 +22,7 @@ bool AlertOverlay::build() {
             if (age_ms < kClickGuardMs) {
                 return;
             }
-            (void)self->notifyApp(EventType::AlertClose);
+            (void)self->notifyApp(UiMessageType::AlertClose);
         },
         LV_EVENT_CLICKED, this);
 
@@ -61,10 +61,13 @@ void AlertOverlay::setText(const char *text) {
 
 bool AlertOverlay::onKey(uint32_t key) {
     if (key == LV_KEY_ENTER) {
+        if (lv_tick_elaps(_entered_ms) >= kClickGuardMs) {
+            (void)notifyApp(UiMessageType::AlertClose);
+        }
         return true;
     }
     if (key == LV_KEY_ESC) {
-        return notifyApp(EventType::AlertClose);
+        return notifyApp(UiMessageType::AlertClose);
     }
     return false;
 }

@@ -2,7 +2,7 @@
 #include "CompassScreen.hpp"
 #include "CompassCommon.hpp"
 #include "ui/theme/UiTheme.hpp"
-#include "ui/core/HtEvent.h"
+#include "ui/core/UiMessage.hpp"
 
 #include <Arduino.h>
 #include <lvgl.h>
@@ -301,7 +301,7 @@ void CompassScreen::refresh()
     {
         _pending_auto_cal = false;
         _auto_cal_due_ms = 0;
-        (void)notifyApp(EventType::CalibrationOpen);
+        (void)notifyApp(UiMessageType::CalibrationOpen);
         return;
     }
 

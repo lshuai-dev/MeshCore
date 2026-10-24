@@ -2,7 +2,7 @@
 #include "../core/BizFacade.hpp"
 #include "config/LoraBandPresets.h"
 #include "ui/theme/UiTheme.hpp"
-#include "ui/core/HtEvent.h"
+#include "ui/core/UiMessage.hpp"
 
 namespace Heltec::MeshCore::Ui {
 
@@ -137,7 +137,7 @@ void SystemScreen::openMessagePresetEditor(uint8_t index)
     request.purpose = UiMessageKeyboardPurpose::EditPreset;
     request.preset_index = index;
     request.max_bytes = 31;
-    if (!notifyApp(EventType::MessageKeyboardOpen, &request))
+    if (!notifyApp(UiMessageType::MessageKeyboardOpen, &request))
         showAlert("Unable to open keyboard", 1600);
 }
 

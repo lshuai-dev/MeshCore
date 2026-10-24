@@ -2,7 +2,7 @@
 #include "FindFriendScreen.hpp"
 #include "app/TeamJoinService.hpp"
 #include "CompassCommon.hpp"
-#include "ui/core/HtEvent.h"
+#include "ui/core/UiMessage.hpp"
 
 #include <string.h>
 
@@ -527,12 +527,12 @@ void FindFriendScreen::onActivated() {
     refresh();
 }
 
-void FindFriendScreen::onAppEvent(const UiEvent &event) {
-    if (event.type == EventType::WaypointKeyboardClosed) {
+void FindFriendScreen::onAppEvent(const UiMessage &event) {
+    if (event.type == UiMessageType::WaypointKeyboardClosed) {
         restoreWaypointKeyboardFocus();
         return;
     }
-    if (event.type != EventType::WaypointKeyboardSubmit || !event.payload) return;
+    if (event.type != UiMessageType::WaypointKeyboardSubmit || !event.payload) return;
 
     const auto *submit = static_cast<const UiWaypointKeyboardSubmit *>(event.payload);
     if (_biz.setFindFriendWaypoint(submit->lat, submit->lon)) {

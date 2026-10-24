@@ -8,13 +8,12 @@ struct _lv_obj_t;
 struct _lv_timer_t;
 namespace Heltec::MeshCore::Ui {
 
-class PreviewOverlay : public FramedOverlay {
+class PreviewOverlay final : public FramedOverlay {
   public:
     explicit PreviewOverlay(Biz::IBizFacade &biz);
 
     /** origin 和 text 来自固定消息环，在下次 applyContent() 前必须保持有效。 */
     void applyContent(uint8_t unread, uint32_t received_ms, const char *origin, const char *text);
-    void dismissByUser();
 
   protected:
     void onEnter() override;

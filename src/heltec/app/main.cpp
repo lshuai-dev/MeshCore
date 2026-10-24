@@ -284,11 +284,10 @@ void setup()
 #endif
     Heltec::MeshCore::Dal::DisplayPort::setBacklightOn(true);
     MeshAppRT &core = MeshAppRT::instance();
-    core.ui.init();
+    const bool hasDisplay = core.ui.init();
 #if defined(RADIOCORE_BOARD_RC52) && defined(PIN_SENSOR_EN)
     logRc52SensorPowerState("after UI init");
 #endif
-    const bool hasDisplay = core.ui.isReady();
     if (hasDisplay)
     {
         for (uint8_t i = 0; i < 8; ++i)

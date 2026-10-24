@@ -28,7 +28,7 @@ bool UiSurface::init(lv_obj_t *parent, lv_obj_t *app_target,
                        static_cast<lv_event_code_t>(LV_EVENT_KEY | LV_EVENT_PREPROCESS), this) &&
         nullptr != lv_obj_add_event_cb(_root, handleFocusedEvent, LV_EVENT_FOCUSED, this) &&
         (!acceptsAppEvents() ||
-         nullptr != lv_obj_add_event_cb(_root, handleAppEvent, HT_EVENT_USER, this));
+         nullptr != lv_obj_add_event_cb(_root, handleAppEvent, UI_MESSAGE_EVENT, this));
     if (!handlers_ready || !build()) {
         if (_root) {
             lv_obj_del(_root);
@@ -63,20 +63,20 @@ void UiSurface::handleKeyEvent(lv_event_t *event) {
 void UiSurface::handleAppEvent(lv_event_t *event) {
     if (!event) return;
     auto *const self = static_cast<UiSurface *>(lv_event_get_user_data(event));
-    const UiEvent *const ui_event = ht_event_get(event);
+    const UiMessage *const ui_event = getUiMessage(event);
     if (!self || !ui_event) return;
     self->onAppEvent(*ui_event);
 }
 
-bool UiSurface::notifyApp(EventType type, const void *payload) const {
-    return _app_target && ht_event_send(_app_target, type, payload, _root);
+bool UiSurface::notifyApp(UiMessageType type, const void *payload) const {
+    return _app_target && sendUiMessage(_app_target, type, payload, _root);
 }
 
 bool UiSurface::showAlert(const char *text, uint16_t duration_ms) const {
     UiAlertRequest request{};
     request.text = text;
     request.duration_ms = duration_ms;
-    return notifyApp(EventType::AlertOpen, &request);
+    return notifyApp(UiMessageType::AlertOpen, &request);
 }
 
 } // namespace Heltec::MeshCore::Ui

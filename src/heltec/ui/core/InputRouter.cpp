@@ -13,20 +13,10 @@ namespace
 {
 
 using ButtonGesture = Heltec::MeshCore::Dal::MomentaryButton::ButtonGesture;
-using KeyDelivery = Heltec::MeshCore::Dal::KeyInput::KeyDelivery;
 
-void postKey(uint32_t key, bool pulse)
+void postKey(uint32_t key)
 {
-    if (key == 0)
-    {
-        return;
-    }
-    if (pulse)
-    {
-        (void)Heltec::MeshCore::Dal::KeyInput::postKey(key);
-        return;
-    }
-    (void)Heltec::MeshCore::Dal::KeyInput::postState(key, KeyDelivery::Tracked);
+    (void)Heltec::MeshCore::Dal::KeyInput::postKey(key);
 }
 
 void cycleKeyboard(UiApp &app)
@@ -35,8 +25,7 @@ void cycleKeyboard(UiApp &app)
     {
         return;
     }
-    (void)Heltec::MeshCore::Dal::KeyInput::postState(LV_KEY_RIGHT,
-                                                      KeyDelivery::IndependentPulse);
+    postKey(LV_KEY_RIGHT);
 }
 
 #if HELTEC_UI_BUTTON_COUNT == 1
@@ -46,10 +35,10 @@ void routeButton(UiApp &app, uint8_t slot, ButtonGesture gesture)
     switch (gesture)
     {
     case ButtonGesture::Click:
-        postKey(LV_KEY_DOWN, false);
+        postKey(LV_KEY_DOWN);
         break;
     case ButtonGesture::Double:
-        postKey(LV_KEY_ESC, false);
+        postKey(LV_KEY_ESC);
         break;
     case ButtonGesture::Triple:
         if (app.isReady())
@@ -58,7 +47,7 @@ void routeButton(UiApp &app, uint8_t slot, ButtonGesture gesture)
         }
         break;
     case ButtonGesture::Long:
-        postKey(LV_KEY_ENTER, true);
+        postKey(LV_KEY_ENTER);
         break;
     default:
         break;
@@ -70,22 +59,26 @@ void routeButton(UiApp &app, uint8_t slot, ButtonGesture gesture)
     switch (gesture)
     {
     case ButtonGesture::Click:
-        postKey(slot == 0 ? LV_KEY_UP : LV_KEY_DOWN, false);
+        postKey(slot == 0 ? LV_KEY_UP : LV_KEY_DOWN);
         break;
     case ButtonGesture::Double:
         if (slot == 0)
         {
-            postKey(LV_KEY_ESC, false);
+            postKey(LV_KEY_ESC);
         }
-        else if (app.isReady())
+        else if (app.acceptsActionShortcut())
         {
             (void)app.openActionPane();
+        }
+        else
+        {
+            postKey(LV_KEY_ESC);
         }
         break;
     case ButtonGesture::Long:
         if (slot == 0)
         {
-            postKey(LV_KEY_ENTER, true);
+            postKey(LV_KEY_ENTER);
         }
         else
         {
@@ -111,11 +104,6 @@ void InputRouter::init()
     Heltec::MeshCore::Dal::MomentaryButton::setGestureHandler(
         +[](uint8_t slot, ButtonGesture gesture)
         { InputRouter::onButtonGesture(slot, gesture, millis()); });
-    Heltec::MeshCore::Dal::KeyInput::set_poll_hook(
-        Heltec::MeshCore::Dal::MomentaryButton::poll);
-    Heltec::MeshCore::Dal::KeyInput::set_down_state_provider(
-        Heltec::MeshCore::Dal::MomentaryButton::anyPhysicalPressed);
-    (void)Heltec::MeshCore::Dal::KeyInput::initialize();
 }
 
 void InputRouter::onButtonGesture(uint8_t slot, ButtonGesture gesture, uint32_t now_ms)
@@ -128,7 +116,7 @@ void InputRouter::onButtonGesture(uint8_t slot, ButtonGesture gesture, uint32_t 
     routeButton(app, slot, gesture);
 }
 
-void InputRouter::onSyntheticKey(uint32_t lv_key, bool pulse)
+void InputRouter::onSyntheticKey(uint32_t lv_key)
 {
     UiApp &app = UiApp::instance();
     if (BacklightPolicy::handle(app, millis()))
@@ -144,7 +132,7 @@ void InputRouter::onSyntheticKey(uint32_t lv_key, bool pulse)
     {
         lv_key = LV_KEY_UP;
     }
-    postKey(lv_key, pulse);
+    postKey(lv_key);
 }
 
 } // namespace Heltec::MeshCore::Ui

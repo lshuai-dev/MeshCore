@@ -1,6 +1,6 @@
 #pragma once
 #include "heltec/ui/core/BizFacade.hpp"
-#include "heltec/ui/core/ScreenId.hpp"
+#include "heltec/ui/app/ScreenId.hpp"
 #include "heltec/ui/core/Surface.hpp"
 #include "ui/navigation/NavigationWidget.hpp"
 
@@ -62,7 +62,7 @@ class RadialNavigator : public UiSurface
     void rebuildSlotCache(uint8_t count);
     _lv_obj_t *frameRoot() const;
 
-    static constexpr uint8_t kMaxButtons = static_cast<uint8_t>(eScreenId::kScreenCnt);
+    static constexpr uint8_t kMaxButtons = static_cast<uint8_t>(ScreenId::Count);
     static constexpr uint8_t kNoEmphasis = 0xFF;
 
     _lv_obj_t *_nav = nullptr;

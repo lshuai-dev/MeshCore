@@ -8,7 +8,7 @@
 namespace Heltec::MeshCore::Ui
 {
 
-using ContextMenuCommand = EventType (*)(Biz::IBizFacade &);
+using ContextMenuCommand = UiMessageType (*)(Biz::IBizFacade &);
 
 struct ContextMenuPage;
 

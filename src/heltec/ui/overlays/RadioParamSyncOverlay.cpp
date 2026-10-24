@@ -4,7 +4,7 @@
 #include "heltec/ui/core/BizFacade.hpp"
 #include "ui/widgets/WidgetClasses.hpp"
 #include "ui/core/OperationHints.hpp"
-#include "ui/core/HtEvent.h"
+#include "ui/core/UiMessage.hpp"
 #include "ui/theme/WidgetTheme.hpp"
 #if defined(HELTEC_HAS_KEY_FRAME) && HELTEC_HAS_KEY_FRAME
 #include "heltec/drivers/display/DisplayPort.hpp"
@@ -154,7 +154,12 @@ bool RadioParamSyncOverlay::onKey(uint32_t key)
     }
     if (key == LV_KEY_ESC)
     {
-        notifyApp(EventType::RadioSyncClose);
+        notifyApp(UiMessageType::RadioSyncClose);
+        return true;
+    }
+    if (key == LV_KEY_ENTER)
+    {
+        applySelection();
         return true;
     }
     return false;
@@ -355,7 +360,7 @@ void RadioParamSyncOverlay::applySelection()
 #endif
     _biz.setLoRaBandPresetIndex((int)_select);
     showAlert("LoRa band set", 800);
-    notifyApp(EventType::RadioSyncClose);
+    notifyApp(UiMessageType::RadioSyncClose);
 }
 
 } // namespace Heltec::MeshCore::Ui

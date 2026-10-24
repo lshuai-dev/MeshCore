@@ -84,7 +84,7 @@ void SystemScreen::onSwitchValueChanged(lv_event_t *e)
                 self->showAlert("No forwarding frequency", 2000);
                 return;
             }
-            if (!self->notifyApp(EventType::RepeatModeOpen))
+            if (!self->notifyApp(UiMessageType::RepeatModeOpen))
             {
                 self->showAlert("Unable to open frequency picker", 2000);
             }

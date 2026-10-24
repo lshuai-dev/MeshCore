@@ -1,5 +1,5 @@
 #include "ui/app/App.hpp"
-#include "ui/core/HtEvent.h"
+#include "ui/core/UiMessage.hpp"
 #include "ui/core/UiTask.hpp"
 #if defined(HELTEC_HAS_KEY_FRAME) && HELTEC_HAS_KEY_FRAME
 #include "heltec/drivers/display/DisplayPort.hpp"
@@ -50,76 +50,76 @@ bool UiApp::isActionPaneVisible() const
 #if !defined(HELTEC_UI_HAS_TOUCH) || !HELTEC_UI_HAS_TOUCH
 namespace
 {
-EventType cm_send_advert(Biz::IBizFacade &app)
+UiMessageType cm_send_advert(Biz::IBizFacade &app)
 {
     (void)app.sendAdvert();
-    return EventType::None;
+    return UiMessageType::None;
 }
-EventType cm_open_send_message(Biz::IBizFacade &)
+UiMessageType cm_open_send_message(Biz::IBizFacade &)
 {
-    return EventType::SendMessageOpen;
+    return UiMessageType::SendMessageOpen;
 }
 #if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
-EventType cm_calibrate_compass(Biz::IBizFacade &)
+UiMessageType cm_calibrate_compass(Biz::IBizFacade &)
 {
-    return EventType::CalibrationOpen;
+    return UiMessageType::CalibrationOpen;
 }
 #endif
 } // namespace
 #endif
 
-bool UiApp::initOverlay()
+bool UiApp::initOverlay(_lv_obj_t *parent)
 {
-    if (!_layerOverlay)
+    if (!parent)
         return false;
-    if (!_previewOvl.init(_layerOverlay, _frame_root, ht_preview_overlay_class))
+    if (!_previewOvl.init(parent, _frame_root, ht_preview_overlay_class))
         return false;
     if (!_surfaces.registerSurface(&_previewOvl))
         return false;
-    if (!_alertOvl.init(_layerOverlay, _frame_root, ht_dialog_overlay_class))
+    if (!_alertOvl.init(parent, _frame_root, ht_dialog_overlay_class))
         return false;
     if (!_surfaces.registerSurface(&_alertOvl))
         return false;
-    if (!_confirmOvl.init(_layerOverlay, _frame_root, ht_dialog_overlay_class))
+    if (!_confirmOvl.init(parent, _frame_root, ht_dialog_overlay_class))
         return false;
     if (!_surfaces.registerSurface(&_confirmOvl))
         return false;
-    if (!_radioParamSyncOvl.init(_layerOverlay, _frame_root, ht_radio_sync_overlay_class))
+    if (!_radioParamSyncOvl.init(parent, _frame_root, ht_radio_sync_overlay_class))
         return false;
     if (!_surfaces.registerSurface(&_radioParamSyncOvl))
         return false;
-    if (!_repeatModeOvl.init(_layerOverlay, _frame_root, ht_repeat_mode_overlay_class))
+    if (!_repeatModeOvl.init(parent, _frame_root, ht_repeat_mode_overlay_class))
         return false;
     if (!_surfaces.registerSurface(&_repeatModeOvl))
         return false;
 #if HELTEC_UI_ENABLE_KEYBOARD
-    if (!_keyboardOvl.init(_layerOverlay, _frame_root, ht_keyboard_overlay_class))
+    if (!_keyboardOvl.init(parent, _frame_root, ht_keyboard_overlay_class))
         return false;
     if (!_surfaces.registerSurface(&_keyboardOvl))
         return false;
 #endif
 #if HELTEC_UI_HAS_TOUCH
-    if (!_sendMessageOvl.init(_layerOverlay, _frame_root, ht_send_message_touch_overlay_class))
+    if (!_sendMessageOvl.init(parent, _frame_root, ht_send_message_touch_overlay_class))
 #else
-    if (!_sendMessageOvl.init(_layerOverlay, _frame_root,
+    if (!_sendMessageOvl.init(parent, _frame_root,
                               ht_send_message_selector_overlay_class))
 #endif
         return false;
     if (!_surfaces.registerSurface(&_sendMessageOvl))
         return false;
 #if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
-    if (!_calibrationOvl.init(_layerOverlay, _frame_root, ht_dialog_overlay_class))
+    if (!_calibrationOvl.init(parent, _frame_root, ht_dialog_overlay_class))
         return false;
     if (!_surfaces.registerSurface(&_calibrationOvl))
         return false;
 #endif
 #if HELTEC_UI_HAS_TOUCH
-    if (!_quickPingOverlay.init(_layerOverlay, _frame_root, ht_quick_ping_overlay_class))
+    if (!_quickPingOverlay.init(parent, _frame_root, ht_quick_ping_overlay_class))
         return false;
     if (!_surfaces.registerSurface(&_quickPingOverlay))
         return false;
 #else
-    if (!_contextMenu.init(_layerOverlay, _frame_root, ht_context_menu_class))
+    if (!_contextMenu.init(parent, _frame_root, ht_context_menu_class))
         return false;
     if (!_surfaces.registerSurface(&_contextMenu))
         return false;
@@ -282,7 +282,7 @@ void UiApp::closeKeyboardOverlay()
     {
         if (_keyboard_reply && lv_obj_is_valid(_keyboard_reply))
         {
-            (void)ht_event_send(_keyboard_reply, EventType::WaypointKeyboardClosed);
+            (void)sendUiMessage(_keyboard_reply, UiMessageType::WaypointKeyboardClosed);
         }
     }
     _keyboard_reply = nullptr;
@@ -336,7 +336,7 @@ bool UiApp::openContextMenu()
 {
     if (!_inited || !_frame_root || _surfaces.isVisible(&_contextMenu))
         return false;
-    return ht_event_send(_frame_root, EventType::ContextOpen);
+    return sendUiMessage(_frame_root, UiMessageType::ContextOpen);
 }
 
 void UiApp::closeContextMenu()

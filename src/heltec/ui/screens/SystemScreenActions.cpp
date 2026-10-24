@@ -1,5 +1,5 @@
 #include "SystemScreen.hpp"
-#include "ui/core/HtEvent.h"
+#include "ui/core/UiMessage.hpp"
 
 namespace Heltec::MeshCore::Ui
 {
@@ -20,10 +20,10 @@ void SystemScreen::handleAction(SysAction action)
     if (action != SysAction::FactoryReset && action != SysAction::ClearData)
         return;
 
-    UiConfirmRequest request{};
-    request.action = action == SysAction::FactoryReset ? UiConfirmAction::FactoryReset
-                                                       : UiConfirmAction::ClearData;
-    if (!notifyApp(EventType::ConfirmOpen, &request))
+    const UiConfirmAction request = action == SysAction::FactoryReset
+                                        ? UiConfirmAction::FactoryReset
+                                        : UiConfirmAction::ClearData;
+    if (!notifyApp(UiMessageType::ConfirmOpen, &request))
     {
         showAlert("Unable to open confirmation", 2000);
     }
@@ -43,11 +43,11 @@ bool SystemScreen::onKey(uint32_t key)
     return AbstractScreen::onKey(key);
 }
 
-void SystemScreen::onAppEvent(const UiEvent &event)
+void SystemScreen::onAppEvent(const UiMessage &event)
 {
     if (!event.payload)
         return;
-    if (event.type == EventType::MessageKeyboardSubmit)
+    if (event.type == UiMessageType::MessageKeyboardSubmit)
     {
         const auto *const submit = static_cast<const UiMessageKeyboardSubmit *>(event.payload);
         if (submit->purpose != UiMessageKeyboardPurpose::EditPreset || !submit->text)
@@ -72,7 +72,7 @@ void SystemScreen::onAppEvent(const UiEvent &event)
         showAlert(message, 1600);
         return;
     }
-    if (event.type != EventType::ConfirmAccepted)
+    if (event.type != UiMessageType::ConfirmAccepted)
         return;
     const auto action = *static_cast<const UiConfirmAction *>(event.payload);
     executeAction(action == UiConfirmAction::FactoryReset ? SysAction::FactoryReset

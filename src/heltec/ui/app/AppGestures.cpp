@@ -289,7 +289,7 @@ void UiApp::onTouchSwipe(lv_dir_t direction, int16_t start_x, int16_t start_y)
 bool UiApp::hitActiveTrackerViewport(lv_coord_t x, lv_coord_t y) const
 {
 #if defined(ENV_INCLUDE_MAP) && ENV_INCLUDE_MAP
-    if (static_cast<uint8_t>(eScreenId::Tracker) != activeTileIndex())
+    if (static_cast<uint8_t>(ScreenId::Tracker) != activeTileIndex())
         return false;
     return _scrTracker.hitMapViewport(x, y);
 #else

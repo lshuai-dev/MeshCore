@@ -216,12 +216,7 @@ void UiTask::loop() {
     if (_alert_expiry_ms != 0 && (int32_t)(alert_now - _alert_expiry_ms) >= 0) {
         dismissAlert();
     }
-    if (!Heltec::MeshCore::Dal::DisplayPort::isBacklightOn())
-    {
-        // LVGL input polling is suspended with the display. Continue processing
-        // GPIO edges so a completed button gesture can wake the display.
-        Heltec::MeshCore::Dal::MomentaryButton::poll();
-    }
+    Heltec::MeshCore::Dal::MomentaryButton::poll();
 #if HELTEC_TOUCH_INPUT
     if (Heltec::MeshCore::Dal::DisplayPort::isBacklightOn())
     {

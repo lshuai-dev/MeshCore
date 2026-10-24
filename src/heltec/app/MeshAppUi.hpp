@@ -29,7 +29,7 @@ class MeshAppUi final : public IBizFacade
                             const Heltec::MeshCore::Power::PowerSnapshot &snapshot);
 
     bool sendAdvert() override;
-    // Called by the non-UI application shell; UI surfaces use UiEvent instead.
+    // Called by the non-UI application shell; UI surfaces use UiMessage instead.
     void requestRadioParamPresetPicker();
     void setGpsEnabled(bool enabled) override;
     bool buzzerEnabled() const override;

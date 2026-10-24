@@ -2,7 +2,7 @@
 #include "../core/BizFacade.hpp"
 #include "MeshCore.h"
 #include "ui/theme/UiTheme.hpp"
-#include "ui/core/HtEvent.h"
+#include "ui/core/UiMessage.hpp"
 #include "ui/widgets/WidgetClasses.hpp"
 #include "ui/theme/WidgetTheme.hpp"
 #if defined(HELTEC_HAS_KEY_FRAME) && HELTEC_HAS_KEY_FRAME
@@ -618,7 +618,7 @@ void KeyboardOverlay::requestClose()
     if (lv_async_call(closeAsync, this) != LV_RES_OK)
     {
         _close_pending = false;
-        (void)notifyApp(EventType::KeyboardClose);
+        (void)notifyApp(UiMessageType::KeyboardClose);
     }
 }
 
@@ -630,7 +630,7 @@ void KeyboardOverlay::closeAsync(void *user_data)
         return;
     }
     self->_close_pending = false;
-    (void)self->notifyApp(EventType::KeyboardClose);
+    (void)self->notifyApp(UiMessageType::KeyboardClose);
 }
 
 void KeyboardOverlay::submitWaypointAsync(void *user_data)
@@ -645,8 +645,8 @@ void KeyboardOverlay::submitWaypointAsync(void *user_data)
     submit.lat = self->_pending_latitude;
     submit.lon = self->_pending_longitude;
     self->_waypoint_submit_pending = false;
-    (void)self->notifyApp(EventType::WaypointKeyboardSubmit, &submit);
-    (void)self->notifyApp(EventType::KeyboardClose);
+    (void)self->notifyApp(UiMessageType::WaypointKeyboardSubmit, &submit);
+    (void)self->notifyApp(UiMessageType::KeyboardClose);
 }
 
 bool KeyboardOverlay::ensureContent()
@@ -918,6 +918,12 @@ void KeyboardOverlay::onEnter()
     if (_compose_mode == ComposeMode::Waypoint)
         lv_obj_scroll_to_y(_root, 0, LV_ANIM_OFF);
     _gridNav.setEditing(true);
+#if !defined(HELTEC_UI_HAS_TOUCH) || !HELTEC_UI_HAS_TOUCH
+    if (lv_btnmatrix_get_selected_btn(_keyboard) == LV_BTNMATRIX_BTN_NONE)
+    {
+        lv_btnmatrix_set_selected_btn(_keyboard, 0);
+    }
+#endif
     lv_obj_invalidate(_root);
 }
 
@@ -994,8 +1000,8 @@ void KeyboardOverlay::submitMessageInput()
     submit.text = _submitted_text;
     submit.purpose = purpose;
     submit.preset_index = preset_index;
-    notifyApp(EventType::MessageKeyboardSubmit, &submit);
-    notifyApp(EventType::KeyboardClose);
+    notifyApp(UiMessageType::MessageKeyboardSubmit, &submit);
+    notifyApp(UiMessageType::KeyboardClose);
 }
 
 void KeyboardOverlay::submitWaypointInput()

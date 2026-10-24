@@ -60,7 +60,7 @@ static bool near_point(int16_t x, int16_t y, int16_t ox, int16_t oy)
 
 static void injectPulse(uint32_t key)
 {
-    Heltec::MeshCore::Ui::InputRouter::onSyntheticKey(key, true);
+    Heltec::MeshCore::Ui::InputRouter::onSyntheticKey(key);
 }
 
 static void consumeTouch()

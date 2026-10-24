@@ -3,16 +3,17 @@
 #include <lvgl.h>
 #include <stdint.h>
 
-namespace Heltec::MeshCore::Ui {
+namespace Heltec::MeshCore::Ui
+{
 
-enum class EventType : uint8_t {
+enum class UiMessageType : uint8_t
+{
     None = UINT8_MAX,
     NavOpen = 0,
     NavClose,
     NavActivity,
     TilePreview,
     TileCommit,
-    ActionOpen,
     ConfirmOpen,
     ConfirmAccepted,
     ConfirmCancelled,
@@ -38,34 +39,35 @@ enum class EventType : uint8_t {
     WaypointKeyboardSubmit,
 };
 
-struct UiEvent {
-    EventType type;
+struct UiMessage
+{
+    UiMessageType type;
     const void *payload;
     lv_obj_t *source;
 };
 
-struct UiAlertRequest {
+struct UiAlertRequest
+{
     const char *text = nullptr;
     uint16_t duration_ms = 0;
 };
 
-enum class UiConfirmAction : uint8_t {
+enum class UiConfirmAction : uint8_t
+{
     FactoryReset,
     ClearData,
     TeamJoin,
-    TeamLeave = 4, // Preserve existing event values; 3 was the removed reset action.
+    TeamLeave = 4, // Value 3 belonged to a removed action.
 };
 
-struct UiConfirmRequest {
-    UiConfirmAction action = UiConfirmAction::FactoryReset;
-};
-
-enum class UiMessageKeyboardPurpose : uint8_t {
+enum class UiMessageKeyboardPurpose : uint8_t
+{
     SendCustom,
     EditPreset,
 };
 
-struct UiMessageKeyboardRequest {
+struct UiMessageKeyboardRequest
+{
     const char *title = nullptr;
     const char *initial_text = nullptr;
     UiMessageKeyboardPurpose purpose = UiMessageKeyboardPurpose::SendCustom;
@@ -73,33 +75,38 @@ struct UiMessageKeyboardRequest {
     uint8_t max_bytes = 80;
 };
 
-enum class UiMessageTargetKind : uint8_t {
+enum class UiMessageTargetKind : uint8_t
+{
     Direct = 0,
     Channel = 1,
 };
 
-struct UiSendMessageTarget {
+struct UiSendMessageTarget
+{
     UiMessageTargetKind kind = UiMessageTargetKind::Direct;
     uint8_t pub_key_prefix[6] = {};
     int channel_idx = -1;
     char label[24] = {};
 };
 
-struct UiMessageKeyboardSubmit {
+struct UiMessageKeyboardSubmit
+{
     const char *text = nullptr;
     UiMessageKeyboardPurpose purpose = UiMessageKeyboardPurpose::SendCustom;
     uint8_t preset_index = 0;
 };
 
-struct UiWaypointKeyboardSubmit {
+struct UiWaypointKeyboardSubmit
+{
     double lat = 0;
     double lon = 0;
 };
 
-void ht_event_init();
-extern lv_event_code_t HT_EVENT_USER;
-bool ht_event_send(lv_obj_t *target, EventType type, const void *payload = nullptr,
+extern lv_event_code_t UI_MESSAGE_EVENT;
+
+void initUiMessages();
+bool sendUiMessage(lv_obj_t *target, UiMessageType type, const void *payload = nullptr,
                    lv_obj_t *source = nullptr);
-const UiEvent *ht_event_get(const lv_event_t *event);
+const UiMessage *getUiMessage(const lv_event_t *event);
 
 } // namespace Heltec::MeshCore::Ui

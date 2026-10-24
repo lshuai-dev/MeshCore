@@ -2,7 +2,7 @@
 #include "AppStateEvent.hpp"
 #include "BizFacade.hpp"
 #include "HtGridNav.hpp"
-#include "HtEvent.h"
+#include "UiMessage.hpp"
 
 namespace Heltec::MeshCore::Ui {
 class SurfaceManager;
@@ -32,7 +32,7 @@ class UiSurface {
     virtual void onActivated() {
     }
 
-    virtual void onAppEvent(const UiEvent &event) {
+    virtual void onAppEvent(const UiMessage &event) {
         (void)event;
     }
     virtual bool acceptsAppEvents() const {
@@ -43,7 +43,7 @@ class UiSurface {
         return false;
     }
 
-    bool notifyApp(EventType type, const void *payload = nullptr) const;
+    bool notifyApp(UiMessageType type, const void *payload = nullptr) const;
     bool showAlert(const char *text, uint16_t duration_ms) const;
 
     lv_obj_t *_root = nullptr;

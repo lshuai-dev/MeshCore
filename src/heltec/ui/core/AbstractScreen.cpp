@@ -1,5 +1,5 @@
 #include "AbstractScreen.hpp"
-#include "ui/core/HtEvent.h"
+#include "ui/core/UiMessage.hpp"
 #if defined(HELTEC_HAS_KEY_FRAME) && HELTEC_HAS_KEY_FRAME
 #include "heltec/drivers/display/DisplayPort.hpp"
 #endif
@@ -148,7 +148,7 @@ bool AbstractScreen::onKey(uint32_t key) {
         return _gridNav.handleKey(key);
     }
     if (key == LV_KEY_ESC) {
-        return notifyApp(EventType::NavOpen);
+        return notifyApp(UiMessageType::NavOpen);
     }
     if (key == LV_KEY_ENTER) {
         (void)lv_async_call(deferredActivateControls, this);

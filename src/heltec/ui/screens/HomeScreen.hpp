@@ -6,7 +6,7 @@ class IBizFacade;
 }
 
 namespace Heltec::MeshCore::Ui {
-class HomeScreen : public AbstractScreen {
+class HomeScreen final : public AbstractScreen {
   public:
     HomeScreen(Biz::IBizFacade &biz, const char *title, const lv_img_dsc_t *icon)
         : AbstractScreen(biz, title, icon) {

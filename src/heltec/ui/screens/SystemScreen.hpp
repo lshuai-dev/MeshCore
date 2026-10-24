@@ -2,7 +2,6 @@
 
 #include "../core/AbstractScreen.hpp"
 #include "../core/AppStateEvent.hpp"
-#include "../core/Capabilities.hpp"
 
 namespace Heltec::MeshCore::Biz {
 class IBizFacade;
@@ -12,7 +11,7 @@ namespace Heltec::MeshCore::Ui {
 
 extern const lv_obj_class_t ht_system_screen_root_class;
 
-class SystemScreen : public AbstractScreen {
+class SystemScreen final : public AbstractScreen {
   public:
     SystemScreen(Biz::IBizFacade &biz, const char *title, const lv_img_dsc_t *icon)
         : AbstractScreen(biz, title, icon) {
@@ -27,7 +26,7 @@ class SystemScreen : public AbstractScreen {
     bool acceptsAppEvents() const override {
         return true;
     }
-    void onAppEvent(const UiEvent &event) override;
+    void onAppEvent(const UiMessage &event) override;
 
   private:
     void onAppStateChanged(const AppStateEvent &event) override;

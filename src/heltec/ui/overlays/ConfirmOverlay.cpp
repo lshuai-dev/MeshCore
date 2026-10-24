@@ -140,18 +140,18 @@ bool ConfirmOverlay::onKey(uint32_t key)
     }
     if (key == LV_KEY_ESC)
     {
-        return notifyApp(EventType::ConfirmCancelled);
+        return notifyApp(UiMessageType::ConfirmCancelled);
     }
     if (key == LV_KEY_ENTER)
     {
-        return notifyApp(EventType::ConfirmAccepted, &_action);
+        return notifyApp(UiMessageType::ConfirmAccepted, &_action);
     }
     return false;
 }
 
 void ConfirmOverlay::onBackdropPressed()
 {
-    (void)notifyApp(EventType::ConfirmCancelled);
+    (void)notifyApp(UiMessageType::ConfirmCancelled);
 }
 
 void ConfirmOverlay::onButtonClicked(lv_event_t *e)
@@ -171,11 +171,11 @@ void ConfirmOverlay::onButtonClicked(lv_event_t *e)
     }
     if (target == self->_cancel)
     {
-        (void)self->notifyApp(EventType::ConfirmCancelled);
+        (void)self->notifyApp(UiMessageType::ConfirmCancelled);
     }
     else if (target == self->_accept)
     {
-        (void)self->notifyApp(EventType::ConfirmAccepted, &self->_action);
+        (void)self->notifyApp(UiMessageType::ConfirmAccepted, &self->_action);
     }
     lv_event_stop_processing(e);
     lv_event_stop_bubbling(e);

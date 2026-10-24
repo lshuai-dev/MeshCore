@@ -1,5 +1,4 @@
 #pragma once
-#include "Capabilities.hpp"
 
 namespace Heltec::MeshCore::Ui::OperationHint
 {

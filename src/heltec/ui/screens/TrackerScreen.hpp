@@ -20,7 +20,7 @@ namespace Heltec::MeshCore::Ui
 
 extern const lv_obj_class_t ht_tracker_screen_root_class;
 
-class TrackerScreen : public AbstractScreen
+class TrackerScreen final : public AbstractScreen
 {
   public:
     TrackerScreen(Biz::IBizFacade &biz, const char *title, const lv_img_dsc_t *icon);

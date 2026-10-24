@@ -10,7 +10,7 @@ class IBizFacade;
 namespace Heltec::MeshCore::Ui
 {
 
-class GPSScreen : public AbstractScreen
+class GPSScreen final : public AbstractScreen
 {
   public:
     GPSScreen(Biz::IBizFacade &biz, const char *title, const lv_img_dsc_t *icon)

@@ -12,7 +12,7 @@ struct _lv_obj_t;
 namespace Heltec::MeshCore::Ui
 {
 
-class KeyboardOverlay : public AbstractOverlay
+class KeyboardOverlay final : public AbstractOverlay
 {
   public:
     explicit KeyboardOverlay(Biz::IBizFacade &biz);

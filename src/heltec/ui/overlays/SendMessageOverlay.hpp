@@ -18,7 +18,7 @@ namespace Heltec::MeshCore::Ui
 struct UiSendMessageTarget;
 
 /** @brief Message composer overlay selected at compile time for touch or keypad input. */
-class SendMessageOverlay : public FramedOverlay
+class SendMessageOverlay final : public FramedOverlay
 {
   public:
     explicit SendMessageOverlay(Biz::IBizFacade &biz);

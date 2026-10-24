@@ -1,7 +1,7 @@
 #include "ContextMenu.hpp"
 
 #include "ui/app/BehaviorProfile.hpp"
-#include "ui/core/HtEvent.h"
+#include "ui/core/UiMessage.hpp"
 #include "ui/core/Scheduler.hpp"
 #include "ui/theme/WidgetTheme.hpp"
 #include "ui/widgets/WidgetClasses.hpp"
@@ -180,8 +180,8 @@ bool ContextMenu::activateItem(uint8_t index)
     }
     if (!item.command)
         return false;
-    const EventType event = item.command(_biz);
-    if (event != EventType::None)
+    const UiMessageType event = item.command(_biz);
+    if (event != UiMessageType::None)
         (void)notifyApp(event);
     return true;
 }
@@ -228,7 +228,7 @@ bool ContextMenu::onKey(uint32_t key)
         return false;
     if (navigateBack())
         return true;
-    return notifyApp(EventType::ContextClose);
+    return notifyApp(UiMessageType::ContextClose);
 }
 
 void ContextMenu::onEnter()

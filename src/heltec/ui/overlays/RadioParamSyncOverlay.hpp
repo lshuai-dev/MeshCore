@@ -11,7 +11,7 @@ struct _lv_obj_t;
 namespace Heltec::MeshCore::Ui
 {
 
-class RadioParamSyncOverlay : public FramedOverlay
+class RadioParamSyncOverlay final : public FramedOverlay
 {
   public:
     explicit RadioParamSyncOverlay(Biz::IBizFacade &biz);

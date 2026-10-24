@@ -1,12 +1,9 @@
 #pragma once
 
 #include "app/PowerMgr.hpp"
-#include "ui/theme/UiTheme.hpp"
 #include "ui/core/AppStateDispatcher.hpp"
 #include "ui/core/BizFacade.hpp"
-#include "ui/core/Capabilities.hpp"
-#include "ui/core/HtEvent.h"
-#include "ui/core/Surface.hpp"
+#include "ui/core/UiMessage.hpp"
 #include "ui/core/SurfaceManager.hpp"
 #include "ui/widgets/TopPane.hpp"
 #if HELTEC_UI_HAS_TOUCH
@@ -14,7 +11,6 @@
 #else
 #include "ui/navigation/RadialNavigator.hpp"
 #endif
-#include "heltec/ui/Images.h"
 #include "ui/screens/HomeScreen.hpp"
 #include "ui/screens/RadioScreen.hpp"
 #include "ui/screens/RecentScreen.hpp"
@@ -58,7 +54,7 @@ class UiApp final {
     UiApp(Biz::IBizFacade &biz, Heltec::MeshCore::Power::PowerMgr &power);
     static UiApp &instance();
 
-    void init();
+    bool init();
     void tick();
     bool isReady() const {
         return _inited;
@@ -80,16 +76,13 @@ class UiApp final {
 #endif
     }
 
-    bool openSendMessageOverlay();
-    void closeSendMessageOverlay();
+    bool acceptsActionShortcut() const
+    {
+        return _inited && inputOnActiveScreen();
+    }
+
     void openRadioParamSyncOverlay();
     bool openActionPane();
-    bool closeActionPane();
-    bool isActionPaneVisible() const;
-#if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
-    bool openCalibrationOverlay();
-#endif
-    void openWaypointKeyboard();
 
     void handlePowerChanged(Heltec::MeshCore::Power::PowerChangeMask changes,
                             const Heltec::MeshCore::Power::PowerSnapshot &snapshot);
@@ -106,6 +99,14 @@ class UiApp final {
 
     static constexpr uint8_t kNoScheduledTile = 0xFF;
 
+    bool openSendMessageOverlay();
+    void closeSendMessageOverlay();
+    bool closeActionPane();
+    bool isActionPaneVisible() const;
+#if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
+    bool openCalibrationOverlay();
+#endif
+    void openWaypointKeyboard();
     void openPreviewOverlay(uint8_t unread, uint32_t received_ms, const char *origin,
                             const char *text);
     void openAlertOverlay(const char *text);
@@ -122,7 +123,7 @@ class UiApp final {
     bool registerRadioContextMenu();
     bool registerCompassContextMenu();
 #endif
-    bool initOverlay();
+    bool initOverlay(_lv_obj_t *parent);
     bool initScreens(_lv_obj_t *content);
     bool initNavigationPane(_lv_obj_t *parent);
     bool initTimers();
@@ -224,8 +225,6 @@ class UiApp final {
     QuickPingOverlay _quickPingOverlay;
 #endif
 
-    lv_obj_t *_layerOverlay = nullptr;
-
     PreviewOverlay _previewOvl;
     AlertOverlay _alertOvl;
     ConfirmOverlay _confirmOvl;
@@ -251,7 +250,6 @@ class UiApp final {
     bool _inited = false;
     bool _frame_events_bound = false;
     lv_obj_t *_frame_root = nullptr;
-    lv_obj_t *_root = nullptr;
     lv_obj_t *_tileview = nullptr;
 };
 

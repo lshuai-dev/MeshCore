@@ -1,11 +1,11 @@
 #pragma once
-#include "Capabilities.hpp"
+
 #include <stdint.h>
 
 namespace Heltec::MeshCore::Ui
 {
 
-enum class eScreenId : uint8_t
+enum class ScreenId : uint8_t
 {
     Home,
     Recent,
@@ -15,18 +15,16 @@ enum class eScreenId : uint8_t
 #endif
 #if defined(ENV_INCLUDE_GPS) && ENV_INCLUDE_GPS
     FindFriend,
-#endif
-#if ENV_INCLUDE_GPS
     GPS,
 #endif
 #if defined(ENV_INCLUDE_MAP) && ENV_INCLUDE_MAP
     Tracker,
 #endif
     System,
-    kScreenCnt,
-    None = 0xFF
+    Count,
+    None = UINT8_MAX
 };
 
-constexpr uint8_t kScreenCnt = static_cast<uint8_t>(eScreenId::kScreenCnt);
+constexpr uint8_t kScreenCount = static_cast<uint8_t>(ScreenId::Count);
 
 } // namespace Heltec::MeshCore::Ui

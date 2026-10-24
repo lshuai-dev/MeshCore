@@ -68,7 +68,7 @@ const lv_obj_class_t ht_quick_ping_keyboard_class =
 #include "heltec/ui/core/BizFacade.hpp"
 #include "heltec/ui/Images.h"
 #include "ui/theme/UiTheme.hpp"
-#include "ui/core/HtEvent.h"
+#include "ui/core/UiMessage.hpp"
 #include "ui/core/Scheduler.hpp"
 #include "ui/theme/WidgetTheme.hpp"
 
@@ -648,7 +648,7 @@ void QuickPingOverlay::closeAnimationReady(void *user_data)
     if (!self)
         return;
     self->_close_animating = false;
-    (void)self->notifyApp(EventType::QuickPingClose);
+    (void)self->notifyApp(UiMessageType::QuickPingClose);
 }
 
 bool QuickPingOverlay::onKey(uint32_t key)
@@ -668,7 +668,7 @@ bool QuickPingOverlay::onKey(uint32_t key)
         restoreModeFocus(_ta_message);
         return true;
     }
-    return notifyApp(EventType::QuickPingClose);
+    return notifyApp(UiMessageType::QuickPingClose);
 }
 
 _lv_obj_t *QuickPingOverlay::createDropdownRow(_lv_obj_t *parent, const char *label_text,
@@ -1715,7 +1715,7 @@ void QuickPingOverlay::submitMessageFromTextarea()
         _message_submit_handled = true;
         _preset_edit_active = false;
         showAlert(result == Result::Updated ? "Preset saved" : "Preset unchanged", 1000);
-        (void)notifyApp(EventType::QuickPingClose);
+        (void)notifyApp(UiMessageType::QuickPingClose);
         return;
     }
     syncKeyboardEditorToMessage();
@@ -2108,7 +2108,7 @@ void QuickPingOverlay::onKeyboardEvent(lv_event_t *e)
         if (self->_preset_edit_active)
         {
             self->_preset_edit_active = false;
-            (void)self->notifyApp(EventType::QuickPingClose);
+            (void)self->notifyApp(UiMessageType::QuickPingClose);
         }
         else
         {
@@ -2168,7 +2168,7 @@ void QuickPingOverlay::onKeyboardValuePre(lv_event_t *e)
         if (self->_preset_edit_active)
         {
             self->_preset_edit_active = false;
-            (void)self->notifyApp(EventType::QuickPingClose);
+            (void)self->notifyApp(UiMessageType::QuickPingClose);
         }
         else
         {

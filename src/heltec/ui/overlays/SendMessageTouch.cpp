@@ -7,7 +7,7 @@
 #include "ui/theme/UiTheme.hpp"
 #include "ui/widgets/HtContainer.hpp"
 #include "ui/core/OperationHints.hpp"
-#include "ui/core/HtEvent.h"
+#include "ui/core/UiMessage.hpp"
 #include "ui/widgets/WidgetClasses.hpp"
 
 #include <cstdio>
@@ -390,7 +390,7 @@ void SendMessageOverlay::sendMessageText(const char *text, bool alert_on_direct_
     memcpy(pub_key_prefix, target.pub_key_prefix, 6);
 
     // Close before alert/send so the result overlay becomes the top surface.
-    notifyApp(EventType::SendMessageClose);
+    notifyApp(UiMessageType::SendMessageClose);
 
     bool ok = false;
     if (kind == TargetKind::Personal)
@@ -444,7 +444,7 @@ void SendMessageOverlay::openCustomKeyboard()
     const Target &target = _model.target();
     UiMessageKeyboardRequest req;
     req.title = target.label;
-    (void)notifyApp(EventType::MessageKeyboardOpen, &req);
+    (void)notifyApp(UiMessageType::MessageKeyboardOpen, &req);
 }
 
 void SendMessageOverlay::handleBack()
@@ -464,7 +464,7 @@ void SendMessageOverlay::handleBack()
         renderRows();
         return;
     }
-    notifyApp(EventType::SendMessageClose);
+    notifyApp(UiMessageType::SendMessageClose);
 }
 
 void SendMessageOverlay::applySelection()

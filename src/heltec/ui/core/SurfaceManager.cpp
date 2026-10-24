@@ -28,7 +28,7 @@ bool SurfaceManager::init()
     }
     lv_group_set_wrap(_input_group, false);
     lv_group_set_default(_input_group);
-    Heltec::MeshCore::Dal::KeyInput::set_group(_input_group);
+    Heltec::MeshCore::Dal::KeyInput::setGroup(_input_group);
     return true;
 }
 
@@ -96,7 +96,7 @@ void SurfaceManager::bindInput(UiSurface *surface)
         clearInput();
         return;
     }
-    Heltec::MeshCore::Dal::KeyInput::set_group(_input_group);
+    Heltec::MeshCore::Dal::KeyInput::setGroup(_input_group);
     UiSurface *const previous = active();
     lv_group_focus_obj(surface->root());
     if (previous != surface)
@@ -108,7 +108,7 @@ void SurfaceManager::bindInput(UiSurface *surface)
 
 void SurfaceManager::clearInput()
 {
-    Heltec::MeshCore::Dal::KeyInput::set_group(nullptr);
+    Heltec::MeshCore::Dal::KeyInput::setGroup(nullptr);
 }
 
 int SurfaceManager::find(const UiSurface *surface) const

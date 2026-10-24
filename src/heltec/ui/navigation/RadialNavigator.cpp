@@ -4,7 +4,7 @@
 #include "heltec/ui/Images.h"
 #include "ui/app/BehaviorProfile.hpp"
 #include "ui/theme/UiTheme.hpp"
-#include "ui/core/HtEvent.h"
+#include "ui/core/UiMessage.hpp"
 #include "ui/core/Scheduler.hpp"
 #include "ui/widgets/WidgetClasses.hpp"
 #include "ui/navigation/NavigationWidget.hpp"
@@ -428,7 +428,7 @@ void RadialNavigator::onExit() {
 
 void RadialNavigator::sendTilePreview(uint8_t tile_idx) {
     if (_tileview && tile_idx < kMaxButtons) {
-        ht_event_send(_tileview, EventType::TilePreview, &tile_idx);
+        sendUiMessage(_tileview, UiMessageType::TilePreview, &tile_idx);
     }
 }
 
@@ -439,21 +439,21 @@ _lv_obj_t *RadialNavigator::frameRoot() const {
 
 bool RadialNavigator::commitFocused() {
     if (!panelVisible() || !_tileview || _ring_layout_focus >= kMaxButtons) return false;
-    return ht_event_send(_tileview, EventType::TileCommit, &_ring_layout_focus);
+    return sendUiMessage(_tileview, UiMessageType::TileCommit, &_ring_layout_focus);
 }
 
 bool RadialNavigator::onKey(uint32_t lv_key) {
     if (!panelVisible()) return false;
     if (lv_key == LV_KEY_ESC) {
         if (_lv_obj_t *frame = frameRoot()) {
-            ht_event_send(frame, EventType::NavClose);
+            sendUiMessage(frame, UiMessageType::NavClose);
         }
         return true;
     }
     if (lv_key == LV_KEY_ENTER) return false;
     if (isNavStepKey(lv_key)) {
         if (_lv_obj_t *frame = frameRoot()) {
-            ht_event_send(frame, EventType::NavActivity);
+            sendUiMessage(frame, UiMessageType::NavActivity);
         }
         return false;
     }

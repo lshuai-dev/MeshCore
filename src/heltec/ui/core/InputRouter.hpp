@@ -16,7 +16,7 @@ class InputRouter
         uint8_t slot, Heltec::MeshCore::Dal::MomentaryButton::ButtonGesture gesture,
         uint32_t now_ms);
 
-    static void onSyntheticKey(uint32_t lv_key, bool pulse);
+    static void onSyntheticKey(uint32_t lv_key);
 };
 
 } // namespace Heltec::MeshCore::Ui

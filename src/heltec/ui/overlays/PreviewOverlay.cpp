@@ -1,5 +1,5 @@
 #include "PreviewOverlay.hpp"
-#include "ui/core/HtEvent.h"
+#include "ui/core/UiMessage.hpp"
 #include "ui/core/OperationHints.hpp"
 #include "ui/widgets/WidgetClasses.hpp"
 
@@ -81,11 +81,11 @@ bool PreviewOverlay::build() {
 bool PreviewOverlay::onKey(uint32_t key) {
     if (key == LV_KEY_NEXT || key == LV_KEY_PREV || key == LV_KEY_LEFT || key == LV_KEY_RIGHT ||
         key == LV_KEY_UP || key == LV_KEY_DOWN) {
-        notifyApp(EventType::PreviewNext);
+        notifyApp(UiMessageType::PreviewNext);
         return true;
     }
     if (key == LV_KEY_ENTER) {
-        notifyApp(EventType::PreviewClose);
+        notifyApp(UiMessageType::PreviewClose);
         return true;
     }
     if (key == LV_KEY_ESC) return true;
@@ -100,7 +100,7 @@ void PreviewOverlay::onRootClicked(lv_event_t *event) {
 
     lv_event_stop_bubbling(event);
     lv_event_stop_processing(event);
-    self->notifyApp(EventType::PreviewNext);
+    self->notifyApp(UiMessageType::PreviewNext);
 }
 
 void PreviewOverlay::applyContent(uint8_t unread, uint32_t received_ms, const char *origin,
@@ -179,10 +179,6 @@ void PreviewOverlay::onExit() {
 void PreviewOverlay::ageTimerCallback(lv_timer_t *timer) {
     auto *self = timer ? static_cast<PreviewOverlay *>(timer->user_data) : nullptr;
     if (self) self->updateAge();
-}
-
-void PreviewOverlay::dismissByUser() {
-    notifyApp(EventType::PreviewClose);
 }
 
 } // namespace Heltec::MeshCore::Ui

@@ -13,7 +13,7 @@ struct CompassUi;
 namespace Heltec::MeshCore::Ui
 {
 
-class CompassScreen : public AbstractScreen
+class CompassScreen final : public AbstractScreen
 {
   public:
     CompassScreen(Biz::IBizFacade &biz, const char *title, const lv_img_dsc_t *icon)

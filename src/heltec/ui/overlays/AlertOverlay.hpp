@@ -9,7 +9,7 @@ class IBizFacade;
 namespace Heltec::MeshCore::Ui {
 
 /** @brief 短时提示 overlay；由 UiApp::activate 驱动显隐。 */
-class AlertOverlay : public DialogOverlay {
+class AlertOverlay final : public DialogOverlay {
   public:
     explicit AlertOverlay(Biz::IBizFacade &biz)
         : DialogOverlay(biz, Options{ Variant::Alert, false, false, false }) {

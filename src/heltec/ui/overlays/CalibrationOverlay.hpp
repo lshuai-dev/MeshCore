@@ -12,7 +12,7 @@ struct _lv_obj_t;
 namespace Heltec::MeshCore::Ui
 {
 
-class CalibrationOverlay : public DialogOverlay
+class CalibrationOverlay final : public DialogOverlay
 {
   public:
     explicit CalibrationOverlay(Biz::IBizFacade &biz)

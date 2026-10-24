@@ -1,7 +1,7 @@
 #include "ui/app/App.hpp"
 #include "ui/app/BehaviorProfile.hpp"
-#include "ui/core/ScreenId.hpp"
-#include "ui/core/HtEvent.h"
+#include "ui/app/ScreenId.hpp"
+#include "ui/core/UiMessage.hpp"
 #if defined(HELTEC_HAS_KEY_FRAME) && HELTEC_HAS_KEY_FRAME
 #include "heltec/drivers/display/DisplayPort.hpp"
 #endif
@@ -30,7 +30,7 @@ void UiApp::scheduleNavTileCommit(uint8_t tile_idx)
     const bool transitioning = _navigation.isTransitioning();
     if (!nav_active || transitioning)
         return;
-    if (!_tileview || tile_idx >= kScreenCnt)
+    if (!_tileview || tile_idx >= kScreenCount)
         return;
     if (kNoScheduledTile != _scheduled_nav_tile)
         return;
@@ -45,7 +45,7 @@ void UiApp::scheduleNavTileCommit(uint8_t tile_idx)
 
                 const uint8_t pending_tile = app->_scheduled_nav_tile;
                 app->_scheduled_nav_tile = kNoScheduledTile;
-                if (!app->_tileview || pending_tile >= kScreenCnt)
+                if (!app->_tileview || pending_tile >= kScreenCount)
                     return;
 
                 (void)app->selectTile(pending_tile);
@@ -72,10 +72,10 @@ bool UiApp::switchAdjacentTile(int8_t dir)
         return false;
 
     const uint8_t cur = activeTileIndex();
-    int next = ((int)cur + (int)dir) % kScreenCnt;
+    int next = ((int)cur + (int)dir) % kScreenCount;
     if (next < 0)
-        next += kScreenCnt;
-    if (next < 0 || next >= (int)kScreenCnt)
+        next += kScreenCount;
+    if (next < 0 || next >= (int)kScreenCount)
         return false;
 
     if (!selectTile(static_cast<uint8_t>(next)))
@@ -119,47 +119,47 @@ bool UiApp::initNavigationPane(_lv_obj_t *parent)
 
 #if HELTEC_UI_HAS_TOUCH
     const UiNavigationItem items[] = {
-        { static_cast<uint8_t>(eScreenId::Home), _scrHome.title(), _scrHome.icon(), false },
-        { static_cast<uint8_t>(eScreenId::Radio), _scrRadio.title(), _scrRadio.icon(), false },
-        { static_cast<uint8_t>(eScreenId::Recent), _scrRecent.title(), _scrRecent.icon(), false },
+        { static_cast<uint8_t>(ScreenId::Home), _scrHome.title(), _scrHome.icon(), false },
+        { static_cast<uint8_t>(ScreenId::Radio), _scrRadio.title(), _scrRadio.icon(), false },
+        { static_cast<uint8_t>(ScreenId::Recent), _scrRecent.title(), _scrRecent.icon(), false },
 #if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
-        { static_cast<uint8_t>(eScreenId::Compass), _scrCompass.title(), _scrCompass.icon(),
+        { static_cast<uint8_t>(ScreenId::Compass), _scrCompass.title(), _scrCompass.icon(),
           false },
 #elif ENV_INCLUDE_GPS
-        { static_cast<uint8_t>(eScreenId::GPS), _scrGPS.title(), _scrGPS.icon(), false },
+        { static_cast<uint8_t>(ScreenId::GPS), _scrGPS.title(), _scrGPS.icon(), false },
 #endif
 #if defined(ENV_INCLUDE_MAP) && ENV_INCLUDE_MAP
-        { static_cast<uint8_t>(eScreenId::Tracker), _scrTracker.title(), _scrTracker.icon(),
+        { static_cast<uint8_t>(ScreenId::Tracker), _scrTracker.title(), _scrTracker.icon(),
           false },
 #endif
-        { static_cast<uint8_t>(eScreenId::System), _scrSystem.title(), _scrSystem.icon(), false },
+        { static_cast<uint8_t>(ScreenId::System), _scrSystem.title(), _scrSystem.icon(), false },
     };
 #else
     const UiNavigationItem items[] = {
-        { static_cast<uint8_t>(eScreenId::Home), _scrHome.title(), _scrHome.icon(), false },
-        { static_cast<uint8_t>(eScreenId::Recent), _scrRecent.title(), _scrRecent.icon(), false },
-        { static_cast<uint8_t>(eScreenId::Radio), _scrRadio.title(), _scrRadio.icon(), false },
+        { static_cast<uint8_t>(ScreenId::Home), _scrHome.title(), _scrHome.icon(), false },
+        { static_cast<uint8_t>(ScreenId::Recent), _scrRecent.title(), _scrRecent.icon(), false },
+        { static_cast<uint8_t>(ScreenId::Radio), _scrRadio.title(), _scrRadio.icon(), false },
 #if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
-        { static_cast<uint8_t>(eScreenId::Compass), _scrCompass.title(), _scrCompass.icon(),
+        { static_cast<uint8_t>(ScreenId::Compass), _scrCompass.title(), _scrCompass.icon(),
           false },
 #endif
 #if defined(ENV_INCLUDE_GPS) && ENV_INCLUDE_GPS
-        { static_cast<uint8_t>(eScreenId::FindFriend), _scrFindFriend.title(),
+        { static_cast<uint8_t>(ScreenId::FindFriend), _scrFindFriend.title(),
           _scrFindFriend.icon(), false },
 #endif
 #if ENV_INCLUDE_GPS
-        { static_cast<uint8_t>(eScreenId::GPS), _scrGPS.title(), _scrGPS.icon(), false },
+        { static_cast<uint8_t>(ScreenId::GPS), _scrGPS.title(), _scrGPS.icon(), false },
 #endif
 #if defined(ENV_INCLUDE_MAP) && ENV_INCLUDE_MAP
-        { static_cast<uint8_t>(eScreenId::Tracker), _scrTracker.title(), _scrTracker.icon(),
+        { static_cast<uint8_t>(ScreenId::Tracker), _scrTracker.title(), _scrTracker.icon(),
           false },
 #endif
-        { static_cast<uint8_t>(eScreenId::System), _scrSystem.title(), _scrSystem.icon(), false },
+        { static_cast<uint8_t>(ScreenId::System), _scrSystem.title(), _scrSystem.icon(), false },
     };
 #endif
 #if HELTEC_UI_HAS_TOUCH && defined(ENV_INCLUDE_GPS) && \
     ENV_INCLUDE_GPS
-    const UiNavigationItem footer = { static_cast<uint8_t>(eScreenId::FindFriend),
+    const UiNavigationItem footer = { static_cast<uint8_t>(ScreenId::FindFriend),
                                       _scrFindFriend.title(), _scrFindFriend.icon(), true };
 #endif
 
@@ -219,7 +219,7 @@ void UiApp::previewNavTile(uint8_t tile_idx)
 
 bool UiApp::selectTile(uint8_t tile_idx)
 {
-    if (!_tileview || tile_idx >= kScreenCnt)
+    if (!_tileview || tile_idx >= kScreenCount)
         return false;
     lv_obj_t *const tile = lv_obj_get_child(_tileview, tile_idx);
     if (!tile)

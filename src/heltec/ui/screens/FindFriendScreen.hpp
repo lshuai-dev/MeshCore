@@ -10,7 +10,7 @@ struct FindFriendUi;
 
 namespace Heltec::MeshCore::Ui {
 
-class FindFriendScreen : public AbstractScreen {
+class FindFriendScreen final : public AbstractScreen {
   public:
     FindFriendScreen(Biz::IBizFacade &biz, const char *title, const lv_img_dsc_t *icon)
         : AbstractScreen(biz, title, icon) {
@@ -24,7 +24,7 @@ class FindFriendScreen : public AbstractScreen {
     bool acceptsAppEvents() const override {
         return true;
     }
-    void onAppEvent(const UiEvent &event) override;
+    void onAppEvent(const UiMessage &event) override;
 
   private:
     struct ChoiceRow {

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../core/DialogOverlay.hpp"
-#include "../core/HtEvent.h"
+#include "../core/UiMessage.hpp"
 
 #include <stdint.h>
 

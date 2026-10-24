@@ -1,6 +1,6 @@
 #include "RepeatModeOverlay.hpp"
 #include "ui/core/BizFacade.hpp"
-#include "ui/core/HtEvent.h"
+#include "ui/core/UiMessage.hpp"
 #include "ui/core/OperationHints.hpp"
 #include "ui/theme/WidgetTheme.hpp"
 namespace Heltec::MeshCore::Ui {
@@ -220,7 +220,7 @@ void RepeatModeOverlay::applySelection(uint8_t item_index) {
     const char *const error = apply_error_text(result);
     if (!error && _biz.forwardingEnabled()) {
         showAlert("Repeat mode enabled", 1200);
-        (void)notifyApp(EventType::RepeatModeClose);
+        (void)notifyApp(UiMessageType::RepeatModeClose);
         return;
     }
 
@@ -230,7 +230,7 @@ void RepeatModeOverlay::applySelection(uint8_t item_index) {
 
 void RepeatModeOverlay::cancelSelection() {
     if (_applying) return;
-    (void)notifyApp(EventType::RepeatModeClose);
+    (void)notifyApp(UiMessageType::RepeatModeClose);
 }
 
 void RepeatModeOverlay::setApplying(bool applying) {

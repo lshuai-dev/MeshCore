@@ -2,11 +2,13 @@
 
 #include "FindFriendScreen.hpp"
 
+#include "heltec/drivers/input/KeyInput.hpp"
+
 #include "ui/widgets/DropdownViewport.hpp"
 #include "app/TeamJoinService.hpp"
 #include "ui/theme/UiTheme.hpp"
 #include "ui/widgets/HtContainer.hpp"
-#include "ui/core/HtEvent.h"
+#include "ui/core/UiMessage.hpp"
 #include "ui/theme/WidgetTheme.hpp"
 #include <lvgl.h>
 #include <string.h>
@@ -278,11 +280,7 @@ void FindFriendScreen::applyGroupFocus(_lv_obj_t *focused)
     if (_open_dropdown && focused != _open_dropdown)
         closeOpenDropdown();
 
-    lv_indev_t *const indev = lv_indev_get_act();
-    if (!indev)
-        return;
-    const lv_indev_type_t type = lv_indev_get_type(indev);
-    if (type == LV_INDEV_TYPE_KEYPAD || type == LV_INDEV_TYPE_ENCODER)
+    if (Heltec::MeshCore::Dal::KeyInput::isDispatching())
     {
         scrollFocusedIntoView(focused);
     }
@@ -1089,7 +1087,7 @@ void FindFriendScreen::handleAction(Action action, _lv_obj_t *source)
             showAlert("No Team recipient", 2000);
             return;
         }
-        (void)notifyApp(EventType::SendMessageOpen, &target);
+        (void)notifyApp(UiMessageType::SendMessageOpen, &target);
         return;
     }
     if (action == Action::Team)
@@ -1112,7 +1110,7 @@ void FindFriendScreen::handleAction(Action action, _lv_obj_t *source)
     if (action == Action::WaypointManual)
     {
         _waypoint_keyboard_return_focus = source;
-        notifyApp(EventType::WaypointKeyboardOpen);
+        notifyApp(UiMessageType::WaypointKeyboardOpen);
     }
 }
 

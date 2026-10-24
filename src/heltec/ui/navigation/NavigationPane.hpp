@@ -1,7 +1,7 @@
 #pragma once
 
 #include "heltec/ui/core/BizFacade.hpp"
-#include "heltec/ui/core/ScreenId.hpp"
+#include "heltec/ui/app/ScreenId.hpp"
 #include "heltec/ui/core/Surface.hpp"
 #include "ui/navigation/NavigationWidget.hpp"
 
@@ -66,7 +66,7 @@ class NavigationPane : public UiSurface
     void sendTilePreview(uint8_t tile_idx);
     _lv_obj_t *frameRoot() const;
 
-    static constexpr uint8_t kMaxButtons = static_cast<uint8_t>(eScreenId::kScreenCnt);
+    static constexpr uint8_t kMaxButtons = static_cast<uint8_t>(ScreenId::Count);
     static constexpr uint8_t kNoEmphasis = 0xFF;
 
     _lv_obj_t *_nav = nullptr;
@@ -90,7 +90,7 @@ class NavigationPane : public UiSurface
     lv_coord_t _cached_nav_w = 0;
     lv_coord_t _cached_nav_h = 0;
     const char *_labels[kMaxButtons] = {};
-    uint8_t _footer_id = static_cast<uint8_t>(eScreenId::None);
+    uint8_t _footer_id = static_cast<uint8_t>(ScreenId::None);
 };
 
 } // namespace Heltec::MeshCore::Ui

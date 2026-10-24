@@ -1,7 +1,7 @@
 #if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
 #include "CalibrationOverlay.hpp"
 #include "ui/core/OperationHints.hpp"
-#include "ui/core/HtEvent.h"
+#include "ui/core/UiMessage.hpp"
 #include "ui/widgets/WidgetClasses.hpp"
 
 #include <Arduino.h>
@@ -81,10 +81,13 @@ bool CalibrationOverlay::build()
 bool CalibrationOverlay::onKey(uint32_t key)
 {
     if (key == LV_KEY_ENTER)
+    {
+        confirm();
         return true;
+    }
     if (key == LV_KEY_ESC)
     {
-        return notifyApp(EventType::CalibrationClose);
+        return notifyApp(UiMessageType::CalibrationClose);
     }
     return false;
 }
@@ -99,7 +102,7 @@ void CalibrationOverlay::confirm()
     }
     if (_phase != Phase::Calibrating)
     {
-        (void)notifyApp(EventType::CalibrationClose);
+        (void)notifyApp(UiMessageType::CalibrationClose);
     }
 }
 

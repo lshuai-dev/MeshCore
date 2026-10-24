@@ -13,15 +13,16 @@ class FramedOverlay : public AbstractOverlay {
 
     bool build() override;
     virtual bool buildHeader();
-    virtual bool buildContent();
-    virtual bool buildFooter();
 
     _lv_obj_t *_header = nullptr;
     _lv_obj_t *_content = nullptr;
     _lv_obj_t *_footer = nullptr;
+
+  private:
+    bool buildContent();
+    bool buildFooter();
+
     const lv_obj_class_t *_content_class = nullptr;
-    const char *_title_text = "";
-    const char *_tool_tip_text = "";
 };
 
 } // namespace Heltec::MeshCore::Ui
