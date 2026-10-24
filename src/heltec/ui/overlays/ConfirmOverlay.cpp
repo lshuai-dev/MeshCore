@@ -45,9 +45,9 @@ void ConfirmOverlay::onEnter()
     lv_obj_invalidate(_root);
 }
 
-bool ConfirmOverlay::buildSurface()
+bool ConfirmOverlay::build()
 {
-    if (!DialogOverlay::buildSurface())
+    if (!DialogOverlay::build())
     {
         return false;
     }
@@ -141,18 +141,18 @@ bool ConfirmOverlay::onKey(uint32_t key)
     }
     if (key == LV_KEY_ESC)
     {
-        return emitEvent(EventType::ConfirmCancelled);
+        return notifyApp(EventType::ConfirmCancelled);
     }
     if (key == LV_KEY_ENTER)
     {
-        return emitEvent(EventType::ConfirmAccepted, &_action);
+        return notifyApp(EventType::ConfirmAccepted, &_action);
     }
     return false;
 }
 
 void ConfirmOverlay::onBackdropPressed()
 {
-    (void)emitEvent(EventType::ConfirmCancelled);
+    (void)notifyApp(EventType::ConfirmCancelled);
 }
 
 void ConfirmOverlay::onButtonClicked(lv_event_t *e)
@@ -172,11 +172,11 @@ void ConfirmOverlay::onButtonClicked(lv_event_t *e)
     }
     if (target == self->_cancel)
     {
-        (void)self->emitEvent(EventType::ConfirmCancelled);
+        (void)self->notifyApp(EventType::ConfirmCancelled);
     }
     else if (target == self->_accept)
     {
-        (void)self->emitEvent(EventType::ConfirmAccepted, &self->_action);
+        (void)self->notifyApp(EventType::ConfirmAccepted, &self->_action);
     }
     lv_event_stop_processing(e);
     lv_event_stop_bubbling(e);

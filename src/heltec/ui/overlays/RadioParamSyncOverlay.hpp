@@ -16,8 +16,6 @@ class RadioParamSyncOverlay : public FramedOverlay
   public:
     explicit RadioParamSyncOverlay(Biz::IBizFacade &biz);
 
-    void onEnter() override;
-    void onExit() override;
 
     void stepSelection(int8_t dir);
 #if HELTEC_UI_HAS_TOUCH
@@ -25,7 +23,9 @@ class RadioParamSyncOverlay : public FramedOverlay
 #endif
 
   protected:
-    bool buildSurface() override;
+    void onEnter() override;
+    void onExit() override;
+    bool build() override;
 
   private:
     bool onKey(uint32_t key) override;

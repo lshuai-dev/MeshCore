@@ -57,8 +57,8 @@ void build_region_options() {
 
 } // namespace
 
-bool SystemScreen::buildSurface() {
-    if (!AbstractScreen::buildSurface()) return false;
+bool SystemScreen::build() {
+    if (!AbstractScreen::build()) return false;
     addDropdownRow(_root, _choice_region, "Region");
     if (_choice_region.dropdown) {
         build_region_options();
@@ -91,24 +91,24 @@ bool SystemScreen::buildSurface() {
     addActionRow(_root, "> Factory Reset", &_row_factory_reset);
     addActionRow(_root, "> Clear Data", &_row_clear_data);
 
-    addNavigableObject(_choice_region.dropdown, _choice_region.row);
-    addNavigableObject(_swForwarding, _swForwarding ? lv_obj_get_parent(_swForwarding) : nullptr);
-    addNavigableObject(_choice_screen_off.dropdown, _choice_screen_off.row);
+    addControl(_choice_region.dropdown, _choice_region.row);
+    addControl(_swForwarding, _swForwarding ? lv_obj_get_parent(_swForwarding) : nullptr);
+    addControl(_choice_screen_off.dropdown, _choice_screen_off.row);
 #if HELTEC_UI_ENABLE_KEYBOARD
-    addNavigableObject(_choice_message_preset.dropdown, _choice_message_preset.row);
+    addControl(_choice_message_preset.dropdown, _choice_message_preset.row);
 #endif
-    addNavigableObject(_swBle, _swBle ? lv_obj_get_parent(_swBle) : nullptr);
+    addControl(_swBle, _swBle ? lv_obj_get_parent(_swBle) : nullptr);
 #ifdef PIN_BUZZER
 #if !defined(HAS_BUZZER_VOLUME_CONTROL) || !HAS_BUZZER_VOLUME_CONTROL
-    addNavigableObject(_swBuzzer, _swBuzzer ? lv_obj_get_parent(_swBuzzer) : nullptr);
+    addControl(_swBuzzer, _swBuzzer ? lv_obj_get_parent(_swBuzzer) : nullptr);
 #endif
 #endif
 #if defined(HAS_BUZZER_VOLUME_CONTROL) && HAS_BUZZER_VOLUME_CONTROL
-    addNavigableObject(_btnBuzzerVolumeDown, nullptr, false);
-    addNavigableObject(_btnBuzzerVolumeUp, nullptr, false);
+    addControl(_btnBuzzerVolumeDown);
+    addControl(_btnBuzzerVolumeUp);
 #endif
-    addNavigableObject(_row_factory_reset);
-    addNavigableObject(_row_clear_data);
+    addControl(_row_factory_reset);
+    addControl(_row_clear_data);
 
     _gridNav.setFocusChangedCallback(onFocusChanged, this);
 
@@ -137,7 +137,7 @@ void SystemScreen::openMessagePresetEditor(uint8_t index)
     request.purpose = UiMessageKeyboardPurpose::EditPreset;
     request.preset_index = index;
     request.max_bytes = 31;
-    if (!emitEvent(EventType::MessageKeyboardOpen, &request))
+    if (!notifyApp(EventType::MessageKeyboardOpen, &request))
         showAlert("Unable to open keyboard", 1600);
 }
 

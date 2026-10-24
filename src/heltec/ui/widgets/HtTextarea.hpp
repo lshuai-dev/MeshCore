@@ -15,8 +15,6 @@ typedef struct {
 
 extern const lv_obj_class_t ht_textarea_class;
 
-lv_obj_t *ht_textarea_create(lv_obj_t *parent);
-
 } // namespace Heltec::MeshCore::Ui
 
 #endif // HELTEC_UI_CORE_HT_TEXTAREA_HPP

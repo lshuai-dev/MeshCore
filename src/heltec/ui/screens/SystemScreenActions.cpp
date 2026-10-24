@@ -23,13 +23,27 @@ void SystemScreen::handleAction(SysAction action)
     UiConfirmRequest request{};
     request.action = action == SysAction::FactoryReset ? UiConfirmAction::FactoryReset
                                                        : UiConfirmAction::ClearData;
-    if (!emitEvent(EventType::ConfirmOpen, &request))
+    if (!notifyApp(EventType::ConfirmOpen, &request))
     {
         showAlert("Unable to open confirmation", 2000);
     }
 }
 
-void SystemScreen::onUIEvent(const UiEvent &event)
+bool SystemScreen::onKey(uint32_t key)
+{
+    if (key == LV_KEY_ENTER && _gridNav.mode() == HtGridNav::Mode::Controls)
+    {
+        const SysAction action = actionForRow(_gridNav.focused());
+        if (action != SysAction::None)
+        {
+            handleAction(action);
+            return true;
+        }
+    }
+    return AbstractScreen::onKey(key);
+}
+
+void SystemScreen::onAppEvent(const UiEvent &event)
 {
     if (!event.payload)
         return;

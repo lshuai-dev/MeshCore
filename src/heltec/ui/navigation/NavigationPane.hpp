@@ -40,11 +40,12 @@ class NavigationPane : public UiSurface
         _frame_root = frame;
     }
 
+  protected:
     void onEnter() override;
     void onExit() override;
+    bool build() override;
 
   private:
-    bool buildSurface() override;
     bool onKey(uint32_t lv_key) override;
     _lv_obj_t *itemHost() const;
     _lv_obj_t *findCellById(uint8_t id) const;

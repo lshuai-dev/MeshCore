@@ -39,7 +39,7 @@ void MeshAppUi::setCompanionLinkEnabled(bool enabled)
         the_mesh.savePrefs();
     }
     notifyAppState(Heltec::MeshCore::Ui::AppStateEventType::ConfigChanged);
-    notifyCompanionChanged();
+    notifyAppState(Heltec::MeshCore::Ui::AppStateEventType::CompanionChanged);
 }
 
 } // namespace Heltec::MeshCore::Biz

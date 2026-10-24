@@ -5,15 +5,7 @@
 namespace Heltec::MeshCore::Ui
 {
 
-typedef struct
-{
-    lv_obj_t obj;
-    lv_obj_t *content;
-} ht_gridNav_t;
-
 extern const lv_obj_class_t ht_gridNav_class;
-
-lv_obj_t *ht_gridNav_create(lv_obj_t *parent, void *user_data = nullptr);
 
 /**
  * Static navigation item description used during UI construction.
@@ -30,7 +22,6 @@ struct UiNavigationItem
 };
 
 lv_obj_t *ui_gridNav_create_grid(lv_obj_t *parent);
-bool ui_gridNav_is(lv_obj_t *obj);
 lv_obj_t *ui_gridNav_content(lv_obj_t *obj);
 
 } // namespace Heltec::MeshCore::Ui

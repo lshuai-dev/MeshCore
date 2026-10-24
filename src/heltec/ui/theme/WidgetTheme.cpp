@@ -185,8 +185,6 @@ static lv_style_t s_splash_root_layout_style;
 static lv_style_t s_plain_container_style;
 static lv_style_t s_no_chrome_style;
 static lv_style_t s_hidden_scrollbar_style;
-#if HELTEC_UI_HAS_TOUCH
-#endif
 static bool s_common_widget_styles_ready = false;
 
 static lv_style_t s_top_pane_root_style;

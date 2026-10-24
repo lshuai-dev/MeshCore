@@ -15,11 +15,11 @@ class RadioScreen : public AbstractScreen {
     }
 
   protected:
-    bool buildSurface() override;
+    void onActivated() override;
+    bool build() override;
 
   private:
     void onAppStateChanged(const AppStateEvent &event) override;
-    void onActivated() override;
     void updateRadio(const Biz::IBizFacade::RadioStatus &radio);
     void refreshSnapshot();
 #if defined(HAS_LNA_CONTROL) && HAS_LNA_CONTROL

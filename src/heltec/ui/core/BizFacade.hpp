@@ -111,8 +111,7 @@ class IBizFacade {
         Unavailable,
     };
 
-    // Snapshot types returned to screens. Keep the facade as the single UI/business
-    // boundary; these groups are organizational and are not separate interfaces.
+    // UI 与业务层的唯一边界。状态按领域返回快照，不拆分为多个细粒度接口。
     struct RadioStatus {
         float freq_mhz = 0.0f;
         float bw_khz = 0.0f;

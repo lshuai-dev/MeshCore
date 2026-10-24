@@ -22,16 +22,16 @@ class DialogOverlay : public AbstractOverlay
         {
         }
 
-        Variant variant = Variant::Modal;
-        bool has_title = false;
-        bool has_actions = false;
-        bool dismiss_on_backdrop = false;
+        Variant variant : 2;
+        bool has_title : 1;
+        bool has_actions : 1;
+        bool dismiss_on_backdrop : 1;
     };
 
   protected:
     DialogOverlay(Biz::IBizFacade &biz, Options options);
 
-    bool buildSurface() override;
+    bool build() override;
     _lv_obj_t *panel() const;
     _lv_obj_t *contentHost() const;
     _lv_obj_t *actionsHost() const;

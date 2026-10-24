@@ -237,8 +237,6 @@ class HeltecMesh : public BaseChatMesh, public DataStoreHost
     }
 
   protected:
-#if defined(ENV_INCLUDE_GPS) && ENV_INCLUDE_GPS
-#endif
     float getAirtimeBudgetFactor() const override;
     int getInterferenceThreshold() const override;
     int calcRxDelay(float score, uint32_t air_time) const override;

@@ -6,7 +6,8 @@
 namespace Heltec::MeshCore::Ui {
 
 enum class EventType : uint8_t {
-    NavOpen,
+    None = UINT8_MAX,
+    NavOpen = 0,
     NavClose,
     NavActivity,
     TilePreview,
@@ -40,6 +41,7 @@ enum class EventType : uint8_t {
 struct UiEvent {
     EventType type;
     const void *payload;
+    lv_obj_t *source;
 };
 
 struct UiAlertRequest {
@@ -96,7 +98,8 @@ struct UiWaypointKeyboardSubmit {
 
 void ht_event_init();
 extern lv_event_code_t HT_EVENT_USER;
-bool ht_event_send(lv_obj_t *target, EventType type, const void *payload = nullptr);
+bool ht_event_send(lv_obj_t *target, EventType type, const void *payload = nullptr,
+                   lv_obj_t *source = nullptr);
 const UiEvent *ht_event_get(const lv_event_t *event);
 
 } // namespace Heltec::MeshCore::Ui

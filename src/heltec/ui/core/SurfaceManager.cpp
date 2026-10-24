@@ -239,12 +239,6 @@ bool SurfaceManager::isVisible(const UiSurface *surface) const
     return managed && !lv_obj_has_flag(surface->root(), LV_OBJ_FLAG_HIDDEN);
 }
 
-bool SurfaceManager::dispatchToActive(EventType type, const void *payload)
-{
-    UiSurface *const surface = active();
-    return isAvailable(surface) && ht_event_send(surface->root(), type, payload);
-}
-
 void SurfaceManager::dispatchAppStateToActive(const AppStateEvent &event)
 {
     UiSurface *const surface = active();

@@ -13,27 +13,13 @@ class SplashOverlay
     ~SplashOverlay();
 
     bool create(_lv_obj_t *parent);
-    _lv_obj_t *root() const
-    {
-        return _root;
-    }
-
-    void printInfo();
-
     void hide();
-    bool isVisible() const
-    {
-        return _visible;
-    }
 
   private:
+    void printInfo(_lv_obj_t *version, _lv_obj_t *date);
+
     _lv_obj_t *_root = nullptr;
-    _lv_obj_t *_logo = nullptr;
-    _lv_obj_t *_ver = nullptr;
-    _lv_obj_t *_date = nullptr;
-    _lv_obj_t *_attribution = nullptr;
     char _version_text[32] = {};
-    bool _visible = false;
 };
 
 } // namespace Heltec::MeshCore::Ui

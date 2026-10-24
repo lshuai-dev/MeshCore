@@ -105,7 +105,7 @@ const lv_obj_class_t ht_tracker_screen_root_class = {
 };
 
 TrackerScreen::TrackerScreen(Biz::IBizFacade &biz, const char *title, const lv_img_dsc_t *icon)
-    : AbstractScreen(biz, title, icon, ht_tracker_screen_root_class)
+    : AbstractScreen(biz, title, icon)
 {
 }
 
@@ -1181,9 +1181,9 @@ void TrackerScreen::onActivated()
     requestMapWork(kMapWorkRefresh);
 }
 
-bool TrackerScreen::buildSurface()
+bool TrackerScreen::build()
 {
-    if (!AbstractScreen::buildSurface())
+    if (!AbstractScreen::build())
         return false;
     lv_obj_set_flex_flow(_root, LV_FLEX_FLOW_COLUMN);
     lv_obj_clear_flag(_root, LV_OBJ_FLAG_SCROLLABLE);
@@ -1250,19 +1250,19 @@ bool TrackerScreen::buildSurface()
             {
                 (void)add_tool_btn_label(_btn_zoom_out, "-");
                 lv_obj_add_event_cb(_btn_zoom_out, onZoomOutClicked, LV_EVENT_CLICKED, this);
-                addNavigableObject(_btn_zoom_out, nullptr, false);
+                addControl(_btn_zoom_out);
             }
             if (_btn_zoom_in)
             {
                 (void)add_tool_btn_label(_btn_zoom_in, "+");
                 lv_obj_add_event_cb(_btn_zoom_in, onZoomInClicked, LV_EVENT_CLICKED, this);
-                addNavigableObject(_btn_zoom_in, nullptr, false);
+                addControl(_btn_zoom_in);
             }
             if (_btn_gps)
             {
                 (void)add_tool_btn_label(_btn_gps, "G");
                 lv_obj_add_event_cb(_btn_gps, onGpsClicked, LV_EVENT_CLICKED, this);
-                addNavigableObject(_btn_gps, nullptr, false);
+                addControl(_btn_gps);
             }
 #if defined(HELTEC_GEOFENCE) && HELTEC_GEOFENCE
             if (_btn_fence)
@@ -1270,14 +1270,14 @@ bool TrackerScreen::buildSurface()
                 (void)add_tool_btn_label(_btn_fence, "F");
                 lv_obj_add_event_cb(_btn_fence, onFenceToolLongPressed,
                                     LV_EVENT_LONG_PRESSED, this);
-                addNavigableObject(_btn_fence, nullptr, false);
+                addControl(_btn_fence);
             }
             if (_btn_fence_delete)
             {
                 (void)add_tool_btn_label(_btn_fence_delete, "D");
                 lv_obj_add_event_cb(_btn_fence_delete, onFenceToolLongPressed,
                                     LV_EVENT_LONG_PRESSED, this);
-                addNavigableObject(_btn_fence_delete, nullptr, false);
+                addControl(_btn_fence_delete);
             }
             syncFenceTools();
 #endif

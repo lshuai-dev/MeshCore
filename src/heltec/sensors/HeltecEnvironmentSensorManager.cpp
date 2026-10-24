@@ -1239,18 +1239,6 @@ void HeltecEnvironmentSensorManager::loop()
                 last_sats = sats;
                 Heltec::MeshCore::Ui::AppStateEvent ev{};
                 ev.type = Heltec::MeshCore::Ui::AppStateEventType::GpsChanged;
-                ev.gps.enabled = enabled;
-                ev.gps.available = true;
-                ev.gps.powered = enabled;
-                ev.gps.fix_valid = fix;
-                ev.gps.fix_valid_ms = snapshot.age_ms;
-                ev.gps.satellites = (sats < 0) ? 0 : (sats > 255 ? 255 : (uint8_t)sats);
-                ev.gps.lat_micro = lat;
-                ev.gps.lon_micro = lon;
-                ev.gps.lat_deg = lat / 1000000.0;
-                ev.gps.lon_deg = lon / 1000000.0;
-                ev.gps.alt_m = alt / 1000.0;
-                ev.gps.speed_kph = -1.0f;
                 Heltec::MeshCore::Ui::app_state_notifier().notify(ev);
             }
         }

@@ -285,16 +285,6 @@ void UiApp::init() {
             },
             HT_EVENT_USER, this);
     }
-#if HELTEC_UI_ENABLE_KEYBOARD
-#endif
-#if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
-#endif
-#if HELTEC_UI_HAS_TOUCH
-#else
-#if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
-#endif
-#endif
-
 #if HELTEC_UI_HAS_TOUCH && \
     defined(HELTEC_TOUCH_GESTURE) && HELTEC_TOUCH_GESTURE
     lv_obj_add_event_cb(scr, nativeTouchGestureEvent, LV_EVENT_GESTURE, this);
@@ -349,8 +339,10 @@ void UiApp::handleFrameEvent(lv_event_t *e) {
     case EventType::ConfirmOpen: {
         const auto *request = static_cast<const UiConfirmRequest *>(event->payload);
         if (!request || !inputOnActiveScreen() || _surfaces.isVisible(&_confirmOvl)) break;
+        _confirm_reply = event->source;
         _confirmOvl.setRequest(request->action);
         if (!_surfaces.isVisible(&_confirmOvl) && !_surfaces.show(&_confirmOvl)) {
+            _confirm_reply = nullptr;
             ui_task().showAlert("Unable to open confirmation", 2000);
         }
         break;
@@ -360,6 +352,8 @@ void UiApp::handleFrameEvent(lv_event_t *e) {
         if (!action || !_surfaces.isVisible(&_confirmOvl)) break;
         const UiConfirmAction accepted_action = *action;
         const uint64_t team_session = _confirmOvl.teamSession();
+        lv_obj_t *const reply = _confirm_reply;
+        _confirm_reply = nullptr;
         if (_surfaces.show(&_confirmOvl, false) && !_surfaces.isVisible(&_confirmOvl)) {
             if (accepted_action == UiConfirmAction::TeamJoin) {
                 ui_task().showAlert(_biz.teamDecidePending(team_session, true)
@@ -373,19 +367,25 @@ void UiApp::handleFrameEvent(lv_event_t *e) {
                 ui_task().showAlert(ok ? "Team updated" : "Team update failed", 2000);
                 break;
             }
-            (void)_surfaces.dispatchToActive(EventType::ConfirmAccepted, &accepted_action);
+            if (reply && lv_obj_is_valid(reply)) {
+                (void)ht_event_send(reply, EventType::ConfirmAccepted, &accepted_action);
+            }
         }
         break;
     }
     case EventType::ConfirmCancelled: {
         const UiConfirmAction cancelled_action = _confirmOvl.action();
         const uint64_t team_session = _confirmOvl.teamSession();
+        lv_obj_t *const reply = _confirm_reply;
+        _confirm_reply = nullptr;
         if (_surfaces.show(&_confirmOvl, false) && !_surfaces.isVisible(&_confirmOvl)) {
             if (cancelled_action == UiConfirmAction::TeamJoin) {
                 (void)_biz.teamDecidePending(team_session, false);
                 break;
             }
-            (void)_surfaces.dispatchToActive(EventType::ConfirmCancelled, &cancelled_action);
+            if (reply && lv_obj_is_valid(reply)) {
+                (void)ht_event_send(reply, EventType::ConfirmCancelled, &cancelled_action);
+            }
         }
         break;
     }
@@ -508,27 +508,47 @@ void UiApp::handleFrameEvent(lv_event_t *e) {
         const bool preset_active = activeScreen() == &_scrSystem;
         if (!req || (!message_active && !preset_active)) break;
         if (!_keyboardOvl.prepareMessageInput(*req)) break;
-        (void)lv_async_call(
+        _keyboard_reply = event->source;
+        if (lv_async_call(
             +[](void *user_data) {
                 auto *app = static_cast<UiApp *>(user_data);
                 if (!app) return;
                 const bool message_active = app->_surfaces.isActive(&app->_sendMessageOvl);
                 const bool preset_active = app->activeScreen() == &app->_scrSystem;
-                if (!message_active && !preset_active) return;
+                if (!message_active && !preset_active) {
+                    app->_keyboard_reply = nullptr;
+                    return;
+                }
                 app->presentMessageKeyboard();
+                if (!app->_surfaces.isVisible(&app->_keyboardOvl)) {
+                    app->_keyboard_reply = nullptr;
+                }
             },
-            this);
+            this) != LV_RES_OK) {
+            presentMessageKeyboard();
+            if (!_surfaces.isVisible(&_keyboardOvl)) _keyboard_reply = nullptr;
+        }
 #endif
         break;
     }
     case EventType::WaypointKeyboardOpen:
+#if HELTEC_UI_ENABLE_KEYBOARD
+        _keyboard_reply = event->source;
         openWaypointKeyboard();
+        if (!_surfaces.isVisible(&_keyboardOvl)) _keyboard_reply = nullptr;
+#endif
         break;
     case EventType::MessageKeyboardSubmit: {
         auto *submit = static_cast<const UiMessageKeyboardSubmit *>(event->payload);
         if (submit && submit->text) {
             if (submit->purpose == UiMessageKeyboardPurpose::EditPreset) {
-                _surfaces.dispatchToActive(EventType::MessageKeyboardSubmit, submit);
+#if HELTEC_UI_ENABLE_KEYBOARD
+                if (_keyboard_reply && lv_obj_is_valid(_keyboard_reply)) {
+                    (void)ht_event_send(_keyboard_reply, EventType::MessageKeyboardSubmit,
+                                        submit);
+                }
+                _keyboard_reply = nullptr;
+#endif
             } else if (_surfaces.isVisible(&_sendMessageOvl)) {
                 _sendMessageOvl.submitCustomMessage(submit->text);
             }
@@ -537,7 +557,14 @@ void UiApp::handleFrameEvent(lv_event_t *e) {
     }
     case EventType::WaypointKeyboardSubmit: {
         auto *submit = static_cast<const UiWaypointKeyboardSubmit *>(event->payload);
-        if (submit) _surfaces.dispatchToActive(EventType::WaypointKeyboardSubmit, submit);
+#if HELTEC_UI_ENABLE_KEYBOARD
+        if (submit && _keyboard_reply && lv_obj_is_valid(_keyboard_reply)) {
+            (void)ht_event_send(_keyboard_reply, EventType::WaypointKeyboardSubmit, submit);
+        }
+        _keyboard_reply = nullptr;
+#else
+        (void)submit;
+#endif
         break;
     }
     default:
@@ -558,9 +585,6 @@ void UiApp::handleFrameEvent(lv_event_t *e) {
 }
 
 void UiApp::handleAppStateEvent(const AppStateEvent &event) {
-    if (event.type == AppStateEventType::BatteryChanged) {
-        _top_pane.setBatteryStatus(event.battery.millivolts, event.battery.percent);
-    }
     if (event.type == AppStateEventType::ConfigChanged) {
         refreshTopPaneStatus(true);
     }
@@ -587,6 +611,10 @@ void UiApp::handleAppStateEvent(const AppStateEvent &event) {
 void UiApp::handlePowerChanged(Heltec::MeshCore::Power::PowerChangeMask changes,
                                const Heltec::MeshCore::Power::PowerSnapshot &snapshot) {
     using Heltec::MeshCore::Power::PowerChange;
+    if (Heltec::MeshCore::Power::hasChange(changes, PowerChange::Battery) ||
+        Heltec::MeshCore::Power::hasChange(changes, PowerChange::Source)) {
+        _top_pane.setBatteryStatus(snapshot.battery_mv, snapshot.battery_percent);
+    }
     if (!Heltec::MeshCore::Power::hasChange(changes, PowerChange::Display)) return;
     if (snapshot.display_on) {
         onBacklightTurnedOn();
@@ -667,7 +695,12 @@ bool UiApp::initScreens(_lv_obj_t *content) {
 
         lv_obj_set_scrollbar_mode(tile, LV_SCROLLBAR_MODE_OFF);
         lv_obj_clear_flag(tile, LV_OBJ_FLAG_SCROLLABLE);
-        if (!scr->init(tile, _frame_root)) {
+        const lv_obj_class_t *root_class = &lv_obj_class;
+        if (scr == &_scrSystem) root_class = &ht_system_screen_root_class;
+#if defined(ENV_INCLUDE_MAP) && ENV_INCLUDE_MAP
+        if (scr == &_scrTracker) root_class = &ht_tracker_screen_root_class;
+#endif
+        if (!scr->init(tile, _frame_root, *root_class)) {
             return false;
         }
         if (!_surfaces.registerSurface(scr)) {

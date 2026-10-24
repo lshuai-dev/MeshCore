@@ -50,18 +50,19 @@ bool UiApp::isActionPaneVisible() const
 #if !defined(HELTEC_UI_HAS_TOUCH) || !HELTEC_UI_HAS_TOUCH
 namespace
 {
-void cm_send_advert(Biz::IBizFacade &app, _lv_obj_t *)
+EventType cm_send_advert(Biz::IBizFacade &app)
 {
     (void)app.sendAdvert();
+    return EventType::None;
 }
-void cm_open_send_message(Biz::IBizFacade &, _lv_obj_t *target)
+EventType cm_open_send_message(Biz::IBizFacade &)
 {
-    (void)ht_event_send(target, EventType::SendMessageOpen);
+    return EventType::SendMessageOpen;
 }
 #if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
-void cm_calibrate_compass(Biz::IBizFacade &, _lv_obj_t *target)
+EventType cm_calibrate_compass(Biz::IBizFacade &)
 {
-    (void)ht_event_send(target, EventType::CalibrationOpen);
+    return EventType::CalibrationOpen;
 }
 #endif
 } // namespace
@@ -71,49 +72,54 @@ bool UiApp::initOverlay()
 {
     if (!_layerOverlay)
         return false;
-    if (!_previewOvl.init(_layerOverlay, _frame_root))
+    if (!_previewOvl.init(_layerOverlay, _frame_root, ht_preview_overlay_class))
         return false;
     if (!_surfaces.registerSurface(&_previewOvl))
         return false;
-    if (!_alertOvl.init(_layerOverlay, _frame_root))
+    if (!_alertOvl.init(_layerOverlay, _frame_root, ht_dialog_overlay_class))
         return false;
     if (!_surfaces.registerSurface(&_alertOvl))
         return false;
-    if (!_confirmOvl.init(_layerOverlay, _frame_root))
+    if (!_confirmOvl.init(_layerOverlay, _frame_root, ht_dialog_overlay_class))
         return false;
     if (!_surfaces.registerSurface(&_confirmOvl))
         return false;
-    if (!_radioParamSyncOvl.init(_layerOverlay, _frame_root))
+    if (!_radioParamSyncOvl.init(_layerOverlay, _frame_root, ht_radio_sync_overlay_class))
         return false;
     if (!_surfaces.registerSurface(&_radioParamSyncOvl))
         return false;
-    if (!_repeatModeOvl.init(_layerOverlay, _frame_root))
+    if (!_repeatModeOvl.init(_layerOverlay, _frame_root, ht_repeat_mode_overlay_class))
         return false;
     if (!_surfaces.registerSurface(&_repeatModeOvl))
         return false;
 #if HELTEC_UI_ENABLE_KEYBOARD
-    if (!_keyboardOvl.init(_layerOverlay, _frame_root))
+    if (!_keyboardOvl.init(_layerOverlay, _frame_root, ht_keyboard_overlay_class))
         return false;
     if (!_surfaces.registerSurface(&_keyboardOvl))
         return false;
 #endif
-    if (!_sendMessageOvl.init(_layerOverlay, _frame_root))
+#if HELTEC_UI_HAS_TOUCH
+    if (!_sendMessageOvl.init(_layerOverlay, _frame_root, ht_send_message_touch_overlay_class))
+#else
+    if (!_sendMessageOvl.init(_layerOverlay, _frame_root,
+                              ht_send_message_selector_overlay_class))
+#endif
         return false;
     if (!_surfaces.registerSurface(&_sendMessageOvl))
         return false;
 #if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
-    if (!_calibrationOvl.init(_layerOverlay, _frame_root))
+    if (!_calibrationOvl.init(_layerOverlay, _frame_root, ht_dialog_overlay_class))
         return false;
     if (!_surfaces.registerSurface(&_calibrationOvl))
         return false;
 #endif
 #if HELTEC_UI_HAS_TOUCH
-    if (!_quickPingOverlay.init(_layerOverlay, _frame_root))
+    if (!_quickPingOverlay.init(_layerOverlay, _frame_root, ht_quick_ping_overlay_class))
         return false;
     if (!_surfaces.registerSurface(&_quickPingOverlay))
         return false;
 #else
-    if (!_contextMenu.init(_layerOverlay, _frame_root))
+    if (!_contextMenu.init(_layerOverlay, _frame_root, ht_context_menu_class))
         return false;
     if (!_surfaces.registerSurface(&_contextMenu))
         return false;
@@ -274,8 +280,12 @@ void UiApp::closeKeyboardOverlay()
     (void)_surfaces.show(&_keyboardOvl, false);
     if (waypoint)
     {
-        _surfaces.dispatchToActive(EventType::WaypointKeyboardClosed);
+        if (_keyboard_reply && lv_obj_is_valid(_keyboard_reply))
+        {
+            (void)ht_event_send(_keyboard_reply, EventType::WaypointKeyboardClosed);
+        }
     }
+    _keyboard_reply = nullptr;
 #endif
 }
 

@@ -29,9 +29,9 @@ void formatAge(int32_t secs, char *buf, size_t buf_size)
 
 } // namespace
 
-bool RecentScreen::buildSurface()
+bool RecentScreen::build()
 {
-    if (!AbstractScreen::buildSurface())
+    if (!AbstractScreen::build())
         return false;
     lv_obj_add_flag(_root, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_set_scroll_dir(_root, LV_DIR_VER);

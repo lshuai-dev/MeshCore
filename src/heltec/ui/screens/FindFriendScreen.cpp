@@ -167,8 +167,8 @@ void FindFriendScreen::onEnter() {
     render(_biz.findFriendUi());
 }
 
-bool FindFriendScreen::buildSurface() {
-    if (!AbstractScreen::buildSurface()) return false;
+bool FindFriendScreen::build() {
+    if (!AbstractScreen::build()) return false;
 
     if (!createDial()) return false;
     // Mode selection owns enable/disable state. One runtime row shows either
@@ -527,7 +527,7 @@ void FindFriendScreen::onActivated() {
     refresh();
 }
 
-void FindFriendScreen::onUIEvent(const UiEvent &event) {
+void FindFriendScreen::onAppEvent(const UiEvent &event) {
     if (event.type == EventType::WaypointKeyboardClosed) {
         restoreWaypointKeyboardFocus();
         return;

@@ -55,11 +55,11 @@ bool format_frequency_item(const Biz::IBizFacade &biz, int index, char *buffer, 
 } // namespace
 
 RepeatModeOverlay::RepeatModeOverlay(Biz::IBizFacade &biz)
-    : FramedOverlay(biz, ht_repeat_mode_overlay_class) {
+    : FramedOverlay(biz) {
 }
 
-bool RepeatModeOverlay::buildSurface() {
-    if (!FramedOverlay::buildSurface()) return false;
+bool RepeatModeOverlay::build() {
+    if (!FramedOverlay::build()) return false;
 
     setStaticTitle("Repeat frequency");
     setStaticToolTip(OperationHint::kRepeatMode);
@@ -224,7 +224,7 @@ void RepeatModeOverlay::applySelection(uint8_t item_index) {
     const char *const error = apply_error_text(result);
     if (!error && _biz.forwardingEnabled()) {
         showAlert("Repeat mode enabled", 1200);
-        (void)emitEvent(EventType::RepeatModeClose);
+        (void)notifyApp(EventType::RepeatModeClose);
         return;
     }
 
@@ -234,7 +234,7 @@ void RepeatModeOverlay::applySelection(uint8_t item_index) {
 
 void RepeatModeOverlay::cancelSelection() {
     if (_applying) return;
-    (void)emitEvent(EventType::RepeatModeClose);
+    (void)notifyApp(EventType::RepeatModeClose);
 }
 
 void RepeatModeOverlay::setApplying(bool applying) {

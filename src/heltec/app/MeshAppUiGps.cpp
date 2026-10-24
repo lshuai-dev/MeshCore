@@ -86,21 +86,8 @@ void MeshAppUi::setMapForegroundActive(bool active)
 
 void MeshAppUi::notifyGpsChanged()
 {
-    const GpsStatus gps = gpsStatus();
     Heltec::MeshCore::Ui::AppStateEvent event{};
     event.type = Heltec::MeshCore::Ui::AppStateEventType::GpsChanged;
-    event.gps.enabled = gps.enabled;
-    event.gps.available = gps.available;
-    event.gps.powered = gps.powered;
-    event.gps.fix_valid = gps.fix_valid;
-    event.gps.fix_valid_ms = gps.fix_valid_ms;
-    event.gps.satellites = gps.satellites;
-    event.gps.lat_micro = gps.lat_micro;
-    event.gps.lon_micro = gps.lon_micro;
-    event.gps.lat_deg = gps.lat_deg;
-    event.gps.lon_deg = gps.lon_deg;
-    event.gps.alt_m = gps.alt_m;
-    event.gps.speed_kph = gps.speed_kph;
     Heltec::MeshCore::Ui::app_state_notifier().notify(event);
 }
 

@@ -10,9 +10,9 @@ void ht_event_init() {
     }
 }
 
-bool ht_event_send(lv_obj_t *target, EventType type, const void *payload) {
+bool ht_event_send(lv_obj_t *target, EventType type, const void *payload, lv_obj_t *source) {
     if (!target || HT_EVENT_USER == LV_EVENT_ALL) return false;
-    const UiEvent event{ type, payload };
+    const UiEvent event{ type, payload, source };
     return lv_event_send(target, HT_EVENT_USER, const_cast<UiEvent *>(&event)) == LV_RES_OK;
 }
 

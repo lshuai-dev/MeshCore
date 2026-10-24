@@ -12,13 +12,14 @@ class PreviewOverlay : public FramedOverlay {
   public:
     explicit PreviewOverlay(Biz::IBizFacade &biz);
 
+    /** origin 和 text 来自固定消息环，在下次 applyContent() 前必须保持有效。 */
     void applyContent(uint8_t unread, uint32_t received_ms, const char *origin, const char *text);
     void dismissByUser();
-    void onEnter() override;
-    void onExit() override;
 
   protected:
-    bool buildSurface() override;
+    void onEnter() override;
+    void onExit() override;
+    bool build() override;
     bool buildHeader() override;
 
   private:
@@ -37,8 +38,6 @@ class PreviewOverlay : public FramedOverlay {
     uint32_t _received_ms = 0;
     char _unread_text[10] = {};
     char _age_text[8] = {};
-    char _origin_text[62] = {};
-    char _message_text[161] = {};
 };
 
 } // namespace Heltec::MeshCore::Ui

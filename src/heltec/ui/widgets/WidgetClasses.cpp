@@ -88,7 +88,7 @@ HT_DEFINE_CLASS(ht_navigation_title_bar_class, lv_obj_class, lv_obj_t);
 HT_DEFINE_CLASS(ht_navigation_grid_icon_class, lv_img_class, lv_img_t);
 HT_DEFINE_CLASS(ht_navigation_title_label_class, lv_label_class, lv_label_t);
 #endif
-HT_DEFINE_CLASS(ht_navigation_ring_class, ht_gridNav_class, ht_gridNav_t);
+HT_DEFINE_CLASS(ht_navigation_ring_class, ht_gridNav_class, lv_obj_t);
 #if !HELTEC_UI_HAS_TOUCH
 HT_DEFINE_CLASS(ht_radial_navigation_icon_class, lv_img_class, lv_img_t);
 #endif

@@ -13,11 +13,11 @@ class HomeScreen : public AbstractScreen {
     }
 
   protected:
-    bool buildSurface() override;
+    void onActivated() override;
+    bool build() override;
 
   private:
     void onAppStateChanged(const AppStateEvent &event) override;
-    void onActivated() override;
     void refreshSnapshot();
     void refreshLabels();
 

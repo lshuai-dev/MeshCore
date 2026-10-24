@@ -20,7 +20,7 @@ void setMessageScrollY(void *object, int32_t value)
 } // namespace
 
 PreviewOverlay::PreviewOverlay(Biz::IBizFacade &biz)
-    : FramedOverlay(biz, ht_preview_overlay_class) {
+    : FramedOverlay(biz) {
 }
 
 bool PreviewOverlay::buildHeader() {
@@ -28,8 +28,8 @@ bool PreviewOverlay::buildHeader() {
     return true;
 }
 
-bool PreviewOverlay::buildSurface() {
-    if (!FramedOverlay::buildSurface()) return false;
+bool PreviewOverlay::build() {
+    if (!FramedOverlay::build()) return false;
 
     lv_obj_add_flag(_root, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_add_event_cb(_root, onRootClicked, LV_EVENT_CLICKED, this);
@@ -59,8 +59,8 @@ bool PreviewOverlay::buildSurface() {
 
     _message_label = ht_label_create(&ht_preview_text_class, _message_viewport);
     if (!_message_label) return false;
-    lv_label_set_text_static(_origin_label, _origin_text);
-    lv_label_set_text_static(_message_label, _message_text);
+    lv_label_set_text_static(_origin_label, "");
+    lv_label_set_text_static(_message_label, "");
     lv_obj_set_width(_origin_label, lv_pct(100));
     lv_label_set_long_mode(_origin_label, LV_LABEL_LONG_DOT);
     lv_obj_set_width(_message_label, lv_pct(100));
@@ -81,11 +81,11 @@ bool PreviewOverlay::buildSurface() {
 bool PreviewOverlay::onKey(uint32_t key) {
     if (key == LV_KEY_NEXT || key == LV_KEY_PREV || key == LV_KEY_LEFT || key == LV_KEY_RIGHT ||
         key == LV_KEY_UP || key == LV_KEY_DOWN) {
-        emitEvent(EventType::PreviewNext);
+        notifyApp(EventType::PreviewNext);
         return true;
     }
     if (key == LV_KEY_ENTER) {
-        emitEvent(EventType::PreviewClose);
+        notifyApp(EventType::PreviewClose);
         return true;
     }
     if (key == LV_KEY_ESC) return true;
@@ -100,7 +100,7 @@ void PreviewOverlay::onRootClicked(lv_event_t *event) {
 
     lv_event_stop_bubbling(event);
     lv_event_stop_processing(event);
-    self->emitEvent(EventType::PreviewNext);
+    self->notifyApp(EventType::PreviewNext);
 }
 
 void PreviewOverlay::applyContent(uint8_t unread, uint32_t received_ms, const char *origin,
@@ -112,11 +112,9 @@ void PreviewOverlay::applyContent(uint8_t unread, uint32_t received_ms, const ch
     lv_snprintf(_unread_text, sizeof(_unread_text), "Unread:%u", (unsigned)unread);
     _received_ms = received_ms;
     updateAge();
-    lv_snprintf(_origin_text, sizeof(_origin_text), "%s", origin ? origin : "");
-    lv_snprintf(_message_text, sizeof(_message_text), "%s", text ? text : "");
     lv_label_set_text_static(_unread_label, _unread_text);
-    lv_label_set_text_static(_origin_label, _origin_text);
-    lv_label_set_text_static(_message_label, _message_text);
+    lv_label_set_text_static(_origin_label, origin ? origin : "");
+    lv_label_set_text_static(_message_label, text ? text : "");
 }
 
 void PreviewOverlay::updateMessageScroll()
@@ -185,7 +183,7 @@ void PreviewOverlay::ageTimerCallback(lv_timer_t *timer) {
 }
 
 void PreviewOverlay::dismissByUser() {
-    emitEvent(EventType::PreviewClose);
+    notifyApp(EventType::PreviewClose);
 }
 
 } // namespace Heltec::MeshCore::Ui

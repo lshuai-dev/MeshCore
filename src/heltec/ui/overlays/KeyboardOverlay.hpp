@@ -24,11 +24,11 @@ class KeyboardOverlay : public AbstractOverlay
         return _compose_mode == ComposeMode::Waypoint;
     }
 
-    void onEnter() override;
-    void onExit() override;
 
   protected:
-    bool buildSurface() override;
+    void onEnter() override;
+    void onExit() override;
+    bool build() override;
 
   private:
     _lv_obj_t *focusTarget() const override

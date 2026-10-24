@@ -24,12 +24,12 @@ class ConfirmOverlay final : public DialogOverlay
     }
 
     void setRequest(UiConfirmAction action);
-    void onEnter() override;
     UiConfirmAction action() const { return _action; }
     uint64_t teamSession() const { return _team_session; }
 
   protected:
-    bool buildSurface() override;
+    void onEnter() override;
+    bool build() override;
 
   private:
     bool onKey(uint32_t key) override;

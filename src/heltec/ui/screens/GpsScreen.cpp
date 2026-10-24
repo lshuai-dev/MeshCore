@@ -29,9 +29,9 @@ void format_altitude(char *buffer, size_t capacity, double altitude_m)
                 (long)(centi % 100));
 }
 
-bool GPSScreen::buildSurface()
+bool GPSScreen::build()
 {
-    if (!AbstractScreen::buildSurface())
+    if (!AbstractScreen::build())
         return false;
 
     _lv_obj_t *const row_power = ht_container_create(_root);
@@ -106,9 +106,9 @@ bool GPSScreen::buildSurface()
         lv_label_set_long_mode(label, LV_LABEL_LONG_CLIP);
     }
 
-    addNavigableObject(_sw_gps, row_power);
+    addControl(_sw_gps, row_power);
 #if defined(ENV_INCLUDE_GPS) && ENV_INCLUDE_GPS
-    addNavigableObject(_sw_track, row_track);
+    addControl(_sw_track, row_track);
 #endif
 
     _lv_obj_t *const info_labels[] = {

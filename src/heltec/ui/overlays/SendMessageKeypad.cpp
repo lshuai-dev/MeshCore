@@ -20,8 +20,7 @@ namespace Heltec::MeshCore::Ui
 {
 
 SendMessageOverlay::SendMessageOverlay(Biz::IBizFacade &biz)
-    : FramedOverlay(biz, ht_send_message_selector_overlay_class,
-                    &ht_send_message_content_class)
+    : FramedOverlay(biz, &ht_send_message_content_class)
 {
 }
 
@@ -69,9 +68,9 @@ bool SendMessageOverlay::onKey(uint32_t key)
     return false;
 }
 
-bool SendMessageOverlay::buildSurface()
+bool SendMessageOverlay::build()
 {
-    if (!FramedOverlay::buildSurface())
+    if (!FramedOverlay::build())
         return false;
 
     lv_obj_add_event_cb(
@@ -360,7 +359,7 @@ void SendMessageOverlay::sendMessageText(const char *text, bool alert_on_direct_
     memcpy(pub_key_prefix, target.pub_key_prefix, 6);
 
     // Close before alert/send so the result overlay becomes the top surface.
-    emitEvent(EventType::SendMessageClose);
+    notifyApp(EventType::SendMessageClose);
 
     bool ok = false;
     if (kind == TargetKind::Personal)
@@ -414,7 +413,7 @@ void SendMessageOverlay::openCustomKeyboard()
     const Target &target = _model.target();
     UiMessageKeyboardRequest req;
     req.title = target.label;
-    (void)emitEvent(EventType::MessageKeyboardOpen, &req);
+    (void)notifyApp(EventType::MessageKeyboardOpen, &req);
 }
 
 void SendMessageOverlay::handleBack()
@@ -434,7 +433,7 @@ void SendMessageOverlay::handleBack()
         renderRows();
         return;
     }
-    emitEvent(EventType::SendMessageClose);
+    notifyApp(EventType::SendMessageClose);
 }
 
 void SendMessageOverlay::applySelection()

@@ -24,9 +24,9 @@ int round_tenths(float value)
 
 } // namespace
 
-bool RadioScreen::buildSurface()
+bool RadioScreen::build()
 {
-    if (!AbstractScreen::buildSurface())
+    if (!AbstractScreen::build())
         return false;
 
     _line1 = ht_label_create(&ht_screen_info_label_class, _root);
@@ -78,7 +78,7 @@ bool RadioScreen::buildSurface()
 #endif
 
 #if defined(HAS_LNA_CONTROL) && HAS_LNA_CONTROL
-    addNavigableObject(_sw_lna, _sw_lna ? lv_obj_get_parent(_sw_lna) : nullptr);
+    addControl(_sw_lna, _sw_lna ? lv_obj_get_parent(_sw_lna) : nullptr);
 #endif
 
     return true;

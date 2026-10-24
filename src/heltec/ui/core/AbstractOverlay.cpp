@@ -5,14 +5,10 @@
 namespace Heltec::MeshCore::Ui {
 
 AbstractOverlay::AbstractOverlay(Biz::IBizFacade &biz)
-    : AbstractOverlay(biz, ht_overlay_root_class) {
+    : UiSurface(biz) {
 }
 
-AbstractOverlay::AbstractOverlay(Biz::IBizFacade &biz, const lv_obj_class_t &root_class)
-    : UiSurface(biz, root_class) {
-}
-
-bool AbstractOverlay::buildSurface() {
+bool AbstractOverlay::build() {
     lv_obj_set_size(_root, lv_pct(100), lv_pct(100));
     lv_obj_set_flex_flow(_root, LV_FLEX_FLOW_COLUMN);
     lv_obj_set_flex_align(_root, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);

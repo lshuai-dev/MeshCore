@@ -16,13 +16,13 @@ class RepeatModeOverlay : public FramedOverlay
   public:
     explicit RepeatModeOverlay(Biz::IBizFacade &biz);
 
-    void onEnter() override;
 #if HELTEC_UI_HAS_TOUCH
     bool hitRoller(int16_t x, int16_t y) const;
 #endif
 
   protected:
-    bool buildSurface() override;
+    void onEnter() override;
+    bool build() override;
 
   private:
     static constexpr uint8_t kMaxFrequencyItems = 3;

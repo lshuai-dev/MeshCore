@@ -107,9 +107,9 @@ void CompassScreen::updateDialHeading(float heading_deg)
     }
 }
 
-bool CompassScreen::buildSurface()
+bool CompassScreen::build()
 {
-    if (!AbstractScreen::buildSurface())
+    if (!AbstractScreen::build())
         return false;
 
     compass_init_dial_row(_root, kCompassInfoColumnMarginRight);
@@ -301,7 +301,7 @@ void CompassScreen::refresh()
     {
         _pending_auto_cal = false;
         _auto_cal_due_ms = 0;
-        (void)emitEvent(EventType::CalibrationOpen);
+        (void)notifyApp(EventType::CalibrationOpen);
         return;
     }
 

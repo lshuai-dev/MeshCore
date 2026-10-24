@@ -44,25 +44,6 @@ bool AppStateUiDispatcher::createTimer() {
 void AppStateUiDispatcher::onAppStateChanged(const AppStateEvent &event) {
     const uint8_t idx = eventIndex(event.type);
     if (idx >= kEventTypeCount) return;
-    switch (event.type) {
-    case AppStateEventType::BatteryChanged:
-        _battery = event.battery;
-        break;
-    case AppStateEventType::GpsChanged:
-        _gps = event.gps;
-        break;
-    case AppStateEventType::CompassChanged:
-        _compass = event.compass;
-        break;
-    case AppStateEventType::CompanionChanged:
-        _companion = event.companion;
-        break;
-    case AppStateEventType::UnreadMessageCountChanged:
-        _unread = event.unread;
-        break;
-    default:
-        break; // Invalidation-only event: no payload to retain.
-    }
     _pending_mask |= static_cast<uint16_t>(1U << idx);
     scheduleDispatch();
 }
@@ -92,25 +73,6 @@ void AppStateUiDispatcher::dispatchPending() {
         if ((mask & bit) == 0) continue;
         AppStateEvent event{};
         event.type = static_cast<AppStateEventType>(i);
-        switch (event.type) {
-        case AppStateEventType::BatteryChanged:
-            event.battery = _battery;
-            break;
-        case AppStateEventType::GpsChanged:
-            event.gps = _gps;
-            break;
-        case AppStateEventType::CompassChanged:
-            event.compass = _compass;
-            break;
-        case AppStateEventType::CompanionChanged:
-            event.companion = _companion;
-            break;
-        case AppStateEventType::UnreadMessageCountChanged:
-            event.unread = _unread;
-            break;
-        default:
-            break;
-        }
         _pending_mask &= static_cast<uint16_t>(~bit);
         if (_global_handler) {
             _global_handler(_global_handler_user_data, event);

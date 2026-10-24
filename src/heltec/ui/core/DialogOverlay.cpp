@@ -27,13 +27,13 @@ void apply_variant_state(lv_obj_t *object, DialogOverlay::Variant variant)
 } // namespace
 
 DialogOverlay::DialogOverlay(Biz::IBizFacade &biz, Options options)
-    : AbstractOverlay(biz, ht_dialog_overlay_class), _options(options)
+    : AbstractOverlay(biz), _options(options)
 {
 }
 
-bool DialogOverlay::buildSurface()
+bool DialogOverlay::build()
 {
-    if (!AbstractOverlay::buildSurface())
+    if (!AbstractOverlay::build())
     {
         return false;
     }

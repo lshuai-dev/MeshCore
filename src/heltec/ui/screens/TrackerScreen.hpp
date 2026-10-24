@@ -24,17 +24,17 @@ class TrackerScreen : public AbstractScreen
 {
   public:
     TrackerScreen(Biz::IBizFacade &biz, const char *title, const lv_img_dsc_t *icon);
-    void onEnter() override;
-    void onExit() override;
     bool hitMapViewport(lv_coord_t x, lv_coord_t y) const;
     bool hitMapToolbar(lv_coord_t x, lv_coord_t y) const;
 
   protected:
-    bool buildSurface() override;
+    void onEnter() override;
+    void onExit() override;
+    void onActivated() override;
+    bool build() override;
 
   private:
     void onAppStateChanged(const AppStateEvent &event) override;
-    void onActivated() override;
     void ensure_panel_attached();
     void refreshMap(bool refresh_sd_tiles);
     void center_map_on_current_gps();

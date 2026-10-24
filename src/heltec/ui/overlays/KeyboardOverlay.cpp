@@ -17,7 +17,7 @@
 namespace Heltec::MeshCore::Ui
 {
 KeyboardOverlay::KeyboardOverlay(Biz::IBizFacade &biz)
-    : AbstractOverlay(biz, ht_keyboard_overlay_class)
+    : AbstractOverlay(biz)
 {
 }
 
@@ -601,9 +601,9 @@ void KeyboardOverlay::on_keyboard_events(lv_event_t *e)
     }
 }
 
-bool KeyboardOverlay::buildSurface()
+bool KeyboardOverlay::build()
 {
-    if (!AbstractOverlay::buildSurface())
+    if (!AbstractOverlay::build())
         return false;
     return ensureContent();
 }
@@ -618,7 +618,7 @@ void KeyboardOverlay::requestClose()
     if (lv_async_call(closeAsync, this) != LV_RES_OK)
     {
         _close_pending = false;
-        (void)emitEvent(EventType::KeyboardClose);
+        (void)notifyApp(EventType::KeyboardClose);
     }
 }
 
@@ -630,7 +630,7 @@ void KeyboardOverlay::closeAsync(void *user_data)
         return;
     }
     self->_close_pending = false;
-    (void)self->emitEvent(EventType::KeyboardClose);
+    (void)self->notifyApp(EventType::KeyboardClose);
 }
 
 void KeyboardOverlay::submitWaypointAsync(void *user_data)
@@ -645,8 +645,8 @@ void KeyboardOverlay::submitWaypointAsync(void *user_data)
     submit.lat = self->_pending_latitude;
     submit.lon = self->_pending_longitude;
     self->_waypoint_submit_pending = false;
-    (void)self->emitEvent(EventType::KeyboardClose);
-    (void)self->emitEvent(EventType::WaypointKeyboardSubmit, &submit);
+    (void)self->notifyApp(EventType::WaypointKeyboardSubmit, &submit);
+    (void)self->notifyApp(EventType::KeyboardClose);
 }
 
 bool KeyboardOverlay::ensureContent()
@@ -989,13 +989,12 @@ void KeyboardOverlay::submitMessageInput()
 
     const UiMessageKeyboardPurpose purpose = _message_purpose;
     const uint8_t preset_index = _preset_index;
-    emitEvent(EventType::KeyboardClose);
-
     UiMessageKeyboardSubmit submit{};
     submit.text = _submitted_text;
     submit.purpose = purpose;
     submit.preset_index = preset_index;
-    emitEvent(EventType::MessageKeyboardSubmit, &submit);
+    notifyApp(EventType::MessageKeyboardSubmit, &submit);
+    notifyApp(EventType::KeyboardClose);
 }
 
 void KeyboardOverlay::submitWaypointInput()
@@ -1057,9 +1056,9 @@ void KeyboardOverlay::submitWaypointInput()
 
 #else /* !LV_USE_KEYBOARD */
 
-bool KeyboardOverlay::buildSurface()
+bool KeyboardOverlay::build()
 {
-    if (!AbstractOverlay::buildSurface())
+    if (!AbstractOverlay::build())
         return false;
     return false;
 }

@@ -21,16 +21,16 @@ class CompassScreen : public AbstractScreen
     {
     }
 
-    void onEnter() override;
-    void onExit() override;
     void skipAutoCalibrationOnce();
 
   protected:
-    bool buildSurface() override;
+    void onEnter() override;
+    void onExit() override;
+    void onActivated() override;
+    bool build() override;
 
   private:
     void onAppStateChanged(const AppStateEvent &event) override;
-    void onActivated() override;
     void refresh_ui(const Biz::CompassUi &c);
     void refresh();
     void showUnavailable(const Biz::CompassUi &c, const char *hdg_text);

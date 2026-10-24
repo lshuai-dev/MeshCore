@@ -296,10 +296,10 @@ void RadialNavigator::updateGeometry() {
     _updating_geometry = false;
 }
 
-RadialNavigator::RadialNavigator(Biz::IBizFacade &biz) : UiSurface(biz, ht_navigation_root_class) {
+RadialNavigator::RadialNavigator(Biz::IBizFacade &biz) : UiSurface(biz) {
 }
 
-bool RadialNavigator::buildSurface() {
+bool RadialNavigator::build() {
     layoutRootToTileView(_root, _tileview);
     lv_obj_clear_flag(_root, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_clear_flag(_root, LV_OBJ_FLAG_OVERFLOW_VISIBLE);

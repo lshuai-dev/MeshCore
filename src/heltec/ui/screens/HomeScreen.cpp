@@ -18,14 +18,7 @@ void HomeScreen::onAppStateChanged(const AppStateEvent &event)
     switch (event.type)
     {
     case AppStateEventType::UnreadMessageCountChanged:
-        _message_count = event.unread.count;
-        refreshLabels();
-        break;
     case AppStateEventType::CompanionChanged:
-        _companion_connected = event.companion.connected;
-        _pairing_pin = event.companion.pairing_pin;
-        refreshLabels();
-        break;
     case AppStateEventType::ConfigChanged:
         refreshSnapshot();
         break;
@@ -68,9 +61,9 @@ void HomeScreen::refreshLabels()
     }
 }
 
-bool HomeScreen::buildSurface()
+bool HomeScreen::build()
 {
-    if (!AbstractScreen::buildSurface())
+    if (!AbstractScreen::build())
         return false;
     lv_obj_set_flex_align(_root, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
 
@@ -97,7 +90,7 @@ bool HomeScreen::buildSurface()
         lv_obj_set_style_text_align(label, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
         lv_obj_clear_flag(label, LV_OBJ_FLAG_SCROLLABLE | LV_OBJ_FLAG_SCROLL_ON_FOCUS);
         lv_label_set_long_mode(label, LV_LABEL_LONG_CLIP);
-        addNavigableObject(label);
+        addControl(label);
     }
     lv_label_set_long_mode(_lblStatus, LV_LABEL_LONG_WRAP);
 

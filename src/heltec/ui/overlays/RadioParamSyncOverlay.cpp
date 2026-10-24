@@ -16,7 +16,7 @@ namespace Heltec::MeshCore::Ui
 {
 
 RadioParamSyncOverlay::RadioParamSyncOverlay(Biz::IBizFacade &biz)
-    : FramedOverlay(biz, ht_radio_sync_overlay_class)
+    : FramedOverlay(biz)
 {
 }
 
@@ -35,9 +35,9 @@ static int wrapIndex(int idx, int count)
 
 } // namespace
 
-bool RadioParamSyncOverlay::buildSurface()
+bool RadioParamSyncOverlay::build()
 {
-    if (!FramedOverlay::buildSurface())
+    if (!FramedOverlay::build())
         return false;
 
 
@@ -154,7 +154,7 @@ bool RadioParamSyncOverlay::onKey(uint32_t key)
     }
     if (key == LV_KEY_ESC)
     {
-        emitEvent(EventType::RadioSyncClose);
+        notifyApp(EventType::RadioSyncClose);
         return true;
     }
     return false;
@@ -361,7 +361,7 @@ void RadioParamSyncOverlay::applySelection()
 #endif
     _biz.setLoRaBandPresetIndex((int)_select);
     showAlert("LoRa band set", 800);
-    emitEvent(EventType::RadioSyncClose);
+    notifyApp(EventType::RadioSyncClose);
 }
 
 } // namespace Heltec::MeshCore::Ui

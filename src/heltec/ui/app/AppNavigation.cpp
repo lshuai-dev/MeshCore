@@ -112,7 +112,7 @@ void UiApp::closeNavigationPane()
 
 bool UiApp::initNavigationPane(_lv_obj_t *parent)
 {
-    if (!_navigation.init(parent, _frame_root))
+    if (!_navigation.init(parent, _frame_root, ht_navigation_root_class))
         return false;
     if (!_surfaces.registerSurface(&_navigation))
         return false;

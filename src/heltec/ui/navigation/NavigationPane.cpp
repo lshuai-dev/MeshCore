@@ -537,11 +537,11 @@ void NavigationPane::setTileView(_lv_obj_t *tileview)
 }
 
 NavigationPane::NavigationPane(Biz::IBizFacade &biz)
-    : UiSurface(biz, ht_navigation_root_class)
+    : UiSurface(biz)
 {
 }
 
-bool NavigationPane::buildSurface()
+bool NavigationPane::build()
 {
     layoutRootToTileView(_root, _tileview);
     lv_obj_clear_flag(_root, LV_OBJ_FLAG_SCROLLABLE);

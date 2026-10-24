@@ -10,11 +10,12 @@ class RecentScreen : public AbstractScreen {
     RecentScreen(Biz::IBizFacade &biz, const char *title, const lv_img_dsc_t *icon)
         : AbstractScreen(biz, title, icon) {
     }
-    void onEnter() override;
-    void onExit() override;
 
   protected:
-    bool buildSurface() override;
+    void onEnter() override;
+    void onExit() override;
+    void onActivated() override;
+    bool build() override;
     bool onKey(uint32_t key) override;
 
   private:
@@ -22,7 +23,6 @@ class RecentScreen : public AbstractScreen {
     static constexpr int kMaxRowControls = 8;
 
     void onAppStateChanged(const AppStateEvent &event) override;
-    void onActivated() override;
     bool createRowControl(int index);
     int calculateRowControlCount();
     void refreshRows();

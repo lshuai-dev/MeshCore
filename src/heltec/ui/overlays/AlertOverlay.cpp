@@ -5,8 +5,8 @@
 namespace Heltec::MeshCore::Ui {
 constexpr uint32_t kClickGuardMs = 500;
 
-bool AlertOverlay::buildSurface() {
-    if (!DialogOverlay::buildSurface()) return false;
+bool AlertOverlay::build() {
+    if (!DialogOverlay::build()) return false;
 
     lv_obj_set_layout(_root, 0);
 
@@ -22,7 +22,7 @@ bool AlertOverlay::buildSurface() {
             if (age_ms < kClickGuardMs) {
                 return;
             }
-            (void)self->emitEvent(EventType::AlertClose);
+            (void)self->notifyApp(EventType::AlertClose);
         },
         LV_EVENT_CLICKED, this);
 
@@ -30,7 +30,7 @@ bool AlertOverlay::buildSurface() {
     if (!_label) return false;
     lv_obj_set_width(_label, lv_pct(100));
     lv_label_set_long_mode(_label, LV_LABEL_LONG_WRAP);
-    lv_label_set_text_static(_label, _text_buffer);
+    lv_label_set_text_static(_label, "");
 
     return true;
 }
@@ -51,9 +51,8 @@ void AlertOverlay::onEnter() {
 }
 
 void AlertOverlay::setText(const char *text) {
-    lv_snprintf(_text_buffer, sizeof(_text_buffer), "%s", text ? text : "");
     if (_label) {
-        lv_label_set_text_static(_label, _text_buffer);
+        lv_label_set_text_static(_label, text ? text : "");
     }
     if (panel()) {
         lv_obj_update_layout(panel());
@@ -66,7 +65,7 @@ bool AlertOverlay::onKey(uint32_t key) {
         return true;
     }
     if (key == LV_KEY_ESC) {
-        return emitEvent(EventType::AlertClose);
+        return notifyApp(EventType::AlertClose);
     }
     return false;
 }

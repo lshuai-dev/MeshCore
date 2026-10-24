@@ -25,11 +25,11 @@ class SendMessageOverlay : public FramedOverlay
     void submitCustomMessage(const char *text);
     void prepareTarget(const UiSendMessageTarget *target);
 
-    void onEnter() override;
-    void onExit() override;
 
   protected:
-    bool buildSurface() override;
+    void onEnter() override;
+    void onExit() override;
+    bool build() override;
 
   private:
     using Page = SendMessageModel::Page;

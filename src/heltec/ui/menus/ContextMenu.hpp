@@ -8,7 +8,7 @@
 namespace Heltec::MeshCore::Ui
 {
 
-using ContextMenuCommand = void (*)(Biz::IBizFacade &, lv_obj_t *event_target);
+using ContextMenuCommand = EventType (*)(Biz::IBizFacade &);
 
 struct ContextMenuPage;
 
@@ -49,11 +49,10 @@ class ContextMenu : public UiSurface
     bool isEmpty() const;
     bool canOpen() const;
 
+  protected:
     void onEnter() override;
     void onExit() override;
-
-  protected:
-    bool buildSurface() override;
+    bool build() override;
     bool onKey(uint32_t key) override;
 
   private:

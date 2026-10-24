@@ -97,7 +97,7 @@ class UiApp final : public IUiInputHost {
     void notifyDisplayActivity(uint32_t now_ms) override;
     bool isDisplayOn() const override;
     void toggleDisplay(uint32_t now_ms) override;
-    void onBacklightTurnedOn() override;
+    void onBacklightTurnedOn();
     void ensureTileKeypadFocus() override;
     bool acceptsKeyboardCycle() const override
     {
@@ -232,11 +232,13 @@ class UiApp final : public IUiInputHost {
     PreviewOverlay _previewOvl;
     AlertOverlay _alertOvl;
     ConfirmOverlay _confirmOvl;
+    lv_obj_t *_confirm_reply = nullptr;
     RadioParamSyncOverlay _radioParamSyncOvl;
     RepeatModeOverlay _repeatModeOvl;
     SendMessageOverlay _sendMessageOvl;
 #if HELTEC_UI_ENABLE_KEYBOARD
     KeyboardOverlay _keyboardOvl;
+    lv_obj_t *_keyboard_reply = nullptr;
 #endif
 #if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
     CalibrationOverlay _calibrationOvl;

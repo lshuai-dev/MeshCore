@@ -157,7 +157,6 @@ class MeshAppUi final : public IBizFacade
     Heltec::MeshCore::Power::PowerMgr &_power;
     mutable MessagePresetStore _message_presets{};
     static void notifyAppState(Heltec::MeshCore::Ui::AppStateEventType type);
-    static void notifyCompanionChanged();
     static void handleAppStateEvent(void *user_data,
                                     const Heltec::MeshCore::Ui::AppStateEvent &event);
     void notifyRadioChanged();

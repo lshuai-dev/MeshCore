@@ -2,14 +2,13 @@
 #include "ui/widgets/WidgetClasses.hpp"
 
 namespace Heltec::MeshCore::Ui {
-FramedOverlay::FramedOverlay(Biz::IBizFacade &biz, const lv_obj_class_t &root_class,
-                             const lv_obj_class_t *content_class)
-    : AbstractOverlay(biz, root_class),
+FramedOverlay::FramedOverlay(Biz::IBizFacade &biz, const lv_obj_class_t *content_class)
+    : AbstractOverlay(biz),
       _content_class(content_class ? content_class : &ht_framed_overlay_content_class) {
 }
 
-bool FramedOverlay::buildSurface() {
-    if (!AbstractOverlay::buildSurface()) {
+bool FramedOverlay::build() {
+    if (!AbstractOverlay::build()) {
         return false;
     }
 

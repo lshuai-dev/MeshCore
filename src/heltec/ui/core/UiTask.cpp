@@ -136,7 +136,6 @@ void UiTask::setMessageCount(int msgcount) {
     _msg_count = msgcount;
     AppStateEvent ev{};
     ev.type = AppStateEventType::UnreadMessageCountChanged;
-    ev.unread.count = (msgcount < 0) ? 0 : (msgcount > 255 ? 255 : (uint8_t)msgcount);
     app_state_notifier().notify(ev);
 }
 
@@ -186,8 +185,6 @@ void UiTask::setHasConnection(bool connected) {
 
     AppStateEvent ev{};
     ev.type = AppStateEventType::CompanionChanged;
-    ev.companion.connected = connected;
-    ev.companion.pairing_pin = the_mesh.getBLEPin();
     app_state_notifier().notify(ev);
 }
 

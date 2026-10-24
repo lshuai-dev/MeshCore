@@ -51,13 +51,4 @@ const lv_obj_class_t ht_textarea_class = {
     sizeof(ht_textarea_t),
 };
 
-lv_obj_t *ht_textarea_create(lv_obj_t *parent) {
-    lv_obj_t *const obj = lv_obj_class_create_obj(&ht_textarea_class, parent);
-    if (!obj) {
-        return nullptr;
-    }
-    lv_obj_class_init_obj(obj);
-    return obj;
-}
-
 } // namespace Heltec::MeshCore::Ui

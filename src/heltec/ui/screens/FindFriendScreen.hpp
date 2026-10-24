@@ -15,11 +15,16 @@ class FindFriendScreen : public AbstractScreen {
     FindFriendScreen(Biz::IBizFacade &biz, const char *title, const lv_img_dsc_t *icon)
         : AbstractScreen(biz, title, icon) {
     }
-    void onEnter() override;
-    void onExit() override;
 
   protected:
-    bool buildSurface() override;
+    void onEnter() override;
+    void onExit() override;
+    void onActivated() override;
+    bool build() override;
+    bool acceptsAppEvents() const override {
+        return true;
+    }
+    void onAppEvent(const UiEvent &event) override;
 
   private:
     struct ChoiceRow {
@@ -42,9 +47,7 @@ class FindFriendScreen : public AbstractScreen {
         Member
     };
 
-    void onUIEvent(const UiEvent &event) override;
     void onAppStateChanged(const AppStateEvent &event) override;
-    void onActivated() override;
     void render(const Biz::FindFriendUi &u);
     void refresh();
     void refreshNavigation();

@@ -17,15 +17,15 @@ class GPSScreen : public AbstractScreen
         : AbstractScreen(biz, title, icon)
     {
     }
-    void onEnter() override;
-    void onExit() override;
 
   protected:
-    bool buildSurface() override;
+    void onEnter() override;
+    void onExit() override;
+    void onActivated() override;
+    bool build() override;
 
   private:
     void onAppStateChanged(const AppStateEvent &event) override;
-    void onActivated() override;
     void updateGps(const Biz::IBizFacade::GpsStatus &s);
     void refreshSnapshot();
     void setSwitchState(_lv_obj_t *sw, bool on);

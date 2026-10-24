@@ -34,9 +34,9 @@ constexpr uint8_t kStreakNeed = COMPASS_CALIB_QUALITY_STREAK;
 
 } // namespace
 
-bool CalibrationOverlay::buildSurface()
+bool CalibrationOverlay::build()
 {
-    if (!DialogOverlay::buildSurface())
+    if (!DialogOverlay::build())
         return false;
 
     lv_obj_set_size(panel(), lv_pct(100), lv_pct(100));
@@ -89,7 +89,7 @@ bool CalibrationOverlay::onKey(uint32_t key)
         return true;
     if (key == LV_KEY_ESC)
     {
-        return emitEvent(EventType::CalibrationClose);
+        return notifyApp(EventType::CalibrationClose);
     }
     return false;
 }
@@ -104,7 +104,7 @@ void CalibrationOverlay::confirm()
     }
     if (_phase != Phase::Calibrating)
     {
-        (void)emitEvent(EventType::CalibrationClose);
+        (void)notifyApp(EventType::CalibrationClose);
     }
 }
 
@@ -322,7 +322,7 @@ void CalibrationOverlay::onAppStateChanged(const AppStateEvent &event)
 {
     if (event.type != AppStateEventType::CompassChanged)
         return;
-    evaluateQuality(event.compass.quality);
+    evaluateQuality(_biz.compassUi().quality);
     checkTimeout();
 }
 
@@ -340,9 +340,9 @@ void CalibrationOverlay::onActivated()
 namespace Heltec::MeshCore::Ui
 {
 
-bool CalibrationOverlay::buildSurface()
+bool CalibrationOverlay::build()
 {
-    if (!DialogOverlay::buildSurface())
+    if (!DialogOverlay::build())
         return false;
     return false;
 }

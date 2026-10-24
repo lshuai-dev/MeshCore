@@ -11,10 +11,10 @@ class IUiInputHost
   public:
     virtual ~IUiInputHost() = default;
 
+    // 仅暴露输入分发所需能力，禁止通过该接口控制页面和业务状态。
     virtual bool isReady() const = 0;
     virtual bool isDisplayOn() const = 0;
     virtual void toggleDisplay(uint32_t now_ms) = 0;
-    virtual void onBacklightTurnedOn() = 0;
     virtual void notifyDisplayActivity(uint32_t now_ms) = 0;
     virtual void ensureTileKeypadFocus() = 0;
     virtual bool acceptsKeyboardCycle() const = 0;

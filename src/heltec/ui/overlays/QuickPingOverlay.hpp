@@ -40,8 +40,6 @@ class QuickPingOverlay final : public AbstractOverlay
     void prepareTarget(const UiSendMessageTarget *target);
     bool preparePresetEdit(uint8_t index, const char *text);
 
-    void onEnter() override;
-    void onExit() override;
     bool hitVisibleKeyboard(int16_t x, int16_t y) const;
     bool hitVerticalSwipeControl(int16_t x, int16_t y) const;
     bool hitSwipeDismissRegion(int16_t x, int16_t y) const;
@@ -50,7 +48,9 @@ class QuickPingOverlay final : public AbstractOverlay
     bool requestCloseAnimation();
 
   protected:
-    bool buildSurface() override;
+    void onEnter() override;
+    void onExit() override;
+    bool build() override;
     bool onKey(uint32_t key) override;
 
   private:
@@ -65,13 +65,12 @@ class QuickPingOverlay final : public AbstractOverlay
     struct CachedGroup
     {
         int channel_idx = -1;
-        char label[32] = {};
+        uint8_t source_index = 0;
     };
 
     struct CachedContact
     {
         uint8_t pub_key_prefix[6] = {};
-        char label[32] = {};
     };
 
     static constexpr int kMaxGroups = 12;

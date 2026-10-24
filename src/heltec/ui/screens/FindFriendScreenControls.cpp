@@ -186,13 +186,13 @@ void FindFriendScreen::onRightColumnScrolled(lv_event_t *event)
 void FindFriendScreen::configureFocusItems()
 {
     /* Keep keypad/encoder traversal identical to the visual row order. */
-    addNavigableObject(_choice_mode.dropdown, _choice_mode.row);
-    addNavigableObject(_choice_role.dropdown, _choice_role.row);
-    addNavigableObject(_row_team);
-    addNavigableObject(_choice_team.dropdown, _choice_team.row);
-    addNavigableObject(_choice_friend.dropdown, _choice_friend.row);
-    addNavigableObject(_row_team_message);
-    addNavigableObject(_row_wp_manual);
+    addControl(_choice_mode.dropdown, _choice_mode.row);
+    addControl(_choice_role.dropdown, _choice_role.row);
+    addControl(_row_team);
+    addControl(_choice_team.dropdown, _choice_team.row);
+    addControl(_choice_friend.dropdown, _choice_friend.row);
+    addControl(_row_team_message);
+    addControl(_row_wp_manual);
     // Pointer focus must not snap the column after a drag or tap;
     // keypad/encoder traversal owns deterministic row scrolling.
     _lv_obj_t *const focus_controls[] = {
@@ -1089,7 +1089,7 @@ void FindFriendScreen::handleAction(Action action, _lv_obj_t *source)
             showAlert("No Team recipient", 2000);
             return;
         }
-        (void)emitEvent(EventType::SendMessageOpen, &target);
+        (void)notifyApp(EventType::SendMessageOpen, &target);
         return;
     }
     if (action == Action::Team)
@@ -1112,7 +1112,7 @@ void FindFriendScreen::handleAction(Action action, _lv_obj_t *source)
     if (action == Action::WaypointManual)
     {
         _waypoint_keyboard_return_focus = source;
-        emitEvent(EventType::WaypointKeyboardOpen);
+        notifyApp(EventType::WaypointKeyboardOpen);
     }
 }
 

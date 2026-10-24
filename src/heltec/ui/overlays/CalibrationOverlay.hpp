@@ -20,15 +20,15 @@ class CalibrationOverlay : public DialogOverlay
     {
     }
 
-    void onEnter() override;
-    void onExit() override;
 
   protected:
-    bool buildSurface() override;
+    void onEnter() override;
+    void onExit() override;
+    void onActivated() override;
+    bool build() override;
 
   private:
     void onAppStateChanged(const AppStateEvent &event) override;
-    void onActivated() override;
     enum class Phase : uint8_t
     {
         Idle,

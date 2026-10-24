@@ -27,7 +27,6 @@ class SurfaceManager
     bool isActive(const UiSurface *surface) const;
     bool isVisible(const UiSurface *surface) const;
 
-    bool dispatchToActive(EventType type, const void *payload = nullptr);
     void dispatchAppStateToActive(const AppStateEvent &event);
 
   private:

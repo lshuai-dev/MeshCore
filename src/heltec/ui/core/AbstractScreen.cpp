@@ -1,11 +1,11 @@
 #include "AbstractScreen.hpp"
-#include "ui/widgets/HtContainer.hpp"
 #include "ui/core/HtEvent.h"
 #if defined(HELTEC_HAS_KEY_FRAME) && HELTEC_HAS_KEY_FRAME
 #include "heltec/drivers/display/DisplayPort.hpp"
 #endif
 
 namespace Heltec::MeshCore::Ui {
+#if defined(HELTEC_UI_HAS_TOUCH) && HELTEC_UI_HAS_TOUCH
 namespace {
 
 bool focus_object_available(const lv_obj_t *object) {
@@ -21,35 +21,24 @@ bool focus_object_available(const lv_obj_t *object) {
 }
 
 } // namespace
+#endif
 
 AbstractScreen::AbstractScreen(Biz::IBizFacade &biz, const char *title, const lv_img_dsc_t *icon)
-    : AbstractScreen(biz, title, icon, lv_obj_class) {
+    : UiSurface(biz), _title(title), _icon(icon) {
 }
 
-AbstractScreen::AbstractScreen(Biz::IBizFacade &biz, const char *title, const lv_img_dsc_t *icon,
-                               const lv_obj_class_t &root_class)
-    : UiSurface(biz, root_class), _title(title), _icon(icon) {
-}
-
-bool AbstractScreen::buildSurface() {
+bool AbstractScreen::build() {
     lv_obj_set_size(_root, lv_pct(100), lv_pct(100));
     lv_obj_set_flex_flow(_root, LV_FLEX_FLOW_COLUMN);
     lv_obj_set_flex_align(_root, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_START);
     lv_obj_add_flag(_root, LV_OBJ_FLAG_SCROLLABLE | LV_OBJ_FLAG_SCROLL_WITH_ARROW);
     lv_obj_set_scroll_dir(_root, LV_DIR_VER);
     lv_obj_set_scrollbar_mode(_root, LV_SCROLLBAR_MODE_AUTO);
+#if defined(HELTEC_UI_HAS_TOUCH) && HELTEC_UI_HAS_TOUCH
     lv_obj_add_flag(_root, LV_OBJ_FLAG_CLICKABLE | LV_OBJ_FLAG_CLICK_FOCUSABLE);
     lv_obj_add_event_cb(_root, handleRootEvent, LV_EVENT_CLICKED, this);
-    focusRoot();
+#endif
     return true;
-}
-
-const char *AbstractScreen::title() const {
-    return _title;
-}
-
-const lv_img_dsc_t *AbstractScreen::icon() const {
-    return _icon;
 }
 
 void AbstractScreen::onEnter() {
@@ -57,7 +46,7 @@ void AbstractScreen::onEnter() {
     (void)lv_async_call_cancel(deferredActivateRoot, this);
     if (!_root) return;
     lv_obj_scroll_to_y(_root, 0, LV_ANIM_OFF);
-    focusRoot();
+    _gridNav.enterBrowse();
 }
 
 void AbstractScreen::onExit() {
@@ -67,23 +56,12 @@ void AbstractScreen::onExit() {
     // Tile screens stay visible when focus moves to nav pane / overlay; only overlays hide on exit.
 }
 
-void AbstractScreen::focusRoot() {
-    if (!_root || !lv_obj_is_valid(_root)) {
-        return;
-    }
-    _gridNav.enterBrowse();
-}
-
-void AbstractScreen::focusControls() {
-    (void)_gridNav.enterControls();
-}
-
 void AbstractScreen::deferredActivateControls(void *user_data) {
     auto *const screen = static_cast<AbstractScreen *>(user_data);
     if (!screen || screen->_gridNav.mode() != HtGridNav::Mode::Browse) {
         return;
     }
-    screen->focusControls();
+    (void)screen->_gridNav.enterControls();
 }
 
 void AbstractScreen::deferredActivateRoot(void *user_data) {
@@ -91,9 +69,10 @@ void AbstractScreen::deferredActivateRoot(void *user_data) {
     if (!screen || screen->_gridNav.mode() == HtGridNav::Mode::Browse) {
         return;
     }
-    screen->focusRoot();
+    screen->_gridNav.enterBrowse();
 }
 
+#if defined(HELTEC_UI_HAS_TOUCH) && HELTEC_UI_HAS_TOUCH
 void AbstractScreen::handleRootEvent(lv_event_t *event) {
     auto *const screen = static_cast<AbstractScreen *>(lv_event_get_user_data(event));
     if (!screen || lv_event_get_target(event) != screen->_root ||
@@ -101,16 +80,6 @@ void AbstractScreen::handleRootEvent(lv_event_t *event) {
         return;
     }
     (void)lv_async_call(deferredActivateControls, screen);
-}
-
-void AbstractScreen::handleFocusChangedEvent(lv_event_t *event) {
-    const lv_event_code_t code = lv_event_get_code(event);
-    _lv_obj_t *const frame = static_cast<_lv_obj_t *>(lv_event_get_user_data(event));
-    if (!frame) return;
-    if (lv_obj_check_type(frame, &ht_container_class)) {
-        ht_container_set_selected(frame, code == LV_EVENT_FOCUSED);
-    }
-    lv_obj_invalidate(frame);
 }
 
 void AbstractScreen::handleFramePressedEvent(lv_event_t *event) {
@@ -140,6 +109,7 @@ void AbstractScreen::handleFramePressedEvent(lv_event_t *event) {
         (void)screen->_gridNav.focus(context.control);
     }
 }
+#endif
 
 #if defined(HELTEC_HAS_KEY_FRAME) && HELTEC_HAS_KEY_FRAME
 void AbstractScreen::keyFrameFocusEvent(lv_event_t *event) {
@@ -149,28 +119,23 @@ void AbstractScreen::keyFrameFocusEvent(lv_event_t *event) {
 }
 #endif
 
-void AbstractScreen::addNavigableObject(_lv_obj_t *object, _lv_obj_t *frame,
-                                        bool propagate_focus) {
-    if (!object || _gridNav.contains(object)) return;
+void AbstractScreen::addControl(_lv_obj_t *control, _lv_obj_t *row) {
+    if (!control || _gridNav.contains(control)) return;
 
-    _lv_obj_t *const focus_frame = frame ? frame : object;
-    if (propagate_focus) {
-        lv_obj_clear_flag(focus_frame, LV_OBJ_FLAG_CLICK_FOCUSABLE);
-        if (!lv_obj_check_type(focus_frame, &ht_container_class)) {
-            lv_obj_add_event_cb(object, handleFocusChangedEvent, LV_EVENT_FOCUSED, focus_frame);
-            lv_obj_add_event_cb(object, handleFocusChangedEvent, LV_EVENT_DEFOCUSED, focus_frame);
-        }
-    }
-    if (focus_frame != object) {
-        lv_obj_clear_flag(focus_frame, LV_OBJ_FLAG_CLICK_FOCUSABLE);
-        lv_obj_add_event_cb(focus_frame, handleFramePressedEvent,
+#if defined(HELTEC_UI_HAS_TOUCH) && HELTEC_UI_HAS_TOUCH
+    _lv_obj_t *const touch_target = row ? row : control;
+    if (touch_target != control) {
+        lv_obj_clear_flag(touch_target, LV_OBJ_FLAG_CLICK_FOCUSABLE);
+        lv_obj_add_event_cb(touch_target, handleFramePressedEvent,
                             static_cast<lv_event_code_t>(LV_EVENT_PRESSED | LV_EVENT_PREPROCESS),
                             this);
     }
-    lv_obj_add_flag(object, LV_OBJ_FLAG_CLICKABLE);
-    _gridNav.add(object);
+#else
+    (void)row;
+#endif
+    _gridNav.add(control);
 #if defined(HELTEC_HAS_KEY_FRAME) && HELTEC_HAS_KEY_FRAME
-    lv_obj_add_event_cb(object, keyFrameFocusEvent, LV_EVENT_FOCUSED, nullptr);
+    lv_obj_add_event_cb(control, keyFrameFocusEvent, LV_EVENT_FOCUSED, nullptr);
 #endif
 }
 
@@ -183,7 +148,7 @@ bool AbstractScreen::onKey(uint32_t key) {
         return _gridNav.handleKey(key);
     }
     if (key == LV_KEY_ESC) {
-        return emitEvent(EventType::NavOpen);
+        return notifyApp(EventType::NavOpen);
     }
     if (key == LV_KEY_ENTER) {
         (void)lv_async_call(deferredActivateControls, this);

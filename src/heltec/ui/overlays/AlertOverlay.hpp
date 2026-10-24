@@ -15,17 +15,17 @@ class AlertOverlay : public DialogOverlay {
         : DialogOverlay(biz, Options{ Variant::Alert, false, false, false }) {
     }
 
-    void onEnter() override;
+    /** text 由 UiTask 持有，Alert 显示期间必须保持有效。 */
     void setText(const char *text);
 
   protected:
-    bool buildSurface() override;
+    void onEnter() override;
+    bool build() override;
 
   private:
     bool onKey(uint32_t key) override;
 
     _lv_obj_t *_label = nullptr;
-    char _text_buffer[80] = {};
     uint32_t _entered_ms = 0;
 };
 

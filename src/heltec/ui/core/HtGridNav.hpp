@@ -22,6 +22,12 @@ class HtGridNav
         Persistent,
     };
 
+    HtGridNav()
+        : _mode(Mode::Browse), _capture_mode(CaptureMode::Transient), _wrap(true),
+          _frozen(false), _horizontal_navigation(false)
+    {
+    }
+
     void bindRoot(lv_obj_t *root);
     lv_obj_t *root() const
     {
@@ -72,13 +78,13 @@ class HtGridNav
     lv_obj_t *_root = nullptr;
     lv_obj_t *_selected = nullptr;
     lv_obj_t *_captured = nullptr;
-    Mode _mode = Mode::Browse;
-    CaptureMode _capture_mode = CaptureMode::Transient;
-    bool _wrap = true;
-    bool _frozen = false;
-    bool _horizontal_navigation = false;
     FocusChangedFn _focus_changed = nullptr;
     void *_focus_user_data = nullptr;
+    Mode _mode : 1;
+    CaptureMode _capture_mode : 1;
+    bool _wrap : 1;
+    bool _frozen : 1;
+    bool _horizontal_navigation : 1;
 };
 
 } // namespace Heltec::MeshCore::Ui

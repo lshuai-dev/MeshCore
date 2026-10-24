@@ -8,10 +8,10 @@ class FramedOverlay : public AbstractOverlay {
     void setStaticToolTip(const char *text);
 
   protected:
-    FramedOverlay(Biz::IBizFacade &biz, const lv_obj_class_t &root_class,
-                  const lv_obj_class_t *content_class = nullptr);
+    explicit FramedOverlay(Biz::IBizFacade &biz,
+                           const lv_obj_class_t *content_class = nullptr);
 
-    bool buildSurface() override;
+    bool build() override;
     virtual bool buildHeader();
     virtual bool buildContent();
     virtual bool buildFooter();

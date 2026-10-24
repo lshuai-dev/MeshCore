@@ -5,6 +5,8 @@
 namespace Heltec::MeshCore::Ui {
 
 namespace {
+constexpr uint32_t kUiFramePeriodMs = 16U;
+
 class UiScheduler {
   public:
     static constexpr uint8_t kCapacity = 16;
@@ -52,7 +54,7 @@ bool ui_motion_active(void *target, UiMotionExec exec) {
 
 bool UiScheduler::createTimer() {
     if (_timer) return true;
-    _timer = lv_timer_create(timerCallback, 1U, this);
+    _timer = lv_timer_create(timerCallback, kUiFramePeriodMs, this);
     if (!_timer) return false;
     lv_timer_set_repeat_count(_timer, -1);
     lv_timer_pause(_timer);
@@ -120,7 +122,7 @@ bool UiScheduler::active(void *target, UiMotionExec exec) const {
 
 void UiScheduler::arm() {
     if (!_timer) return;
-    lv_timer_set_period(_timer, 1U);
+    lv_timer_set_period(_timer, kUiFramePeriodMs);
     lv_timer_ready(_timer);
     lv_timer_resume(_timer);
 }

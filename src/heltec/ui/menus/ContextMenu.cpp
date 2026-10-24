@@ -48,7 +48,7 @@ FrameGeometry layoutFrame(lv_obj_t *object)
 } // namespace
 
 ContextMenu::ContextMenu(Biz::IBizFacade &biz)
-    : UiSurface(biz, ht_context_menu_class)
+    : UiSurface(biz)
 {
 }
 
@@ -180,7 +180,9 @@ bool ContextMenu::activateItem(uint8_t index)
     }
     if (!item.command)
         return false;
-    item.command(_biz, eventTarget());
+    const EventType event = item.command(_biz);
+    if (event != EventType::None)
+        (void)notifyApp(event);
     return true;
 }
 
@@ -226,7 +228,7 @@ bool ContextMenu::onKey(uint32_t key)
         return false;
     if (navigateBack())
         return true;
-    return emitEvent(EventType::ContextClose);
+    return notifyApp(EventType::ContextClose);
 }
 
 void ContextMenu::onEnter()
@@ -266,7 +268,7 @@ void ContextMenu::onExit()
         ui_motion_cancel(_root);
 }
 
-bool ContextMenu::buildSurface()
+bool ContextMenu::build()
 {
     lv_obj_add_flag(_root, LV_OBJ_FLAG_HIDDEN);
     lv_obj_clear_flag(_root, LV_OBJ_FLAG_SCROLLABLE);

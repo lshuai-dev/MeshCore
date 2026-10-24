@@ -394,7 +394,7 @@ _lv_obj_t *createFieldIcon(_lv_obj_t *row, const lv_img_dsc_t *image)
 } // namespace
 
 QuickPingOverlay::QuickPingOverlay(Biz::IBizFacade &biz)
-    : AbstractOverlay(biz, ht_quick_ping_overlay_class)
+    : AbstractOverlay(biz)
 {
 }
 
@@ -421,9 +421,9 @@ bool QuickPingOverlay::preparePresetEdit(uint8_t index, const char *text)
     return true;
 }
 
-bool QuickPingOverlay::buildSurface()
+bool QuickPingOverlay::build()
 {
-    if (!AbstractOverlay::buildSurface())
+    if (!AbstractOverlay::build())
         return false;
 
     lv_obj_t *const parent = lv_obj_get_parent(_root);
@@ -650,7 +650,7 @@ void QuickPingOverlay::closeAnimationReady(void *user_data)
     if (!self)
         return;
     self->_close_animating = false;
-    (void)self->emitEvent(EventType::QuickPingClose);
+    (void)self->notifyApp(EventType::QuickPingClose);
 }
 
 bool QuickPingOverlay::onKey(uint32_t key)
@@ -670,7 +670,7 @@ bool QuickPingOverlay::onKey(uint32_t key)
         restoreModeFocus(_ta_message);
         return true;
     }
-    return emitEvent(EventType::QuickPingClose);
+    return notifyApp(EventType::QuickPingClose);
 }
 
 _lv_obj_t *QuickPingOverlay::createDropdownRow(_lv_obj_t *parent, const char *label_text,
@@ -948,10 +948,10 @@ void QuickPingOverlay::syncLists()
     {
         CachedGroup &g = _groups[_group_count];
         int channel_idx = -1;
-        if (!_biz.sendMessageGroupAt(i, &channel_idx, g.label, sizeof(g.label)))
+        if (!_biz.sendMessageGroupAt(i, &channel_idx, nullptr, 0))
             continue;
-        sanitizeOptionLabel(g.label, sizeof(g.label));
         g.channel_idx = channel_idx;
+        g.source_index = static_cast<uint8_t>(i);
         ++_group_count;
     }
 
@@ -1094,9 +1094,8 @@ void QuickPingOverlay::loadContactWindow(int start)
     for (int i = start; i < _contact_total && _contact_count < kMaxContacts; ++i)
     {
         CachedContact &c = _contacts[_contact_count];
-        if (!_biz.sendMessagePersonalAt(i, c.pub_key_prefix, c.label, sizeof(c.label)))
+        if (!_biz.sendMessagePersonalAt(i, c.pub_key_prefix, nullptr, 0))
             continue;
-        sanitizeOptionLabel(c.label, sizeof(c.label));
         ++_contact_count;
     }
 }
@@ -1204,9 +1203,15 @@ void QuickPingOverlay::syncRecipientDropdown()
         }
         else
         {
+            char label[32] = {};
             for (int i = 0; i < _group_count; ++i)
             {
-                appendOption(_recipient_options, sizeof(_recipient_options), _groups[i].label);
+                int channel_idx = -1;
+                if (!_biz.sendMessageGroupAt(_groups[i].source_index, &channel_idx,
+                                             label, sizeof(label)))
+                    continue;
+                sanitizeOptionLabel(label, sizeof(label));
+                appendOption(_recipient_options, sizeof(_recipient_options), label);
             }
             has_options = true;
         }
@@ -1219,9 +1224,15 @@ void QuickPingOverlay::syncRecipientDropdown()
         }
         else
         {
+            char label[32] = {};
             for (int i = 0; i < _contact_count; ++i)
             {
-                appendOption(_recipient_options, sizeof(_recipient_options), _contacts[i].label);
+                uint8_t key[6] = {};
+                if (!_biz.sendMessagePersonalAt(_contact_window_start + i, key,
+                                                label, sizeof(label)))
+                    continue;
+                sanitizeOptionLabel(label, sizeof(label));
+                appendOption(_recipient_options, sizeof(_recipient_options), label);
             }
             has_options = true;
         }
@@ -1706,7 +1717,7 @@ void QuickPingOverlay::submitMessageFromTextarea()
         _message_submit_handled = true;
         _preset_edit_active = false;
         showAlert(result == Result::Updated ? "Preset saved" : "Preset unchanged", 1000);
-        (void)emitEvent(EventType::QuickPingClose);
+        (void)notifyApp(EventType::QuickPingClose);
         return;
     }
     syncKeyboardEditorToMessage();
@@ -2099,7 +2110,7 @@ void QuickPingOverlay::onKeyboardEvent(lv_event_t *e)
         if (self->_preset_edit_active)
         {
             self->_preset_edit_active = false;
-            (void)self->emitEvent(EventType::QuickPingClose);
+            (void)self->notifyApp(EventType::QuickPingClose);
         }
         else
         {
@@ -2159,7 +2170,7 @@ void QuickPingOverlay::onKeyboardValuePre(lv_event_t *e)
         if (self->_preset_edit_active)
         {
             self->_preset_edit_active = false;
-            (void)self->emitEvent(EventType::QuickPingClose);
+            (void)self->notifyApp(EventType::QuickPingClose);
         }
         else
         {

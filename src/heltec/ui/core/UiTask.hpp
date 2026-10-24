@@ -1,6 +1,7 @@
 #pragma once
 #include "../../core/AbstractUiTask.h"
 #include "config/NodePrefs.h"
+#include <helpers/BaseChatMesh.h>
 
 #include <stdint.h>
 #ifdef PIN_BUZZER
@@ -92,7 +93,7 @@ class UiTask final : public AbstractUITask
     {
         uint32_t received_ms = 0;
         char origin[62] = {};
-        char text[161] = {};
+        char text[MAX_TEXT_LEN + 1] = {};
     };
     PreviewEntry _preview_entries[kPreviewCapacity]{};
     uint8_t _preview_head = kPreviewCapacity - 1;

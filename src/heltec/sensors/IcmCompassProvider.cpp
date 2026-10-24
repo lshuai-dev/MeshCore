@@ -372,9 +372,6 @@ void ICMCompassProvider::loop()
         {
             Heltec::MeshCore::Ui::AppStateEvent ev{};
             ev.type = Heltec::MeshCore::Ui::AppStateEventType::CompassChanged;
-            ev.compass.heading_valid = ui.heading_valid;
-            ev.compass.heading_deg = ui.heading_deg;
-            ev.compass.quality = ui.quality;
             Heltec::MeshCore::Ui::app_state_notifier().notify(ev);
         }
     }

@@ -21,9 +21,10 @@ void MeshAppUi::handleAppStateEvent(void *user_data,
         return;
     }
 #if defined(ENV_INCLUDE_GPS) && ENV_INCLUDE_GPS
-    the_mesh.teamService().notifyLocationChanged(event.gps.fix_valid,
-        static_cast<int32_t>(event.gps.lat_micro),
-        static_cast<int32_t>(event.gps.lon_micro));
+    const GpsStatus gps = app->gpsStatus();
+    the_mesh.teamService().notifyLocationChanged(
+        gps.fix_valid, static_cast<int32_t>(gps.lat_micro),
+        static_cast<int32_t>(gps.lon_micro));
 #endif
 }
 
@@ -54,21 +55,10 @@ void MeshAppUi::pollRuntime()
 }
 
 void MeshAppUi::handlePowerChanged(Heltec::MeshCore::Power::PowerChangeMask changes,
-                                   const Heltec::MeshCore::Power::PowerSnapshot &snapshot)
+                                   const Heltec::MeshCore::Power::PowerSnapshot &)
 {
     using Heltec::MeshCore::Power::hasChange;
     using Heltec::MeshCore::Power::PowerChange;
-    if (hasChange(changes, PowerChange::Battery) || hasChange(changes, PowerChange::Source))
-    {
-        Heltec::MeshCore::Ui::AppStateEvent ev{};
-        ev.type = Heltec::MeshCore::Ui::AppStateEventType::BatteryChanged;
-        ev.battery.millivolts = snapshot.battery_mv;
-        ev.battery.percent = snapshot.battery_percent;
-        ev.battery.charging = false;
-        ev.battery.source_known = snapshot.source != mesh::PowerSource::Unknown;
-        ev.battery.external_powered = snapshot.source == mesh::PowerSource::External;
-        Heltec::MeshCore::Ui::app_state_notifier().notify(ev);
-    }
     if (hasChange(changes, PowerChange::Gps))
         notifyGpsChanged();
 }
@@ -77,15 +67,6 @@ void MeshAppUi::notifyAppState(Heltec::MeshCore::Ui::AppStateEventType type)
 {
     Heltec::MeshCore::Ui::AppStateEvent ev{};
     ev.type = type;
-    Heltec::MeshCore::Ui::app_state_notifier().notify(ev);
-}
-
-void MeshAppUi::notifyCompanionChanged()
-{
-    Heltec::MeshCore::Ui::AppStateEvent ev{};
-    ev.type = Heltec::MeshCore::Ui::AppStateEventType::CompanionChanged;
-    ev.companion.connected = Heltec::MeshCore::Ui::ui_task().hasConnection();
-    ev.companion.pairing_pin = the_mesh.getBLEPin();
     Heltec::MeshCore::Ui::app_state_notifier().notify(ev);
 }
 
