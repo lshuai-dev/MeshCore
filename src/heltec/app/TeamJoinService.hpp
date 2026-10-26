@@ -85,6 +85,19 @@ class TeamJoinService
     bool rejectPending(uint64_t session_id);
     JoinState state() const;
     uint16_t pairingCode() const;
+    uint32_t nextDeadlineMs() const
+    {
+        uint32_t result = 0U;
+        if (_search_end_ms != 0U)
+            result = _search_end_ms;
+        if (_decision_end_ms != 0U &&
+            (result == 0U || static_cast<int32_t>(_decision_end_ms - result) < 0))
+            result = _decision_end_ms;
+        if (_next_discover_ms != 0U &&
+            (result == 0U || static_cast<int32_t>(_next_discover_ms - result) < 0))
+            result = _next_discover_ms;
+        return result;
+    }
     const TeamJoinStats &stats() const { return _stats; }
     void resetStats() { _stats = TeamJoinStats{}; }
 
