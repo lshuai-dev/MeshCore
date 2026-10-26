@@ -154,6 +154,7 @@ class PowerMgr
     void setGpsAllowed(bool allowed);
     void setGpsDemand(GpsDemand demand, bool active);
     bool reconcileGpsPower(uint32_t now_ms);
+    uint32_t nextDeadlineMs() const;
 
     void requestPowerOff(uint32_t now_ms);
     void requestReboot(uint32_t delay_ms, uint32_t now_ms);
