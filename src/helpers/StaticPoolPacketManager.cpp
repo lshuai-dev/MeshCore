@@ -113,6 +113,10 @@ uint32_t StaticPoolPacketManager::nextOutboundDeadline() const {
   return send_queue.nextScheduled();
 }
 
+uint32_t StaticPoolPacketManager::nextInboundDeadline() const {
+  return rx_queue.nextScheduled();
+}
+
 int  StaticPoolPacketManager::getOutboundTotal() const {
   return send_queue.count();
 }

@@ -387,7 +387,7 @@ unsigned long Dispatcher::nextDeadlineMs() const {
   unsigned long result = 0;
   const unsigned long deadlines[] = {
     next_tx_time, next_floor_calib_time, next_agc_reset_time,
-    outbound_expiry, _mgr->nextOutboundDeadline()
+    outbound_expiry, _mgr->nextOutboundDeadline(), _mgr->nextInboundDeadline()
   };
   for (unsigned int index = 0; index < sizeof(deadlines) / sizeof(deadlines[0]); ++index) {
     const unsigned long deadline = deadlines[index];

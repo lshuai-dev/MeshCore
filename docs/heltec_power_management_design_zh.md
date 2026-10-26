@@ -159,7 +159,7 @@ Compass 的 demand mask 归零后保留 1500 ms 采样宽限期，再停止 I2C 
 硬件中断唤醒 + 最近软件 deadline 的一次性 timer wake
 ```
 
-每次进入 idle 前计算最近 deadline；当前主循环已汇总 Team、Join 和 PowerMgr deadline，并将其用于 ESP32 的毫秒级 timer wake。没有软件 deadline 时才允许纯中断等待。不得以固定周期
+每次进入 idle 前计算最近 deadline；当前主循环已汇总 Team、Join、Mesh inbound/outbound 和 PowerMgr deadline，并将其用于 ESP32 的毫秒级 timer wake。nRF52 仍由 SoftDevice/外部中断负责唤醒，毫秒定时器需由具体板级实现接入。没有软件 deadline 时才允许纯中断等待。不得以固定周期
 tick 替代 deadline，也不得让 `sleep(0)` 表示无限期睡眠。
 
 ## 10. 验证清单

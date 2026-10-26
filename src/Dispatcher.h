@@ -93,6 +93,7 @@ public:
   virtual Packet* getNextOutbound(uint32_t now) = 0;    // by priority
   virtual int getOutboundCount(uint32_t now) const = 0;
   virtual uint32_t nextOutboundDeadline() const { return 0U; }
+  virtual uint32_t nextInboundDeadline() const { return 0U; }
   virtual int getOutboundTotal() const = 0;
   virtual int getFreeCount() const = 0;
   virtual Packet* getOutboundByIdx(int i) = 0;

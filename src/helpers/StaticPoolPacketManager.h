@@ -31,6 +31,7 @@ public:
   mesh::Packet* getNextOutbound(uint32_t now) override;
   int getOutboundCount(uint32_t now) const override;
   uint32_t nextOutboundDeadline() const override;
+  uint32_t nextInboundDeadline() const override;
   int getOutboundTotal() const override;
   int getFreeCount() const override;
   mesh::Packet* getOutboundByIdx(int i) override;
