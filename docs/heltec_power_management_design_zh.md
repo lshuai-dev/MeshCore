@@ -121,7 +121,7 @@ Compass demand 归零时只停止 I2C 采样、姿态算法和 UI 通知。只�
 3. 资源状态协调、失败重试和状态快照。
 4. 关机和重启流程。
 
-硬件适配接口建议由 `PowerRuntimePort` 改名为更常见的 `PowerPlatform`。它负责显示、
+硬件适配接口命名为 `PowerPlatform`。它负责显示、
 GPS 和关机相关硬件操作，但不接管普通 MCU idle。
 
 不引入动态对象、消息队列或通用电源域框架。资源状态只在 demand 变化、重试到期或

@@ -15,10 +15,9 @@ bool MeshAppUi::applyGpsPowerPolicy()
 {
 #if !defined(ENV_INCLUDE_GPS) || !(ENV_INCLUDE_GPS)
     _power.setGpsAllowed(false);
-    _power.setGpsDemand(Power::GpsDemand::Track, false);
-    _power.setGpsDemand(Power::GpsDemand::LocationContinuous, false);
-    _power.setGpsDemand(Power::GpsDemand::LocationAcquire, false);
-    _power.setGpsDemand(Power::GpsDemand::FindFriend, false);
+    _power.setGpsDemand(Power::GpsDemand::TrackRecording, false);
+    _power.setGpsDemand(Power::GpsDemand::TeamLocation, false);
+    _power.setGpsDemand(Power::GpsDemand::FindFriendScreen, false);
     return true;
 #else
     NodePrefs *p = the_mesh.getNodePrefs();
@@ -28,7 +27,7 @@ bool MeshAppUi::applyGpsPowerPolicy()
 
     const uint32_t now_ms = millis();
     const auto &team_service = the_mesh.teamService();
-    const bool team_share = team_service.enabled();
+    const bool team_share = team_service.locationShareEnabled();
     const bool gps_enabled = p->gps_enabled != 0;
 
     const bool track_active = gpsTrackRecording();
@@ -43,10 +42,9 @@ bool MeshAppUi::applyGpsPowerPolicy()
     const bool find_friend_foreground = _find_friend.foreground_active && find_friend_enabled;
 
     _power.setGpsAllowed(gps_enabled);
-    _power.setGpsDemand(Power::GpsDemand::Track, track_active);
-    _power.setGpsDemand(Power::GpsDemand::LocationContinuous, team_share);
-    _power.setGpsDemand(Power::GpsDemand::LocationAcquire, false);
-    _power.setGpsDemand(Power::GpsDemand::FindFriend, find_friend_foreground);
+    _power.setGpsDemand(Power::GpsDemand::TrackRecording, track_active);
+    _power.setGpsDemand(Power::GpsDemand::TeamLocation, team_share);
+    _power.setGpsDemand(Power::GpsDemand::FindFriendScreen, find_friend_foreground);
     return _power.reconcileGpsPower(now_ms);
 #endif
 }
@@ -79,7 +77,7 @@ void MeshAppUi::setGpsForegroundActive(bool active)
 
 void MeshAppUi::setMapForegroundActive(bool active)
 {
-    _power.setGpsDemand(Power::GpsDemand::MapScreen, active);
+    _power.setGpsDemand(Power::GpsDemand::TrackerScreen, active);
     if (active)
     {
         (void)_power.reconcileGpsPower(millis());

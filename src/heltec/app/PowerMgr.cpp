@@ -45,9 +45,9 @@ void PowerMgr::begin(uint32_t now_ms, const PowerConfig &config)
 {
     _config = config;
     _snapshot = PowerSnapshot{};
-    _snapshot.display_on = _config.display_available && _port.isDisplayOn();
-    _snapshot.gps_available = _port.isGpsAvailable();
-    _snapshot.gps_powered = _snapshot.gps_available && _port.isGpsPowered();
+    _snapshot.display_on = _config.display_available && _platform.isDisplayOn();
+    _snapshot.gps_available = _platform.isGpsAvailable();
+    _snapshot.gps_powered = _snapshot.gps_available && _platform.isGpsPowered();
     _display_last_activity_ms = _snapshot.display_on ? now_ms : 0;
     _display_activity_valid = _snapshot.display_on;
     _display_off_since_ms = _snapshot.display_on ? 0 : now_ms;
@@ -101,7 +101,7 @@ void PowerMgr::pollPowerSource(uint32_t now_ms, bool force)
     }
     _source_polled = true;
     _source_last_poll_ms = now_ms;
-    const mesh::PowerSource source = _port.getPowerSource();
+    const mesh::PowerSource source = _platform.getPowerSource();
     if (_snapshot.source == source)
         return;
     _snapshot.source = source;
@@ -158,8 +158,8 @@ bool PowerMgr::setDisplayOn(bool on, uint32_t now_ms)
         return true;
     }
 
-    _port.setDisplayOn(on);
-    const bool actual = _port.isDisplayOn();
+    _platform.setDisplayOn(on);
+    const bool actual = _platform.isDisplayOn();
     if (actual != on)
     {
         setFault(PowerFault::DisplayApplyFailed);
@@ -253,7 +253,7 @@ uint16_t PowerMgr::effectiveGpsDemands() const
     if (_snapshot.runtime_level == RuntimePowerLevel::RadioStandby)
     {
         const uint16_t foreground_demands =
-            mask(GpsDemand::GpsScreen) | mask(GpsDemand::MapScreen);
+            mask(GpsDemand::GpsScreen) | mask(GpsDemand::TrackerScreen);
         demands &= static_cast<uint16_t>(~foreground_demands);
     }
     return demands;
@@ -263,7 +263,7 @@ bool PowerMgr::reconcileGpsPower(uint32_t now_ms)
 {
     if (!_begun)
         return true;
-    const bool available = _port.isGpsAvailable();
+    const bool available = _platform.isGpsAvailable();
     const bool available_changed = _snapshot.gps_available != available;
     _snapshot.gps_available = available;
     const bool policy_changed = _gps_policy_changed;
@@ -281,7 +281,7 @@ bool PowerMgr::reconcileGpsPower(uint32_t now_ms)
         _gps_idle_since_ms = now_ms;
     }
 
-    const bool actual = _snapshot.gps_available && _port.isGpsPowered();
+    const bool actual = _snapshot.gps_available && _platform.isGpsPowered();
     const bool idle_delay_elapsed = (_config.gps_idle_delay_ms == 0U) ||
                                     deadlineReached(now_ms, _gps_idle_since_ms + _config.gps_idle_delay_ms);
     const bool desired = _snapshot.gps_available && _snapshot.gps_allowed &&
@@ -308,7 +308,7 @@ bool PowerMgr::reconcileGpsPower(uint32_t now_ms)
         return false;
     }
     _gps_retry_due_ms = now_ms + _config.gps_retry_ms;
-    if (!_port.setGpsPowered(desired))
+    if (!_platform.setGpsPowered(desired))
     {
         setFault(PowerFault::GpsApplyFailed);
         if (available_changed || policy_changed || demand_changed)
@@ -318,7 +318,7 @@ bool PowerMgr::reconcileGpsPower(uint32_t now_ms)
         return false;
     }
 
-    const bool applied = _snapshot.gps_available && _port.isGpsPowered();
+    const bool applied = _snapshot.gps_available && _platform.isGpsPowered();
     _snapshot.gps_powered = applied;
     if (applied != desired)
     {
@@ -344,7 +344,7 @@ void PowerMgr::requestPowerOff(uint32_t now_ms)
         return;
     _snapshot.system_state = SystemPowerState::ShuttingDown;
     _system_transition_due_ms = now_ms + _config.shutdown_feedback_timeout_ms;
-    _port.startShutdownFeedback();
+    _platform.startShutdownFeedback();
     notify(mask(PowerChange::System));
 }
 
@@ -359,18 +359,18 @@ void PowerMgr::requestReboot(uint32_t delay_ms, uint32_t now_ms)
 
 void PowerMgr::finishPowerOff()
 {
-    if (_snapshot.gps_powered && _port.setGpsPowered(false))
+    if (_snapshot.gps_powered && _platform.setGpsPowered(false))
     {
         _snapshot.gps_powered = false;
         notify(mask(PowerChange::Gps));
     }
     if (_config.display_available && _snapshot.display_on)
     {
-        _port.setDisplayOn(false);
-        _snapshot.display_on = _port.isDisplayOn();
+        _platform.setDisplayOn(false);
+        _snapshot.display_on = _platform.isDisplayOn();
         notify(mask(PowerChange::Display));
     }
-    _port.powerOffRadio();
+    _platform.powerOffRadio();
     _board.powerOff();
     _snapshot.system_state = SystemPowerState::Fault;
     setFault(PowerFault::PowerOffReturned);
@@ -379,12 +379,12 @@ void PowerMgr::finishPowerOff()
 
 void PowerMgr::finishReboot()
 {
-    if (_snapshot.gps_powered && _port.setGpsPowered(false))
+    if (_snapshot.gps_powered && _platform.setGpsPowered(false))
     {
         _snapshot.gps_powered = false;
         notify(mask(PowerChange::Gps));
     }
-    _port.powerOffRadio();
+    _platform.powerOffRadio();
     _board.reboot();
     _snapshot.system_state = SystemPowerState::Fault;
     setFault(PowerFault::RebootReturned);
@@ -395,7 +395,7 @@ void PowerMgr::processSystemTransition(uint32_t now_ms)
 {
     if (_snapshot.system_state == SystemPowerState::ShuttingDown)
     {
-        if (_port.shutdownFeedbackDone() || deadlineReached(now_ms, _system_transition_due_ms))
+        if (_platform.shutdownFeedbackDone() || deadlineReached(now_ms, _system_transition_due_ms))
         {
             finishPowerOff();
         }

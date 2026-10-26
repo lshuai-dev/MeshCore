@@ -141,7 +141,7 @@ HeltecMesh the_mesh(radio_driver, fast_rng, rtc_clock, tables, store,
 namespace
 {
 
-class ApplicationPowerPort final : public Heltec::MeshCore::Power::PowerRuntimePort
+class ApplicationPowerPlatform final : public Heltec::MeshCore::Power::PowerPlatform
 {
   public:
     mesh::PowerSource getPowerSource() const override
@@ -212,8 +212,8 @@ class ApplicationPowerPort final : public Heltec::MeshCore::Power::PowerRuntimeP
 class MeshAppRT final : public Heltec::MeshCore::Power::PowerListener
 {
   public:
-    ApplicationPowerPort power_port;
-    Heltec::MeshCore::Power::PowerMgr power{ board, power_port };
+    ApplicationPowerPlatform power_platform;
+    Heltec::MeshCore::Power::PowerMgr power{ board, power_platform };
     Heltec::MeshCore::Biz::MeshAppUi biz{ power };
     Heltec::MeshCore::Ui::UiApp ui{ biz, power };
 

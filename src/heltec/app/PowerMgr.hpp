@@ -33,12 +33,11 @@ enum class PowerFault : uint8_t
 
 enum class GpsDemand : uint16_t
 {
-    Track = 1U << 0,
-    LocationContinuous = 1U << 1,
-    LocationAcquire = 1U << 2,
+    TrackRecording = 1U << 0,
+    TeamLocation = 1U << 1,
     GpsScreen = 1U << 3,
-    MapScreen = 1U << 4,
-    FindFriend = 1U << 5,
+    TrackerScreen = 1U << 4,
+    FindFriendScreen = 1U << 5,
 };
 
 enum class PowerChange : uint16_t
@@ -96,10 +95,10 @@ struct PowerSnapshot
     PowerFault fault = PowerFault::None;
 };
 
-class PowerRuntimePort
+class PowerPlatform
 {
   public:
-    virtual ~PowerRuntimePort() = default;
+    virtual ~PowerPlatform() = default;
 
     virtual mesh::PowerSource getPowerSource() const = 0;
     virtual bool isDisplayOn() const = 0;
@@ -126,7 +125,7 @@ PowerConfig defaultPowerConfig();
 class PowerMgr
 {
   public:
-    PowerMgr(mesh::MainBoard &board, PowerRuntimePort &port) : _board(board), _port(port)
+    PowerMgr(mesh::MainBoard &board, PowerPlatform &platform) : _board(board), _platform(platform)
     {
     }
 
@@ -173,7 +172,7 @@ class PowerMgr
     void notify(PowerChangeMask changes);
 
     mesh::MainBoard &_board;
-    PowerRuntimePort &_port;
+    PowerPlatform &_platform;
     PowerListener *_listener = nullptr;
     PowerConfig _config{};
     PowerSnapshot _snapshot{};
