@@ -95,10 +95,6 @@ public:
     uint8_t additionalLevels[4] = {};
     const uint8_t additionalCount = getAdditionalWakeupPins(
         additionalPins, additionalLevels, sizeof(additionalPins));
-    uint8_t additionalPins[4] = {};
-    uint8_t additionalLevels[4] = {};
-    const uint8_t additionalCount = getAdditionalWakeupPins(
-        additionalPins, additionalLevels, sizeof(additionalPins));
 
     // A non-zero sleep interval is a safety net for software deadlines such as
     // Team heartbeats and delayed Mesh transmissions. GPIO interrupts remain
@@ -157,6 +153,10 @@ public:
       return;
     }
     const gpio_num_t loraWakePin = (gpio_num_t)getIRQGpio();
+    uint8_t additionalPins[4] = {};
+    uint8_t additionalLevels[4] = {};
+    const uint8_t additionalCount = getAdditionalWakeupPins(
+        additionalPins, additionalLevels, sizeof(additionalPins));
     if (gpio_get_level(loraWakePin) == HIGH) {
       delay(1);
       return;
