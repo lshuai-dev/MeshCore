@@ -383,6 +383,20 @@ bool Dispatcher::millisHasNowPassed(unsigned long timestamp) const {
   return (long)(_ms->getMillis() - timestamp) > 0;
 }
 
+unsigned long Dispatcher::nextDeadlineMs() const {
+  unsigned long result = 0;
+  const unsigned long deadlines[] = {
+    next_tx_time, next_floor_calib_time, next_agc_reset_time,
+    outbound_expiry, _mgr->nextOutboundDeadline()
+  };
+  for (unsigned int index = 0; index < sizeof(deadlines) / sizeof(deadlines[0]); ++index) {
+    const unsigned long deadline = deadlines[index];
+    if (deadline == 0 || (result != 0 && (long)(deadline - result) >= 0)) continue;
+    result = deadline;
+  }
+  return result;
+}
+
 unsigned long Dispatcher::futureMillis(int millis_from_now) const {
   return _ms->getMillis() + millis_from_now;
 }

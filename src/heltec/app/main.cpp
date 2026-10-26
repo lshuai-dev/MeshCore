@@ -529,8 +529,22 @@ void loop()
         // Use the nearest Team deadline when available; GPIO interrupts remain
         // the normal fast wake path and the one-second bound is the fallback.
         uint32_t sleep_ms = 1000U;
-#if defined(ENV_INCLUDE_GPS) && ENV_INCLUDE_GPS
         const uint32_t now_ms = millis();
+        const uint32_t power_deadline_ms = core.power.nextDeadlineMs();
+        if (power_deadline_ms != 0U)
+        {
+            const uint32_t remaining_ms = static_cast<uint32_t>(power_deadline_ms - now_ms);
+            if (remaining_ms < sleep_ms)
+                sleep_ms = (remaining_ms == 0U) ? 1U : remaining_ms;
+        }
+        const uint32_t mesh_deadline_ms = the_mesh.nextDeadlineMs();
+        if (mesh_deadline_ms != 0U)
+        {
+            const uint32_t remaining_ms = static_cast<uint32_t>(mesh_deadline_ms - now_ms);
+            if (remaining_ms < sleep_ms)
+                sleep_ms = (remaining_ms == 0U) ? 1U : remaining_ms;
+        }
+#if defined(ENV_INCLUDE_GPS) && ENV_INCLUDE_GPS
         uint32_t deadline_ms = the_mesh.teamService().nextDeadlineMs();
         const uint32_t join_deadline_ms = the_mesh.teamJoinService().nextDeadlineMs();
         if (deadline_ms == 0U ||
@@ -539,13 +553,6 @@ void loop()
         if (deadline_ms != 0U)
         {
             const uint32_t remaining_ms = static_cast<uint32_t>(deadline_ms - now_ms);
-            if (remaining_ms < sleep_ms)
-                sleep_ms = (remaining_ms == 0U) ? 1U : remaining_ms;
-        }
-        const uint32_t power_deadline_ms = core.power.nextDeadlineMs();
-        if (power_deadline_ms != 0U)
-        {
-            const uint32_t remaining_ms = static_cast<uint32_t>(power_deadline_ms - now_ms);
             if (remaining_ms < sleep_ms)
                 sleep_ms = (remaining_ms == 0U) ? 1U : remaining_ms;
         }

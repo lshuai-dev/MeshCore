@@ -92,6 +92,7 @@ public:
   virtual void queueOutbound(Packet* packet, uint8_t priority, uint32_t scheduled_for) = 0;
   virtual Packet* getNextOutbound(uint32_t now) = 0;    // by priority
   virtual int getOutboundCount(uint32_t now) const = 0;
+  virtual uint32_t nextOutboundDeadline() const { return 0U; }
   virtual int getOutboundTotal() const = 0;
   virtual int getFreeCount() const = 0;
   virtual Packet* getOutboundByIdx(int i) = 0;
@@ -183,6 +184,7 @@ public:
   unsigned long getTotalAirTime() const { return total_air_time; }
   unsigned long getReceiveAirTime() const {return rx_air_time; }
   unsigned long getRemainingTxBudget() const { return tx_budget_ms; }
+  unsigned long nextDeadlineMs() const;
   uint32_t getNumSentFlood() const { return n_sent_flood; }
   uint32_t getNumSentDirect() const { return n_sent_direct; }
   uint32_t getNumRecvFlood() const { return n_recv_flood; }
