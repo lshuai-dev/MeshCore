@@ -287,6 +287,11 @@ void ICMCompassProvider::setCalibrationState(bool bEnable)
 
 void ICMCompassProvider::loop()
 {
+    if (!_sampling_enabled)
+    {
+        return;
+    }
+
     const uint32_t now = millis();
     if (!_ready)
     {
@@ -374,6 +379,19 @@ void ICMCompassProvider::loop()
             ev.type = Heltec::MeshCore::Ui::AppStateEventType::CompassChanged;
             Heltec::MeshCore::Ui::app_state_notifier().notify(ev);
         }
+    }
+}
+
+void ICMCompassProvider::setSamplingEnabled(bool enabled)
+{
+    if (_sampling_enabled == enabled)
+    {
+        return;
+    }
+    _sampling_enabled = enabled;
+    if (!enabled)
+    {
+        _last_loop_ms = 0;
     }
 }
 

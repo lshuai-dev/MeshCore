@@ -27,6 +27,7 @@ class ICMCompassProvider : public CompassProvider
     bool getResult(CompassResult *result) override;
     bool fillUiSnapshot(Heltec::MeshCore::Biz::CompassUi &ui) const;
     void setCalibrationState(bool bEnable) override;
+    void setSamplingEnabled(bool enabled) override;
     bool hasHardware() const override
     {
         return _ready;
@@ -89,6 +90,7 @@ class ICMCompassProvider : public CompassProvider
     TwoWire *_wire = &Wire;
     uint8_t _icmAddress = 0x68;
     bool _ready = false;
+    bool _sampling_enabled = true;
     float _magSmm[9] = { 1.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 1.0f };
     float _magHmm[4] = { 0.0f, 0.0f, 0.0f, 0.5f };
     float _lastAppliedMagHmm[4] = { 0.0f, 0.0f, 0.0f, 0.5f };

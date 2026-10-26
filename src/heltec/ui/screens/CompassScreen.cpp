@@ -271,6 +271,7 @@ void CompassScreen::skipAutoCalibrationOnce()
 void CompassScreen::onEnter()
 {
     AbstractScreen::onEnter();
+    _biz.setCompassForegroundActive(true);
     _pending_auto_cal = false;
     _auto_cal_due_ms = 0;
 
@@ -281,6 +282,7 @@ void CompassScreen::onEnter()
 
 void CompassScreen::onExit()
 {
+    _biz.setCompassForegroundActive(false);
     _pending_auto_cal = false;
     _auto_cal_due_ms = 0;
     _dial.setVisible(false);

@@ -135,6 +135,7 @@ class MeshAppUi final : public IBizFacade
     void setFindFriendTargetContactIndex(int index) override;
     bool tryAutoPickFindFriendTarget() override;
     bool compassHasHardware() const override;
+    void setCompassForegroundActive(bool active) override;
     void beginCompassCalibration() override;
     void endCompassCalibration() override;
     bool compassHasStoredCalibration() const override;
@@ -220,6 +221,16 @@ class MeshAppUi final : public IBizFacade
     TeamRuntimeState _team_runtime{};
     uint32_t _team_runtime_poll_ms = 0;
     bool _team_runtime_valid = false;
+
+    static constexpr uint8_t kCompassDemandForeground = 1U << 0;
+    static constexpr uint8_t kCompassDemandFindFriend = 1U << 1;
+    static constexpr uint8_t kCompassDemandCalibration = 1U << 2;
+    uint8_t _compass_demand_mask = 0;
+    uint32_t _compass_idle_since_ms = 0;
+    bool _compass_sampling_enabled = true;
+
+    void setCompassDemand(uint8_t demand, bool active);
+    void reconcileCompassSampling(uint32_t now_ms);
 };
 
 } // namespace Heltec::MeshCore::Biz

@@ -33,6 +33,7 @@ bool MeshAppUi::compassHasHardware() const
 
 void MeshAppUi::beginCompassCalibration()
 {
+    setCompassDemand(kCompassDemandCalibration, true);
     if (compassProvider.hasHardware())
     {
         compassProvider.setCalibrationState(true);
@@ -41,6 +42,7 @@ void MeshAppUi::beginCompassCalibration()
 
 void MeshAppUi::endCompassCalibration()
 {
+    setCompassDemand(kCompassDemandCalibration, false);
     if (compassProvider.hasHardware())
     {
         compassProvider.setCalibrationState(false);

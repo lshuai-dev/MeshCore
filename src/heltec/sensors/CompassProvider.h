@@ -21,6 +21,10 @@ class CompassProvider
     virtual void setCalibrationState(bool bEnable)
     {
     }
+    virtual void setSamplingEnabled(bool enabled)
+    {
+        (void)enabled;
+    }
     virtual bool hasHardware() const
     {
         return true;

@@ -264,6 +264,7 @@ class IBizFacade {
     /** Pick and persist the first contact with a usable stored location. */
     virtual bool tryAutoPickFindFriendTarget() = 0;
     virtual bool compassHasHardware() const = 0;
+    virtual void setCompassForegroundActive(bool active) = 0;
     virtual void beginCompassCalibration() = 0;
     virtual void endCompassCalibration() = 0;
     virtual bool compassHasStoredCalibration() const = 0;
