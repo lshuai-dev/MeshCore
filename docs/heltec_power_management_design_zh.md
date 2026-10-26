@@ -11,6 +11,7 @@
 - 统一资源使用规则，但不引入通用资源管理框架。
 - 保留现有 `MainBoard::sleep()` 平台抽象，兼容 ESP32 和 nRF52840。
 - 正常低功耗期间始终保持 LoRa 接收能力。
+- MCU 休眠采用“硬件中断 + 有界一次性定时唤醒”，不能仅依赖外部中断。
 
 ## 2. 核心原则
 
@@ -30,7 +31,7 @@ GPS、指南针、显示等功能视为受管理资源。业务通过 demand bit
 | Button | 正常输入 | 保留中断唤醒 |
 | Touch | 正常采样 | 停止轮询，保留 IRQ 唤醒 |
 | LoRa | 正常收发 | 保持 RX 和 DIO1 唤醒 |
-| MCU | 运行主循环 | WFE 或 light sleep |
+| MCU | 运行主循环 | WFE 或带有界 timer wake 的 light sleep |
 
 只有用户主动关机或重启时才允许关闭 LoRa。
 
@@ -95,7 +96,7 @@ Compass demand 归零时只停止 I2C 采样、姿态算法和 UI 通知。只�
 
 ### ESP32
 
-- 正常空闲使用现有 `MainBoard::sleep(0)` 和 light sleep。
+- 正常空闲使用现有 `MainBoard::sleep()` 和 light sleep；空闲路径必须使用有界唤醒时间，不能使用无定时器的 `sleep(0)`。
 - LoRa DIO1、物理按键和触摸 IRQ 作为唤醒源。
 - LoRa 保持 RX，FEM 保持接收状态。
 - GPS 工作且依赖 UART 持续接收时，不强制进入可能丢失串口数据的 sleep；允许主循环
@@ -109,7 +110,7 @@ Compass demand 归零时只停止 I2C 采样、姿态算法和 UI 通知。只�
 - System OFF 只用于主动关机。
 
 `PowerMgr` 不新增 `idle()` 平台接口。普通 MCU 休眠继续统一调用现有
-`MainBoard::sleep()`，避免形成第二套平台睡眠抽象。
+`MainBoard::sleep()`，避免形成第二套平台睡眠抽象；主循环必须为软件 deadline 保留一次性 timer wake。
 
 ## 7. PowerMgr 职责
 
@@ -135,6 +136,7 @@ GPS 和关机相关硬件操作，但不接管普通 MCU idle。
 - 普通休眠不能调用 `powerOffRadio()`。
 - 未读消息、Team 协议、GPS Track 记录和告警超时不能依赖 UI 是否亮屏。
 - 亮屏后必须恢复焦点、刷新当前 Surface 并处理休眠期间积累的状态变化。
+- 无外部事件时，Team、Join、Mesh 延迟发送和资源关闭 deadline 仍必须推进。
 
 ## 9. 后续迁移顺序
 
@@ -144,6 +146,19 @@ GPS 和关机相关硬件操作，但不接管普通 MCU idle。
 4. 熄屏后停止非必要的 LVGL 和 UI 查询，业务处理保持运行。
 5. 删除或重命名含义不准确的 `RadioStandby`，不得因此关闭 LoRa RX。
 6. 最后评估是否精简 `PowerListener`、`PowerFault` 等低收益结构。
+
+### 9.1 MCU 唤醒规则
+
+外部中断是主要唤醒方式，包括 LoRa DIO1、按键、Touch IRQ、GPS UART/PPS 和电源事件。
+但 Team heartbeat、Join 超时、Mesh 延迟发送、联系人延迟保存和资源关闭可能没有硬件中断，
+因此必须同时保留一次性定时唤醒：
+
+```text
+硬件中断唤醒 + 最近软件 deadline 的一次性 timer wake
+```
+
+每次进入 idle 前计算最近 deadline；没有软件 deadline 时才允许纯中断等待。不得以固定周期
+tick 替代 deadline，也不得让 `sleep(0)` 表示无限期睡眠。
 
 ## 10. 验证清单
 
@@ -155,5 +170,6 @@ GPS 和关机相关硬件操作，但不接管普通 MCU idle。
 - ESP32 可由 LoRa DIO1、两个物理按键和触摸 IRQ 唤醒。
 - nRF52840 WFE/System ON idle 后仍可接收 LoRa、按键和 GPS 数据。
 - 普通休眠不丢失 LoRa 数据；主动关机才关闭 Radio。
+- ESP32 无 LoRa/按键活动时，最多 1 秒后仍能被 timer 唤醒处理软件 deadline。
 - `millis()` 回绕时显示超时、GPS 重试和关机超时仍正确。
 - 对 T1、V4 R8 TFT 分别比较待机电流、Flash 和 RAM。

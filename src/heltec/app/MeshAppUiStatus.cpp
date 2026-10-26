@@ -28,12 +28,12 @@ uint32_t MeshAppUi::currentTimeSeconds() const
 
 int MeshAppUi::messageCount() const
 {
-    return Heltec::MeshCore::Ui::ui_task().msgCount();
+    return Heltec::MeshCore::Ui::uiTask().msgCount();
 }
 
 bool MeshAppUi::hasCompanionConnection() const
 {
-    return Heltec::MeshCore::Ui::ui_task().hasConnection();
+    return Heltec::MeshCore::Ui::uiTask().hasConnection();
 }
 
 uint32_t MeshAppUi::companionPairingPin() const

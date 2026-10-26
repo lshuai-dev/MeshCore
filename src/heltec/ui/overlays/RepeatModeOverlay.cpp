@@ -81,8 +81,8 @@ bool RepeatModeOverlay::build() {
     lv_obj_set_width(_touch_roller, lv_pct(100));
     lv_obj_add_event_cb(_touch_roller, onRollerEvent, LV_EVENT_CLICKED, this);
 #else
-    if (!_roller.create(list, &_gridNav, &ht_repeat_mode_roller_class,
-                        &ht_repeat_mode_item_class, &ht_repeat_mode_label_class)) return false;
+    if (!_roller.create(list, &_gridNav, &ht_button_roller_class,
+                        &ht_repeat_mode_item_class)) return false;
 #endif
 
     char label[kFrequencyLabelCapacity]{};

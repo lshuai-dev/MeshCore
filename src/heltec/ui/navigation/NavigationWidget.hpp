@@ -21,7 +21,7 @@ struct UiNavigationItem
     bool footer;
 };
 
-lv_obj_t *ui_gridNav_create_grid(lv_obj_t *parent);
-lv_obj_t *ui_gridNav_content(lv_obj_t *obj);
+lv_obj_t *createGridNavGrid(lv_obj_t *parent);
+lv_obj_t *gridNavContent(lv_obj_t *obj);
 
 } // namespace Heltec::MeshCore::Ui

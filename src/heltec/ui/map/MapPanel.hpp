@@ -64,7 +64,11 @@ class MapPanel
     void save_prefs();
 
     void set_gps(float lat, float lon, bool valid);
-    void set_markers(const Heltec::MeshCore::Biz::MapPlotMarker *markers, int count);
+    Heltec::MeshCore::Biz::MapPlotMarker *markerBuffer()
+    {
+        return _marker_data;
+    }
+    void commitMarkers(int count);
     bool screenToLocation(lv_coord_t screen_x, lv_coord_t screen_y, float &latitude,
                           float &longitude) const;
     bool locationToPoint(float latitude, float longitude, lv_point_t &point) const;
@@ -164,16 +168,6 @@ class MapPanel
         int8_t slot = -1;
     };
 
-    struct CompactMarker
-    {
-        int32_t lat_micro = 0;
-        int32_t lon_micro = 0;
-        uint8_t pub_key_prefix[6] = {};
-        char label[9] = { '?', '\0' };
-        bool is_self = false;
-        bool alarm_active = false;
-    };
-
     void center_view();
     /** Full tile cache invalidate (zoom / style / SD mount). */
     void request_redraw();
@@ -236,8 +230,9 @@ class MapPanel
     TileSlot _tiles[kMaxTiles]{};
     TileNeed _tile_needs[kMaxTiles]{};
     MarkerSlot _markers[kMaxMarkers]{};
-    CompactMarker _marker_data[kMaxMarkers]{};
+    Heltec::MeshCore::Biz::MapPlotMarker _marker_data[kMaxMarkers]{};
     int _marker_count = 0;
+    uint32_t _marker_hash = 0;
 };
 
 } // namespace Heltec::MeshCore::Ui::Map

@@ -1,7 +1,5 @@
 #pragma once
 
-#include "ThemeProfile.hpp"
-
 #include <lvgl.h>
 #include <stdint.h>
 
@@ -10,166 +8,52 @@ typedef struct _lv_disp_t lv_disp_t;
 
 namespace Heltec::MeshCore::Ui
 {
-// Stable, centralized device-theme boundary. Device variants provide color and
-// metric values through this module; screens and widgets do not depend on a
-// device-specific theme interface or subclass.
-struct UiThemeColors
+
+// 普通控件通过 LVGL style 获取颜色；该调色板仅供主题和自定义绘制使用。
+struct ThemePalette
 {
-    uint32_t fg;
-    uint32_t bg;
-    uint32_t fg_inv;
-    uint32_t fg_on_dark;
-    uint32_t panel_dark_bg;
-    uint32_t success;
-    uint32_t error;
-    uint32_t warning;
-    uint32_t bat_high;
-    uint32_t bat_mid;
-    uint32_t bat_low;
-    uint32_t accent;
-    uint32_t accent_alt;
-    uint32_t overlay_bg;
-    uint32_t overlay_fg;
-    uint32_t highlight_bg;
-    uint32_t highlight_fg;
-    uint32_t switch_bg;
-    uint32_t switch_indicator;
-    uint32_t panel_bg;
-    uint32_t panel_border;
-    uint32_t top_pane_bg;
-    uint32_t top_pane_fg;
-    uint8_t top_pane_bg_opa;
-    uint32_t frame_bg;
-    uint8_t frame_bg_opa;
-    uint8_t widget_radius_px;
+    uint32_t fg;                // 默认前景色
+    uint32_t bg;                // 默认背景色
+    uint32_t fg_inv;            // 反色区域的前景色
+    uint32_t fg_on_dark;        // 深色绘制区域的前景色
+    uint32_t panel_dark_bg;     // 深色面板背景色
+    uint32_t success;           // 成功、正常状态颜色
+    uint32_t error;             // 错误、告警状态颜色
+    uint32_t bat_high;          // 高电量颜色
+    uint32_t bat_mid;           // 中等电量颜色
+    uint32_t bat_low;           // 低电量颜色
+    uint32_t accent;            // 主要强调色
+    uint32_t accent_alt;        // 次要强调色
+    uint32_t overlay_bg;        // Overlay 背景色
+    uint32_t overlay_fg;        // Overlay 前景色
+    uint32_t highlight_bg;      // 选中、聚焦状态背景色
+    uint32_t highlight_fg;      // 选中、聚焦状态前景色
+    uint32_t switch_bg;         // Switch 轨道背景色
+    uint32_t switch_indicator;  // Switch 未选中指示色
+    uint32_t panel_bg;          // 普通面板背景色
+    uint32_t panel_border;      // 普通面板边框色
+    uint32_t top_pane_bg;       // 顶栏背景色
+    uint32_t top_pane_fg;       // 顶栏前景色
+    uint8_t top_pane_bg_opa;    // 顶栏背景透明度
+    uint32_t frame_bg;          // 应用框架背景色
+    uint8_t frame_bg_opa;       // 应用框架背景透明度
+    uint8_t widget_radius_px;   // 控件默认圆角半径（像素）
 };
 
-struct UiTheme
-{
-    lv_theme_t theme;
-};
+ThemePalette defaultThemePalette();
+const ThemePalette &themePalette();
+void setThemePalette(const ThemePalette *palette);
 
-UiThemeColors make_ui_theme_colors();
-const UiThemeColors &ui_theme_colors();
-void ui_set_active_theme_colors(const UiThemeColors *colors);
-
-inline lv_color_t ui_color_panel_bg()
-{
-    return lv_color_hex(ui_theme_colors().panel_bg);
-}
-inline lv_color_t ui_color_panel_border()
-{
-    return lv_color_hex(ui_theme_colors().panel_border);
-}
-inline lv_color_t ui_color_top_pane_bg()
-{
-    return lv_color_hex(ui_theme_colors().top_pane_bg);
-}
-inline lv_color_t ui_color_top_pane_fg()
-{
-    return lv_color_hex(ui_theme_colors().top_pane_fg);
-}
-inline lv_opa_t ui_effective_opa(lv_opa_t opa)
+inline lv_opa_t effectiveOpacity(uint8_t opacity)
 {
 #if LV_COLOR_DEPTH == 1
-    return opa == LV_OPA_TRANSP ? LV_OPA_TRANSP : LV_OPA_COVER;
+    return opacity == LV_OPA_TRANSP ? LV_OPA_TRANSP : LV_OPA_COVER;
 #else
-    return opa;
+    return static_cast<lv_opa_t>(opacity);
 #endif
 }
-inline lv_opa_t ui_top_pane_bg_opa()
-{
-    return ui_effective_opa(static_cast<lv_opa_t>(ui_theme_colors().top_pane_bg_opa));
-}
-inline lv_color_t ui_color_frame_bg()
-{
-    return lv_color_hex(ui_theme_colors().frame_bg);
-}
-inline lv_opa_t ui_frame_bg_opa()
-{
-    return ui_effective_opa(static_cast<lv_opa_t>(ui_theme_colors().frame_bg_opa));
-}
-inline lv_color_t ui_color_fg()
-{
-    return lv_color_hex(ui_theme_colors().fg);
-}
-inline lv_color_t ui_color_bg()
-{
-    return lv_color_hex(ui_theme_colors().bg);
-}
-inline lv_color_t ui_color_fg_inv()
-{
-    return lv_color_hex(ui_theme_colors().fg_inv);
-}
-inline lv_color_t ui_color_fg_on_dark()
-{
-    return lv_color_hex(ui_theme_colors().fg_on_dark);
-}
-inline lv_color_t ui_color_panel_dark_bg()
-{
-    return lv_color_hex(ui_theme_colors().panel_dark_bg);
-}
-inline lv_color_t ui_color_success()
-{
-    return lv_color_hex(ui_theme_colors().success);
-}
-inline lv_color_t ui_color_error()
-{
-    return lv_color_hex(ui_theme_colors().error);
-}
-inline lv_color_t ui_color_warning()
-{
-    return lv_color_hex(ui_theme_colors().warning);
-}
-inline lv_color_t ui_color_battery_high()
-{
-    return lv_color_hex(ui_theme_colors().bat_high);
-}
-inline lv_color_t ui_color_battery_mid()
-{
-    return lv_color_hex(ui_theme_colors().bat_mid);
-}
-inline lv_color_t ui_color_battery_low()
-{
-    return lv_color_hex(ui_theme_colors().bat_low);
-}
-inline lv_color_t ui_color_accent()
-{
-    return lv_color_hex(ui_theme_colors().accent);
-}
-inline lv_color_t ui_color_accent_alt()
-{
-    return lv_color_hex(ui_theme_colors().accent_alt);
-}
-inline lv_color_t ui_color_overlay_bg()
-{
-    return lv_color_hex(ui_theme_colors().overlay_bg);
-}
-inline lv_color_t ui_color_overlay_fg()
-{
-    return lv_color_hex(ui_theme_colors().overlay_fg);
-}
-inline lv_color_t ui_color_highlight_bg()
-{
-    return lv_color_hex(ui_theme_colors().highlight_bg);
-}
-inline lv_color_t ui_color_highlight_fg()
-{
-    return lv_color_hex(ui_theme_colors().highlight_fg);
-}
-inline lv_color_t ui_color_switch_bg()
-{
-    return lv_color_hex(ui_theme_colors().switch_bg);
-}
-inline lv_color_t ui_color_switch_indicator()
-{
-    return lv_color_hex(ui_theme_colors().switch_indicator);
-}
-inline uint8_t ui_widget_radius_px()
-{
-    return ui_theme_colors().widget_radius_px;
-}
-constexpr lv_coord_t ui_settings_row_height()
+
+constexpr lv_coord_t settingsRowHeight()
 {
 #if HELTEC_UI_HAS_TOUCH
     return 32;
@@ -177,13 +61,7 @@ constexpr lv_coord_t ui_settings_row_height()
     return LV_SIZE_CONTENT;
 #endif
 }
-inline lv_color_t ui_navigation_idle_color()
-{
-    return ui_color_fg();
-}
-inline lv_color_t ui_navigation_focus_color()
-{
-    return ui_color_accent();
-}
-bool ui_theme_init(lv_disp_t *disp);
+
+bool initUiTheme(lv_disp_t *display);
+
 } // namespace Heltec::MeshCore::Ui

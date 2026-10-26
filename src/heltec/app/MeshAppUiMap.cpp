@@ -4,6 +4,7 @@
 
 #include "HeltecMesh.h"
 #include "MapGeo.hpp"
+#include "app/TeamConfig.hpp"
 
 #include <Arduino.h>
 #include <string.h>
@@ -62,15 +63,20 @@ bool teamLocationUsable(const Heltec::MeshCore::Team::TeamMember &member, uint32
     return static_cast<uint32_t>(member.fix_age_sec) <= remaining_ms / 1000UL;
 }
 
-void buildTeamMapPlotUi(const MeshAppUi &app, MapPlotUi &out)
+int fillTeamMapPlot(const MeshAppUi &app, MapPlotMarker *markers, int max_markers,
+                    uint8_t &online_count)
 {
-    out.online_count = 0;
-    out.marker_count = 0;
+    online_count = 0;
+    int marker_count = 0;
 #if defined(ENV_INCLUDE_GPS) && ENV_INCLUDE_GPS
+    if (!markers || max_markers <= 0)
+    {
+        return 0;
+    }
     const uint32_t now_ms = millis();
     const auto &team = the_mesh.teamService();
-    for (size_t slot = 0; slot < HELTEC_TEAM_MAX_MEMBERS &&
-                          out.marker_count < MapPlotUi::kMaxMarkers; ++slot)
+    for (size_t slot = 0;
+         slot < HELTEC_TEAM_MAX_MEMBERS && marker_count < max_markers; ++slot)
     {
         const Heltec::MeshCore::Team::TeamMember *const member = team.memberSlot(slot);
         if (!member)
@@ -79,14 +85,14 @@ void buildTeamMapPlotUi(const MeshAppUi &app, MapPlotUi &out)
         }
         if (now_ms - member->last_seen_ms <= HELTEC_TEAM_MEMBER_TIMEOUT_SEC * 1000UL)
         {
-            ++out.online_count;
+            ++online_count;
         }
         if (!teamLocationUsable(*member, now_ms))
         {
             continue;
         }
 
-        MapPlotMarker &marker = out.markers[out.marker_count++];
+        MapPlotMarker &marker = markers[marker_count++];
         marker.lat_micro = member->latitude_e6;
         marker.lon_micro = member->longitude_e6;
         copyMarkerLabel(marker.label, member->name, member->name_len);
@@ -97,14 +103,15 @@ void buildTeamMapPlotUi(const MeshAppUi &app, MapPlotUi &out)
 #endif
     }
 #endif
+    return marker_count;
 }
 
 } // namespace
 
-const MapPlotUi &MeshAppUi::mapPlotUi() const
+int MeshAppUi::fillMapPlot(MapPlotMarker *markers, int max_markers,
+                           uint8_t &online_count) const
 {
-    buildTeamMapPlotUi(*this, _map_plot_cache);
-    return _map_plot_cache;
+    return fillTeamMapPlot(*this, markers, max_markers, online_count);
 }
 
 } // namespace Heltec::MeshCore::Biz

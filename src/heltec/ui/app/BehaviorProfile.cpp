@@ -14,12 +14,12 @@ const UiBehaviorProfile *s_active_behavior_profile = nullptr;
 
 } // namespace
 
-const UiBehaviorProfile &ui_behavior_profile()
+const UiBehaviorProfile &behaviorProfile()
 {
     return s_active_behavior_profile ? *s_active_behavior_profile : kDefaultBehaviorProfile;
 }
 
-void ui_set_behavior_profile(const UiBehaviorProfile *profile)
+void setBehaviorProfile(const UiBehaviorProfile *profile)
 {
     s_active_behavior_profile = profile;
 }

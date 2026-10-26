@@ -5,7 +5,6 @@
 #include "HeltecMesh.h"
 #include "config/DataStore.h"
 
-#include <cstring>
 #include <heltec/sensors/IcmCompassProvider.h>
 
 extern ICMCompassProvider compassProvider;
@@ -17,18 +16,14 @@ namespace Heltec::MeshCore::Biz
 
 #if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
 
-void MeshAppUi::syncCompassCache() const
+CompassUi MeshAppUi::compassUi() const
 {
-    CompassUi next{};
+    CompassUi snapshot{};
     if (compassProvider.hasHardware())
     {
-        (void)compassProvider.fillUiSnapshot(next);
+        (void)compassProvider.fillUiSnapshot(snapshot);
     }
-
-    if (memcmp(&next, &_compass_ui, sizeof(next)) != 0)
-    {
-        _compass_ui = next;
-    }
+    return snapshot;
 }
 
 bool MeshAppUi::compassHasHardware() const

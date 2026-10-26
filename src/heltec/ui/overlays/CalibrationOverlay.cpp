@@ -2,7 +2,7 @@
 #include "CalibrationOverlay.hpp"
 #include "ui/core/OperationHints.hpp"
 #include "ui/core/UiMessage.hpp"
-#include "ui/widgets/WidgetClasses.hpp"
+#include "ui/widgets/SemanticClasses.hpp"
 
 #include <Arduino.h>
 #include <lvgl.h>

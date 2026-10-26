@@ -139,7 +139,7 @@ bool TeamJoinService::sendJoin(const uint8_t *data, size_t length, uint32_t dela
         return false;
     }
     ChannelDetails channel{};
-    if (!_mesh->getChannel(HELTEC_TEAM_JOIN_CHANNEL_INDEX, channel))
+    if (!_mesh->getPublicChannel(channel))
     {
         return false;
     }

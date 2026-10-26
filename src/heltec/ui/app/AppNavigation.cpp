@@ -258,7 +258,7 @@ void UiApp::restartNavigationAutoCommitTimer()
 {
     if (!_nav_auto_commit_timer)
         return;
-    const uint16_t delay_ms = ui_behavior_profile().navigation.auto_hide_ms;
+    const uint16_t delay_ms = behaviorProfile().navigation.auto_hide_ms;
     if (!delay_ms || !_nav_last_activity_ms)
     {
         stopNavigationAutoCommitTimer();
@@ -289,7 +289,7 @@ void UiApp::handleNavigationAutoCommitTimeout()
         return;
     if (!_surfaces.isActive(&_navigation) || _navigation.isTransitioning())
         return;
-    const uint16_t auto_hide_ms = ui_behavior_profile().navigation.auto_hide_ms;
+    const uint16_t auto_hide_ms = behaviorProfile().navigation.auto_hide_ms;
     if (!auto_hide_ms || !_nav_last_activity_ms)
         return;
     if ((millis() - _nav_last_activity_ms) < auto_hide_ms)

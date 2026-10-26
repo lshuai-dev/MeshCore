@@ -16,13 +16,13 @@ lv_color_t battery_fill_color(uint8_t pct)
 {
 #if LV_COLOR_DEPTH == 1
     LV_UNUSED(pct);
-    return ui_color_top_pane_fg();
+    return lv_color_hex(themePalette().top_pane_fg);
 #else
     if (pct < 20)
-        return ui_color_battery_low();
+        return lv_color_hex(themePalette().bat_low);
     if (pct < 60)
-        return ui_color_battery_mid();
-    return ui_color_battery_high();
+        return lv_color_hex(themePalette().bat_mid);
+    return lv_color_hex(themePalette().bat_high);
 #endif
 }
 
@@ -184,7 +184,7 @@ bool TopPane::create(_lv_obj_t *parent)
     lv_obj_clear_flag(_title, LV_OBJ_FLAG_SCROLLABLE | LV_OBJ_FLAG_SCROLL_ON_FOCUS);
     lv_obj_set_style_anim_speed(_title, kTitleScrollSpeed, LV_PART_MAIN);
     lv_label_set_long_mode(_title, LV_LABEL_LONG_SCROLL_CIRCULAR);
-    _lv_obj_t *right_slot = ht_class_create(&ht_top_pane_right_slot_class, _root);
+    _lv_obj_t *right_slot = lv_obj_create(_root);
     if (!right_slot)
     {
         lv_obj_del(_root);

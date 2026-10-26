@@ -29,9 +29,9 @@ struct UiMotionSpec
 };
 
 /** Create the fixed-slot scheduler timer once during UI startup. */
-bool ui_motion_init();
-bool ui_motion_start(const UiMotionSpec &spec);
-uint8_t ui_motion_cancel(void *target, UiMotionExec exec = nullptr);
-bool ui_motion_active(void *target, UiMotionExec exec = nullptr);
+bool initMotion();
+bool startMotion(const UiMotionSpec &spec);
+uint8_t cancelMotion(void *target, UiMotionExec exec = nullptr);
+bool isMotionActive(void *target, UiMotionExec exec = nullptr);
 
 } // namespace Heltec::MeshCore::Ui

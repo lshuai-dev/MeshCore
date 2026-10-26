@@ -31,12 +31,6 @@ struct MapPlotMarker {
     bool alarm_active = false;
 };
 
-struct MapPlotUi {
-    static constexpr int kMaxMarkers = 32;
-    uint8_t online_count = 0;
-    uint8_t marker_count = 0;
-    MapPlotMarker markers[kMaxMarkers] = {};
-};
 #endif
 
 enum class FindFriendTargetFreshness : uint8_t {
@@ -180,15 +174,9 @@ class IBizFacade {
     virtual GpsStatus gpsStatus() const = 0;
     virtual TeamStatus teamStatus() const = 0;
     virtual bool buzzerEnabled() const = 0;
-    virtual uint8_t buzzerVolumeLevel() const {
-        return 3;
-    }
-    virtual bool isLnaCanControl() const {
-        return false;
-    }
-    virtual bool lnaEnabled() const {
-        return false;
-    }
+    virtual uint8_t buzzerVolumeLevel() const = 0;
+    virtual bool isLnaCanControl() const = 0;
+    virtual bool lnaEnabled() const = 0;
     virtual bool companionLinkEnabled() const = 0;
     virtual void formatNodeIdLine(char *buf, size_t buf_len) const = 0;
     virtual uint32_t currentTimeSeconds() const = 0;
@@ -202,91 +190,37 @@ class IBizFacade {
     };
     virtual int fillRecentlyHeard(RecentlyHeardItem *items, int max_items) const = 0;
 
-    virtual const CompassUi &compassUi() const = 0;
+    virtual CompassUi compassUi() const = 0;
     virtual FindFriendUi findFriendUi() const = 0;
 
     virtual int teamOnlineCount() const = 0;
 #if defined(HELTEC_GEOFENCE) && HELTEC_GEOFENCE
-    virtual Team::GeofenceState teamGeofenceState() const {
-        return Team::GeofenceState::Empty;
-    }
-    virtual uint8_t teamGeofencePointCount() const { return 0; }
-    virtual bool teamGeofencePoint(uint8_t index, Team::GeofencePoint &point) const {
-        (void)index;
-        point = Team::GeofencePoint{};
-        return false;
-    }
-    virtual bool beginTeamGeofenceEdit() { return false; }
-    virtual void cancelTeamGeofenceEdit() { }
-    virtual void deleteTeamGeofence() { }
+    virtual Team::GeofenceState teamGeofenceState() const = 0;
+    virtual uint8_t teamGeofencePointCount() const = 0;
+    virtual bool teamGeofencePoint(uint8_t index, Team::GeofencePoint &point) const = 0;
+    virtual bool beginTeamGeofenceEdit() = 0;
+    virtual void cancelTeamGeofenceEdit() = 0;
+    virtual void deleteTeamGeofence() = 0;
     virtual Team::GeofenceAddResult addTeamGeofencePoint(int32_t latitude_e7,
-                                                         int32_t longitude_e7) {
-        (void)latitude_e7;
-        (void)longitude_e7;
-        return Team::GeofenceAddResult::Invalid;
-    }
-    virtual bool teamGeofenceMemberAlarm(const uint8_t member_id[6]) const {
-        (void)member_id;
-        return false;
-    }
+                                                         int32_t longitude_e7) = 0;
+    virtual bool teamGeofenceMemberAlarm(const uint8_t member_id[6]) const = 0;
 #endif
 
     virtual bool teamPendingDetails(char *name, size_t length, uint64_t &session,
-                                    uint16_t &code) const {
-        session = 0;
-        code = 0;
-        if (name && length > 0) name[0] = '\0';
-        return false;
-    }
-    virtual int teamOfferCount() const {
-        return 0;
-    }
-    virtual bool teamOfferLabel(int index, char *label, size_t length) const {
-        (void)index;
-        if (label && length > 0) label[0] = '\0';
-        return false;
-    }
-    virtual bool teamSelectOffer(int index) {
-        (void)index;
-        return false;
-    }
-    virtual bool teamStartSearch() {
-        return false;
-    }
-    virtual bool teamSetRole(bool leader) {
-        (void)leader;
-        return false;
-    }
-    virtual bool teamSetActive(bool active) {
-        (void)active;
-        return false;
-    }
-    virtual bool teamSetJoining(bool open) {
-        (void)open;
-        return false;
-    }
-    virtual bool teamMessageTarget(int member_index, Ui::UiSendMessageTarget &target) const {
-        (void)member_index;
-        (void)target;
-        return false;
-    }
+                                    uint16_t &code) const = 0;
+    virtual int teamOfferCount() const = 0;
+    virtual bool teamOfferLabel(int index, char *label, size_t length) const = 0;
+    virtual bool teamSelectOffer(int index) = 0;
+    virtual bool teamStartSearch() = 0;
+    virtual bool teamSetRole(bool leader) = 0;
+    virtual bool teamSetActive(bool active) = 0;
+    virtual bool teamSetJoining(bool open) = 0;
+    virtual bool teamMessageTarget(int member_index, Ui::UiSendMessageTarget &target) const = 0;
     virtual bool mapMessageTarget(const uint8_t *prefix, size_t length,
-                                  Ui::UiSendMessageTarget &target) const {
-        (void)prefix;
-        (void)length;
-        (void)target;
-        return false;
-    }
-    virtual bool teamDecidePending(uint64_t session, bool approve) {
-        (void)session;
-        (void)approve;
-        return false;
-    }
-    virtual bool teamLeave() {
-        return false;
-    }
-    virtual void teamCancel() {
-    }
+                                  Ui::UiSendMessageTarget &target) const = 0;
+    virtual bool teamDecidePending(uint64_t session, bool approve) = 0;
+    virtual bool teamLeave() = 0;
+    virtual void teamCancel() = 0;
 
     // Location, compass, and find-friend state.
     virtual bool locationShareEnabled() const = 0;
@@ -313,81 +247,39 @@ class IBizFacade {
     virtual void setLoRaBandPresetIndex(int preset_index) = 0;
     virtual ForwardingApplyResult setForwardingEnabled(bool enabled, int frequency_index) = 0;
     virtual void setBuzzerEnabled(bool enabled) = 0;
-    virtual void setBuzzerVolumeLevel(uint8_t level) {
-        (void)level;
-    }
-    virtual bool setLnaEnabled(bool enabled) {
-        (void)enabled;
-        return false;
-    }
+    virtual void setBuzzerVolumeLevel(uint8_t level) = 0;
+    virtual bool setLnaEnabled(bool enabled) = 0;
     virtual void setCompanionLinkEnabled(bool enabled) = 0;
     virtual bool setFindFriendEnabled(bool enabled) = 0;
-    virtual void setGpsForegroundActive(bool active) {
-        (void)active;
-    }
-    virtual void setMapForegroundActive(bool active) {
-        (void)active;
-    }
-    virtual void setFindFriendForegroundActive(bool active) {
-        (void)active;
-    }
-    virtual int displayAutoOffIndex() const {
-        return 0;
-    }
-    virtual void setDisplayAutoOffIndex(int index) {
-        (void)index;
-    }
-    virtual int displayAutoOffOptionCount() const {
-        return 0;
-    }
-    virtual const char *displayAutoOffOptionLabel(int index) const {
-        (void)index;
-        return nullptr;
-    }
+    virtual void setGpsForegroundActive(bool active) = 0;
+    virtual void setMapForegroundActive(bool active) = 0;
+    virtual void setFindFriendForegroundActive(bool active) = 0;
+    virtual int displayAutoOffIndex() const = 0;
+    virtual void setDisplayAutoOffIndex(int index) = 0;
+    virtual int displayAutoOffOptionCount() const = 0;
+    virtual const char *displayAutoOffOptionLabel(int index) const = 0;
     virtual bool setFindFriendMode(int mode) = 0;
     virtual bool setFindFriendWaypoint(double lat_deg, double lon_deg) = 0;
     virtual void setFindFriendTargetContactIndex(int index) = 0;
     /** Pick and persist the first contact with a usable stored location. */
-    virtual bool tryAutoPickFindFriendTarget() {
-        return false;
-    }
-    virtual bool compassHasHardware() const {
-        return false;
-    }
-    virtual void beginCompassCalibration() {
-    }
-    virtual void endCompassCalibration() {
-    }
-    virtual bool compassHasStoredCalibration() const {
-        return false;
-    }
-    virtual bool saveCompassCalibration() {
-        return false;
-    }
-    virtual bool restoreCompassCalibration() {
-        return false;
-    }
+    virtual bool tryAutoPickFindFriendTarget() = 0;
+    virtual bool compassHasHardware() const = 0;
+    virtual void beginCompassCalibration() = 0;
+    virtual void endCompassCalibration() = 0;
+    virtual bool compassHasStoredCalibration() const = 0;
+    virtual bool saveCompassCalibration() = 0;
+    virtual bool restoreCompassCalibration() = 0;
 
-    virtual bool factoryReset() {
-        return false;
-    }
-    virtual bool clearUserData() {
-        return false;
-    }
+    virtual bool factoryReset() = 0;
+    virtual bool clearUserData() = 0;
 
     // GPS track storage controls.
-    virtual bool gpsTrackRecording() const {
-        return false;
-    }
-    virtual bool setGpsTrackRecording(bool enabled) {
-        (void)enabled;
-        return false;
-    }
+    virtual bool gpsTrackRecording() const = 0;
+    virtual bool setGpsTrackRecording(bool enabled) = 0;
 
 #if defined(ENV_INCLUDE_MAP) && ENV_INCLUDE_MAP
-    // The reference is valid only until the next mapPlotUi() call on this facade.
-    // Callers must consume it synchronously and must not retain it.
-    virtual const MapPlotUi &mapPlotUi() const = 0;
+    virtual int fillMapPlot(MapPlotMarker *markers, int max_markers,
+                            uint8_t &online_count) const = 0;
 #endif
 };
 

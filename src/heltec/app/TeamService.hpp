@@ -98,7 +98,6 @@ class TeamService
     bool createTeam(const char *name);
     bool installTeam(const TeamCredentials &credentials);
     bool leaveTeam();
-    bool setEnabled(bool enabled);
     bool requestSync();
     TeamRole role() const { return _role; }
     bool setRole(TeamRole role);
@@ -173,7 +172,6 @@ class TeamService
     uint32_t _last_sync_request_tx_ms = 0;
     uint32_t _last_leader_seen_ms = 0;
     bool _sync_request_tx_seen = false;
-    bool _enabled = false;
     TeamRole _role = TeamRole::Member;
     bool _sent_valid_location = false;
     TeamStats _stats{};

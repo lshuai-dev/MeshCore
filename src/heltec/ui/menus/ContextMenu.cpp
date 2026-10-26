@@ -4,7 +4,7 @@
 #include "ui/core/UiMessage.hpp"
 #include "ui/core/Scheduler.hpp"
 #include "ui/theme/WidgetTheme.hpp"
-#include "ui/widgets/WidgetClasses.hpp"
+#include "ui/widgets/SemanticClasses.hpp"
 
 #include <lvgl.h>
 
@@ -235,13 +235,13 @@ void ContextMenu::onEnter()
 {
     if (!canOpen())
         return;
-    ui_motion_cancel(_root);
+    cancelMotion(_root);
     _stage = Stage::MainMenu;
     selectPane(0);
     enterMainMenu(0);
 
     const FrameGeometry geometry = layoutFrame(_root);
-    const uint16_t duration = ui_behavior_profile().context_menu.page_anim_ms;
+    const uint16_t duration = behaviorProfile().context_menu.page_anim_ms;
     if (duration == 0)
     {
         lv_obj_set_y(_root, geometry.target_y);
@@ -256,7 +256,7 @@ void ContextMenu::onEnter()
     motion.end_value = geometry.target_y;
     motion.duration_ms = duration;
     motion.path = UiMotionPath::EaseOut;
-    if (!ui_motion_start(motion))
+    if (!startMotion(motion))
         lv_obj_set_y(_root, geometry.target_y);
 }
 
@@ -265,7 +265,7 @@ void ContextMenu::onExit()
     resetHistory();
     _stage = Stage::MainMenu;
     if (_root)
-        ui_motion_cancel(_root);
+        cancelMotion(_root);
 }
 
 bool ContextMenu::build()
@@ -331,7 +331,7 @@ bool ContextMenu::build()
     lv_label_set_long_mode(_title_label, LV_LABEL_LONG_DOT);
     lv_obj_clear_flag(_title_label, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_move_to_index(navigation_row, 1);
-    ui_context_menu_title_apply_theme(_title_label);
+    applyContextMenuTitleTheme(_title_label);
 
     lv_obj_t *const page = ht_class_create(&ht_context_menu_page_class, _menu);
     if (!page)
@@ -341,7 +341,7 @@ bool ContextMenu::build()
     lv_menu_clear_history(_menu);
     lv_obj_clear_flag(header, LV_OBJ_FLAG_HIDDEN);
     if (!_roller.create(page, &_gridNav, &ht_context_menu_roller_class,
-                        &ht_context_menu_item_class, &ht_context_menu_label_class))
+                        &ht_context_menu_item_class))
         return false;
 
     _gridNav.setWrap(true);
@@ -382,7 +382,7 @@ bool ContextMenu::registerMenu(const lv_img_dsc_t *icon, const ContextMenuPage &
         return false;
 
     lv_obj_t *const button =
-        ht_btn_create(&ht_context_menu_icon_button_class, _header_icon_row,
+        ht_class_create(&ht_context_menu_icon_button_class, _header_icon_row,
                       const_cast<ContextMenuPage *>(&page));
     if (!button)
         return false;

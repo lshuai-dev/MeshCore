@@ -1,11 +1,11 @@
 #include "ui/theme/WidgetTheme.hpp"
-#include "ui/theme/ThemeInternal.hpp"
+#include "ui/theme/ThemeUtil.hpp"
 #include "ui/theme/UiTheme.hpp"
 #include "ui/core/AbstractOverlay.hpp"
 #include "ui/core/DialogOverlay.hpp"
 #include "ui/core/FramedOverlay.hpp"
 #include "ui/widgets/HtContainer.hpp"
-#include "ui/widgets/WidgetClasses.hpp"
+#include "ui/widgets/SemanticClasses.hpp"
 #include "ui/menus/ContextMenu.hpp"
 #include "ui/navigation/NavigationWidget.hpp"
 #include "ui/overlays/AlertOverlay.hpp"
@@ -208,7 +208,7 @@ static const UiThemeProfile kDefaultThemeProfile = {
     { 12, 0, 3, 1 },
     { 0, 14, 8 },
 };
-static const UiThemeProfile *s_theme_profile = &kDefaultThemeProfile;
+static const UiThemeProfile *s_themeProfile = &kDefaultThemeProfile;
 static constexpr NavigationStyleConfig kNavigationStyleConfig = {
     18, 8, 2,
 };
@@ -218,9 +218,9 @@ static constexpr lv_coord_t kContextMenuTitleBorderWidth = 1;
 static constexpr lv_coord_t kContextMenuFrameInsetX = 8;
 #endif
 
-static const UiThemeProfile &theme_profile()
+static const UiThemeProfile &themeProfile()
 {
-    return *s_theme_profile;
+    return *s_themeProfile;
 }
 
 static lv_style_t s_alert_overlay_root_style;
@@ -292,9 +292,6 @@ static lv_style_t s_visibility_hidden_style;
 static lv_style_t s_nav_content_host_style;
 static lv_style_t s_nav_grid_cell_style;
 static lv_style_t s_nav_grid_cell_focus_style;
-#if !HELTEC_UI_HAS_TOUCH
-static lv_style_t s_nav_grid_icon_area_style;
-#endif
 static lv_style_t s_nav_grid_title_bar_style;
 static lv_style_t s_nav_grid_title_label_style;
 static lv_style_t s_nav_panel_grid_style;
@@ -305,8 +302,8 @@ static lv_style_t s_nav_ring_style;
 #endif
 static bool s_navigation_styles_ready = false;
 
-static lv_style_t s_overlay_root_chrome_style;
-static bool s_overlay_root_chrome_style_ready = false;
+static lv_style_t s_overlayRootChromeStyle;
+static bool s_overlayRootChromeStyle_ready = false;
 
 struct LabelStyleSlot
 {
@@ -318,7 +315,7 @@ struct LabelStyleSlot
 
 static LabelStyleSlot s_label_styles[6];
 
-static lv_style_t *cached_label_style(lv_color_t color, lv_text_align_t align)
+static lv_style_t *cachedLabelStyle(lv_color_t color, lv_text_align_t align)
 {
     const uint32_t color32 = lv_color_to32(color);
     for (LabelStyleSlot &slot : s_label_styles)
@@ -343,7 +340,7 @@ static lv_style_t *cached_label_style(lv_color_t color, lv_text_align_t align)
     return nullptr;
 }
 
-static void set_overlay_text_spacing(lv_style_t *style)
+static void setOverlayTextSpacing(lv_style_t *style)
 {
     if (!style)
         return;
@@ -351,40 +348,40 @@ static void set_overlay_text_spacing(lv_style_t *style)
     lv_style_set_text_letter_space(style, 0);
 }
 
-static void init_overlay_center_label_style()
+static void initOverlayCenterLabelStyle()
 {
     if (s_overlay_center_label_style_ready)
         return;
     lv_style_init(&s_overlay_center_label_style);
-    lv_style_set_text_color(&s_overlay_center_label_style, ui_color_overlay_fg());
+    lv_style_set_text_color(&s_overlay_center_label_style, lv_color_hex(themePalette().overlay_fg));
     lv_style_set_text_align(&s_overlay_center_label_style, LV_TEXT_ALIGN_CENTER);
-    set_overlay_text_spacing(&s_overlay_center_label_style);
+    setOverlayTextSpacing(&s_overlay_center_label_style);
     s_overlay_center_label_style_ready = true;
 }
 
 static lv_coord_t reference_card_gap();
 
-static void init_overlay_header_footer_style()
+static void initOverlayHeaderFooterStyle()
 {
     if (s_overlay_header_footer_style_ready)
         return;
     lv_style_init(&s_overlay_header_footer_style);
-    lv_style_set_bg_color(&s_overlay_header_footer_style, ui_color_highlight_bg());
+    lv_style_set_bg_color(&s_overlay_header_footer_style, lv_color_hex(themePalette().highlight_bg));
     lv_style_set_bg_opa(&s_overlay_header_footer_style, LV_OPA_COVER);
-    lv_style_set_text_color(&s_overlay_header_footer_style, ui_color_highlight_fg());
+    lv_style_set_text_color(&s_overlay_header_footer_style, lv_color_hex(themePalette().highlight_fg));
     lv_style_set_text_align(&s_overlay_header_footer_style, LV_TEXT_ALIGN_CENTER);
     lv_style_set_height(&s_overlay_header_footer_style, LV_SIZE_CONTENT);
     lv_style_set_border_width(&s_overlay_header_footer_style, 0);
     lv_style_set_outline_width(&s_overlay_header_footer_style, 0);
     lv_style_set_shadow_width(&s_overlay_header_footer_style, 0);
     lv_style_set_pad_all(&s_overlay_header_footer_style, 0);
-    const lv_coord_t bar_height = theme_profile().app_frame.bar_height;
+    const lv_coord_t bar_height = themeProfile().app_frame.bar_height;
     const lv_coord_t line_height = lv_font_get_line_height(LV_FONT_DEFAULT);
     const lv_coord_t free_height = bar_height > line_height ? bar_height - line_height : 0;
     const lv_coord_t pad_top = free_height / 2;
     lv_style_set_pad_top(&s_overlay_header_footer_style, pad_top);
     lv_style_set_pad_bottom(&s_overlay_header_footer_style, free_height - pad_top);
-    set_overlay_text_spacing(&s_overlay_header_footer_style);
+    setOverlayTextSpacing(&s_overlay_header_footer_style);
 
     lv_style_init(&s_framed_overlay_content_style);
     lv_style_set_width(&s_framed_overlay_content_style, lv_pct(100));
@@ -411,13 +408,13 @@ static lv_obj_t *overlay_header_footer_radius_owner(lv_obj_t *obj)
     return owner;
 }
 
-static void apply_overlay_header_footer_style(lv_obj_t *obj)
+static void applyOverlayHeaderFooterStyle(lv_obj_t *obj)
 {
     if (!obj)
     {
         return;
     }
-    init_overlay_header_footer_style();
+    initOverlayHeaderFooterStyle();
     lv_obj_add_style(obj, &s_overlay_header_footer_style, LV_PART_MAIN);
 
     lv_obj_t *const dialog_parent = lv_obj_get_parent(obj);
@@ -440,8 +437,8 @@ static void apply_overlay_header_footer_style(lv_obj_t *obj)
         lv_obj_set_style_height(obj, LV_SIZE_CONTENT, LV_PART_MAIN);
         lv_obj_set_style_pad_top(obj, 0, LV_PART_MAIN);
         lv_obj_set_style_pad_bottom(obj, 0, LV_PART_MAIN);
-        lv_obj_set_style_bg_color(obj, ui_color_highlight_bg(), LV_PART_MAIN);
-        lv_obj_set_style_text_color(obj, ui_color_highlight_fg(), LV_PART_MAIN);
+        lv_obj_set_style_bg_color(obj, lv_color_hex(themePalette().highlight_bg), LV_PART_MAIN);
+        lv_obj_set_style_text_color(obj, lv_color_hex(themePalette().highlight_fg), LV_PART_MAIN);
     }
 #endif
 
@@ -461,19 +458,19 @@ static lv_coord_t reference_card_gap()
 #endif
 }
 
-static bool is_compact_display()
+static bool isCompactDisplay()
 {
     lv_disp_t *const display = lv_disp_get_default();
     return display && lv_disp_get_ver_res(display) <= 80;
 }
 
 #if !HELTEC_UI_HAS_TOUCH
-static void init_classic_context_styles(lv_obj_t *obj)
+static void initClassicContextStyles(lv_obj_t *obj)
 {
     if (s_ctx_styles_ready)
         return;
     (void)obj;
-    const UiContextMenuStyleConfig &config = theme_profile().context_menu;
+    const UiContextMenuStyleConfig &config = themeProfile().context_menu;
     const lv_coord_t icon_gap_px = config.icon_gap;
     const lv_coord_t border_width_px = kContextMenuBorderWidth;
     const lv_coord_t title_border_width_px = kContextMenuTitleBorderWidth;
@@ -483,15 +480,15 @@ static void init_classic_context_styles(lv_obj_t *obj)
     lv_style_set_border_width(&s_ctx_menu_style, 0);
     lv_style_set_outline_width(&s_ctx_menu_style, 0);
     lv_style_set_bg_opa(&s_ctx_menu_style, LV_OPA_COVER);
-    lv_style_set_bg_color(&s_ctx_menu_style, ui_color_bg());
-    lv_style_set_text_color(&s_ctx_menu_style, ui_color_fg());
+    lv_style_set_bg_color(&s_ctx_menu_style, lv_color_hex(themePalette().bg));
+    lv_style_set_text_color(&s_ctx_menu_style, lv_color_hex(themePalette().fg));
     lv_style_set_pad_all(&s_ctx_menu_style, 0);
     lv_style_set_pad_row(&s_ctx_menu_style, reference_card_gap());
 
     lv_style_init(&s_ctx_header_style);
     lv_style_set_bg_opa(&s_ctx_header_style, LV_OPA_COVER);
-    lv_style_set_bg_color(&s_ctx_header_style, ui_color_fg());
-    lv_style_set_text_color(&s_ctx_header_style, ui_color_bg());
+    lv_style_set_bg_color(&s_ctx_header_style, lv_color_hex(themePalette().fg));
+    lv_style_set_text_color(&s_ctx_header_style, lv_color_hex(themePalette().bg));
     lv_style_set_border_width(&s_ctx_header_style, 0);
     lv_style_set_outline_width(&s_ctx_header_style, 0);
     lv_style_set_pad_all(&s_ctx_header_style, 0);
@@ -512,10 +509,10 @@ static void init_classic_context_styles(lv_obj_t *obj)
 
     lv_style_init(&s_ctx_title_style);
     lv_style_set_text_align(&s_ctx_title_style, LV_TEXT_ALIGN_CENTER);
-    set_overlay_text_spacing(&s_ctx_title_style);
+    setOverlayTextSpacing(&s_ctx_title_style);
     lv_style_set_bg_opa(&s_ctx_title_style, LV_OPA_COVER);
-    lv_style_set_bg_color(&s_ctx_title_style, ui_color_fg());
-    lv_style_set_text_color(&s_ctx_title_style, ui_color_bg());
+    lv_style_set_bg_color(&s_ctx_title_style, lv_color_hex(themePalette().fg));
+    lv_style_set_text_color(&s_ctx_title_style, lv_color_hex(themePalette().bg));
     lv_style_set_outline_width(&s_ctx_title_style, 0);
     lv_style_set_shadow_width(&s_ctx_title_style, 0);
     lv_style_set_radius(&s_ctx_title_style, 0);
@@ -524,7 +521,7 @@ static void init_classic_context_styles(lv_obj_t *obj)
     {
         lv_style_set_border_width(&s_ctx_title_style, title_border_width_px);
         lv_style_set_border_side(&s_ctx_title_style, LV_BORDER_SIDE_FULL);
-        lv_style_set_border_color(&s_ctx_title_style, ui_color_bg());
+        lv_style_set_border_color(&s_ctx_title_style, lv_color_hex(themePalette().bg));
         lv_style_set_border_opa(&s_ctx_title_style, LV_OPA_COVER);
     }
 
@@ -546,7 +543,7 @@ static void init_classic_context_styles(lv_obj_t *obj)
     // white glyph on the black header instead of drawing a solid white tile.
     lv_style_set_bg_opa(&s_ctx_icon_btn_checked_style, LV_OPA_TRANSP);
 #else
-    lv_style_set_bg_color(&s_ctx_icon_btn_checked_style, ui_color_bg());
+    lv_style_set_bg_color(&s_ctx_icon_btn_checked_style, lv_color_hex(themePalette().bg));
     lv_style_set_bg_opa(&s_ctx_icon_btn_checked_style, LV_OPA_COVER);
 #endif
     lv_style_set_border_width(&s_ctx_icon_btn_checked_style, 0);
@@ -560,16 +557,16 @@ static void init_classic_context_styles(lv_obj_t *obj)
     lv_style_set_width(&s_ctx_icon_style, config.icon_size);
     lv_style_set_height(&s_ctx_icon_style, config.icon_size);
     lv_style_set_bg_opa(&s_ctx_icon_style, LV_OPA_TRANSP);
-    lv_style_set_img_recolor(&s_ctx_icon_style, ui_color_bg());
+    lv_style_set_img_recolor(&s_ctx_icon_style, lv_color_hex(themePalette().bg));
     lv_style_set_img_recolor_opa(&s_ctx_icon_style, LV_OPA_COVER);
 
     lv_style_init(&s_ctx_icon_checked_style);
     lv_style_set_width(&s_ctx_icon_checked_style, config.icon_size);
     lv_style_set_height(&s_ctx_icon_checked_style, config.icon_size);
 #if defined(HELTEC_HAS_KEY_FRAME) && HELTEC_HAS_KEY_FRAME
-    lv_style_set_img_recolor(&s_ctx_icon_checked_style, ui_color_bg());
+    lv_style_set_img_recolor(&s_ctx_icon_checked_style, lv_color_hex(themePalette().bg));
 #else
-    lv_style_set_img_recolor(&s_ctx_icon_checked_style, ui_color_fg());
+    lv_style_set_img_recolor(&s_ctx_icon_checked_style, lv_color_hex(themePalette().fg));
 #endif
     lv_style_set_img_recolor_opa(&s_ctx_icon_checked_style, LV_OPA_COVER);
 
@@ -578,7 +575,7 @@ static void init_classic_context_styles(lv_obj_t *obj)
 
 #endif
 
-static void init_send_message_styles()
+static void initSendMessageStyles()
 {
     if (s_send_styles_ready)
         return;
@@ -587,12 +584,12 @@ static void init_send_message_styles()
     const bool wide_display = display && lv_disp_get_hor_res(display) >= 200;
     const lv_coord_t row_radius = LV_COLOR_DEPTH == 1 || wide_display ? 0 : 3;
 
-    init_overlay_center_label_style();
+    initOverlayCenterLabelStyle();
 
     lv_style_init(&s_send_root_layout_style);
-    const lv_coord_t root_radius = theme_profile().app_frame.content_radius > 0
-                                       ? theme_profile().app_frame.content_radius
-                                       : ui_widget_radius_px();
+    const lv_coord_t root_radius = themeProfile().app_frame.content_radius > 0
+                                       ? themeProfile().app_frame.content_radius
+                                       : themePalette().widget_radius_px;
     lv_style_set_radius(&s_send_root_layout_style, root_radius);
     lv_style_set_clip_corner(&s_send_root_layout_style, root_radius > 0);
     lv_style_set_pad_all(&s_send_root_layout_style, 0);
@@ -601,15 +598,15 @@ static void init_send_message_styles()
 #if !HELTEC_UI_HAS_TOUCH
     lv_style_init(&s_send_content_style);
     lv_style_set_bg_opa(&s_send_content_style, LV_OPA_COVER);
-    lv_style_set_bg_color(&s_send_content_style, ui_color_bg());
+    lv_style_set_bg_color(&s_send_content_style, lv_color_hex(themePalette().bg));
 #endif
 
     lv_style_init(&s_send_list_style);
     lv_style_set_bg_opa(&s_send_list_style, LV_OPA_COVER);
 #if LV_USE_THEME_MONO
-    lv_style_set_bg_color(&s_send_list_style, ui_color_bg());
+    lv_style_set_bg_color(&s_send_list_style, lv_color_hex(themePalette().bg));
 #else
-    lv_style_set_bg_color(&s_send_list_style, ui_color_overlay_bg());
+    lv_style_set_bg_color(&s_send_list_style, lv_color_hex(themePalette().overlay_bg));
 #endif
     lv_style_set_border_width(&s_send_list_style, 0);
     lv_style_set_pad_all(&s_send_list_style, 0);
@@ -630,16 +627,16 @@ static void init_send_message_styles()
     lv_style_set_border_width(&s_send_row_main_style, 0);
     lv_style_set_outline_width(&s_send_row_main_style, 0);
 #if !LV_USE_THEME_MONO
-    lv_style_set_text_color(&s_send_row_main_style, ui_color_overlay_fg());
+    lv_style_set_text_color(&s_send_row_main_style, lv_color_hex(themePalette().overlay_fg));
 #endif
     lv_style_set_text_align(&s_send_row_main_style, LV_TEXT_ALIGN_CENTER);
-    set_overlay_text_spacing(&s_send_row_main_style);
+    setOverlayTextSpacing(&s_send_row_main_style);
     lv_style_set_pad_all(&s_send_row_main_style, 0);
 
     lv_style_init(&s_send_row_active_style);
     lv_style_set_bg_opa(&s_send_row_active_style, LV_OPA_COVER);
-    lv_style_set_bg_color(&s_send_row_active_style, ui_color_highlight_bg());
-    lv_style_set_text_color(&s_send_row_active_style, ui_color_highlight_fg());
+    lv_style_set_bg_color(&s_send_row_active_style, lv_color_hex(themePalette().highlight_bg));
+    lv_style_set_text_color(&s_send_row_active_style, lv_color_hex(themePalette().highlight_fg));
     lv_style_set_shadow_width(&s_send_row_active_style, 0);
     lv_style_set_border_width(&s_send_row_active_style, 0);
     lv_style_set_outline_width(&s_send_row_active_style, 0);
@@ -647,12 +644,12 @@ static void init_send_message_styles()
     s_send_styles_ready = true;
 }
 
-static void init_radio_sync_styles()
+static void initRadioSyncStyles()
 {
     if (s_radio_sync_styles_ready)
         return;
 
-    init_overlay_center_label_style();
+    initOverlayCenterLabelStyle();
     const lv_coord_t gap =
 #if HELTEC_UI_HAS_TOUCH
         LV_DPX(10);
@@ -678,36 +675,36 @@ static void init_radio_sync_styles()
     lv_style_set_border_width(&s_overlay_roller_style, 0);
     lv_style_set_outline_width(&s_overlay_roller_style, 0);
     lv_style_set_shadow_width(&s_overlay_roller_style, 0);
-    lv_style_set_text_color(&s_overlay_roller_style, ui_color_overlay_fg());
+    lv_style_set_text_color(&s_overlay_roller_style, lv_color_hex(themePalette().overlay_fg));
     lv_style_set_text_align(&s_overlay_roller_style, LV_TEXT_ALIGN_CENTER);
     lv_style_set_text_line_space(&s_overlay_roller_style, LV_DPX(18));
     lv_style_set_anim_time(&s_overlay_roller_style, 220);
 
     lv_style_init(&s_overlay_roller_selected_style);
-    lv_style_set_bg_color(&s_overlay_roller_selected_style, ui_color_highlight_bg());
+    lv_style_set_bg_color(&s_overlay_roller_selected_style, lv_color_hex(themePalette().highlight_bg));
     lv_style_set_bg_opa(&s_overlay_roller_selected_style, LV_OPA_COVER);
-    lv_style_set_text_color(&s_overlay_roller_selected_style, ui_color_highlight_fg());
+    lv_style_set_text_color(&s_overlay_roller_selected_style, lv_color_hex(themePalette().highlight_fg));
     lv_style_set_radius(&s_overlay_roller_selected_style, LV_DPX(4));
 #else
     lv_style_init(&s_radio_sync_row_main_style);
     lv_style_set_text_align(&s_radio_sync_row_main_style, LV_TEXT_ALIGN_CENTER);
-    set_overlay_text_spacing(&s_radio_sync_row_main_style);
+    setOverlayTextSpacing(&s_radio_sync_row_main_style);
     lv_style_set_bg_opa(&s_radio_sync_row_main_style, LV_OPA_TRANSP);
 
     lv_style_init(&s_radio_sync_row_checked_style);
-    lv_style_set_text_color(&s_radio_sync_row_checked_style, ui_color_highlight_fg());
+    lv_style_set_text_color(&s_radio_sync_row_checked_style, lv_color_hex(themePalette().highlight_fg));
     lv_style_set_bg_opa(&s_radio_sync_row_checked_style, LV_OPA_COVER);
-    lv_style_set_bg_color(&s_radio_sync_row_checked_style, ui_color_highlight_bg());
+    lv_style_set_bg_color(&s_radio_sync_row_checked_style, lv_color_hex(themePalette().highlight_bg));
 #endif
 
     s_radio_sync_styles_ready = true;
 }
 
-static void init_repeat_mode_styles()
+static void initRepeatModeStyles()
 {
     if (s_repeat_styles_ready)
         return;
-    init_radio_sync_styles();
+    initRadioSyncStyles();
 
     lv_style_init(&s_repeat_root_layout_style);
     lv_style_set_pad_hor(&s_repeat_root_layout_style, 6);
@@ -725,21 +722,21 @@ static void init_repeat_mode_styles()
     lv_style_set_border_width(&s_repeat_item_style, 0);
 
     lv_style_init(&s_repeat_item_selected_style);
-    lv_style_set_bg_color(&s_repeat_item_selected_style, ui_color_highlight_bg());
+    lv_style_set_bg_color(&s_repeat_item_selected_style, lv_color_hex(themePalette().highlight_bg));
     lv_style_set_bg_opa(&s_repeat_item_selected_style, LV_OPA_COVER);
-    lv_style_set_text_color(&s_repeat_item_selected_style, ui_color_highlight_fg());
+    lv_style_set_text_color(&s_repeat_item_selected_style, lv_color_hex(themePalette().highlight_fg));
 
 #endif
 
     s_repeat_styles_ready = true;
 }
 
-static void init_keyboard_child_styles()
+static void initKeyboardChildStyles()
 {
     if (s_keyboard_child_styles_ready)
         return;
 
-    init_overlay_center_label_style();
+    initOverlayCenterLabelStyle();
     lv_disp_t *const disp = lv_disp_get_default();
     const lv_coord_t vertical_resolution = disp ? lv_disp_get_ver_res(disp) : 0;
     const bool compact = vertical_resolution > 0 && vertical_resolution <= 80;
@@ -762,8 +759,8 @@ static void init_keyboard_child_styles()
 
     lv_style_init(&s_keyboard_surface_color_style);
     lv_style_set_bg_opa(&s_keyboard_surface_color_style, LV_OPA_COVER);
-    lv_style_set_bg_color(&s_keyboard_surface_color_style, ui_color_bg());
-    lv_style_set_text_color(&s_keyboard_surface_color_style, ui_color_fg());
+    lv_style_set_bg_color(&s_keyboard_surface_color_style, lv_color_hex(themePalette().bg));
+    lv_style_set_text_color(&s_keyboard_surface_color_style, lv_color_hex(themePalette().fg));
 
 #if HELTEC_UI_HAS_TOUCH
     lv_style_init(&s_keyboard_waypoint_surface_style);
@@ -782,17 +779,17 @@ static void init_keyboard_child_styles()
 
     lv_style_init(&s_keyboard_textarea_style);
 #if !LV_USE_THEME_MONO
-    lv_style_set_text_color(&s_keyboard_textarea_style, ui_color_overlay_fg());
+    lv_style_set_text_color(&s_keyboard_textarea_style, lv_color_hex(themePalette().overlay_fg));
 #endif
     lv_style_set_bg_opa(&s_keyboard_textarea_style, LV_OPA_TRANSP);
 #if LV_USE_THEME_MONO
-    lv_style_set_border_color(&s_keyboard_textarea_style, ui_color_fg());
+    lv_style_set_border_color(&s_keyboard_textarea_style, lv_color_hex(themePalette().fg));
 #else
-    lv_style_set_border_color(&s_keyboard_textarea_style, ui_color_overlay_fg());
+    lv_style_set_border_color(&s_keyboard_textarea_style, lv_color_hex(themePalette().overlay_fg));
 #endif
     lv_style_set_border_width(&s_keyboard_textarea_style, 1);
     lv_style_set_text_align(&s_keyboard_textarea_style, LV_TEXT_ALIGN_LEFT);
-    set_overlay_text_spacing(&s_keyboard_textarea_style);
+    setOverlayTextSpacing(&s_keyboard_textarea_style);
     lv_style_set_pad_all(&s_keyboard_textarea_style, 1);
     lv_style_set_text_font(&s_keyboard_textarea_style, LV_FONT_DEFAULT);
     lv_style_set_width(&s_keyboard_textarea_style, lv_pct(100));
@@ -809,7 +806,7 @@ static void init_keyboard_child_styles()
     lv_style_init(&s_keyboard_active_textarea_style);
 #if defined(HELTEC_UI_HAS_TOUCH) && HELTEC_UI_HAS_TOUCH
     lv_style_set_border_width(&s_keyboard_active_textarea_style, 2);
-    lv_style_set_border_color(&s_keyboard_active_textarea_style, ui_color_accent());
+    lv_style_set_border_color(&s_keyboard_active_textarea_style, lv_color_hex(themePalette().accent));
     lv_style_set_border_opa(&s_keyboard_active_textarea_style, LV_OPA_COVER);
     lv_style_set_border_side(&s_keyboard_active_textarea_style, LV_BORDER_SIDE_FULL);
 #endif
@@ -821,21 +818,21 @@ static void init_keyboard_child_styles()
     lv_style_set_pad_ver(&s_keyboard_title_style, LV_DPX(6));
 #endif
 #if LV_USE_THEME_MONO
-    lv_style_set_bg_color(&s_keyboard_title_style, ui_color_bg());
+    lv_style_set_bg_color(&s_keyboard_title_style, lv_color_hex(themePalette().bg));
 #else
-    lv_style_set_bg_color(&s_keyboard_title_style, ui_color_highlight_bg());
-    lv_style_set_text_color(&s_keyboard_title_style, ui_color_highlight_fg());
+    lv_style_set_bg_color(&s_keyboard_title_style, lv_color_hex(themePalette().highlight_bg));
+    lv_style_set_text_color(&s_keyboard_title_style, lv_color_hex(themePalette().highlight_fg));
 #endif
 
     lv_style_init(&s_keyboard_waypoint_title_style);
 #if defined(HELTEC_UI_HAS_TOUCH) && HELTEC_UI_HAS_TOUCH
-    lv_style_set_bg_color(&s_keyboard_waypoint_title_style, ui_color_accent());
+    lv_style_set_bg_color(&s_keyboard_waypoint_title_style, lv_color_hex(themePalette().accent));
     lv_style_set_bg_opa(&s_keyboard_waypoint_title_style, LV_OPA_COVER);
     lv_style_set_text_color(&s_keyboard_waypoint_title_style, lv_color_white());
 #else
     lv_style_set_bg_opa(&s_keyboard_waypoint_title_style, LV_OPA_TRANSP);
 #if LV_USE_THEME_MONO
-    lv_style_set_text_color(&s_keyboard_waypoint_title_style, ui_color_fg());
+    lv_style_set_text_color(&s_keyboard_waypoint_title_style, lv_color_hex(themePalette().fg));
 #else
     lv_style_set_text_color(&s_keyboard_waypoint_title_style, lv_color_white());
 #endif
@@ -884,7 +881,7 @@ static void init_keyboard_child_styles()
     lv_style_set_shadow_width(&s_keyboard_main_style, 0);
 #if LV_USE_THEME_MONO
     lv_style_set_bg_opa(&s_keyboard_main_style, LV_OPA_COVER);
-    lv_style_set_bg_color(&s_keyboard_main_style, ui_color_bg());
+    lv_style_set_bg_color(&s_keyboard_main_style, lv_color_hex(themePalette().bg));
 #endif
     lv_style_set_flex_grow(&s_keyboard_main_style, 0);
     lv_style_set_width(&s_keyboard_main_style, lv_pct(100));
@@ -917,7 +914,7 @@ static void init_keyboard_child_styles()
     lv_style_set_shadow_width(&s_keyboard_items_base_style, 0);
     lv_style_set_bg_opa(&s_keyboard_items_base_style, LV_OPA_TRANSP);
 #if !LV_USE_THEME_MONO
-    lv_style_set_text_color(&s_keyboard_items_base_style, ui_color_overlay_fg());
+    lv_style_set_text_color(&s_keyboard_items_base_style, lv_color_hex(themePalette().overlay_fg));
 #endif
 
     lv_style_init(&s_keyboard_waypoint_items_style);
@@ -932,45 +929,45 @@ static void init_keyboard_child_styles()
 #endif
 
     lv_style_init(&s_keyboard_items_selected_style);
-    lv_style_set_bg_color(&s_keyboard_items_selected_style, ui_color_highlight_bg());
+    lv_style_set_bg_color(&s_keyboard_items_selected_style, lv_color_hex(themePalette().highlight_bg));
     lv_style_set_bg_opa(&s_keyboard_items_selected_style, LV_OPA_COVER);
-    lv_style_set_text_color(&s_keyboard_items_selected_style, ui_color_highlight_fg());
+    lv_style_set_text_color(&s_keyboard_items_selected_style, lv_color_hex(themePalette().highlight_fg));
     lv_style_set_border_width(&s_keyboard_items_selected_style, 0);
     lv_style_set_outline_width(&s_keyboard_items_selected_style, 0);
     lv_style_set_shadow_width(&s_keyboard_items_selected_style, 0);
 
 #if HELTEC_UI_HAS_TOUCH
     lv_style_init(&s_keyboard_waypoint_items_selected_style);
-    lv_style_set_bg_color(&s_keyboard_waypoint_items_selected_style, ui_color_accent());
+    lv_style_set_bg_color(&s_keyboard_waypoint_items_selected_style, lv_color_hex(themePalette().accent));
     lv_style_set_bg_opa(&s_keyboard_waypoint_items_selected_style, LV_OPA_COVER);
     lv_style_set_text_color(&s_keyboard_waypoint_items_selected_style, lv_color_white());
-    lv_style_set_border_color(&s_keyboard_waypoint_items_selected_style, ui_color_accent());
+    lv_style_set_border_color(&s_keyboard_waypoint_items_selected_style, lv_color_hex(themePalette().accent));
     lv_style_set_border_width(&s_keyboard_waypoint_items_selected_style, 1);
 #endif
 
     s_keyboard_child_styles_ready = true;
 }
 
-static void init_overlay_feedback_styles()
+static void initOverlayFeedbackStyles()
 {
     if (s_overlay_feedback_styles_ready)
         return;
 
     lv_style_init(&s_overlay_label_all_states_style);
 #if LV_USE_THEME_MONO
-    lv_style_set_text_color(&s_overlay_label_all_states_style, ui_color_fg());
+    lv_style_set_text_color(&s_overlay_label_all_states_style, lv_color_hex(themePalette().fg));
 #else
-    lv_style_set_text_color(&s_overlay_label_all_states_style, ui_color_overlay_fg());
+    lv_style_set_text_color(&s_overlay_label_all_states_style, lv_color_hex(themePalette().overlay_fg));
 #endif
     lv_style_set_text_opa(&s_overlay_label_all_states_style, LV_OPA_COVER);
     lv_style_set_bg_opa(&s_overlay_label_all_states_style, LV_OPA_TRANSP);
     lv_style_set_text_align(&s_overlay_label_all_states_style, LV_TEXT_ALIGN_CENTER);
-    set_overlay_text_spacing(&s_overlay_label_all_states_style);
+    setOverlayTextSpacing(&s_overlay_label_all_states_style);
 
     lv_style_init(&s_alert_box_style);
-    lv_style_set_bg_color(&s_alert_box_style, ui_color_overlay_bg());
+    lv_style_set_bg_color(&s_alert_box_style, lv_color_hex(themePalette().overlay_bg));
     lv_style_set_bg_opa(&s_alert_box_style, LV_OPA_COVER);
-    lv_style_set_border_color(&s_alert_box_style, ui_color_overlay_fg());
+    lv_style_set_border_color(&s_alert_box_style, lv_color_hex(themePalette().overlay_fg));
     lv_style_set_border_width(&s_alert_box_style, 1);
     lv_style_set_border_opa(&s_alert_box_style, LV_OPA_COVER);
     lv_style_set_outline_width(&s_alert_box_style, 0);
@@ -979,7 +976,7 @@ static void init_overlay_feedback_styles()
 
     lv_style_init(&s_calibration_panel_style);
     lv_style_set_radius(&s_calibration_panel_style, 0);
-    lv_style_set_bg_color(&s_calibration_panel_style, ui_color_overlay_bg());
+    lv_style_set_bg_color(&s_calibration_panel_style, lv_color_hex(themePalette().overlay_bg));
     lv_style_set_bg_opa(&s_calibration_panel_style, LV_OPA_COVER);
     lv_style_set_border_width(&s_calibration_panel_style, 0);
     lv_style_set_outline_width(&s_calibration_panel_style, 0);
@@ -989,13 +986,13 @@ static void init_overlay_feedback_styles()
     s_overlay_feedback_styles_ready = true;
 }
 
-static void init_common_widget_styles()
+static void initCommonWidgetStyles()
 {
     if (s_common_widget_styles_ready)
         return;
 
     lv_style_init(&s_surface_root_common_style);
-    lv_style_set_text_color(&s_surface_root_common_style, ui_color_fg());
+    lv_style_set_text_color(&s_surface_root_common_style, lv_color_hex(themePalette().fg));
 
     lv_style_init(&s_screen_root_layout_style);
     lv_style_set_pad_hor(&s_screen_root_layout_style, kScreenPadding);
@@ -1020,7 +1017,7 @@ static void init_common_widget_styles()
     lv_style_set_bg_color(&s_splash_root_layout_style, lv_color_white());
     lv_style_set_bg_opa(&s_splash_root_layout_style, LV_OPA_COVER);
 #elif LV_USE_THEME_MONO
-    lv_style_set_bg_color(&s_splash_root_layout_style, ui_color_bg());
+    lv_style_set_bg_color(&s_splash_root_layout_style, lv_color_hex(themePalette().bg));
     lv_style_set_bg_opa(&s_splash_root_layout_style, LV_OPA_COVER);
 #elif HELTEC_UI_HAS_TOUCH
     lv_style_set_bg_color(&s_splash_root_layout_style, lv_color_hex(0x001765));
@@ -1044,17 +1041,17 @@ static void init_common_widget_styles()
     s_common_widget_styles_ready = true;
 }
 
-static void init_top_pane_styles(lv_obj_t *obj)
+static void initTopPaneStyles(lv_obj_t *obj)
 {
     if (s_top_pane_styles_ready)
         return;
 
     (void)obj;
-    const UiTopPaneStyleConfig &geometry = theme_profile().top_pane;
-    const lv_coord_t top_radius = theme_profile().app_frame.bar_radius;
+    const UiTopPaneStyleConfig &geometry = themeProfile().top_pane;
+    const lv_coord_t top_radius = themeProfile().app_frame.bar_radius;
     const lv_coord_t bat_w = geometry.battery_width;
     const lv_coord_t bat_h = geometry.battery_height;
-    const lv_color_t bar_fg = ui_color_top_pane_fg();
+    const lv_color_t bar_fg = lv_color_hex(themePalette().top_pane_fg);
 #if HELTEC_UI_HAS_TOUCH
     const lv_color_t battery_chrome = lv_color_white();
 #else
@@ -1069,10 +1066,10 @@ static void init_top_pane_styles(lv_obj_t *obj)
     const lv_coord_t cap_h = LV_MAX(2, bat_h / 2);
 #endif
     lv_style_init(&s_top_pane_root_style);
-    lv_style_set_bg_opa(&s_top_pane_root_style, ui_top_pane_bg_opa());
-    lv_style_set_bg_color(&s_top_pane_root_style, ui_color_top_pane_bg());
+    lv_style_set_bg_opa(&s_top_pane_root_style, effectiveOpacity(themePalette().top_pane_bg_opa));
+    lv_style_set_bg_color(&s_top_pane_root_style, lv_color_hex(themePalette().top_pane_bg));
     lv_style_set_text_color(&s_top_pane_root_style, bar_fg);
-    lv_style_set_height(&s_top_pane_root_style, theme_profile().app_frame.bar_height);
+    lv_style_set_height(&s_top_pane_root_style, themeProfile().app_frame.bar_height);
     lv_style_set_pad_hor(&s_top_pane_root_style, top_radius);
     lv_style_set_pad_top(&s_top_pane_root_style, geometry.pad_top);
     lv_style_set_pad_bottom(&s_top_pane_root_style, 0);
@@ -1113,7 +1110,7 @@ static void init_top_pane_styles(lv_obj_t *obj)
 #if LV_COLOR_DEPTH == 1
                           bar_fg
 #else
-                          ui_color_battery_low()
+                          lv_color_hex(themePalette().bat_low)
 #endif
     );
 
@@ -1123,7 +1120,7 @@ static void init_top_pane_styles(lv_obj_t *obj)
 #if LV_COLOR_DEPTH == 1
                           bar_fg
 #else
-                          ui_color_battery_mid()
+                          lv_color_hex(themePalette().bat_mid)
 #endif
     );
 
@@ -1133,31 +1130,31 @@ static void init_top_pane_styles(lv_obj_t *obj)
 #if LV_COLOR_DEPTH == 1
                           bar_fg
 #else
-                          ui_color_battery_high()
+                          lv_color_hex(themePalette().bat_high)
 #endif
     );
 
     s_top_pane_styles_ready = true;
 }
 
-static void init_surface_app_styles(lv_obj_t *obj = nullptr)
+static void initSurfaceAppStyles(lv_obj_t *obj = nullptr)
 {
     if (s_surface_app_styles_ready)
         return;
 
     (void)obj;
-    const UiAppFrameStyleConfig &frame_config = theme_profile().app_frame;
+    const UiAppFrameStyleConfig &frame_config = themeProfile().app_frame;
     const lv_coord_t screen_pad = frame_config.screen_pad;
     const lv_coord_t content_radius = frame_config.content_radius;
 #if !HELTEC_UI_HAS_TOUCH
-    const UiContextMenuStyleConfig &context_config = theme_profile().context_menu;
+    const UiContextMenuStyleConfig &context_config = themeProfile().context_menu;
 #endif
 
     lv_style_init(&s_alert_overlay_root_style);
     lv_style_set_bg_opa(&s_alert_overlay_root_style, LV_OPA_TRANSP);
 
     lv_style_init(&s_calibration_overlay_root_style);
-    lv_style_set_bg_color(&s_calibration_overlay_root_style, ui_color_overlay_bg());
+    lv_style_set_bg_color(&s_calibration_overlay_root_style, lv_color_hex(themePalette().overlay_bg));
     lv_style_set_bg_opa(&s_calibration_overlay_root_style, LV_OPA_COVER);
     lv_style_set_border_width(&s_calibration_overlay_root_style, 0);
 
@@ -1166,13 +1163,13 @@ static void init_surface_app_styles(lv_obj_t *obj = nullptr)
 
     lv_style_init(&s_context_menu_root_style);
     lv_style_set_bg_opa(&s_context_menu_root_style, LV_OPA_COVER);
-    lv_style_set_bg_color(&s_context_menu_root_style, ui_color_bg());
-    lv_style_set_text_color(&s_context_menu_root_style, ui_color_fg());
+    lv_style_set_bg_color(&s_context_menu_root_style, lv_color_hex(themePalette().bg));
+    lv_style_set_text_color(&s_context_menu_root_style, lv_color_hex(themePalette().fg));
     lv_style_set_border_width(&s_context_menu_root_style, kContextMenuBorderWidth);
-    lv_style_set_border_color(&s_context_menu_root_style, ui_color_fg());
+    lv_style_set_border_color(&s_context_menu_root_style, lv_color_hex(themePalette().fg));
     lv_style_set_border_opa(&s_context_menu_root_style, LV_OPA_COVER);
     lv_style_set_outline_width(&s_context_menu_root_style, context_border_w);
-    lv_style_set_outline_color(&s_context_menu_root_style, ui_color_bg());
+    lv_style_set_outline_color(&s_context_menu_root_style, lv_color_hex(themePalette().bg));
     lv_style_set_outline_opa(&s_context_menu_root_style, LV_OPA_COVER);
     lv_style_set_outline_pad(&s_context_menu_root_style, 1);
     lv_style_set_radius(&s_context_menu_root_style, context_config.border_radius);
@@ -1191,8 +1188,8 @@ static void init_surface_app_styles(lv_obj_t *obj = nullptr)
 
     lv_style_init(&s_app_frame_layout_style);
     lv_style_set_border_width(&s_app_frame_layout_style, 0);
-    lv_style_set_bg_color(&s_app_frame_layout_style, ui_color_frame_bg());
-    lv_style_set_bg_opa(&s_app_frame_layout_style, ui_frame_bg_opa());
+    lv_style_set_bg_color(&s_app_frame_layout_style, lv_color_hex(themePalette().frame_bg));
+    lv_style_set_bg_opa(&s_app_frame_layout_style, effectiveOpacity(themePalette().frame_bg_opa));
     lv_style_set_pad_all(&s_app_frame_layout_style, 0);
     lv_style_set_pad_row(&s_app_frame_layout_style, 0);
 
@@ -1212,7 +1209,7 @@ static void init_surface_app_styles(lv_obj_t *obj = nullptr)
 #if !HELTEC_UI_HAS_TOUCH
     if (screen_pad > 0 || content_radius > 0)
     {
-        lv_style_set_bg_color(&s_app_screen_root_style, ui_color_panel_bg());
+        lv_style_set_bg_color(&s_app_screen_root_style, lv_color_hex(themePalette().panel_bg));
         lv_style_set_bg_opa(&s_app_screen_root_style, LV_OPA_COVER);
         lv_style_set_radius(&s_app_screen_root_style, content_radius > 0 ? content_radius : 0);
         lv_style_set_clip_corner(&s_app_screen_root_style, content_radius > 0);
@@ -1237,7 +1234,7 @@ static void init_surface_app_styles(lv_obj_t *obj = nullptr)
 }
 
 #if HELTEC_UI_HAS_TOUCH
-static void init_quick_ping_styles()
+static void initQuickPingStyles()
 {
     if (s_quick_ping_styles_ready)
         return;
@@ -1248,9 +1245,9 @@ static void init_quick_ping_styles()
     lv_style_init(&s_quick_ping_root_style);
     lv_style_set_bg_opa(&s_quick_ping_root_style, LV_OPA_COVER);
     lv_style_set_bg_color(&s_quick_ping_root_style, pane_bg);
-    lv_style_set_text_color(&s_quick_ping_root_style, ui_color_fg());
+    lv_style_set_text_color(&s_quick_ping_root_style, lv_color_hex(themePalette().fg));
     lv_style_set_border_width(&s_quick_ping_root_style, 1);
-    lv_style_set_border_color(&s_quick_ping_root_style, ui_color_fg());
+    lv_style_set_border_color(&s_quick_ping_root_style, lv_color_hex(themePalette().fg));
     lv_style_set_border_opa(&s_quick_ping_root_style, LV_OPA_COVER);
     lv_style_set_radius(&s_quick_ping_root_style, 10);
     lv_style_set_clip_corner(&s_quick_ping_root_style, true);
@@ -1286,13 +1283,13 @@ static void init_quick_ping_styles()
 #if defined(LV_FONT_MONTSERRAT_14) && LV_FONT_MONTSERRAT_14
     lv_style_set_text_font(&s_quick_ping_title_style, &lv_font_montserrat_14);
 #endif
-    set_overlay_text_spacing(&s_quick_ping_title_style);
+    setOverlayTextSpacing(&s_quick_ping_title_style);
 
     lv_style_init(&s_quick_ping_row_style);
     lv_style_set_bg_color(&s_quick_ping_row_style, lv_color_white());
     lv_style_set_bg_opa(&s_quick_ping_row_style, LV_OPA_COVER);
     lv_style_set_border_width(&s_quick_ping_row_style, 1);
-    lv_style_set_border_color(&s_quick_ping_row_style, ui_color_fg());
+    lv_style_set_border_color(&s_quick_ping_row_style, lv_color_hex(themePalette().fg));
     lv_style_set_border_opa(&s_quick_ping_row_style, LV_OPA_COVER);
     lv_style_set_radius(&s_quick_ping_row_style, 6);
     lv_style_set_clip_corner(&s_quick_ping_row_style, true);
@@ -1302,7 +1299,7 @@ static void init_quick_ping_styles()
     lv_style_set_bg_color(&s_quick_ping_row_focus_style, lv_color_hex(0xE2F2FF));
     lv_style_set_bg_opa(&s_quick_ping_row_focus_style, LV_OPA_COVER);
     lv_style_set_border_width(&s_quick_ping_row_focus_style, 1);
-    lv_style_set_border_color(&s_quick_ping_row_focus_style, ui_color_accent());
+    lv_style_set_border_color(&s_quick_ping_row_focus_style, lv_color_hex(themePalette().accent));
     lv_style_set_border_opa(&s_quick_ping_row_focus_style, LV_OPA_COVER);
     lv_style_set_outline_width(&s_quick_ping_row_focus_style, 0);
     lv_style_set_shadow_width(&s_quick_ping_row_focus_style, 0);
@@ -1310,7 +1307,7 @@ static void init_quick_ping_styles()
 
     lv_style_init(&s_quick_ping_label_style);
     lv_style_set_text_align(&s_quick_ping_label_style, LV_TEXT_ALIGN_LEFT);
-    set_overlay_text_spacing(&s_quick_ping_label_style);
+    setOverlayTextSpacing(&s_quick_ping_label_style);
 
     lv_style_init(&s_quick_ping_dropdown_style);
     lv_style_set_radius(&s_quick_ping_dropdown_style, 6);
@@ -1330,7 +1327,7 @@ static void init_quick_ping_styles()
     lv_style_set_bg_opa(&s_quick_ping_control_focus_style, LV_OPA_COVER);
 
     lv_style_init(&s_quick_ping_dropdown_disabled_style);
-    lv_style_set_opa(&s_quick_ping_dropdown_disabled_style, ui_effective_opa(LV_OPA_50));
+    lv_style_set_opa(&s_quick_ping_dropdown_disabled_style, effectiveOpacity(LV_OPA_50));
 
     lv_style_init(&s_quick_ping_dropdown_indicator_style);
 
@@ -1384,7 +1381,7 @@ static void init_quick_ping_styles()
 #if defined(LV_FONT_MONTSERRAT_14) && LV_FONT_MONTSERRAT_14
     lv_style_set_text_font(&s_quick_ping_keyboard_editor_style, &lv_font_montserrat_14);
 #endif
-    set_overlay_text_spacing(&s_quick_ping_keyboard_editor_style);
+    setOverlayTextSpacing(&s_quick_ping_keyboard_editor_style);
 
     lv_style_init(&s_quick_ping_keyboard_placeholder_style);
     lv_style_set_text_color(&s_quick_ping_keyboard_placeholder_style, lv_color_hex(0xA8B0B8));
@@ -1396,10 +1393,10 @@ static void init_quick_ping_styles()
 #if defined(LV_FONT_MONTSERRAT_12) && LV_FONT_MONTSERRAT_12
     lv_style_set_text_font(&s_quick_ping_keyboard_counter_style, &lv_font_montserrat_12);
 #endif
-    set_overlay_text_spacing(&s_quick_ping_keyboard_counter_style);
+    setOverlayTextSpacing(&s_quick_ping_keyboard_counter_style);
 
     lv_style_init(&s_quick_ping_keyboard_cursor_style);
-    lv_style_set_border_color(&s_quick_ping_keyboard_cursor_style, ui_color_fg());
+    lv_style_set_border_color(&s_quick_ping_keyboard_cursor_style, lv_color_hex(themePalette().fg));
     lv_style_set_border_width(&s_quick_ping_keyboard_cursor_style, 2);
     lv_style_set_border_side(&s_quick_ping_keyboard_cursor_style, LV_BORDER_SIDE_LEFT);
     lv_style_set_pad_left(&s_quick_ping_keyboard_cursor_style, -1);
@@ -1414,7 +1411,7 @@ static void init_quick_ping_styles()
 }
 #endif
 
-static void init_screen_system_styles()
+static void initScreenSystemStyles()
 {
     if (s_screen_system_styles_ready)
         return;
@@ -1428,12 +1425,12 @@ static void init_screen_system_styles()
 
     lv_style_init(&s_container_focus_style);
 #if HELTEC_UI_HAS_TOUCH
-    lv_style_set_bg_color(&s_container_focus_style, ui_color_accent());
+    lv_style_set_bg_color(&s_container_focus_style, lv_color_hex(themePalette().accent));
     lv_style_set_bg_opa(&s_container_focus_style, LV_OPA_30);
 #else
-    lv_style_set_bg_color(&s_container_focus_style, ui_color_highlight_bg());
+    lv_style_set_bg_color(&s_container_focus_style, lv_color_hex(themePalette().highlight_bg));
     lv_style_set_bg_opa(&s_container_focus_style, LV_OPA_COVER);
-    lv_style_set_text_color(&s_container_focus_style, ui_color_highlight_fg());
+    lv_style_set_text_color(&s_container_focus_style, lv_color_hex(themePalette().highlight_fg));
 #endif
     lv_style_set_border_width(&s_container_focus_style, 0);
     lv_style_set_border_opa(&s_container_focus_style, LV_OPA_TRANSP);
@@ -1441,18 +1438,18 @@ static void init_screen_system_styles()
     lv_style_set_outline_opa(&s_container_focus_style, LV_OPA_TRANSP);
     lv_style_set_shadow_width(&s_container_focus_style, 0);
     lv_style_set_shadow_opa(&s_container_focus_style, LV_OPA_TRANSP);
-    lv_style_set_radius(&s_container_focus_style, ui_widget_radius_px());
+    lv_style_set_radius(&s_container_focus_style, themePalette().widget_radius_px);
 
     lv_style_init(&s_find_friend_dial_layout_style);
-    const lv_coord_t dial_height = is_compact_display()
+    const lv_coord_t dial_height = isCompactDisplay()
                                        ? 0
                                        : (LV_COLOR_DEPTH == 1 ? LV_DPX(32) : LV_DPX(96));
     lv_style_set_min_height(&s_find_friend_dial_layout_style, dial_height);
 
     lv_style_init(&s_screen_dropdown_list_layout_style);
-    lv_style_set_bg_color(&s_screen_dropdown_list_layout_style, ui_color_panel_bg());
+    lv_style_set_bg_color(&s_screen_dropdown_list_layout_style, lv_color_hex(themePalette().panel_bg));
     lv_style_set_bg_opa(&s_screen_dropdown_list_layout_style, LV_OPA_COVER);
-    lv_style_set_text_color(&s_screen_dropdown_list_layout_style, ui_color_fg());
+    lv_style_set_text_color(&s_screen_dropdown_list_layout_style, lv_color_hex(themePalette().fg));
     lv_style_set_text_opa(&s_screen_dropdown_list_layout_style, LV_OPA_COVER);
 #if HELTEC_UI_HAS_TOUCH
     lv_style_set_pad_top(&s_screen_dropdown_list_layout_style, 2);
@@ -1467,7 +1464,7 @@ static void init_screen_system_styles()
     lv_style_set_pad_right(&s_system_dropdown_style, 1);
     lv_style_set_radius(&s_system_dropdown_style, 0);
     lv_style_set_border_width(&s_system_dropdown_style, 1);
-    lv_style_set_border_color(&s_system_dropdown_style, ui_color_fg());
+    lv_style_set_border_color(&s_system_dropdown_style, lv_color_hex(themePalette().fg));
     lv_style_set_border_opa(&s_system_dropdown_style, LV_OPA_COVER);
 #else
 #if HELTEC_UI_HAS_TOUCH
@@ -1476,7 +1473,7 @@ static void init_screen_system_styles()
     lv_style_set_pad_hor(&s_system_dropdown_style, 4);
     lv_style_set_pad_ver(&s_system_dropdown_style, 2);
 #endif
-    lv_style_set_radius(&s_system_dropdown_style, ui_widget_radius_px());
+    lv_style_set_radius(&s_system_dropdown_style, themePalette().widget_radius_px);
     lv_style_set_border_width(&s_system_dropdown_style, 0);
     lv_style_set_border_opa(&s_system_dropdown_style, LV_OPA_TRANSP);
     lv_style_set_border_side(&s_system_dropdown_style, LV_BORDER_SIDE_NONE);
@@ -1486,10 +1483,10 @@ static void init_screen_system_styles()
     // blue dropdown fill makes an unfocused row look selected as well.
     lv_style_set_bg_opa(&s_system_dropdown_style, LV_OPA_TRANSP);
 #else
-    lv_style_set_bg_color(&s_system_dropdown_style, ui_color_panel_bg());
+    lv_style_set_bg_color(&s_system_dropdown_style, lv_color_hex(themePalette().panel_bg));
     lv_style_set_bg_opa(&s_system_dropdown_style, LV_OPA_COVER);
 #endif
-    lv_style_set_text_color(&s_system_dropdown_style, ui_color_fg());
+    lv_style_set_text_color(&s_system_dropdown_style, lv_color_hex(themePalette().fg));
     lv_style_set_text_align(&s_system_dropdown_style, LV_TEXT_ALIGN_CENTER);
     lv_style_set_outline_width(&s_system_dropdown_style, 0);
     lv_style_set_outline_opa(&s_system_dropdown_style, LV_OPA_TRANSP);
@@ -1497,13 +1494,13 @@ static void init_screen_system_styles()
     lv_style_set_shadow_opa(&s_system_dropdown_style, LV_OPA_TRANSP);
 
     lv_style_init(&s_system_dropdown_focus_style);
-    lv_style_set_bg_color(&s_system_dropdown_focus_style, ui_color_highlight_bg());
+    lv_style_set_bg_color(&s_system_dropdown_focus_style, lv_color_hex(themePalette().highlight_bg));
     lv_style_set_bg_opa(&s_system_dropdown_focus_style, LV_OPA_COVER);
-    lv_style_set_text_color(&s_system_dropdown_focus_style, ui_color_highlight_fg());
+    lv_style_set_text_color(&s_system_dropdown_focus_style, lv_color_hex(themePalette().highlight_fg));
     lv_style_set_text_opa(&s_system_dropdown_focus_style, LV_OPA_COVER);
 #if LV_COLOR_DEPTH == 1
     lv_style_set_border_width(&s_system_dropdown_focus_style, 1);
-    lv_style_set_border_color(&s_system_dropdown_focus_style, ui_color_fg());
+    lv_style_set_border_color(&s_system_dropdown_focus_style, lv_color_hex(themePalette().fg));
     lv_style_set_border_opa(&s_system_dropdown_focus_style, LV_OPA_COVER);
 #else
     lv_style_set_border_width(&s_system_dropdown_focus_style, 0);
@@ -1580,16 +1577,16 @@ static void init_screen_system_styles()
     lv_style_init(&s_dialog_panel_style);
     lv_style_set_width(&s_dialog_panel_style, lv_pct(80));
     lv_style_set_height(&s_dialog_panel_style, LV_SIZE_CONTENT);
-    lv_style_set_bg_color(&s_dialog_panel_style, ui_color_overlay_bg());
+    lv_style_set_bg_color(&s_dialog_panel_style, lv_color_hex(themePalette().overlay_bg));
     lv_style_set_bg_opa(&s_dialog_panel_style, LV_OPA_COVER);
-    lv_style_set_border_color(&s_dialog_panel_style, ui_color_overlay_fg());
+    lv_style_set_border_color(&s_dialog_panel_style, lv_color_hex(themePalette().overlay_fg));
     lv_style_set_border_width(&s_dialog_panel_style, 1);
-    const lv_coord_t dialog_radius = theme_profile().app_frame.bar_radius;
+    const lv_coord_t dialog_radius = themeProfile().app_frame.bar_radius;
     lv_style_set_radius(&s_dialog_panel_style, dialog_radius);
     lv_style_set_clip_corner(&s_dialog_panel_style, dialog_radius > 0);
     lv_style_set_pad_all(&s_dialog_panel_style, 0);
     lv_style_set_pad_row(&s_dialog_panel_style, compact_dialog ? 4 : LV_DPX(12));
-    lv_style_set_text_color(&s_dialog_panel_style, ui_color_overlay_fg());
+    lv_style_set_text_color(&s_dialog_panel_style, lv_color_hex(themePalette().overlay_fg));
 
     lv_style_init(&s_confirm_overlay_text_style);
     lv_style_set_text_align(&s_confirm_overlay_text_style, LV_TEXT_ALIGN_CENTER);
@@ -1608,27 +1605,27 @@ static void init_screen_system_styles()
 #endif
 
     lv_style_init(&s_confirm_overlay_button_style);
-    lv_style_set_bg_color(&s_confirm_overlay_button_style, ui_color_panel_bg());
+    lv_style_set_bg_color(&s_confirm_overlay_button_style, lv_color_hex(themePalette().panel_bg));
     lv_style_set_bg_opa(&s_confirm_overlay_button_style, LV_OPA_COVER);
-    lv_style_set_border_color(&s_confirm_overlay_button_style, ui_color_panel_border());
+    lv_style_set_border_color(&s_confirm_overlay_button_style, lv_color_hex(themePalette().panel_border));
     lv_style_set_border_width(&s_confirm_overlay_button_style, 1);
     lv_style_set_radius(&s_confirm_overlay_button_style, compact_dialog ? 1 : LV_DPX(5));
     lv_style_set_pad_all(&s_confirm_overlay_button_style, 0);
 
     lv_style_init(&s_confirm_overlay_button_pressed_style);
-    lv_style_set_bg_color(&s_confirm_overlay_button_pressed_style, ui_color_highlight_bg());
-    lv_style_set_text_color(&s_confirm_overlay_button_pressed_style, ui_color_highlight_fg());
+    lv_style_set_bg_color(&s_confirm_overlay_button_pressed_style, lv_color_hex(themePalette().highlight_bg));
+    lv_style_set_text_color(&s_confirm_overlay_button_pressed_style, lv_color_hex(themePalette().highlight_fg));
 
     s_screen_system_styles_ready = true;
 }
 
-static void init_navigation_styles(lv_obj_t *obj = nullptr)
+static void initNavigationStyles(lv_obj_t *obj = nullptr)
 {
     if (s_navigation_styles_ready)
         return;
     (void)obj;
     const NavigationStyleConfig &config = kNavigationStyleConfig;
-    const lv_coord_t panel_radius = theme_profile().app_frame.content_radius;
+    const lv_coord_t panel_radius = themeProfile().app_frame.content_radius;
 
 #if HELTEC_UI_HAS_TOUCH
     lv_style_init(&s_nav_content_host_style);
@@ -1639,29 +1636,24 @@ static void init_navigation_styles(lv_obj_t *obj = nullptr)
     lv_style_init(&s_nav_grid_cell_style);
     lv_style_set_bg_color(&s_nav_grid_cell_style, lv_color_white());
     lv_style_set_bg_opa(&s_nav_grid_cell_style, LV_OPA_COVER);
-    lv_style_set_border_color(&s_nav_grid_cell_style, ui_color_panel_border());
+    lv_style_set_border_color(&s_nav_grid_cell_style, lv_color_hex(themePalette().panel_border));
     lv_style_set_border_width(&s_nav_grid_cell_style, 1);
     lv_style_set_radius(&s_nav_grid_cell_style, nav_radius);
 
     lv_style_init(&s_nav_grid_cell_focus_style);
     lv_style_set_border_width(&s_nav_grid_cell_focus_style, 2);
 
-#if !HELTEC_UI_HAS_TOUCH
-    lv_style_init(&s_nav_grid_icon_area_style);
-    lv_style_set_pad_all(&s_nav_grid_icon_area_style, 4);
-#endif
-
     lv_style_init(&s_nav_grid_title_bar_style);
     lv_style_set_width(&s_nav_grid_title_bar_style, lv_pct(100));
     lv_style_set_height(&s_nav_grid_title_bar_style, config.grid_label_height);
     lv_style_set_pad_hor(&s_nav_grid_title_bar_style, 2);
-    lv_style_set_bg_color(&s_nav_grid_title_bar_style, ui_color_accent());
+    lv_style_set_bg_color(&s_nav_grid_title_bar_style, lv_color_hex(themePalette().accent));
     lv_style_set_bg_opa(&s_nav_grid_title_bar_style, LV_OPA_COVER);
     lv_style_set_border_width(&s_nav_grid_title_bar_style, 1);
     lv_style_set_border_color(&s_nav_grid_title_bar_style, lv_color_white());
     lv_style_set_radius(&s_nav_grid_title_bar_style, title_radius);
     lv_style_set_clip_corner(&s_nav_grid_title_bar_style, title_radius > 0);
-    lv_style_set_text_color(&s_nav_grid_title_bar_style, ui_color_fg_inv());
+    lv_style_set_text_color(&s_nav_grid_title_bar_style, lv_color_hex(themePalette().fg_inv));
 
     lv_style_init(&s_nav_grid_title_label_style);
     lv_style_set_text_align(&s_nav_grid_title_label_style, LV_TEXT_ALIGN_CENTER);
@@ -1670,8 +1662,8 @@ static void init_navigation_styles(lv_obj_t *obj = nullptr)
     lv_style_set_bg_color(&s_nav_panel_grid_style, lv_color_hex(0x001765));
     lv_style_set_bg_opa(&s_nav_panel_grid_style, LV_OPA_COVER);
     lv_style_set_border_width(&s_nav_panel_grid_style, 0);
-    lv_style_set_border_color(&s_nav_panel_grid_style, ui_color_panel_border());
-    lv_style_set_border_opa(&s_nav_panel_grid_style, ui_effective_opa(LV_OPA_50));
+    lv_style_set_border_color(&s_nav_panel_grid_style, lv_color_hex(themePalette().panel_border));
+    lv_style_set_border_opa(&s_nav_panel_grid_style, effectiveOpacity(LV_OPA_50));
     lv_style_set_radius(&s_nav_panel_grid_style, panel_radius);
     lv_style_set_clip_corner(&s_nav_panel_grid_style, panel_radius > 0);
 #endif
@@ -1680,13 +1672,13 @@ static void init_navigation_styles(lv_obj_t *obj = nullptr)
     lv_style_init(&s_nav_footer_bar_style);
     lv_style_set_height(&s_nav_footer_bar_style, lv_pct(100));
     lv_style_set_flex_grow(&s_nav_footer_bar_style, 1);
-    lv_style_set_bg_color(&s_nav_footer_bar_style, ui_color_panel_bg());
+    lv_style_set_bg_color(&s_nav_footer_bar_style, lv_color_hex(themePalette().panel_bg));
     lv_style_set_bg_opa(&s_nav_footer_bar_style, LV_OPA_COVER);
-    lv_style_set_text_color(&s_nav_footer_bar_style, ui_color_fg());
+    lv_style_set_text_color(&s_nav_footer_bar_style, lv_color_hex(themePalette().fg));
 #else
     lv_style_init(&s_nav_root_ring_style);
-    lv_style_set_bg_color(&s_nav_root_ring_style, ui_color_bg());
-    lv_style_set_bg_opa(&s_nav_root_ring_style, ui_effective_opa(LV_OPA_50));
+    lv_style_set_bg_color(&s_nav_root_ring_style, lv_color_hex(themePalette().bg));
+    lv_style_set_bg_opa(&s_nav_root_ring_style, effectiveOpacity(LV_OPA_50));
 
     lv_style_init(&s_nav_ring_style);
     lv_style_set_pad_all(&s_nav_ring_style, config.ring_edge_pad);
@@ -1698,20 +1690,20 @@ static void init_navigation_styles(lv_obj_t *obj = nullptr)
     s_navigation_styles_ready = true;
 }
 
-static lv_style_t *overlay_root_chrome_style()
+static lv_style_t *overlayRootChromeStyle()
 {
-    if (!s_overlay_root_chrome_style_ready)
+    if (!s_overlayRootChromeStyle_ready)
     {
-        lv_style_init(&s_overlay_root_chrome_style);
-        lv_style_set_bg_opa(&s_overlay_root_chrome_style, LV_OPA_COVER);
-        lv_style_set_bg_color(&s_overlay_root_chrome_style, ui_color_overlay_bg());
-        lv_style_set_text_color(&s_overlay_root_chrome_style, ui_color_overlay_fg());
-        s_overlay_root_chrome_style_ready = true;
+        lv_style_init(&s_overlayRootChromeStyle);
+        lv_style_set_bg_opa(&s_overlayRootChromeStyle, LV_OPA_COVER);
+        lv_style_set_bg_color(&s_overlayRootChromeStyle, lv_color_hex(themePalette().overlay_bg));
+        lv_style_set_text_color(&s_overlayRootChromeStyle, lv_color_hex(themePalette().overlay_fg));
+        s_overlayRootChromeStyle_ready = true;
     }
-    return &s_overlay_root_chrome_style;
+    return &s_overlayRootChromeStyle;
 }
 
-static bool is_screen_root(_lv_obj_t *obj)
+static bool isScreenRoot(_lv_obj_t *obj)
 {
     if (!obj)
         return false;
@@ -1727,11 +1719,10 @@ static bool is_screen_root(_lv_obj_t *obj)
 #endif
 }
 
-static bool is_overlay_root_class(_lv_obj_t *obj)
+static bool isOverlayRootClass(_lv_obj_t *obj)
 {
     return obj &&
-           (lv_obj_check_type(obj, &ht_overlay_root_class) ||
-            lv_obj_check_type(obj, &ht_preview_overlay_class) ||
+           (lv_obj_check_type(obj, &ht_preview_overlay_class) ||
             lv_obj_check_type(obj, &ht_radio_sync_overlay_class) ||
             lv_obj_check_type(obj, &ht_repeat_mode_overlay_class) ||
 #if HELTEC_UI_HAS_TOUCH
@@ -1742,24 +1733,24 @@ static bool is_overlay_root_class(_lv_obj_t *obj)
             lv_obj_check_type(obj, &ht_splash_overlay_class));
 }
 
-static void apply_surface_root_common(_lv_obj_t *obj)
+static void applySurfaceRootCommon(_lv_obj_t *obj)
 {
     if (!obj)
         return;
-    init_common_widget_styles();
+    initCommonWidgetStyles();
     lv_obj_add_style(obj, &s_surface_root_common_style, LV_PART_MAIN);
 }
 
-static void style_plain_container(_lv_obj_t *obj)
+static void stylePlainContainer(_lv_obj_t *obj)
 {
     if (!obj)
         return;
-    init_common_widget_styles();
+    initCommonWidgetStyles();
     lv_obj_add_style(obj, &s_plain_container_style, LV_PART_MAIN);
 }
 
 #if HELTEC_UI_HAS_TOUCH
-static void reset_touch_object(lv_obj_t *obj)
+static void resetTouchObject(lv_obj_t *obj)
 {
     if (!obj)
         return;
@@ -1767,40 +1758,40 @@ static void reset_touch_object(lv_obj_t *obj)
 }
 #endif
 
-static void apply_no_chrome(_lv_obj_t *obj)
+static void applyNoChrome(_lv_obj_t *obj)
 {
     if (!obj)
         return;
-    init_common_widget_styles();
+    initCommonWidgetStyles();
     for (lv_style_selector_t selector : kMainNoChromeSelectors)
     {
         lv_obj_add_style(obj, &s_no_chrome_style, selector);
     }
 }
 
-static void apply_system_control_no_chrome(_lv_obj_t *obj)
+static void applySystemControlNoChrome(_lv_obj_t *obj)
 {
     if (!obj)
         return;
-    init_common_widget_styles();
+    initCommonWidgetStyles();
     for (lv_style_selector_t selector : kSystemControlNoChromeSelectors)
     {
         lv_obj_add_style(obj, &s_no_chrome_style, selector);
     }
 }
 
-static void hide_scrollbar_chrome(_lv_obj_t *obj)
+static void hideScrollbarChrome(_lv_obj_t *obj)
 {
     if (!obj)
         return;
-    init_common_widget_styles();
+    initCommonWidgetStyles();
     for (lv_style_selector_t selector : kScrollbarHiddenSelectors)
     {
         lv_obj_add_style(obj, &s_hidden_scrollbar_style, selector);
     }
 }
 
-static void style_screen_label(_lv_obj_t *obj, lv_text_align_t align = LV_TEXT_ALIGN_LEFT)
+static void styleScreenLabel(_lv_obj_t *obj, lv_text_align_t align = LV_TEXT_ALIGN_LEFT)
 {
     if (!obj)
         return;
@@ -1808,21 +1799,21 @@ static void style_screen_label(_lv_obj_t *obj, lv_text_align_t align = LV_TEXT_A
     _lv_obj_t *const parent = lv_obj_get_parent(obj);
     if (parent && lv_obj_has_class(parent, &ht_container_class))
     {
-        apply_no_chrome(obj);
+        applyNoChrome(obj);
         return;
     }
 
-    lv_style_t *style = cached_label_style(ui_color_fg(), align);
+    lv_style_t *style = cachedLabelStyle(lv_color_hex(themePalette().fg), align);
     if (style)
         lv_obj_add_style(obj, style, LV_PART_MAIN);
-    apply_no_chrome(obj);
+    applyNoChrome(obj);
 }
 
-static bool is_screen_tree_object(_lv_obj_t *obj)
+static bool isScreenTreeObject(_lv_obj_t *obj)
 {
     for (_lv_obj_t *current = obj; current; current = lv_obj_get_parent(current))
     {
-        if (is_screen_root(current))
+        if (isScreenRoot(current))
         {
             return true;
         }
@@ -1830,75 +1821,75 @@ static bool is_screen_tree_object(_lv_obj_t *obj)
     return false;
 }
 
-static bool apply_screen_class_theme(_lv_obj_t *obj)
+static bool applyScreenClassTheme(_lv_obj_t *obj)
 {
-    if (!obj || !is_screen_tree_object(obj))
+    if (!obj || !isScreenTreeObject(obj))
     {
         return false;
     }
 
     if (lv_obj_check_type(obj, &ht_volume_controls_class))
     {
-        init_screen_system_styles();
+        initScreenSystemStyles();
         lv_obj_add_style(obj, &s_system_volume_controls_style, LV_PART_MAIN);
         return true;
     }
 
     if (lv_obj_check_type(obj, &ht_screen_info_label_class))
     {
-        style_screen_label(obj);
-        init_screen_system_styles();
+        styleScreenLabel(obj);
+        initScreenSystemStyles();
         lv_obj_add_style(obj, &s_screen_row_layout_style, LV_PART_MAIN);
         return true;
     }
 
     if (lv_obj_check_type(obj, &ht_find_friend_dial_host_class))
     {
-        style_plain_container(obj);
-        init_screen_system_styles();
+        stylePlainContainer(obj);
+        initScreenSystemStyles();
         lv_obj_add_style(obj, &s_find_friend_dial_layout_style, LV_PART_MAIN);
         return true;
     }
 
     if (lv_obj_check_type(obj, &lv_label_class))
     {
-        style_screen_label(obj);
+        styleScreenLabel(obj);
         return true;
     }
 
     return false;
 }
 
-static void style_overlay_label(_lv_obj_t *obj, lv_color_t color,
+static void styleOverlayLabel(_lv_obj_t *obj, lv_color_t color,
                                 lv_text_align_t align = LV_TEXT_ALIGN_CENTER)
 {
     if (!obj)
         return;
-    lv_style_t *style = cached_label_style(color, align);
+    lv_style_t *style = cachedLabelStyle(color, align);
     if (style)
         lv_obj_add_style(obj, style, LV_PART_MAIN);
     lv_obj_set_style_text_line_space(obj, 0, LV_PART_MAIN);
     lv_obj_set_style_text_letter_space(obj, 0, LV_PART_MAIN);
 }
 
-static void apply_overlay_root_chrome(_lv_obj_t *obj)
+static void applyOverlayRootChrome(_lv_obj_t *obj)
 {
     if (!obj)
         return;
-    lv_obj_add_style(obj, overlay_root_chrome_style(), LV_PART_MAIN);
+    lv_obj_add_style(obj, overlayRootChromeStyle(), LV_PART_MAIN);
 }
 
-static bool apply_top_pane_root(_lv_obj_t *obj)
+static bool applyTopPaneRoot(_lv_obj_t *obj)
 {
     if (!lv_obj_check_type(obj, &ht_top_pane_class))
         return false;
-    init_top_pane_styles(obj);
+    initTopPaneStyles(obj);
     lv_obj_add_style(obj, &s_top_pane_root_style, LV_PART_MAIN);
 
     return true;
 }
 
-static bool apply_top_pane_direct_child(_lv_obj_t *obj, _lv_obj_t *parent)
+static bool applyTopPaneDirectChild(_lv_obj_t *obj, _lv_obj_t *parent)
 {
     if (!parent || !lv_obj_check_type(parent, &ht_top_pane_class))
         return false;
@@ -1906,27 +1897,27 @@ static bool apply_top_pane_direct_child(_lv_obj_t *obj, _lv_obj_t *parent)
     return true;
 }
 
-static bool apply_top_pane_nested_child(_lv_obj_t *obj)
+static bool applyTopPaneNestedChild(_lv_obj_t *obj)
 {
     _lv_obj_t *const parent = lv_obj_get_parent(obj);
 
     if (lv_obj_check_type(obj, &ht_top_pane_battery_class))
     {
-        init_top_pane_styles(obj);
+        initTopPaneStyles(obj);
         lv_obj_add_style(obj, &s_top_pane_battery_style, LV_PART_MAIN);
         return true;
     }
 
     if (lv_obj_check_type(obj, &ht_top_pane_title_class))
     {
-        init_top_pane_styles(obj);
+        initTopPaneStyles(obj);
         lv_obj_add_style(obj, &s_top_pane_title_style, LV_PART_MAIN);
         return true;
     }
 
     if (lv_obj_check_type(obj, &ht_top_pane_battery_outline_class))
     {
-        init_top_pane_styles(obj);
+        initTopPaneStyles(obj);
         lv_obj_add_style(obj, &s_top_pane_battery_outline_style, LV_PART_MAIN);
 #if HELTEC_UI_HAS_TOUCH
         lv_obj_set_style_border_width(obj, 1, LV_PART_MAIN);
@@ -1938,14 +1929,14 @@ static bool apply_top_pane_nested_child(_lv_obj_t *obj)
 
     if (lv_obj_check_type(obj, &ht_top_pane_battery_cap_class))
     {
-        init_top_pane_styles(obj);
+        initTopPaneStyles(obj);
         lv_obj_add_style(obj, &s_top_pane_battery_cap_style, LV_PART_MAIN);
         return true;
     }
 
     if (parent && lv_obj_check_type(parent, &ht_top_pane_battery_outline_class))
     {
-        init_top_pane_styles(obj);
+        initTopPaneStyles(obj);
         lv_obj_add_style(obj, &s_top_pane_battery_fill_style, LV_PART_MAIN);
         lv_obj_add_style(obj, &s_top_pane_battery_fill_low_style, LV_PART_MAIN | LV_STATE_USER_1);
         lv_obj_add_style(obj, &s_top_pane_battery_fill_mid_style, LV_PART_MAIN | LV_STATE_USER_2);
@@ -1955,13 +1946,13 @@ static bool apply_top_pane_nested_child(_lv_obj_t *obj)
     return false;
 }
 
-static bool apply_surface_root_theme(_lv_obj_t *obj)
+static bool applySurfaceRootTheme(_lv_obj_t *obj)
 {
     if (lv_obj_check_type(obj, &ht_dialog_overlay_class))
     {
-        apply_surface_root_common(obj);
-        init_screen_system_styles();
-        init_surface_app_styles(obj);
+        applySurfaceRootCommon(obj);
+        initScreenSystemStyles();
+        initSurfaceAppStyles(obj);
         lv_obj_add_style(obj, &s_confirm_overlay_backdrop_style, LV_PART_MAIN);
         for (lv_style_selector_t selector : kInteractiveSelectors)
         {
@@ -1975,9 +1966,9 @@ static bool apply_surface_root_theme(_lv_obj_t *obj)
 #if HELTEC_UI_ENABLE_KEYBOARD
     if (lv_obj_check_type(obj, &ht_keyboard_overlay_class))
     {
-        apply_surface_root_common(obj);
-        apply_overlay_root_chrome(obj);
-        init_keyboard_child_styles();
+        applySurfaceRootCommon(obj);
+        applyOverlayRootChrome(obj);
+        initKeyboardChildStyles();
         lv_obj_add_style(obj, &s_keyboard_root_layout_style, LV_PART_MAIN);
 #if LV_USE_THEME_MONO
         lv_obj_add_style(obj, &s_keyboard_surface_color_style, LV_PART_MAIN);
@@ -1992,14 +1983,14 @@ static bool apply_surface_root_theme(_lv_obj_t *obj)
     }
 #endif
 
-    if (is_screen_root(obj))
+    if (isScreenRoot(obj))
     {
-        apply_surface_root_common(obj);
-        init_common_widget_styles();
+        applySurfaceRootCommon(obj);
+        initCommonWidgetStyles();
         lv_obj_add_style(obj, &s_screen_root_layout_style, LV_PART_MAIN);
         if (lv_obj_check_type(obj, &ht_system_screen_root_class))
         {
-            init_screen_system_styles();
+            initScreenSystemStyles();
             lv_obj_add_style(obj, &s_system_screen_root_layout_style, LV_PART_MAIN);
         }
 #if defined(ENV_INCLUDE_MAP) && ENV_INCLUDE_MAP && defined(HELTEC_UI_HAS_TOUCH) && HELTEC_UI_HAS_TOUCH
@@ -2008,29 +1999,29 @@ static bool apply_surface_root_theme(_lv_obj_t *obj)
             lv_obj_add_style(obj, &s_tracker_root_layout_style, LV_PART_MAIN);
         }
 #endif
-        apply_no_chrome(obj);
-        hide_scrollbar_chrome(obj);
+        applyNoChrome(obj);
+        hideScrollbarChrome(obj);
         return true;
     }
-    if (is_overlay_root_class(obj))
+    if (isOverlayRootClass(obj))
     {
-        apply_surface_root_common(obj);
+        applySurfaceRootCommon(obj);
         if (lv_obj_check_type(obj, &ht_preview_overlay_class))
         {
-            apply_overlay_root_chrome(obj);
-            init_common_widget_styles();
+            applyOverlayRootChrome(obj);
+            initCommonWidgetStyles();
             lv_obj_add_style(obj, &s_preview_root_layout_style, LV_PART_MAIN);
         }
         else if (lv_obj_check_type(obj, &ht_radio_sync_overlay_class))
         {
-            apply_overlay_root_chrome(obj);
-            init_radio_sync_styles();
+            applyOverlayRootChrome(obj);
+            initRadioSyncStyles();
             lv_obj_add_style(obj, &s_radio_sync_root_layout_style, LV_PART_MAIN);
         }
         else if (lv_obj_check_type(obj, &ht_repeat_mode_overlay_class))
         {
-            apply_overlay_root_chrome(obj);
-            init_repeat_mode_styles();
+            applyOverlayRootChrome(obj);
+            initRepeatModeStyles();
             lv_obj_add_style(obj, &s_repeat_root_layout_style, LV_PART_MAIN);
         }
 #if HELTEC_UI_HAS_TOUCH
@@ -2039,14 +2030,14 @@ static bool apply_surface_root_theme(_lv_obj_t *obj)
         else if (lv_obj_check_type(obj, &ht_send_message_selector_overlay_class))
 #endif
         {
-            apply_overlay_root_chrome(obj);
-            init_send_message_styles();
+            applyOverlayRootChrome(obj);
+            initSendMessageStyles();
             lv_obj_add_style(obj, &s_send_root_layout_style, LV_PART_MAIN);
         }
         else if (lv_obj_check_type(obj, &ht_splash_overlay_class))
         {
-            apply_overlay_root_chrome(obj);
-            init_common_widget_styles();
+            applyOverlayRootChrome(obj);
+            initCommonWidgetStyles();
             lv_obj_add_style(obj, &s_splash_root_layout_style, LV_PART_MAIN);
             const lv_font_t *font = lv_theme_get_font_normal(obj);
             if (!font)
@@ -2064,13 +2055,16 @@ static bool apply_surface_root_theme(_lv_obj_t *obj)
             {
                 s_splash_overlay_text_font = font;
                 lv_style_set_text_font(&s_splash_overlay_text_style, font);
-                set_overlay_text_spacing(&s_splash_overlay_text_style);
+                setOverlayTextSpacing(&s_splash_overlay_text_style);
             }
 #if defined(HELTEC_HAS_KEY_FRAME) && HELTEC_HAS_KEY_FRAME
-            lv_style_set_text_color(&s_splash_overlay_text_style, ui_color_fg());
+            lv_style_set_text_color(&s_splash_overlay_text_style, lv_color_hex(themePalette().fg));
 #elif LV_USE_THEME_MONO
-            lv_style_set_text_color(&s_splash_overlay_text_style, ui_color_fg());
+            lv_style_set_text_color(&s_splash_overlay_text_style, lv_color_hex(themePalette().fg));
+#else
+            lv_style_set_text_color(&s_splash_overlay_text_style, lv_color_hex(themePalette().overlay_fg));
 #endif
+            lv_style_set_text_align(&s_splash_overlay_text_style, LV_TEXT_ALIGN_CENTER);
             lv_obj_add_style(obj, &s_splash_overlay_text_style, LV_PART_MAIN);
         }
         return true;
@@ -2078,8 +2072,8 @@ static bool apply_surface_root_theme(_lv_obj_t *obj)
 #if !HELTEC_UI_HAS_TOUCH
     if (lv_obj_check_type(obj, &ht_context_menu_class))
     {
-        apply_surface_root_common(obj);
-        init_surface_app_styles(obj);
+        applySurfaceRootCommon(obj);
+        initSurfaceAppStyles(obj);
         for (lv_style_selector_t selector : kContextMenuRootSelectors)
         {
             lv_obj_add_style(obj, &s_context_menu_root_style, selector);
@@ -2090,7 +2084,7 @@ static bool apply_surface_root_theme(_lv_obj_t *obj)
     return false;
 }
 
-static bool apply_app_frame_theme(_lv_obj_t *obj)
+static bool applyAppFrameTheme(_lv_obj_t *obj)
 {
     if (!obj)
         return false;
@@ -2098,77 +2092,66 @@ static bool apply_app_frame_theme(_lv_obj_t *obj)
 #if LV_USE_TILEVIEW
     if (lv_obj_check_type(obj, &lv_tileview_class))
     {
-        init_surface_app_styles(obj);
+        initSurfaceAppStyles(obj);
 #if HELTEC_UI_HAS_TOUCH
         lv_obj_add_style(obj, &s_app_tileview_style, LV_PART_MAIN);
 #endif
-        apply_no_chrome(obj);
-        hide_scrollbar_chrome(obj);
+        applyNoChrome(obj);
+        hideScrollbarChrome(obj);
         return true;
     }
 
     if (lv_obj_check_type(obj, &lv_tileview_tile_class))
     {
-        init_surface_app_styles(obj);
-        hide_scrollbar_chrome(obj);
+        initSurfaceAppStyles(obj);
+        hideScrollbarChrome(obj);
         lv_obj_add_style(obj, &s_app_tile_style, LV_PART_MAIN);
-        apply_no_chrome(obj);
+        applyNoChrome(obj);
         return true;
     }
 #endif
 
-    if (lv_obj_check_type(obj, &ht_app_background_class))
-    {
-        // Created before metric-bearing frame/overlay nodes; keep it from seeding surface styles.
-        return true;
-    }
-
-    if (lv_obj_check_type(obj, &ht_app_overlay_layer_class))
-    {
-        return true;
-    }
-
     if (lv_obj_check_type(obj, &ht_app_frame_class))
     {
-        init_surface_app_styles(obj);
+        initSurfaceAppStyles(obj);
         lv_obj_add_style(obj, &s_app_frame_layout_style, LV_PART_MAIN);
         return true;
     }
 
     if (lv_obj_check_type(obj, &ht_app_content_class))
     {
-        init_surface_app_styles(obj);
+        initSurfaceAppStyles(obj);
         lv_obj_add_style(obj, &s_app_content_style, LV_PART_MAIN);
         return true;
     }
 
     if (lv_obj_check_type(obj, &ht_app_screen_host_class))
     {
-        init_surface_app_styles(obj);
+        initSurfaceAppStyles(obj);
         lv_obj_add_style(obj, &s_app_screen_root_style, LV_PART_MAIN);
-        apply_no_chrome(obj);
-        hide_scrollbar_chrome(obj);
+        applyNoChrome(obj);
+        hideScrollbarChrome(obj);
         return true;
     }
     return false;
 }
 
 #if !HELTEC_UI_HAS_TOUCH
-static bool apply_classic_context_menu_child_theme(_lv_obj_t *obj)
+static bool applyClassicContextMenuChildTheme(_lv_obj_t *obj)
 {
     if (!obj)
         return false;
 #if LV_USE_MENU
     if (lv_obj_check_type(obj, &lv_menu_class))
     {
-        init_classic_context_styles(obj);
+        initClassicContextStyles(obj);
         lv_obj_add_style(obj, &s_ctx_menu_style, LV_PART_MAIN);
         return true;
     }
 
     if (lv_obj_check_type(obj, &lv_menu_main_header_cont_class))
     {
-        init_classic_context_styles(obj);
+        initClassicContextStyles(obj);
         for (lv_style_selector_t selector : kContextMenuRootSelectors)
         {
             lv_obj_add_style(obj, &s_ctx_header_style, selector);
@@ -2178,7 +2161,7 @@ static bool apply_classic_context_menu_child_theme(_lv_obj_t *obj)
 #endif
     if (lv_obj_check_type(obj, &ht_context_menu_icon_row_class))
     {
-        init_classic_context_styles(obj);
+        initClassicContextStyles(obj);
         for (lv_style_selector_t selector : kContextMenuRootSelectors)
         {
             lv_obj_add_style(obj, &s_ctx_header_row_style, selector);
@@ -2189,7 +2172,7 @@ static bool apply_classic_context_menu_child_theme(_lv_obj_t *obj)
 
     if (lv_obj_check_type(obj, &ht_context_menu_nav_row_class))
     {
-        init_classic_context_styles(obj);
+        initClassicContextStyles(obj);
         for (lv_style_selector_t selector : kContextMenuRootSelectors)
         {
             lv_obj_add_style(obj, &s_ctx_header_row_style, selector);
@@ -2197,17 +2180,9 @@ static bool apply_classic_context_menu_child_theme(_lv_obj_t *obj)
         return true;
     }
 
-    if (lv_obj_check_type(obj, &ht_context_menu_title_class))
-    {
-        init_classic_context_styles(obj);
-        for (lv_style_selector_t selector : kContextMenuRootSelectors)
-            lv_obj_add_style(obj, &s_ctx_title_style, selector);
-        return true;
-    }
-
     if (lv_obj_check_type(obj, &ht_context_menu_icon_button_class))
     {
-        init_classic_context_styles(obj);
+        initClassicContextStyles(obj);
         lv_obj_add_style(obj, &s_ctx_icon_btn_main_style, LV_PART_MAIN);
         lv_obj_add_style(obj, &s_ctx_icon_btn_checked_style, LV_PART_MAIN | LV_STATE_CHECKED);
         return true;
@@ -2215,7 +2190,7 @@ static bool apply_classic_context_menu_child_theme(_lv_obj_t *obj)
 
     if (lv_obj_check_type(obj, &ht_context_menu_icon_class))
     {
-        init_classic_context_styles(obj);
+        initClassicContextStyles(obj);
         lv_obj_add_style(obj, &s_ctx_icon_style, LV_PART_MAIN);
         lv_obj_add_style(obj, &s_ctx_icon_checked_style,
                          LV_PART_MAIN | LV_STATE_CHECKED);
@@ -2226,15 +2201,15 @@ static bool apply_classic_context_menu_child_theme(_lv_obj_t *obj)
 #endif
 
 #if defined(HELTEC_UI_HAS_TOUCH) && HELTEC_UI_HAS_TOUCH
-static bool apply_quick_ping_overlay_theme(_lv_obj_t *obj)
+static bool applyQuickPingOverlayTheme(_lv_obj_t *obj)
 {
     if (!obj)
         return false;
 #if LV_USE_TEXTAREA
     if (lv_obj_check_type(obj, &ht_quick_ping_message_editor_class))
     {
-        init_quick_ping_styles();
-        reset_touch_object(obj);
+        initQuickPingStyles();
+        resetTouchObject(obj);
         lv_obj_add_style(obj, &s_quick_ping_message_input_style, LV_PART_MAIN);
         lv_obj_add_style(obj, &s_quick_ping_control_focus_style,
                          LV_PART_MAIN | LV_STATE_FOCUSED);
@@ -2244,7 +2219,7 @@ static bool apply_quick_ping_overlay_theme(_lv_obj_t *obj)
                          LV_PART_MAIN | LV_STATE_DISABLED);
         if (_lv_obj_t *const label = lv_textarea_get_label(obj))
         {
-            reset_touch_object(label);
+            resetTouchObject(label);
             lv_obj_add_style(label, &s_quick_ping_label_style, LV_PART_MAIN);
             lv_obj_add_style(label, &s_quick_ping_message_input_label_editing_style,
                              LV_PART_MAIN | LV_STATE_USER_1);
@@ -2255,8 +2230,8 @@ static bool apply_quick_ping_overlay_theme(_lv_obj_t *obj)
 #if LV_USE_KEYBOARD
     if (lv_obj_check_type(obj, &ht_quick_ping_keyboard_class))
     {
-        init_quick_ping_styles();
-        reset_touch_object(obj);
+        initQuickPingStyles();
+        resetTouchObject(obj);
         lv_obj_add_style(obj, &s_quick_ping_keyboard_style, LV_PART_MAIN);
         lv_obj_add_style(obj, &s_quick_ping_keyboard_items_style, LV_PART_ITEMS);
         static const lv_style_selector_t selected_item_sels[] = {
@@ -2277,36 +2252,36 @@ static bool apply_quick_ping_overlay_theme(_lv_obj_t *obj)
 #endif
     if (lv_obj_check_type(obj, &ht_quick_ping_overlay_class))
     {
-        init_quick_ping_styles();
-        reset_touch_object(obj);
+        initQuickPingStyles();
+        resetTouchObject(obj);
         lv_obj_add_style(obj, &s_quick_ping_root_style, LV_PART_MAIN);
         return true;
     }
     if (lv_obj_check_type(obj, &ht_quick_ping_backdrop_class))
     {
-        init_quick_ping_styles();
-        reset_touch_object(obj);
+        initQuickPingStyles();
+        resetTouchObject(obj);
         lv_obj_add_style(obj, &s_quick_ping_backdrop_style, LV_PART_MAIN);
         return true;
     }
     if (lv_obj_check_type(obj, &ht_quick_ping_title_bar_class))
     {
-        init_quick_ping_styles();
-        reset_touch_object(obj);
+        initQuickPingStyles();
+        resetTouchObject(obj);
         lv_obj_add_style(obj, &s_quick_ping_title_bar_style, LV_PART_MAIN);
         return true;
     }
     if (lv_obj_check_type(obj, &ht_quick_ping_content_class))
     {
-        init_quick_ping_styles();
-        reset_touch_object(obj);
+        initQuickPingStyles();
+        resetTouchObject(obj);
         lv_obj_add_style(obj, &s_quick_ping_content_style, LV_PART_MAIN);
         return true;
     }
     if (lv_obj_check_type(obj, &ht_quick_ping_message_controls_class))
     {
-        init_quick_ping_styles();
-        reset_touch_object(obj);
+        initQuickPingStyles();
+        resetTouchObject(obj);
         lv_obj_add_style(obj, &s_quick_ping_row_style, LV_PART_MAIN);
         lv_obj_add_style(obj, &s_quick_ping_row_focus_style,
                          LV_PART_MAIN | LV_STATE_FOCUSED);
@@ -2316,15 +2291,15 @@ static bool apply_quick_ping_overlay_theme(_lv_obj_t *obj)
     }
     if (lv_obj_check_type(obj, &ht_quick_ping_keyboard_editor_class))
     {
-        init_quick_ping_styles();
-        reset_touch_object(obj);
+        initQuickPingStyles();
+        resetTouchObject(obj);
         lv_obj_add_style(obj, &s_quick_ping_keyboard_editor_style, LV_PART_MAIN);
         lv_obj_add_style(obj, &s_quick_ping_keyboard_placeholder_style,
                          LV_PART_TEXTAREA_PLACEHOLDER);
         lv_obj_add_style(obj, &s_quick_ping_keyboard_cursor_style, LV_PART_CURSOR);
         if (_lv_obj_t *const label = lv_textarea_get_label(obj))
         {
-            reset_touch_object(label);
+            resetTouchObject(label);
             lv_obj_add_style(label, &s_quick_ping_label_style, LV_PART_MAIN);
             lv_obj_add_style(label, &s_quick_ping_message_input_label_editing_style,
                              LV_PART_MAIN | LV_STATE_USER_1);
@@ -2333,23 +2308,23 @@ static bool apply_quick_ping_overlay_theme(_lv_obj_t *obj)
     }
     if (lv_obj_check_type(obj, &ht_quick_ping_keyboard_counter_class))
     {
-        init_quick_ping_styles();
-        reset_touch_object(obj);
+        initQuickPingStyles();
+        resetTouchObject(obj);
         lv_obj_add_style(obj, &s_quick_ping_keyboard_counter_style, LV_PART_MAIN);
         return true;
     }
     if (lv_obj_check_type(obj, &ht_quick_ping_title_class))
     {
-        init_quick_ping_styles();
-        reset_touch_object(obj);
+        initQuickPingStyles();
+        resetTouchObject(obj);
         lv_obj_add_style(obj, &s_quick_ping_title_style, LV_PART_MAIN);
         return true;
     }
 
     if (lv_obj_check_type(obj, &ht_quick_ping_row_class))
     {
-        init_quick_ping_styles();
-        reset_touch_object(obj);
+        initQuickPingStyles();
+        resetTouchObject(obj);
         lv_obj_add_style(obj, &s_quick_ping_row_style, LV_PART_MAIN);
         lv_obj_add_style(obj, &s_quick_ping_row_focus_style, LV_PART_MAIN | LV_STATE_FOCUSED);
         lv_obj_add_style(obj, &s_quick_ping_row_focus_style, LV_PART_MAIN | LV_STATE_FOCUS_KEY);
@@ -2358,16 +2333,16 @@ static bool apply_quick_ping_overlay_theme(_lv_obj_t *obj)
 
     if (lv_obj_check_type(obj, &ht_quick_ping_label_class))
     {
-        init_quick_ping_styles();
-        reset_touch_object(obj);
+        initQuickPingStyles();
+        resetTouchObject(obj);
         lv_obj_add_style(obj, &s_quick_ping_label_style, LV_PART_MAIN);
         return true;
     }
 
     if (lv_obj_check_type(obj, &ht_quick_ping_dropdown_class))
     {
-        init_quick_ping_styles();
-        reset_touch_object(obj);
+        initQuickPingStyles();
+        resetTouchObject(obj);
         lv_obj_add_style(obj, &s_quick_ping_dropdown_style, LV_PART_MAIN);
         if (lv_obj_check_type(obj, &ht_quick_ping_message_dropdown_class))
         {
@@ -2384,46 +2359,46 @@ static bool apply_quick_ping_overlay_theme(_lv_obj_t *obj)
 
     if (lv_obj_check_type(obj, &ht_quick_ping_badge_class))
     {
-        init_quick_ping_styles();
-        reset_touch_object(obj);
+        initQuickPingStyles();
+        resetTouchObject(obj);
         lv_obj_add_style(obj, &s_quick_ping_icon_badge_style, LV_PART_MAIN);
         return true;
     }
 
     if (lv_obj_check_type(obj, &ht_quick_ping_message_row_class))
     {
-        init_quick_ping_styles();
-        reset_touch_object(obj);
+        initQuickPingStyles();
+        resetTouchObject(obj);
         return true;
     }
 
     return false;
 }
 #else
-static bool apply_quick_ping_overlay_theme(_lv_obj_t *)
+static bool applyQuickPingOverlayTheme(_lv_obj_t *)
 {
     return false;
 }
 #endif
 
-static bool apply_context_menu_child_theme(_lv_obj_t *obj)
+static bool applyContextMenuChildTheme(_lv_obj_t *obj)
 {
 #if HELTEC_UI_HAS_TOUCH
-    return apply_quick_ping_overlay_theme(obj);
+    return applyQuickPingOverlayTheme(obj);
 #else
-    return apply_classic_context_menu_child_theme(obj);
+    return applyClassicContextMenuChildTheme(obj);
 #endif
 }
 
-static bool apply_dropdown_base_theme(_lv_obj_t *obj)
+static bool applyDropdownBaseTheme(_lv_obj_t *obj)
 {
     if (!obj)
         return false;
 
     if (lv_obj_check_type(obj, &lv_dropdownlist_class))
     {
-        init_screen_system_styles();
-        init_common_widget_styles();
+        initScreenSystemStyles();
+        initCommonWidgetStyles();
         lv_obj_add_style(obj, &s_screen_dropdown_list_layout_style, LV_PART_MAIN);
         lv_obj_add_style(obj, &s_system_dropdown_focus_style, LV_PART_SELECTED);
         static const lv_style_selector_t no_chrome_selectors[] = {
@@ -2464,10 +2439,10 @@ static bool apply_dropdown_base_theme(_lv_obj_t *obj)
     if (!lv_obj_has_class(obj, &lv_dropdown_class))
         return false;
 
-    init_screen_system_styles();
-    apply_system_control_no_chrome(obj);
+    initScreenSystemStyles();
+    applySystemControlNoChrome(obj);
     lv_obj_add_style(obj, &s_system_dropdown_style, LV_PART_MAIN);
-    hide_scrollbar_chrome(obj);
+    hideScrollbarChrome(obj);
     static const lv_style_selector_t selectors[] = {
         LV_PART_MAIN | LV_STATE_FOCUSED,
         LV_PART_MAIN | LV_STATE_FOCUS_KEY,
@@ -2480,20 +2455,20 @@ static bool apply_dropdown_base_theme(_lv_obj_t *obj)
     return true;
 }
 
-static bool apply_confirm_overlay_child_theme(_lv_obj_t *obj)
+static bool applyConfirmOverlayChildTheme(_lv_obj_t *obj)
 {
     if (!obj)
         return false;
     if (lv_obj_check_type(obj, &ht_confirm_text_class))
     {
-        init_screen_system_styles();
+        initScreenSystemStyles();
         lv_obj_add_style(obj, &s_confirm_overlay_text_style, LV_PART_MAIN);
         return true;
     }
 
     if (lv_obj_check_type(obj, &ht_confirm_button_class))
     {
-        init_screen_system_styles();
+        initScreenSystemStyles();
         lv_obj_add_style(obj, &s_confirm_overlay_button_style, LV_PART_MAIN);
         lv_obj_add_style(obj, &s_confirm_overlay_button_pressed_style,
                          LV_PART_MAIN | LV_STATE_PRESSED);
@@ -2502,7 +2477,7 @@ static bool apply_confirm_overlay_child_theme(_lv_obj_t *obj)
     return false;
 }
 
-static bool apply_ht_container_child_theme(_lv_obj_t *obj)
+static bool applyHtContainerChildTheme(_lv_obj_t *obj)
 {
     if (!obj)
     {
@@ -2520,70 +2495,64 @@ static bool apply_ht_container_child_theme(_lv_obj_t *obj)
         return false;
     }
 
-    style_screen_label(obj);
+    styleScreenLabel(obj);
     return true;
 }
 
-static bool apply_preview_overlay_child_theme(_lv_obj_t *obj)
+static bool applyPreviewOverlayChildTheme(_lv_obj_t *obj)
 {
-    if (lv_obj_check_type(obj, &ht_preview_metadata_row_class))
-    {
-        style_plain_container(obj);
-        return true;
-    }
-
     if (lv_obj_check_type(obj, &ht_preview_origin_class))
     {
-        style_overlay_label(obj, ui_color_accent_alt(), LV_TEXT_ALIGN_LEFT);
+        styleOverlayLabel(obj, lv_color_hex(themePalette().accent_alt), LV_TEXT_ALIGN_LEFT);
         return true;
     }
 
     if (lv_obj_check_type(obj, &ht_preview_text_class))
     {
-        style_overlay_label(obj, ui_color_overlay_fg(), LV_TEXT_ALIGN_LEFT);
+        styleOverlayLabel(obj, lv_color_hex(themePalette().overlay_fg), LV_TEXT_ALIGN_LEFT);
         return true;
     }
 
     if (lv_obj_check_type(obj, &ht_preview_metadata_label_class))
     {
-        style_overlay_label(obj, ui_color_overlay_fg());
+        styleOverlayLabel(obj, lv_color_hex(themePalette().overlay_fg));
         return true;
     }
     return false;
 }
 
-static void style_overlay_label_all_states(_lv_obj_t *label)
+static void styleOverlayLabelAllStates(_lv_obj_t *label)
 {
     if (!label)
         return;
-    init_overlay_feedback_styles();
+    initOverlayFeedbackStyles();
     for (lv_style_selector_t sel : kInteractiveSelectors)
     {
         lv_obj_add_style(label, &s_overlay_label_all_states_style, sel);
     }
 }
 
-static bool apply_alert_overlay_child_theme(_lv_obj_t *obj)
+static bool applyAlertOverlayChildTheme(_lv_obj_t *obj)
 {
     if (lv_obj_check_type(obj, &ht_overlay_feedback_label_class))
     {
-        style_overlay_label_all_states(obj);
+        styleOverlayLabelAllStates(obj);
         return true;
     }
     return false;
 }
 
-static bool apply_calibration_overlay_child_theme(_lv_obj_t *obj)
+static bool applyCalibrationOverlayChildTheme(_lv_obj_t *obj)
 {
-    return apply_alert_overlay_child_theme(obj);
+    return applyAlertOverlayChildTheme(obj);
 }
 
 #if HELTEC_UI_ENABLE_KEYBOARD
-static bool apply_keyboard_overlay_child_theme(_lv_obj_t *obj)
+static bool applyKeyboardOverlayChildTheme(_lv_obj_t *obj)
 {
     if (lv_obj_check_type(obj, &ht_keyboard_title_class))
     {
-        init_keyboard_child_styles();
+        initKeyboardChildStyles();
         lv_obj_add_style(obj, &s_keyboard_title_style, LV_PART_MAIN);
         lv_obj_add_style(obj, &s_keyboard_waypoint_title_style,
                          LV_PART_MAIN | LV_STATE_USER_1);
@@ -2593,13 +2562,13 @@ static bool apply_keyboard_overlay_child_theme(_lv_obj_t *obj)
 #if HELTEC_UI_HAS_TOUCH
     if (lv_obj_check_type(obj, &ht_coordinate_row_class))
     {
-        init_keyboard_child_styles();
+        initKeyboardChildStyles();
         lv_obj_add_style(obj, &s_coordinate_row_style, LV_PART_MAIN);
         return true;
     }
     if (lv_obj_check_type(obj, &ht_coordinate_label_class))
     {
-        init_keyboard_child_styles();
+        initKeyboardChildStyles();
         lv_obj_add_style(obj, &s_coordinate_label_style, LV_PART_MAIN);
         return true;
     }
@@ -2607,7 +2576,7 @@ static bool apply_keyboard_overlay_child_theme(_lv_obj_t *obj)
 
     if (lv_obj_check_type(obj, &ht_keyboard_editor_class))
     {
-        init_keyboard_child_styles();
+        initKeyboardChildStyles();
         lv_obj_add_style(obj, &s_keyboard_textarea_style, LV_PART_MAIN);
         lv_obj_add_style(obj, &s_keyboard_waypoint_textarea_style,
                          LV_PART_MAIN | LV_STATE_USER_1);
@@ -2618,7 +2587,7 @@ static bool apply_keyboard_overlay_child_theme(_lv_obj_t *obj)
 
     if (lv_obj_check_type(obj, &ht_keyboard_matrix_class))
     {
-        init_keyboard_child_styles();
+        initKeyboardChildStyles();
         lv_obj_add_style(obj, &s_keyboard_main_style, LV_PART_MAIN);
 #if LV_USE_THEME_MONO
         lv_obj_add_style(obj, &s_keyboard_surface_color_style, LV_PART_MAIN);
@@ -2685,11 +2654,11 @@ static bool apply_keyboard_overlay_child_theme(_lv_obj_t *obj)
 
 #endif
 
-static bool apply_radio_param_sync_overlay_child_theme(_lv_obj_t *obj)
+static bool applyRadioParamSyncOverlayChildTheme(_lv_obj_t *obj)
 {
     if (lv_obj_check_type(obj, &ht_radio_sync_list_class))
     {
-        init_radio_sync_styles();
+        initRadioSyncStyles();
         lv_obj_add_style(obj, &s_radio_sync_list_style, LV_PART_MAIN);
         return true;
     }
@@ -2697,7 +2666,7 @@ static bool apply_radio_param_sync_overlay_child_theme(_lv_obj_t *obj)
 #if !HELTEC_UI_HAS_TOUCH
     if (lv_obj_check_type(obj, &ht_radio_sync_row_class))
     {
-        init_radio_sync_styles();
+        initRadioSyncStyles();
         lv_obj_add_style(obj, &s_radio_sync_row_main_style, LV_PART_MAIN);
         lv_obj_add_style(obj, &s_radio_sync_row_checked_style, LV_PART_MAIN | LV_STATE_CHECKED);
         return true;
@@ -2706,7 +2675,7 @@ static bool apply_radio_param_sync_overlay_child_theme(_lv_obj_t *obj)
     return false;
 }
 
-static bool apply_repeat_mode_overlay_child_theme(_lv_obj_t *obj)
+static bool applyRepeatModeOverlayChildTheme(_lv_obj_t *obj)
 {
 #if !HELTEC_UI_HAS_TOUCH
     static const lv_state_t selected_states[] = {
@@ -2720,14 +2689,14 @@ static bool apply_repeat_mode_overlay_child_theme(_lv_obj_t *obj)
 
     if (lv_obj_check_type(obj, &ht_repeat_mode_list_class))
     {
-        init_repeat_mode_styles();
+        initRepeatModeStyles();
         lv_obj_add_style(obj, &s_repeat_list_style, LV_PART_MAIN);
         return true;
     }
 
     if (lv_obj_check_type(obj, &ht_repeat_mode_item_class))
     {
-        init_repeat_mode_styles();
+        initRepeatModeStyles();
         lv_obj_add_style(obj, &s_repeat_item_style, LV_PART_MAIN);
         for (lv_state_t state : selected_states)
         {
@@ -2736,19 +2705,15 @@ static bool apply_repeat_mode_overlay_child_theme(_lv_obj_t *obj)
         return true;
     }
 
-    if (lv_obj_check_type(obj, &ht_repeat_mode_label_class))
-    {
-        return true;
-    }
 #endif
     return false;
 }
 
-static bool apply_send_message_overlay_child_theme(_lv_obj_t *obj)
+static bool applySendMessageOverlayChildTheme(_lv_obj_t *obj)
 {
     if (lv_obj_check_type(obj, &ht_send_message_list_class))
     {
-        init_send_message_styles();
+        initSendMessageStyles();
         lv_obj_add_style(obj, &s_send_list_style, LV_PART_MAIN);
         return true;
     }
@@ -2756,7 +2721,7 @@ static bool apply_send_message_overlay_child_theme(_lv_obj_t *obj)
 #if HELTEC_UI_HAS_TOUCH
     if (lv_obj_check_type(obj, &ht_send_message_touch_list_class))
     {
-        init_send_message_styles();
+        initSendMessageStyles();
         lv_obj_add_style(obj, &s_send_touch_list_style, LV_PART_MAIN);
         return true;
     }
@@ -2769,7 +2734,7 @@ static bool apply_send_message_overlay_child_theme(_lv_obj_t *obj)
         lv_obj_check_type(obj, &ht_send_message_text_row_class))
 #endif
     {
-        init_send_message_styles();
+        initSendMessageStyles();
         lv_obj_add_style(obj, &s_send_row_main_style, LV_PART_MAIN);
         lv_obj_add_style(obj, &s_send_row_active_style, LV_PART_MAIN | LV_STATE_FOCUSED);
         lv_obj_add_style(obj, &s_send_row_active_style, LV_PART_MAIN | LV_STATE_CHECKED);
@@ -2777,30 +2742,15 @@ static bool apply_send_message_overlay_child_theme(_lv_obj_t *obj)
         return true;
     }
 
-    if (lv_obj_check_type(obj, &ht_send_message_label_class))
-    {
-        return true;
-    }
     return false;
 }
 
-static bool apply_splash_overlay_child_theme(_lv_obj_t *obj)
+static bool applySplashOverlayChildTheme(_lv_obj_t *obj)
 {
-    if (lv_obj_check_type(obj, &ht_splash_label_class))
-    {
-#if defined(HELTEC_HAS_KEY_FRAME) && HELTEC_HAS_KEY_FRAME
-        style_overlay_label(obj, ui_color_fg());
-#elif LV_USE_THEME_MONO
-        style_overlay_label(obj, ui_color_fg());
-#else
-        style_overlay_label(obj, ui_color_overlay_fg());
-#endif
-        return true;
-    }
     if (lv_obj_check_type(obj, &ht_splash_logo_class))
     {
 #if !LV_USE_THEME_MONO
-        lv_obj_set_style_img_recolor(obj, ui_color_overlay_fg(), LV_PART_MAIN);
+        lv_obj_set_style_img_recolor(obj, lv_color_hex(themePalette().overlay_fg), LV_PART_MAIN);
         lv_obj_set_style_img_recolor_opa(obj, LV_OPA_COVER, LV_PART_MAIN);
 #endif
         return true;
@@ -2808,18 +2758,18 @@ static bool apply_splash_overlay_child_theme(_lv_obj_t *obj)
     return false;
 }
 
-static bool apply_overlay_child_theme(_lv_obj_t *obj)
+static bool applyOverlayChildTheme(_lv_obj_t *obj)
 {
     if (lv_obj_has_class(obj, &ht_overlay_bar_class))
     {
-        apply_overlay_header_footer_style(obj);
+        applyOverlayHeaderFooterStyle(obj);
         return true;
     }
 
 #if HELTEC_UI_HAS_TOUCH && LV_USE_ROLLER
     if (lv_obj_check_type(obj, &lv_roller_class))
     {
-        init_radio_sync_styles();
+        initRadioSyncStyles();
         for (lv_style_selector_t selector : kInteractiveSelectors)
         {
             lv_obj_add_style(obj, &s_overlay_roller_style, selector);
@@ -2831,8 +2781,8 @@ static bool apply_overlay_child_theme(_lv_obj_t *obj)
 
     if (lv_obj_check_type(obj, &ht_dialog_panel_class))
     {
-        init_screen_system_styles();
-        init_overlay_feedback_styles();
+        initScreenSystemStyles();
+        initOverlayFeedbackStyles();
         lv_obj_add_style(obj, &s_dialog_panel_style, LV_PART_MAIN);
         for (lv_style_selector_t selector : kInteractiveSelectors)
         {
@@ -2843,22 +2793,22 @@ static bool apply_overlay_child_theme(_lv_obj_t *obj)
     }
     if (lv_obj_check_type(obj, &ht_dialog_content_class))
     {
-        style_plain_container(obj);
+        stylePlainContainer(obj);
 #if LV_USE_THEME_MONO
         // Keep dialog chrome inverted while the content remains readable.
-        lv_obj_set_style_bg_color(obj, ui_color_panel_bg(), LV_PART_MAIN);
+        lv_obj_set_style_bg_color(obj, lv_color_hex(themePalette().panel_bg), LV_PART_MAIN);
         lv_obj_set_style_bg_opa(obj, LV_OPA_COVER, LV_PART_MAIN);
-        lv_obj_set_style_text_color(obj, ui_color_fg(), LV_PART_MAIN);
+        lv_obj_set_style_text_color(obj, lv_color_hex(themePalette().fg), LV_PART_MAIN);
 #endif
         return true;
     }
     if (lv_obj_check_type(obj, &ht_dialog_actions_class))
     {
-        init_screen_system_styles();
-        init_common_widget_styles();
+        initScreenSystemStyles();
+        initCommonWidgetStyles();
         lv_obj_add_style(obj, &s_confirm_overlay_button_row_style, LV_PART_MAIN);
 #if LV_USE_THEME_MONO
-        lv_obj_set_style_bg_color(obj, ui_color_highlight_bg(), LV_PART_MAIN);
+        lv_obj_set_style_bg_color(obj, lv_color_hex(themePalette().overlay_fg), LV_PART_MAIN);
         lv_obj_set_style_bg_opa(obj, LV_OPA_COVER, LV_PART_MAIN);
 #endif
         lv_obj_add_style(obj, &s_plain_container_style, LV_PART_MAIN | LV_STATE_USER_2);
@@ -2867,34 +2817,34 @@ static bool apply_overlay_child_theme(_lv_obj_t *obj)
 
     if (lv_obj_check_type(obj, &ht_framed_overlay_content_class))
     {
-        init_overlay_header_footer_style();
+        initOverlayHeaderFooterStyle();
         lv_obj_add_style(obj, &s_framed_overlay_content_style, LV_PART_MAIN);
 #if !HELTEC_UI_HAS_TOUCH
         if (lv_obj_check_type(obj, &ht_send_message_content_class))
         {
-            init_send_message_styles();
+            initSendMessageStyles();
             lv_obj_add_style(obj, &s_send_content_style, LV_PART_MAIN);
         }
 #endif
         return true;
     }
 
-    return apply_alert_overlay_child_theme(obj) || apply_calibration_overlay_child_theme(obj) ||
-           apply_confirm_overlay_child_theme(obj) ||
+    return applyAlertOverlayChildTheme(obj) || applyCalibrationOverlayChildTheme(obj) ||
+           applyConfirmOverlayChildTheme(obj) ||
 #if HELTEC_UI_ENABLE_KEYBOARD
-           apply_keyboard_overlay_child_theme(obj) ||
+           applyKeyboardOverlayChildTheme(obj) ||
 #endif
-           apply_preview_overlay_child_theme(obj) ||
-           apply_radio_param_sync_overlay_child_theme(obj) ||
-           apply_repeat_mode_overlay_child_theme(obj) ||
-           apply_send_message_overlay_child_theme(obj) || apply_splash_overlay_child_theme(obj);
+           applyPreviewOverlayChildTheme(obj) ||
+           applyRadioParamSyncOverlayChildTheme(obj) ||
+           applyRepeatModeOverlayChildTheme(obj) ||
+           applySendMessageOverlayChildTheme(obj) || applySplashOverlayChildTheme(obj);
 }
 
-static void style_gridNav_content_host(lv_obj_t *content)
+static void styleGridNavContentHost(lv_obj_t *content)
 {
     if (!content)
         return;
-    init_navigation_styles(content);
+    initNavigationStyles(content);
     lv_obj_remove_style_all(content);
 #if HELTEC_UI_HAS_TOUCH
     lv_obj_add_style(content, &s_nav_content_host_style, LV_PART_MAIN);
@@ -2902,11 +2852,11 @@ static void style_gridNav_content_host(lv_obj_t *content)
 }
 
 #if HELTEC_UI_HAS_TOUCH
-static void apply_gridNav_grid_cell_theme(lv_obj_t *cell)
+static void applyGridNavGridCellTheme(lv_obj_t *cell)
 {
     if (!cell)
         return;
-    init_navigation_styles(cell);
+    initNavigationStyles(cell);
 
     lv_obj_add_style(cell, &s_nav_grid_cell_style, LV_PART_MAIN);
     lv_obj_add_style(cell, &s_nav_grid_cell_focus_style,
@@ -2915,41 +2865,29 @@ static void apply_gridNav_grid_cell_theme(lv_obj_t *cell)
                      LV_PART_MAIN | LV_STATE_FOCUSED);
 }
 
-static void apply_gridNav_grid_icon_area_theme(lv_obj_t *area)
-{
-    if (!area)
-        return;
-#if !HELTEC_UI_HAS_TOUCH
-    init_navigation_styles(area);
-    lv_obj_add_style(area, &s_nav_grid_icon_area_style, LV_PART_MAIN);
-#else
-    (void)area;
-#endif
-}
-
-static void apply_gridNav_grid_title_bar_theme(lv_obj_t *bar)
+static void applyGridNavGridTitleBarTheme(lv_obj_t *bar)
 {
     if (!bar)
         return;
-    init_navigation_styles(bar);
+    initNavigationStyles(bar);
     lv_obj_add_style(bar, &s_nav_grid_title_bar_style, LV_PART_MAIN);
     lv_obj_add_style(bar, &s_nav_footer_bar_style, LV_PART_MAIN | LV_STATE_USER_1);
 }
 
-static void apply_gridNav_grid_title_label_theme(lv_obj_t *label)
+static void applyGridNavGridTitleLabelTheme(lv_obj_t *label)
 {
     if (!label)
         return;
-    init_navigation_styles(label);
+    initNavigationStyles(label);
     lv_obj_add_style(label, &s_nav_grid_title_label_style, LV_PART_MAIN);
 }
 #endif
 
-static void apply_gridNav_panel_chrome(lv_obj_t *obj)
+static void applyGridNavPanelChrome(lv_obj_t *obj)
 {
     if (!obj)
         return;
-    init_navigation_styles(obj);
+    initNavigationStyles(obj);
 
 #if HELTEC_UI_HAS_TOUCH
     lv_obj_add_style(obj, &s_nav_panel_grid_style, LV_PART_MAIN);
@@ -2960,79 +2898,17 @@ static void apply_gridNav_panel_chrome(lv_obj_t *obj)
 } // namespace
 
 #if !HELTEC_UI_HAS_TOUCH
-void ui_context_menu_title_apply_theme(_lv_obj_t *title)
+void applyContextMenuTitleTheme(_lv_obj_t *title)
 {
     if (!title)
         return;
-    init_classic_context_styles(title);
+    initClassicContextStyles(title);
     for (lv_style_selector_t selector : kContextMenuRootSelectors)
         lv_obj_add_style(title, &s_ctx_title_style, selector);
 }
 #endif
 
-void ui_theme_set_waypoint_keyboard_active(_lv_obj_t *keyboard, _lv_obj_t *latitude,
-                                           _lv_obj_t *longitude, bool active)
-{
-#if HELTEC_UI_ENABLE_KEYBOARD && HELTEC_UI_HAS_TOUCH
-    init_keyboard_child_styles();
-
-    _lv_obj_t *const editors[] = { latitude, longitude };
-    for (_lv_obj_t *editor : editors)
-    {
-        if (!editor)
-            continue;
-        lv_obj_remove_style(editor, &s_keyboard_waypoint_textarea_style, LV_PART_MAIN);
-        if (active)
-            lv_obj_add_style(editor, &s_keyboard_waypoint_textarea_style, LV_PART_MAIN);
-
-        // USER_1 has a higher LVGL state weight than CHECKED. Combine both
-        // states so the selected editor style outranks the waypoint base style.
-        lv_obj_remove_style(editor, &s_keyboard_active_textarea_style,
-                            LV_PART_MAIN | LV_STATE_USER_1 | LV_STATE_CHECKED);
-        lv_obj_add_style(editor, &s_keyboard_active_textarea_style,
-                         LV_PART_MAIN | LV_STATE_USER_1 | LV_STATE_CHECKED);
-    }
-
-    if (!keyboard)
-        return;
-    lv_obj_remove_style(keyboard, &s_keyboard_waypoint_main_style, LV_PART_MAIN);
-    if (active)
-        lv_obj_add_style(keyboard, &s_keyboard_waypoint_main_style, LV_PART_MAIN);
-
-    static const lv_style_selector_t base_selectors[] = {
-        LV_PART_ITEMS,
-        LV_PART_ITEMS | LV_STATE_FOCUSED,
-        LV_PART_ITEMS | LV_STATE_FOCUS_KEY,
-        LV_PART_ITEMS | LV_STATE_EDITED,
-    };
-    static const lv_style_selector_t selected_selectors[] = {
-        LV_PART_ITEMS | LV_STATE_PRESSED,
-        LV_PART_ITEMS | LV_STATE_CHECKED,
-        LV_PART_ITEMS | (LV_STATE_FOCUSED | LV_STATE_CHECKED),
-        LV_PART_ITEMS | (LV_STATE_FOCUS_KEY | LV_STATE_CHECKED),
-        LV_PART_ITEMS | (LV_STATE_EDITED | LV_STATE_CHECKED),
-    };
-    for (lv_style_selector_t selector : base_selectors)
-    {
-        lv_obj_remove_style(keyboard, &s_keyboard_waypoint_items_style, selector);
-        if (active)
-            lv_obj_add_style(keyboard, &s_keyboard_waypoint_items_style, selector);
-    }
-    for (lv_style_selector_t selector : selected_selectors)
-    {
-        lv_obj_remove_style(keyboard, &s_keyboard_waypoint_items_selected_style, selector);
-        if (active)
-            lv_obj_add_style(keyboard, &s_keyboard_waypoint_items_selected_style, selector);
-    }
-#else
-    (void)keyboard;
-    (void)latitude;
-    (void)longitude;
-    (void)active;
-#endif
-}
-
-void ui_widget_theme_configure(const UiThemeProfile &profile)
+void configureWidgetTheme(const UiThemeProfile &profile)
 {
     if (s_surface_app_styles_ready || s_navigation_styles_ready || s_top_pane_styles_ready)
     {
@@ -3050,34 +2926,34 @@ void ui_widget_theme_configure(const UiThemeProfile &profile)
     }
 #endif
 
-    s_theme_profile = &profile;
-    ui_component_theme_configure();
+    s_themeProfile = &profile;
+    configureComponentTheme();
 }
 
 
-static bool apply_top_pane_theme(_lv_obj_t *obj)
+static bool applyTopPaneTheme(_lv_obj_t *obj)
 {
     if (!obj)
         return false;
     _lv_obj_t *parent = lv_obj_get_parent(obj);
-    if (apply_top_pane_root(obj))
+    if (applyTopPaneRoot(obj))
         return true;
-    if (apply_top_pane_direct_child(obj, parent))
+    if (applyTopPaneDirectChild(obj, parent))
         return true;
-    if (apply_top_pane_nested_child(obj))
+    if (applyTopPaneNestedChild(obj))
         return true;
     return false;
 }
 
-void ui_app_active_screen_apply_theme(_lv_obj_t *obj)
+void applyActiveScreenTheme(_lv_obj_t *obj)
 {
     if (!obj)
         return;
-    init_surface_app_styles(obj);
+    initSurfaceAppStyles(obj);
     lv_obj_add_style(obj, &s_app_frame_layout_style, LV_PART_MAIN);
 }
 
-static bool apply_navigation_theme(_lv_obj_t *obj)
+static bool applyNavigationTheme(_lv_obj_t *obj)
 {
     if (!obj)
         return false;
@@ -3085,18 +2961,18 @@ static bool apply_navigation_theme(_lv_obj_t *obj)
     if (lv_obj_check_type(obj, &ht_gridNav_class) &&
         !lv_obj_check_type(obj, &ht_navigation_ring_class))
     {
-        apply_gridNav_panel_chrome(obj);
-        if (_lv_obj_t *content = ui_gridNav_content(obj))
+        applyGridNavPanelChrome(obj);
+        if (_lv_obj_t *content = gridNavContent(obj))
         {
             if (content != obj)
-                style_gridNav_content_host(content);
+                styleGridNavContentHost(content);
         }
         return true;
     }
 
     if (lv_obj_check_type(obj, &ht_navigation_root_class))
     {
-        init_navigation_styles(obj);
+        initNavigationStyles(obj);
 #if !HELTEC_UI_HAS_TOUCH
         lv_obj_add_style(obj, &s_nav_root_ring_style, LV_PART_MAIN);
 #endif
@@ -3105,40 +2981,35 @@ static bool apply_navigation_theme(_lv_obj_t *obj)
 
     if (lv_obj_check_type(obj, &ht_navigation_content_class))
     {
-        style_gridNav_content_host(obj);
+        styleGridNavContentHost(obj);
         return true;
     }
 #if HELTEC_UI_HAS_TOUCH
     if (lv_obj_check_type(obj, &ht_navigation_cell_class))
     {
-        apply_gridNav_grid_cell_theme(obj);
-        return true;
-    }
-    if (lv_obj_check_type(obj, &ht_navigation_icon_area_class))
-    {
-        apply_gridNav_grid_icon_area_theme(obj);
+        applyGridNavGridCellTheme(obj);
         return true;
     }
     if (lv_obj_check_type(obj, &ht_navigation_title_bar_class))
     {
-        apply_gridNav_grid_title_bar_theme(obj);
+        applyGridNavGridTitleBarTheme(obj);
         return true;
     }
     if (lv_obj_check_type(obj, &ht_navigation_title_label_class))
     {
-        apply_gridNav_grid_title_label_theme(obj);
+        applyGridNavGridTitleLabelTheme(obj);
         return true;
     }
 #endif
     return false;
 }
 
-static bool apply_navigation_ring_theme(_lv_obj_t *obj)
+static bool applyNavigationRingTheme(_lv_obj_t *obj)
 {
 #if !HELTEC_UI_HAS_TOUCH
     if (!lv_obj_check_type(obj, &ht_navigation_ring_class))
         return false;
-    init_navigation_styles(obj);
+    initNavigationStyles(obj);
     lv_obj_add_style(obj, &s_nav_ring_style, LV_PART_MAIN);
     lv_obj_add_style(obj, &s_visibility_hidden_style, LV_PART_MAIN | LV_STATE_USER_4);
     return true;
@@ -3148,14 +3019,14 @@ static bool apply_navigation_ring_theme(_lv_obj_t *obj)
 #endif
 }
 
-bool ui_widget_theme_apply(_lv_obj_t *obj)
+bool applyWidgetTheme(_lv_obj_t *obj)
 {
     if (!obj)
         return false;
 
     if (lv_obj_check_type(obj, &ht_volume_button_class))
     {
-        init_screen_system_styles();
+        initScreenSystemStyles();
         lv_obj_add_style(obj, &s_system_volume_button_style, LV_PART_MAIN);
         lv_obj_add_style(obj, &s_system_volume_button_pressed_style,
                          LV_PART_MAIN | LV_STATE_PRESSED);
@@ -3168,14 +3039,14 @@ bool ui_widget_theme_apply(_lv_obj_t *obj)
 
     if (lv_obj_check_type(obj, &ht_volume_controls_class))
     {
-        init_screen_system_styles();
+        initScreenSystemStyles();
         lv_obj_add_style(obj, &s_system_volume_controls_style, LV_PART_MAIN);
         return true;
     }
 
     if (lv_obj_check_type(obj, &ht_container_class))
     {
-        init_screen_system_styles();
+        initScreenSystemStyles();
         lv_obj_add_style(obj, &s_screen_row_layout_style, LV_PART_MAIN);
         lv_obj_add_style(obj, &s_container_focus_style,
                          LV_PART_MAIN | LV_STATE_USER_1);
@@ -3189,7 +3060,7 @@ bool ui_widget_theme_apply(_lv_obj_t *obj)
 #if defined(HAS_BUZZER_VOLUME_CONTROL) && HAS_BUZZER_VOLUME_CONTROL && LV_USE_SLIDER
     if (lv_obj_check_type(obj, &lv_slider_class))
     {
-        init_screen_system_styles();
+        initScreenSystemStyles();
         lv_obj_add_style(obj, &s_system_volume_slider_style, LV_PART_MAIN);
         lv_obj_add_style(obj, &s_system_volume_slider_indicator_style, LV_PART_INDICATOR);
         lv_obj_add_style(obj, &s_system_volume_slider_knob_style, LV_PART_KNOB);
@@ -3199,7 +3070,7 @@ bool ui_widget_theme_apply(_lv_obj_t *obj)
 
     if (lv_obj_has_class(obj, &ht_container_class))
     {
-        init_screen_system_styles();
+        initScreenSystemStyles();
         lv_obj_add_style(obj, &s_container_focus_style,
                          LV_PART_MAIN | LV_STATE_USER_1);
         lv_obj_add_style(obj, &s_container_focus_style,
@@ -3208,20 +3079,20 @@ bool ui_widget_theme_apply(_lv_obj_t *obj)
                          LV_PART_MAIN | LV_STATE_FOCUS_KEY);
     }
 
-    const bool screen_applied = apply_screen_class_theme(obj);
-    const bool dropdown_applied = apply_dropdown_base_theme(obj);
-    const bool custom_applied = apply_app_frame_theme(obj) || apply_top_pane_theme(obj) ||
-                                apply_surface_root_theme(obj) ||
-                                apply_ht_container_child_theme(obj) ||
-                                apply_overlay_child_theme(obj) ||
-                                apply_context_menu_child_theme(obj) ||
-                                apply_navigation_theme(obj) ||
-                                apply_navigation_ring_theme(obj) ||
-                                ui_radial_navigation_icon_apply_theme(obj) ||
-                                ui_license_gate_apply_theme(obj) ||
-                                ui_button_roller_apply_theme(obj) ||
-                                ui_compass_apply_theme(obj) ||
-                                ui_map_widget_apply_theme(obj);
+    const bool screen_applied = applyScreenClassTheme(obj);
+    const bool dropdown_applied = applyDropdownBaseTheme(obj);
+    const bool custom_applied = applyAppFrameTheme(obj) || applyTopPaneTheme(obj) ||
+                                applySurfaceRootTheme(obj) ||
+                                applyHtContainerChildTheme(obj) ||
+                                applyOverlayChildTheme(obj) ||
+                                applyContextMenuChildTheme(obj) ||
+                                applyNavigationTheme(obj) ||
+                                applyNavigationRingTheme(obj) ||
+                                applyRadialNavigationIconTheme(obj) ||
+                                applyLicenseGateTheme(obj) ||
+                                applyButtonRollerTheme(obj) ||
+                                applyCompassTheme(obj) ||
+                                applyMapWidgetTheme(obj);
     return screen_applied || dropdown_applied || custom_applied;
 }
 

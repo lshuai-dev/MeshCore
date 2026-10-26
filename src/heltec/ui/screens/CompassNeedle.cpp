@@ -181,7 +181,7 @@ void compass_draw_dial_needle(lv_draw_ctx_t *ctx, lv_coord_t cx, lv_coord_t cy,
     rotateQ14(0, tip, sine, cosine, cx, cy, south[0]);
     south[1] = north[1];
     south[2] = north[2];
-    drawTriangle(ctx, north, ui_color_error());
+    drawTriangle(ctx, north, lv_color_hex(themePalette().error));
     drawTriangle(ctx, south, lv_color_hex(COMPASS_DIAL_BLUE_COLOR));
 }
 
@@ -201,7 +201,7 @@ void compass_draw_friend_needle(lv_draw_ctx_t *ctx, lv_coord_t cx, lv_coord_t cy
         points[index].x = (lv_coord_t)(cx + ((x * cosine - y * sine) >> 14));
         points[index].y = (lv_coord_t)(cy + ((x * sine + y * cosine) >> 14));
     }
-    const lv_color_t fill = on_target ? ui_color_success() : ui_color_error();
+    const lv_color_t fill = on_target ? lv_color_hex(themePalette().success) : lv_color_hex(themePalette().error);
     for (int index = 0; index < 2; ++index)
     {
         lv_point_t triangle[3] = {};
@@ -212,7 +212,7 @@ void compass_draw_friend_needle(lv_draw_ctx_t *ctx, lv_coord_t cx, lv_coord_t cy
 #if defined(HELTEC_UI_HAS_TOUCH) && HELTEC_UI_HAS_TOUCH
     const lv_color_t edge_color = lv_color_hex(0x244552);
 #else
-    const lv_color_t edge_color = ui_color_fg_on_dark();
+    const lv_color_t edge_color = lv_color_hex(themePalette().fg_on_dark);
 #endif
     for (int index = 0; index < 4; ++index)
     {

@@ -1,4 +1,4 @@
-#include "WidgetClasses.hpp"
+#include "SemanticClasses.hpp"
 
 #include "HtContainer.hpp"
 #include "HtTextarea.hpp"
@@ -43,7 +43,6 @@ HT_DEFINE_CLASS(ht_coordinate_label_class, lv_label_class, lv_label_t);
 #endif
 
 HT_DEFINE_CLASS(ht_top_pane_class, lv_obj_class, lv_obj_t);
-HT_DEFINE_CLASS(ht_top_pane_right_slot_class, lv_obj_class, lv_obj_t);
 HT_DEFINE_CLASS(ht_top_pane_title_class, lv_label_class, lv_label_t);
 HT_DEFINE_CLASS(ht_top_pane_battery_class, lv_obj_class, lv_obj_t);
 HT_DEFINE_CLASS(ht_top_pane_battery_outline_class, lv_obj_class, lv_obj_t);
@@ -51,7 +50,6 @@ HT_DEFINE_CLASS(ht_top_pane_battery_cap_class, lv_obj_class, lv_obj_t);
 
 HT_DEFINE_CLASS(ht_button_roller_class, lv_obj_class, lv_obj_t);
 HT_DEFINE_CLASS(ht_button_roller_item_class, lv_btn_class, lv_btn_t);
-HT_DEFINE_CLASS(ht_button_roller_label_class, lv_label_class, lv_label_t);
 
 HT_DEFINE_CLASS(ht_license_gate_class, lv_obj_class, lv_obj_t);
 HT_DEFINE_CLASS(ht_license_gate_label_class, lv_label_class, lv_label_t);
@@ -62,19 +60,15 @@ HT_DEFINE_CLASS(ht_context_menu_class, lv_obj_class, lv_obj_t);
 HT_DEFINE_CLASS(ht_context_menu_icon_row_class, lv_obj_class, lv_obj_t);
 HT_DEFINE_CLASS(ht_context_menu_icon_button_class, lv_btn_class, lv_btn_t);
 HT_DEFINE_CLASS(ht_context_menu_icon_class, lv_img_class, lv_img_t);
-HT_DEFINE_CLASS(ht_context_menu_title_class, lv_label_class, lv_label_t);
 HT_DEFINE_CLASS(ht_context_menu_nav_row_class, lv_obj_class, lv_obj_t);
 #endif
 
 HT_DEFINE_CLASS(ht_context_menu_roller_class, ht_button_roller_class, lv_obj_t);
 HT_DEFINE_CLASS(ht_context_menu_item_class, ht_button_roller_item_class, lv_btn_t);
-HT_DEFINE_CLASS(ht_context_menu_label_class, ht_button_roller_label_class, lv_label_t);
 #if LV_USE_MENU
 HT_DEFINE_CLASS(ht_context_menu_page_class, lv_menu_page_class, lv_menu_page_t);
 #endif
 
-HT_DEFINE_CLASS(ht_app_background_class, lv_img_class, lv_img_t);
-HT_DEFINE_CLASS(ht_app_overlay_layer_class, lv_obj_class, lv_obj_t);
 HT_DEFINE_CLASS(ht_app_frame_class, lv_obj_class, lv_obj_t);
 HT_DEFINE_CLASS(ht_app_content_class, lv_obj_class, lv_obj_t);
 HT_DEFINE_CLASS(ht_app_screen_host_class, lv_obj_class, lv_obj_t);
@@ -83,9 +77,7 @@ HT_DEFINE_CLASS(ht_navigation_root_class, lv_obj_class, lv_obj_t);
 HT_DEFINE_CLASS(ht_navigation_content_class, lv_obj_class, lv_obj_t);
 #if HELTEC_UI_HAS_TOUCH
 HT_DEFINE_CLASS(ht_navigation_cell_class, lv_obj_class, lv_obj_t);
-HT_DEFINE_CLASS(ht_navigation_icon_area_class, lv_obj_class, lv_obj_t);
 HT_DEFINE_CLASS(ht_navigation_title_bar_class, lv_obj_class, lv_obj_t);
-HT_DEFINE_CLASS(ht_navigation_grid_icon_class, lv_img_class, lv_img_t);
 HT_DEFINE_CLASS(ht_navigation_title_label_class, lv_label_class, lv_label_t);
 #endif
 HT_DEFINE_CLASS(ht_navigation_ring_class, ht_gridNav_class, lv_obj_t);
@@ -106,13 +98,6 @@ HT_DEFINE_CLASS(ht_map_viewport_class, lv_obj_class, lv_obj_t);
 HT_DEFINE_CLASS(ht_map_toolbar_class, lv_obj_class, lv_obj_t);
 HT_DEFINE_CLASS(ht_map_toolbar_button_class, lv_btn_class, lv_btn_t);
 HT_DEFINE_CLASS(ht_map_toolbar_label_class, lv_label_class, lv_label_t);
-HT_DEFINE_CLASS(ht_map_toolbar_dropdown_class, lv_dropdown_class, lv_dropdown_t);
-#if defined(HELTEC_UI_HAS_TOUCH) && HELTEC_UI_HAS_TOUCH
-HT_DEFINE_CLASS(ht_tracker_toolbar_class, ht_map_toolbar_class, lv_obj_t);
-HT_DEFINE_CLASS(ht_tracker_toolbar_button_class, ht_map_toolbar_button_class, lv_btn_t);
-HT_DEFINE_CLASS(ht_tracker_toolbar_label_class, ht_map_toolbar_label_class, lv_label_t);
-#endif
-HT_DEFINE_CLASS(ht_map_layer_class, lv_obj_class, lv_obj_t);
 HT_DEFINE_CLASS(ht_map_tile_class, lv_obj_class, lv_obj_t);
 HT_DEFINE_CLASS(ht_map_marker_class, lv_obj_class, lv_obj_t);
 HT_DEFINE_CLASS(ht_map_tile_placeholder_class, lv_label_class, lv_label_t);
@@ -120,16 +105,12 @@ HT_DEFINE_CLASS(ht_map_marker_label_class, lv_label_class, lv_label_t);
 HT_DEFINE_CLASS(ht_map_range_ring_class, lv_obj_class, lv_obj_t);
 HT_DEFINE_CLASS(ht_map_range_label_class, lv_label_class, lv_label_t);
 #endif
-HT_DEFINE_CLASS(ht_overlay_root_class, lv_obj_class, lv_obj_t);
 HT_DEFINE_CLASS(ht_overlay_bar_class, lv_label_class, lv_label_t);
-HT_DEFINE_CLASS(ht_overlay_header_class, ht_overlay_bar_class, lv_label_t);
-HT_DEFINE_CLASS(ht_overlay_footer_class, ht_overlay_bar_class, lv_label_t);
 HT_DEFINE_CLASS(ht_overlay_feedback_label_class, lv_label_class, lv_label_t);
 HT_DEFINE_CLASS(ht_confirm_text_class, lv_label_class, lv_label_t);
 HT_DEFINE_CLASS(ht_confirm_button_class, lv_btn_class, lv_btn_t);
 
 HT_DEFINE_CLASS(ht_preview_overlay_class, lv_obj_class, lv_obj_t);
-HT_DEFINE_CLASS(ht_preview_metadata_row_class, lv_obj_class, lv_obj_t);
 HT_DEFINE_CLASS(ht_preview_metadata_label_class, lv_label_class, lv_label_t);
 HT_DEFINE_CLASS(ht_preview_origin_class, lv_label_class, lv_label_t);
 HT_DEFINE_CLASS(ht_preview_text_class, lv_label_class, lv_label_t);
@@ -148,9 +129,7 @@ HT_DEFINE_CLASS(ht_radio_sync_row_class, lv_label_class, lv_label_t);
 HT_DEFINE_CLASS(ht_repeat_mode_overlay_class, lv_obj_class, lv_obj_t);
 HT_DEFINE_CLASS(ht_repeat_mode_list_class, lv_obj_class, lv_obj_t);
 #if !defined(HELTEC_UI_HAS_TOUCH) || !HELTEC_UI_HAS_TOUCH
-HT_DEFINE_CLASS(ht_repeat_mode_roller_class, ht_button_roller_class, lv_obj_t);
 HT_DEFINE_CLASS(ht_repeat_mode_item_class, ht_button_roller_item_class, lv_btn_t);
-HT_DEFINE_CLASS(ht_repeat_mode_label_class, ht_button_roller_label_class, lv_label_t);
 #endif
 #if !defined(HELTEC_UI_HAS_TOUCH) || !HELTEC_UI_HAS_TOUCH
 HT_DEFINE_CLASS(ht_send_message_selector_overlay_class, lv_obj_class, lv_obj_t);
@@ -167,10 +146,8 @@ HT_DEFINE_CLASS(ht_send_message_text_row_class, lv_label_class, lv_label_t);
 #if defined(HELTEC_UI_HAS_TOUCH) && HELTEC_UI_HAS_TOUCH
 HT_DEFINE_CLASS(ht_send_message_touch_row_class, ht_container_class, ht_container_t);
 #endif
-HT_DEFINE_CLASS(ht_send_message_label_class, lv_label_class, lv_label_t);
 HT_DEFINE_CLASS(ht_splash_overlay_class, lv_obj_class, lv_obj_t);
 HT_DEFINE_CLASS(ht_splash_logo_class, lv_img_class, lv_img_t);
-HT_DEFINE_CLASS(ht_splash_label_class, lv_label_class, lv_label_t);
 
 #undef HT_DEFINE_CLASS
 
@@ -206,10 +183,6 @@ void ht_label_set_text_copy(lv_obj_t *label, const char *text) {
     if (label) {
         lv_label_set_text(label, text ? text : "");
     }
-}
-
-lv_obj_t *ht_btn_create(const lv_obj_class_t *class_p, lv_obj_t *parent, void *user_data) {
-    return ht_class_create(class_p, parent, user_data);
 }
 
 } // namespace Heltec::MeshCore::Ui

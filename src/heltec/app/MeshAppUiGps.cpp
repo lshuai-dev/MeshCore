@@ -2,6 +2,7 @@
 #include "config/NodePrefs.h"
 #include "MeshAppUi.hpp"
 #include "Target.h"
+#include "app/PowerMgr.hpp"
 #include "ui/core/AppStateNotifier.hpp"
 
 #include <helpers/SensorManager.h>
@@ -39,7 +40,7 @@ bool MeshAppUi::applyGpsPowerPolicy()
 #endif
     // Active friend navigation needs a continuous fix. Keep GPS powered while
     // this screen is foreground even if the backlight times out.
-    const bool find_friend_foreground = _find_friend_foreground_active && find_friend_enabled;
+    const bool find_friend_foreground = _find_friend.foreground_active && find_friend_enabled;
 
     _power.setGpsAllowed(gps_enabled);
     _power.setGpsDemand(Power::GpsDemand::Track, track_active);
@@ -57,9 +58,9 @@ void MeshAppUi::reconcileGpsPower()
 
 void MeshAppUi::setFindFriendForegroundActive(bool active)
 {
-    if (_find_friend_foreground_active != active)
+    if (_find_friend.foreground_active != active)
         resetFindFriendNavState();
-    _find_friend_foreground_active = active;
+    _find_friend.foreground_active = active;
     if (active)
     {
         reconcileGpsPower();

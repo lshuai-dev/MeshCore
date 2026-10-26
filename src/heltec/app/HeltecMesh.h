@@ -145,6 +145,9 @@ class HeltecMesh : public BaseChatMesh, public DataStoreHost
     const char *getNodeName();
     NodePrefs *getNodePrefs();
     uint32_t getBLEPin();
+#ifdef MAX_GROUP_CHANNELS
+    bool getPublicChannel(ChannelDetails &channel, int *channel_index = nullptr);
+#endif
 
     DataStore *getDataStore()
     {

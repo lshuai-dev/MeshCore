@@ -96,7 +96,9 @@ public:
     const uint8_t additionalCount = getAdditionalWakeupPins(
         additionalPins, additionalLevels, sizeof(additionalPins));
 
-    // Configure timer wakeup
+    // A non-zero sleep interval is a safety net for software deadlines such as
+    // Team heartbeats and delayed Mesh transmissions. GPIO interrupts remain
+    // the normal fast wake path.
     if (secs > 0) {
       esp_sleep_enable_timer_wakeup(secs * 1000000ULL); // Wake up periodically to do scheduled jobs
     }

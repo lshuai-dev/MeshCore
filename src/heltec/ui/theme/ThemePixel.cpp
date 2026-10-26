@@ -1,6 +1,7 @@
 #include "ThemePixel.hpp"
 #include "ui/app/BehaviorProfile.hpp"
 #include "ui/theme/UiTheme.hpp"
+#include "ui/theme/ThemeUtil.hpp"
 #include "ui/menus/ContextMenu.hpp"
 #include "ui/navigation/NavigationWidget.hpp"
 #include "ui/theme/WidgetTheme.hpp"
@@ -17,7 +18,7 @@ static lv_style_t s_switch_main_focus;
 static lv_style_t s_switch_indicator;
 static lv_style_t s_switch_indicator_checked;
 static lv_style_t s_switch_knob;
-static lv_style_t s_widget_radius;
+static lv_style_t s_native_button_style;
 static lv_style_t s_cascading_page_style;
 static lv_style_t s_cascading_item_style;
 static lv_style_t s_cascading_item_selected_style;
@@ -27,7 +28,7 @@ static lv_color_t s_color_fg;
 static lv_color_t s_color_border;
 static lv_color_t s_color_on;
 
-static const UiThemeColors kPixelColors = {
+static const ThemePalette kPixelColors = {
     0x142850, // fg
     0x142850, // bg
     0xFFFFFF, // fg_inv
@@ -35,7 +36,6 @@ static const UiThemeColors kPixelColors = {
     0x102040, // panel_dark_bg
     0x3A7BC8, // success
     0xD04040, // error
-    0xE0A030, // warning
     0x00E060, // bat_high
     0xFFB000, // bat_mid
     0xFF3030, // bat_low
@@ -83,14 +83,14 @@ static const UiThemeProfile kPixelWideThemeProfile = {
 
 static void initDeviceStyles(lv_disp_t *disp)
 {
-    ui_set_behavior_profile(&kPixelBehaviorProfile);
+    setBehaviorProfile(&kPixelBehaviorProfile);
 
 #if HELTEC_UI_HAS_TOUCH
     (void)disp;
-    ui_widget_theme_configure(kPixelThemeProfile);
+    configureWidgetTheme(kPixelThemeProfile);
 #else
     const bool wide_display = disp && lv_disp_get_hor_res(disp) >= 200;
-    ui_widget_theme_configure(wide_display ? kPixelWideThemeProfile
+    configureWidgetTheme(wide_display ? kPixelWideThemeProfile
                                            : kPixelNarrowThemeProfile);
 #endif
 }
@@ -101,7 +101,7 @@ static void styleSetBorderFrame(lv_style_t *st)
     lv_style_set_border_width(st, 1);
     lv_style_set_border_color(st, s_color_border);
 #endif
-    lv_style_set_radius(st, ui_widget_radius_px());
+    lv_style_set_radius(st, themePalette().widget_radius_px);
 }
 
 static void initWidgetStyles()
@@ -109,9 +109,9 @@ static void initWidgetStyles()
     if (s_styles_ready)
         return;
 
-    s_color_fg = ui_color_fg();
-    s_color_border = ui_color_panel_border();
-    s_color_on = ui_color_success();
+    s_color_fg = lv_color_hex(themePalette().fg);
+    s_color_border = lv_color_hex(themePalette().panel_border);
+    s_color_on = lv_color_hex(themePalette().success);
 
     lv_style_init(&s_cascading_page_style);
     lv_style_set_width(&s_cascading_page_style, lv_pct(100));
@@ -127,11 +127,11 @@ static void initWidgetStyles()
     lv_style_set_pad_ver(&s_cascading_item_style, 2);
 
     lv_style_init(&s_cascading_item_selected_style);
-    lv_style_set_bg_color(&s_cascading_item_selected_style, ui_color_highlight_bg());
+    lv_style_set_bg_color(&s_cascading_item_selected_style, lv_color_hex(themePalette().highlight_bg));
     lv_style_set_bg_opa(&s_cascading_item_selected_style, LV_OPA_COVER);
-    lv_style_set_text_color(&s_cascading_item_selected_style, ui_color_highlight_fg());
+    lv_style_set_text_color(&s_cascading_item_selected_style, lv_color_hex(themePalette().highlight_fg));
 
-    ui_widget_theme_set_context_menu_roller_styles(
+    setContextMenuRollerStyles(
         {&s_cascading_page_style, &s_cascading_item_style,
          &s_cascading_item_selected_style});
 
@@ -142,7 +142,7 @@ static void initWidgetStyles()
 #endif
     lv_style_set_width(&s_switch_main, 30);
     lv_style_set_height(&s_switch_main, 16);
-    lv_style_set_bg_color(&s_switch_main, ui_color_switch_bg());
+    lv_style_set_bg_color(&s_switch_main, lv_color_hex(themePalette().switch_bg));
     lv_style_set_bg_opa(&s_switch_main, LV_OPA_COVER);
     lv_style_set_pad_all(&s_switch_main, 1);
 
@@ -151,19 +151,19 @@ static void initWidgetStyles()
 #if !HELTEC_UI_HAS_TOUCH
     lv_style_set_border_width(&s_switch_main_focus, 1);
 #endif
-    lv_style_set_border_color(&s_switch_main_focus, ui_color_highlight_fg());
-    lv_style_set_bg_color(&s_switch_main_focus, ui_color_switch_bg());
+    lv_style_set_border_color(&s_switch_main_focus, lv_color_hex(themePalette().highlight_fg));
+    lv_style_set_bg_color(&s_switch_main_focus, lv_color_hex(themePalette().switch_bg));
     lv_style_set_bg_opa(&s_switch_main_focus, LV_OPA_COVER);
 
     lv_style_init(&s_switch_indicator);
-    lv_style_set_radius(&s_switch_indicator, ui_widget_radius_px());
-    lv_style_set_bg_color(&s_switch_indicator, ui_color_switch_indicator());
+    lv_style_set_radius(&s_switch_indicator, themePalette().widget_radius_px);
+    lv_style_set_bg_color(&s_switch_indicator, lv_color_hex(themePalette().switch_indicator));
     lv_style_set_bg_opa(&s_switch_indicator, LV_OPA_COVER);
 
     lv_style_init(&s_switch_indicator_checked);
     lv_style_set_bg_color(&s_switch_indicator_checked, s_color_on);
     lv_style_set_bg_opa(&s_switch_indicator_checked, LV_OPA_COVER);
-    lv_style_set_radius(&s_switch_indicator_checked, ui_widget_radius_px());
+    lv_style_set_radius(&s_switch_indicator_checked, themePalette().widget_radius_px);
 
     lv_style_init(&s_switch_knob);
     lv_style_set_bg_color(&s_switch_knob, s_color_border);
@@ -173,11 +173,10 @@ static void initWidgetStyles()
     lv_style_set_border_color(&s_switch_knob, s_color_fg);
 #endif
     lv_style_set_pad_all(&s_switch_knob, -2);
-    lv_style_set_radius(&s_switch_knob, ui_widget_radius_px());
+    lv_style_set_radius(&s_switch_knob, themePalette().widget_radius_px);
 
-    lv_style_init(&s_widget_radius);
-    lv_style_set_radius(&s_widget_radius, ui_widget_radius_px());
-    lv_style_set_text_color(&s_widget_radius, ui_color_fg());
+    lv_style_init(&s_native_button_style);
+    lv_style_set_radius(&s_native_button_style, themePalette().widget_radius_px);
 
     s_styles_ready = true;
 }
@@ -192,13 +191,13 @@ static void applySwitch(lv_obj_t *obj)
     lv_obj_add_style(obj, &s_switch_knob, LV_PART_KNOB);
 }
 
-extern "C" void ui_pixel_theme_apply(lv_theme_t *th, lv_obj_t *obj)
+void applyPixelTheme(lv_theme_t *th, lv_obj_t *obj)
 {
     if (!obj)
         return;
     (void)th;
 
-    const bool custom_applied = ui_widget_theme_apply(obj);
+    const bool custom_applied = applyWidgetTheme(obj);
 
 #if LV_USE_SWITCH
     if (lv_obj_check_type(obj, &lv_switch_class))
@@ -208,35 +207,37 @@ extern "C" void ui_pixel_theme_apply(lv_theme_t *th, lv_obj_t *obj)
     }
 #endif
 
-    if (!custom_applied)
-        lv_obj_add_style(obj, &s_widget_radius, LV_PART_MAIN);
+    if (!custom_applied && lv_obj_check_type(obj, &lv_btn_class))
+    {
+        lv_obj_add_style(obj, &s_native_button_style, LV_PART_MAIN);
+    }
 }
 
 } // namespace
 
-lv_theme_t *init_ui_pixel_theme(lv_disp_t *disp, const lv_font_t *font)
+lv_theme_t *initPixelTheme(lv_disp_t *disp, const lv_font_t *font)
 {
     if (!disp)
         return nullptr;
-    ui_set_active_theme_colors(&kPixelColors);
+    setThemePalette(&kPixelColors);
     initDeviceStyles(disp);
     initWidgetStyles();
 
     if (!font)
         font = LV_FONT_DEFAULT;
 
-    static UiTheme pixel_theme;
+    static lv_theme_t pixel_theme;
     lv_memset_00(&pixel_theme, sizeof(pixel_theme));
-    pixel_theme.theme.disp = disp;
-    pixel_theme.theme.color_primary = ui_color_accent();
-    pixel_theme.theme.color_secondary = ui_color_bg();
-    pixel_theme.theme.font_small = font;
-    pixel_theme.theme.font_normal = font;
-    pixel_theme.theme.font_large = font;
-    pixel_theme.theme.apply_cb = ui_pixel_theme_apply;
-    ui_set_active_theme_colors(&kPixelColors);
-    lv_disp_set_theme(disp, &pixel_theme.theme);
-    return &pixel_theme.theme;
+    pixel_theme.disp = disp;
+    pixel_theme.color_primary = lv_color_hex(themePalette().accent);
+    pixel_theme.color_secondary = lv_color_hex(themePalette().bg);
+    pixel_theme.font_small = font;
+    pixel_theme.font_normal = font;
+    pixel_theme.font_large = font;
+    pixel_theme.apply_cb = applyPixelTheme;
+    setThemePalette(&kPixelColors);
+    lv_disp_set_theme(disp, &pixel_theme);
+    return &pixel_theme;
 }
 
 } // namespace Heltec::MeshCore::Ui

@@ -6,7 +6,7 @@
 #include "KeyboardOverlay.hpp"
 #include "ui/theme/UiTheme.hpp"
 #include "ui/core/OperationHints.hpp"
-#include "ui/widgets/WidgetClasses.hpp"
+#include "ui/widgets/SemanticClasses.hpp"
 #include "ui/core/UiMessage.hpp"
 
 #if defined(HELTEC_HAS_KEY_FRAME) && HELTEC_HAS_KEY_FRAME
@@ -203,7 +203,7 @@ bool SendMessageOverlay::ensureRowPool()
         lv_obj_set_flex_align(row, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER,
                               LV_FLEX_ALIGN_CENTER);
 
-        lv_obj_t *label = ht_label_create(&ht_send_message_label_class, row);
+        lv_obj_t *label = lv_label_create(row);
         if (!label)
             return false;
         lv_obj_set_width(label, lv_pct(100));

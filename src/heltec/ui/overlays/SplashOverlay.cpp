@@ -2,7 +2,7 @@
 
 #include "heltec/app/HeltecMesh.h"
 #include "heltec/ui/Images.h"
-#include "ui/widgets/WidgetClasses.hpp"
+#include "ui/widgets/SemanticClasses.hpp"
 #if defined(HELTEC_HAS_KEY_FRAME) && HELTEC_HAS_KEY_FRAME
 #include "heltec/drivers/display/DisplayPort.hpp"
 #endif
@@ -45,19 +45,19 @@ bool SplashOverlay::create(_lv_obj_t *parent)
 #else
     lv_img_set_src(logo, &icon_meshcore_log_img);
 #endif
-    lv_obj_t *const version = ht_label_create(&ht_splash_label_class, _root);
+    lv_obj_t *const version = lv_label_create(_root);
     if (!version)
         return false;
     lv_obj_set_width(version, lv_pct(100));
     lv_label_set_long_mode(version, LV_LABEL_LONG_CLIP);
 
-    lv_obj_t *const date = ht_label_create(&ht_splash_label_class, _root);
+    lv_obj_t *const date = lv_label_create(_root);
     if (!date)
         return false;
     lv_obj_set_width(date, lv_pct(100));
     lv_label_set_long_mode(date, LV_LABEL_LONG_CLIP);
 
-    lv_obj_t *const attribution = ht_label_create(&ht_splash_label_class, _root);
+    lv_obj_t *const attribution = lv_label_create(_root);
     if (!attribution)
         return false;
     lv_obj_set_width(attribution, lv_pct(100));

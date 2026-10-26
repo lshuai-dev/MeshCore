@@ -5,7 +5,7 @@
 #include "heltec/ui/map/GeoPoint.hpp"
 #include "heltec/ui/map/MapTileStore.hpp"
 #include "ui/theme/UiTheme.hpp"
-#include "ui/widgets/WidgetClasses.hpp"
+#include "ui/widgets/SemanticClasses.hpp"
 #include "ui/core/UiMessage.hpp"
 
 #include <Arduino.h>
@@ -112,9 +112,9 @@ TrackerScreen::TrackerScreen(Biz::IBizFacade &biz, const char *title, const lv_i
 namespace
 {
 
-constexpr const lv_obj_class_t *kTrackerToolbarClass = &ht_tracker_toolbar_class;
-constexpr const lv_obj_class_t *kTrackerToolbarButtonClass = &ht_tracker_toolbar_button_class;
-constexpr const lv_obj_class_t *kTrackerToolbarLabelClass = &ht_tracker_toolbar_label_class;
+constexpr const lv_obj_class_t *kTrackerToolbarClass = &ht_map_toolbar_class;
+constexpr const lv_obj_class_t *kTrackerToolbarButtonClass = &ht_map_toolbar_button_class;
+constexpr const lv_obj_class_t *kTrackerToolbarLabelClass = &ht_map_toolbar_label_class;
 
 _lv_obj_t *add_tool_btn_label(_lv_obj_t *btn, const char *text)
 {
@@ -376,7 +376,10 @@ void TrackerScreen::refreshMap(bool refresh_sd_tiles)
         return;
     if (refresh_sd_tiles)
         _panel.refreshSdTiles();
-    const Biz::MapPlotUi &plot = _biz.mapPlotUi();
+    uint8_t online_count = 0;
+    const int marker_count =
+        _biz.fillMapPlot(_panel.markerBuffer(), Map::MapPanel::kMaxMarkers, online_count);
+    _panel.commitMarkers(marker_count);
     Biz::IBizFacade::GpsStatus gps = _biz.gpsStatus();
     const bool gps_usable = usable_gps(gps);
     _panel.set_gps((float)gps.lat_deg, (float)gps.lon_deg, gps_usable);
@@ -385,11 +388,10 @@ void TrackerScreen::refreshMap(bool refresh_sd_tiles)
         _panel.centerOnLocation((float)gps.lat_deg, (float)gps.lon_deg);
         _auto_center_on_first_fix = false;
     }
-    _panel.set_markers(plot.markers, plot.marker_count);
     const Biz::IBizFacade::TeamStatus team = _biz.teamStatus();
     _team_member_count_cached = team.has_team ? team.member_count : 0;
-    _team_location_count = plot.marker_count;
-    _team_online_count = plot.online_count;
+    _team_location_count = marker_count;
+    _team_online_count = online_count;
     _panel.refreshOverlays();
 #if defined(HELTEC_GEOFENCE) && HELTEC_GEOFENCE
     syncFenceOverlay();
@@ -495,7 +497,7 @@ void TrackerScreen::onFenceOverlayDraw(lv_event_t *event)
 
     lv_draw_line_dsc_t line_dsc;
     lv_draw_line_dsc_init(&line_dsc);
-    line_dsc.color = ui_color_accent();
+    line_dsc.color = lv_color_hex(themePalette().accent);
     line_dsc.width = 2;
     line_dsc.round_start = true;
     line_dsc.round_end = true;
@@ -528,7 +530,8 @@ void TrackerScreen::onFenceOverlayDraw(lv_event_t *event)
     {
         if (!self->_fence_point_visible[index])
             continue;
-        point_dsc.bg_color = index == 0 ? ui_color_success() : ui_color_accent();
+        point_dsc.bg_color = index == 0 ? lv_color_hex(themePalette().success)
+                                        : lv_color_hex(themePalette().accent);
         const lv_point_t point = absolute_point(self->_fence_points[index]);
         lv_area_t point_area = { static_cast<lv_coord_t>(point.x - 4),
                                  static_cast<lv_coord_t>(point.y - 4),
@@ -990,11 +993,16 @@ bool TrackerScreen::processStartupWork()
         _auto_center_on_first_fix = !gps_usable;
         if (!gps_usable && !_panel.hasSavedCenter())
         {
-            const Biz::MapPlotUi &plot = _biz.mapPlotUi();
-            if (plot.marker_count > 0)
+            uint8_t online_count = 0;
+            const int marker_count =
+                _biz.fillMapPlot(_panel.markerBuffer(), Map::MapPanel::kMaxMarkers,
+                                 online_count);
+            _panel.commitMarkers(marker_count);
+            if (marker_count > 0)
             {
-                _panel.centerOnLocation(static_cast<float>(plot.markers[0].lat_micro) * 1.0e-6f,
-                                        static_cast<float>(plot.markers[0].lon_micro) * 1.0e-6f,
+                const Biz::MapPlotMarker &marker = _panel.markerBuffer()[0];
+                _panel.centerOnLocation(static_cast<float>(marker.lat_micro) * 1.0e-6f,
+                                        static_cast<float>(marker.lon_micro) * 1.0e-6f,
                                         false);
             }
         }
@@ -1224,12 +1232,12 @@ bool TrackerScreen::build()
             lv_obj_add_event_cb(_map_viewport, onMapViewportSizeChanged,
                                 LV_EVENT_SIZE_CHANGED, this);
 
-            _btn_zoom_out = ht_btn_create(kTrackerToolbarButtonClass, _toolbar);
-            _btn_zoom_in = ht_btn_create(kTrackerToolbarButtonClass, _toolbar);
-            _btn_gps = ht_btn_create(kTrackerToolbarButtonClass, _toolbar);
+            _btn_zoom_out = ht_class_create(kTrackerToolbarButtonClass, _toolbar);
+            _btn_zoom_in = ht_class_create(kTrackerToolbarButtonClass, _toolbar);
+            _btn_gps = ht_class_create(kTrackerToolbarButtonClass, _toolbar);
 #if defined(HELTEC_GEOFENCE) && HELTEC_GEOFENCE
-            _btn_fence = ht_btn_create(kTrackerToolbarButtonClass, _toolbar);
-            _btn_fence_delete = ht_btn_create(kTrackerToolbarButtonClass, _toolbar);
+            _btn_fence = ht_class_create(kTrackerToolbarButtonClass, _toolbar);
+            _btn_fence_delete = ht_class_create(kTrackerToolbarButtonClass, _toolbar);
 #endif
             _lv_obj_t *const buttons[] = {
                 _btn_zoom_out,

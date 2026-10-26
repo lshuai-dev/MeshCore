@@ -119,12 +119,12 @@ ArduinoSerialInterface serial_interface;
 #endif
 
 #include "ui/core/UiTask.hpp"
-static Heltec::MeshCore::Ui::UiTask s_ui_task(&serial_interface);
+static Heltec::MeshCore::Ui::UiTask s_uiTask(&serial_interface);
 namespace Heltec::MeshCore::Ui
 {
-UiTask &ui_task()
+UiTask &uiTask()
 {
-    return s_ui_task;
+    return s_uiTask;
 }
 } // namespace Heltec::MeshCore::Ui
 
@@ -134,7 +134,7 @@ StdRNG fast_rng;
 SimpleMeshTables tables;
 
 HeltecMesh the_mesh(radio_driver, fast_rng, rtc_clock, tables, store,
-                    &Heltec::MeshCore::Ui::ui_task());
+                    &Heltec::MeshCore::Ui::uiTask());
 
 /* END GLOBAL OBJECTS */
 
@@ -195,12 +195,12 @@ class ApplicationPowerPort final : public Heltec::MeshCore::Power::PowerRuntimeP
 
     void startShutdownFeedback() override
     {
-        Heltec::MeshCore::Ui::ui_task().startShutdownFeedback();
+        Heltec::MeshCore::Ui::uiTask().startShutdownFeedback();
     }
 
     bool shutdownFeedbackDone() override
     {
-        return Heltec::MeshCore::Ui::ui_task().shutdownFeedbackDone();
+        return Heltec::MeshCore::Ui::uiTask().shutdownFeedbackDone();
     }
 
     void powerOffRadio() override
@@ -230,7 +230,7 @@ class MeshAppRT final : public Heltec::MeshCore::Power::PowerListener
 
     void pollBackend()
     {
-        biz.pollRuntime();
+        biz.poll();
     }
 
     void onPowerChanged(Heltec::MeshCore::Power::PowerChangeMask changes,
@@ -256,7 +256,7 @@ static void requestRadioPresetOverlayIfUnconfigured(bool hasDisplay)
     NodePrefs *p = the_mesh.getNodePrefs();
     if (p && p->lora_band_configured == 0)
     {
-        MeshAppRT::instance().biz.requestRadioParamPresetPicker();
+        MeshAppRT::instance().ui.openRadioParamSyncOverlay();
     }
 }
 
@@ -373,7 +373,7 @@ void setup()
     {
         if (0 == p->companion_link_enabled)
         {
-            Heltec::MeshCore::Ui::ui_task().disableSerial();
+            Heltec::MeshCore::Ui::uiTask().disableSerial();
         }
     }
 #elif defined(RP2040_PLATFORM)
@@ -425,7 +425,7 @@ void setup()
     {
         if (0 == p->companion_link_enabled)
         {
-            Heltec::MeshCore::Ui::ui_task().disableSerial();
+            Heltec::MeshCore::Ui::uiTask().disableSerial();
         }
     }
 #else
@@ -485,7 +485,7 @@ void setup()
         }
     }
 
-    Heltec::MeshCore::Ui::ui_task().begin(the_mesh.getNodePrefs());
+    Heltec::MeshCore::Ui::uiTask().begin(the_mesh.getNodePrefs());
     requestRadioPresetOverlayIfUnconfigured(hasDisplay);
 }
 
@@ -501,9 +501,8 @@ void loop()
     (void)the_mesh.getStableGpsFix(stable_gps);
 #endif
     core.pollBackend();
-    Heltec::MeshCore::Ui::ui_task().loop();
+    Heltec::MeshCore::Ui::uiTask().loop();
     core.ui.tick();
-    core.biz.reconcileGpsPower();
     core.power.loop(millis());
     rtc_clock.tick();
 
@@ -514,7 +513,7 @@ void loop()
 #else
     const auto &power_snapshot = core.power.snapshot();
     const bool peripherals_active = power_snapshot.display_on || power_snapshot.gps_powered ||
-                                    Heltec::MeshCore::Ui::ui_task().isBuzzerPlaying() ||
+                                    Heltec::MeshCore::Ui::uiTask().isBuzzerPlaying() ||
                                     Heltec::MeshCore::Dal::MomentaryButton::hasPendingGesture();
     if (peripherals_active)
     {
@@ -527,9 +526,9 @@ void loop()
 #if defined(PIN_BUZZER) && PIN_BUZZER >= 0
         digitalWrite(PIN_BUZZER, LOW);
 #endif
-        // Event-driven sleep, matching the nRF52 WFE model: LoRa DIO1 and
-        // board GPIO wake sources resume execution; no periodic timer is used.
-        board.sleep(0);
+        // Keep a bounded timer wake in addition to GPIO interrupts. Mesh and
+        // Team deadlines must progress even when the radio and buttons stay idle.
+        board.sleep(1);
     }
 #endif
 }

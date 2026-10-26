@@ -1,6 +1,6 @@
 #include "AlertOverlay.hpp"
 #include "ui/core/UiMessage.hpp"
-#include "ui/widgets/WidgetClasses.hpp"
+#include "ui/widgets/SemanticClasses.hpp"
 
 namespace Heltec::MeshCore::Ui {
 constexpr uint32_t kClickGuardMs = 500;

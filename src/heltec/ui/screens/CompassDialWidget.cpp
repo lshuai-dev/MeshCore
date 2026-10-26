@@ -108,7 +108,7 @@ void draw_touch_dial_face(lv_draw_ctx_t *ctx, lv_coord_t cx, lv_coord_t cy, lv_c
     const lv_point_t marker_points[3] = { marker_a, marker_b, marker_c };
     lv_draw_rect_dsc_t marker;
     lv_draw_rect_dsc_init(&marker);
-    marker.bg_color = ui_color_error();
+    marker.bg_color = lv_color_hex(themePalette().error);
     marker.bg_opa = LV_OPA_COVER;
     marker.border_width = 0;
     lv_draw_triangle(ctx, &marker, marker_points);
@@ -145,7 +145,7 @@ void on_ring_draw(lv_event_t *e)
 #if defined(HELTEC_UI_HAS_TOUCH) && HELTEC_UI_HAS_TOUCH
     const lv_color_t ring_color = lv_color_black();
 #else
-    const lv_color_t ring_color = ui_color_fg_on_dark();
+    const lv_color_t ring_color = lv_color_hex(themePalette().fg_on_dark);
 #endif
     compass_draw_dial_ring(draw_ctx, ax, ay, dial->side, dial->ring_heading_tenths,
                            ring_color);
@@ -192,8 +192,8 @@ void on_needle_draw(lv_event_t *e)
 #if defined(HELTEC_UI_HAS_TOUCH) && HELTEC_UI_HAS_TOUCH
             if (dial->friend_near_target)
             {
-                draw_touch_circle(draw_ctx, ax, ay, 13, ui_color_success(), 2, LV_OPA_50);
-                draw_touch_circle(draw_ctx, ax, ay, 9, ui_color_success(), 1, LV_OPA_80);
+                draw_touch_circle(draw_ctx, ax, ay, 13, lv_color_hex(themePalette().success), 2, LV_OPA_50);
+                draw_touch_circle(draw_ctx, ax, ay, 9, lv_color_hex(themePalette().success), 1, LV_OPA_80);
             }
 #endif
             lv_coord_t diameter = dial->friend_near_target
@@ -212,9 +212,9 @@ void on_needle_draw(lv_event_t *e)
             lv_draw_rect_dsc_t dot;
             lv_draw_rect_dsc_init(&dot);
 #if defined(HELTEC_UI_HAS_TOUCH) && HELTEC_UI_HAS_TOUCH
-            dot.bg_color = dial->friend_near_target ? ui_color_success() : ui_color_accent();
+            dot.bg_color = dial->friend_near_target ? lv_color_hex(themePalette().success) : lv_color_hex(themePalette().accent);
 #else
-            dot.bg_color = ui_color_success();
+            dot.bg_color = lv_color_hex(themePalette().success);
 #endif
             dot.bg_opa = LV_OPA_COVER;
             dot.border_width = 0;

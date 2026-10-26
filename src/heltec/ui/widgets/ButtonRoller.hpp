@@ -1,6 +1,6 @@
 #pragma once
 #include "ui/core/HtGridNav.hpp"
-#include "ui/widgets/WidgetClasses.hpp"
+#include "ui/widgets/SemanticClasses.hpp"
 
 #include <lvgl.h>
 #include <stdint.h>
@@ -13,8 +13,7 @@ class ButtonRoller
   public:
     bool create(lv_obj_t *parent, HtGridNav *navigator,
                 const lv_obj_class_t *root_class = &ht_button_roller_class,
-                const lv_obj_class_t *item_class = &ht_button_roller_item_class,
-                const lv_obj_class_t *label_class = &ht_button_roller_label_class);
+                const lv_obj_class_t *item_class = &ht_button_roller_item_class);
     lv_obj_t *addItem(const char *label);
     bool ensureCapacity(uint8_t count);
     bool showItems(uint8_t count);
@@ -39,7 +38,6 @@ class ButtonRoller
     lv_obj_t *_root = nullptr;
     HtGridNav *_gridNav = nullptr;
     const lv_obj_class_t *_item_class = &ht_button_roller_item_class;
-    const lv_obj_class_t *_label_class = &ht_button_roller_label_class;
     lv_obj_t *itemAt(uint8_t index) const;
 
     uint8_t _active_count = 0;

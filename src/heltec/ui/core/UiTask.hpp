@@ -107,6 +107,6 @@ class UiTask final : public AbstractUITask
 };
 
 // Global singleton instance created in Main.cpp for LVGL builds.
-UiTask &ui_task();
+UiTask &uiTask();
 
 } // namespace Heltec::MeshCore::Ui

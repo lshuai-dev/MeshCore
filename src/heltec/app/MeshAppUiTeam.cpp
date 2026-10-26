@@ -6,6 +6,7 @@
  */
 #include "HeltecMesh.h"
 #include "MeshAppUi.hpp"
+#include "app/TeamConfig.hpp"
 #include "ui/core/UiMessage.hpp"
 #include "ui/core/UiTask.hpp"
 
@@ -120,15 +121,15 @@ void MeshAppUi::pollTeamGeofenceAlerts()
     {
         snprintf(message, sizeof(message), "%.*s outside fence",
                  static_cast<int>(alert.name_len), alert.name);
-        Heltec::MeshCore::Ui::ui_task().showAlert(message, 3000);
-        Heltec::MeshCore::Ui::ui_task().playAlertFeedback();
+        Heltec::MeshCore::Ui::uiTask().showAlert(message, 3000);
+        Heltec::MeshCore::Ui::uiTask().playAlertFeedback();
     }
     else if (alert.result == Team::GeofenceMemberResult::AlarmCleared)
     {
         snprintf(message, sizeof(message), "%.*s back inside",
                  static_cast<int>(alert.name_len), alert.name);
-        Heltec::MeshCore::Ui::ui_task().showAlert(message, 1800);
-        Heltec::MeshCore::Ui::ui_task().playAlertFeedback();
+        Heltec::MeshCore::Ui::uiTask().showAlert(message, 1800);
+        Heltec::MeshCore::Ui::uiTask().playAlertFeedback();
     }
 #endif
 }
@@ -214,7 +215,6 @@ bool MeshAppUi::teamSetRole(bool leader)
 {
 #if defined(ENV_INCLUDE_GPS) && ENV_INCLUDE_GPS
     teamCancel();
-    (void)teamLeave();
     const auto role = leader ? Heltec::MeshCore::Team::TeamRole::Leader
                              : Heltec::MeshCore::Team::TeamRole::Member;
     const bool changed = the_mesh.teamService().setRole(role);
@@ -235,7 +235,7 @@ bool MeshAppUi::teamSetActive(bool active)
     if (!active)
         return teamLeave();
     auto &team = the_mesh.teamService();
-    return team.hasTeam() ? team.setEnabled(true) : team.createTeam(the_mesh.getNodeName());
+    return team.hasTeam() || team.createTeam(the_mesh.getNodeName());
 #else
     (void)active;
     return false;

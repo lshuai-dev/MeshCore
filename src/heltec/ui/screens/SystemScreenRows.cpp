@@ -2,7 +2,7 @@
 
 #include "ui/theme/UiTheme.hpp"
 #include "ui/widgets/HtContainer.hpp"
-#include "ui/widgets/WidgetClasses.hpp"
+#include "ui/widgets/SemanticClasses.hpp"
 #include "ui/theme/WidgetTheme.hpp"
 #if defined(HELTEC_HAS_KEY_FRAME) && HELTEC_HAS_KEY_FRAME
 #include "heltec/drivers/display/DisplayPort.hpp"
@@ -212,7 +212,7 @@ void SystemScreen::addBuzzerVolumeButton(_lv_obj_t *parent, const char *text,
 {
     if (!parent || !out_button)
         return;
-    _lv_obj_t *const button = ht_btn_create(&ht_volume_button_class, parent);
+    _lv_obj_t *const button = ht_class_create(&ht_volume_button_class, parent);
     if (!button)
         return;
     lv_obj_set_size(button, 26, 24);

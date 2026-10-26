@@ -1,6 +1,6 @@
 #include "ConfirmOverlay.hpp"
 #include "ui/core/OperationHints.hpp"
-#include "ui/widgets/WidgetClasses.hpp"
+#include "ui/widgets/SemanticClasses.hpp"
 
 #include <lvgl.h>
 
@@ -77,7 +77,7 @@ bool ConfirmOverlay::build()
 
     const auto create_button = [this, button_row](const char *label_text) -> _lv_obj_t *
     {
-        _lv_obj_t *const button = ht_btn_create(&ht_confirm_button_class, button_row);
+        _lv_obj_t *const button = ht_class_create(&ht_confirm_button_class, button_row);
         if (!button)
         {
             return nullptr;
@@ -101,7 +101,7 @@ bool ConfirmOverlay::build()
     }
 #else
     _lv_obj_t *const key_hint = ht_label_create(
-        &ht_overlay_footer_class, actionsHost(), OperationHint::kDestructiveConfirm);
+        &ht_overlay_bar_class, actionsHost(), OperationHint::kDestructiveConfirm);
     if (key_hint)
     {
         lv_obj_set_width(key_hint, lv_pct(100));

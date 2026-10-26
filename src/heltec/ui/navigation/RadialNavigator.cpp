@@ -6,7 +6,7 @@
 #include "ui/theme/UiTheme.hpp"
 #include "ui/core/UiMessage.hpp"
 #include "ui/core/Scheduler.hpp"
-#include "ui/widgets/WidgetClasses.hpp"
+#include "ui/widgets/SemanticClasses.hpp"
 #include "ui/navigation/NavigationWidget.hpp"
 #include "ui/theme/WidgetTheme.hpp"
 
@@ -137,7 +137,7 @@ bool RadialNavigator::panelVisible() const {
 }
 
 void RadialNavigator::clearAnimations() {
-    ui_motion_cancel(this);
+    cancelMotion(this);
 }
 
 void RadialNavigator::invalidateSlotCache() {
@@ -162,7 +162,7 @@ void RadialNavigator::layoutRing(bool animate, bool snap_theta, bool update_emph
     if (n == 0 || !_nav) return;
     rebuildSlotCache(n);
 
-    const UiNavigationBehavior &behavior = ui_behavior_profile().navigation;
+    const UiNavigationBehavior &behavior = behaviorProfile().navigation;
     const uint8_t focus = focusedIndex();
     const uint8_t focus_slot = focusedSlot();
     const float target_abs =
@@ -203,7 +203,7 @@ void RadialNavigator::layoutRing(bool animate, bool snap_theta, bool update_emph
         motion.end_value = static_cast<int32_t>(roundf(target * 1000.f));
         motion.duration_ms = ms;
         motion.path = UiMotionPath::EaseInOut;
-        if (ui_motion_start(motion)) return;
+        if (startMotion(motion)) return;
         _ring_theta = target;
         _emphasis_index = focus;
     }

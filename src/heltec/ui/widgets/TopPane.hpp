@@ -1,6 +1,5 @@
 #pragma once
-#include "ui/theme/ThemeProfile.hpp"
-#include "ui/widgets/WidgetClasses.hpp"
+#include "ui/widgets/SemanticClasses.hpp"
 
 #include <lvgl.h>
 #include <stdint.h>

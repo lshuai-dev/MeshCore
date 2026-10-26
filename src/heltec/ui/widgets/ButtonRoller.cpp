@@ -3,7 +3,7 @@
 #include "MeshCore.h"
 #include "ui/app/BehaviorProfile.hpp"
 #include "ui/theme/UiTheme.hpp"
-#include "ui/widgets/WidgetClasses.hpp"
+#include "ui/widgets/SemanticClasses.hpp"
 #include "ui/core/Scheduler.hpp"
 #include "ui/theme/WidgetTheme.hpp"
 #if defined(HELTEC_HAS_KEY_FRAME) && HELTEC_HAS_KEY_FRAME
@@ -50,7 +50,7 @@ void ButtonRoller::layoutItems(uint8_t focus_index, lv_anim_enable_t anim, bool 
         lv_obj_t *const focused_item = itemAt(focus_index);
         if (focused_item)
         {
-            const uint16_t ms = ui_behavior_profile().context_menu.page_anim_ms;
+            const uint16_t ms = behaviorProfile().context_menu.page_anim_ms;
             auto const anim_set_y =
                 +[](void *obj, int32_t v) { lv_obj_set_y(static_cast<lv_obj_t *>(obj), v); };
 
@@ -119,7 +119,7 @@ void ButtonRoller::layoutItems(uint8_t focus_index, lv_anim_enable_t anim, bool 
                 }
                 else
                 {
-                    ui_motion_cancel(item, anim_set_y);
+                    cancelMotion(item, anim_set_y);
                     lv_obj_add_flag(item, LV_OBJ_FLAG_HIDDEN);
                 }
             }
@@ -134,7 +134,7 @@ void ButtonRoller::layoutItems(uint8_t focus_index, lv_anim_enable_t anim, bool 
                 lv_obj_t *const item = itemAt(static_cast<uint8_t>(index));
                 if (!item)
                     continue;
-                ui_motion_cancel(item, anim_set_y);
+                cancelMotion(item, anim_set_y);
                 if (anim == LV_ANIM_OFF || ms == 0)
                 {
                     lv_obj_set_y(item, target_y);
@@ -159,7 +159,7 @@ void ButtonRoller::layoutItems(uint8_t focus_index, lv_anim_enable_t anim, bool 
                 motion.start_value = lv_obj_get_y(item);
                 motion.end_value = target_y;
                 motion.duration_ms = ms;
-                if (!ui_motion_start(motion))
+                if (!startMotion(motion))
                 {
                     lv_obj_set_y(item, target_y);
                     if (is_checked && 0 == i)
@@ -181,11 +181,11 @@ lv_obj_t *ButtonRoller::addItem(const char *label)
     if (!_root || lv_obj_get_child_cnt(_root) >= kMaxItems || !_gridNav)
         return nullptr;
 
-    lv_obj_t *const btn = ht_btn_create(_item_class, _root);
+    lv_obj_t *const btn = ht_class_create(_item_class, _root);
     if (!btn)
         return nullptr;
     lv_obj_set_width(btn, lv_pct(100));
-    lv_obj_t *const lbl = ht_label_create(_label_class, btn);
+    lv_obj_t *const lbl = lv_label_create(btn);
     if (lbl)
     {
         // Menu builders may pass a temporary formatting buffer. Copy it once
@@ -289,8 +289,7 @@ bool ButtonRoller::setItemLabelStatic(uint8_t index, const char *label)
 
 bool ButtonRoller::create(lv_obj_t *parent, HtGridNav *navigator,
                           const lv_obj_class_t *root_class,
-                          const lv_obj_class_t *item_class,
-                          const lv_obj_class_t *label_class)
+                          const lv_obj_class_t *item_class)
 {
     if (!parent || !navigator)
         return false;
@@ -299,7 +298,6 @@ bool ButtonRoller::create(lv_obj_t *parent, HtGridNav *navigator,
 
     _gridNav = navigator;
     _item_class = item_class ? item_class : &ht_button_roller_item_class;
-    _label_class = label_class ? label_class : &ht_button_roller_label_class;
     _root = ht_class_create(root_class ? root_class : &ht_button_roller_class, parent);
     if (!_root)
         return false;

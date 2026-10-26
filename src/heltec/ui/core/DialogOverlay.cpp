@@ -1,5 +1,5 @@
 #include "DialogOverlay.hpp"
-#include "ui/widgets/WidgetClasses.hpp"
+#include "ui/widgets/SemanticClasses.hpp"
 
 #include <lvgl.h>
 
@@ -59,7 +59,7 @@ bool DialogOverlay::build()
 
     if (_options.has_title)
     {
-        _title = ht_class_create(&ht_overlay_header_class, _panel);
+        _title = ht_class_create(&ht_overlay_bar_class, _panel);
         if (!_title)
         {
             return false;

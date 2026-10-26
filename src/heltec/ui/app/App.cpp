@@ -11,7 +11,7 @@
 #include "ui/app/ScreenId.hpp"
 #include "ui/core/Surface.hpp"
 #include "ui/core/UiTask.hpp"
-#include "ui/widgets/WidgetClasses.hpp"
+#include "ui/widgets/SemanticClasses.hpp"
 #include "ui/menus/ContextMenu.hpp"
 #include "ui/navigation/NavigationWidget.hpp"
 #include "ui/overlays/SplashOverlay.hpp"
@@ -189,7 +189,7 @@ bool UiApp::init() {
     if (!disp) {
         return false;
     }
-    if (!Heltec::MeshCore::Ui::ui_theme_init(disp)) {
+    if (!Heltec::MeshCore::Ui::initUiTheme(disp)) {
         return false;
     }
     if (!initTimers()) {
@@ -197,21 +197,22 @@ bool UiApp::init() {
     }
 
     lv_obj_clear_flag(scr, LV_OBJ_FLAG_SCROLLABLE);
-    ui_app_active_screen_apply_theme(scr);
+    applyActiveScreenTheme(scr);
 #if HELTEC_UI_HAS_TOUCH
-    lv_obj_t *bg = ht_class_create(&ht_app_background_class, scr);
+    lv_obj_t *bg = lv_img_create(scr);
     if (bg) {
+        lv_obj_remove_style_all(bg);
         lv_obj_set_pos(bg, 0, 0);
         lv_obj_clear_flag(bg, LV_OBJ_FLAG_SCROLLABLE | LV_OBJ_FLAG_CLICKABLE);
         lv_obj_move_background(bg);
         lv_img_set_src(bg, &ui_background_img);
     }
 #endif
-    lv_obj_t *const overlay_layer =
-        ht_class_create(&ht_app_overlay_layer_class, lv_layer_top());
+    lv_obj_t *const overlay_layer = lv_obj_create(lv_layer_top());
     if (!overlay_layer) {
         return false;
     }
+    lv_obj_remove_style_all(overlay_layer);
     lv_obj_set_size(overlay_layer, lv_pct(100), lv_pct(100));
     lv_obj_clear_flag(overlay_layer, LV_OBJ_FLAG_SCROLLABLE | LV_OBJ_FLAG_CLICKABLE);
 
@@ -345,7 +346,7 @@ void UiApp::handleFrameEvent(lv_event_t *e) {
         _confirmOvl.setRequest(*request);
         if (!_surfaces.isVisible(&_confirmOvl) && !_surfaces.show(&_confirmOvl)) {
             _confirm_reply = nullptr;
-            ui_task().showAlert("Unable to open confirmation", 2000);
+            uiTask().showAlert("Unable to open confirmation", 2000);
         }
         break;
     }
@@ -358,7 +359,7 @@ void UiApp::handleFrameEvent(lv_event_t *e) {
         _confirm_reply = nullptr;
         if (_surfaces.show(&_confirmOvl, false) && !_surfaces.isVisible(&_confirmOvl)) {
             if (accepted_action == UiConfirmAction::TeamJoin) {
-                ui_task().showAlert(_biz.teamDecidePending(team_session, true)
+                uiTask().showAlert(_biz.teamDecidePending(team_session, true)
                                    ? "Member approved"
                                    : "Request expired or send failed",
                                2000);
@@ -366,7 +367,7 @@ void UiApp::handleFrameEvent(lv_event_t *e) {
             }
             if (accepted_action == UiConfirmAction::TeamLeave) {
                 const bool ok = _biz.teamLeave();
-                ui_task().showAlert(ok ? "Team updated" : "Team update failed", 2000);
+                uiTask().showAlert(ok ? "Team updated" : "Team update failed", 2000);
                 break;
             }
             if (reply && lv_obj_is_valid(reply)) {
@@ -455,20 +456,20 @@ void UiApp::handleFrameEvent(lv_event_t *e) {
         break;
 #endif
     case UiMessageType::PreviewNext:
-        (void)ui_task().advancePreview();
+        (void)uiTask().advancePreview();
         break;
     case UiMessageType::PreviewClose:
-        ui_task().dismissPreview();
+        uiTask().dismissPreview();
         break;
     case UiMessageType::AlertOpen: {
         const auto *request = static_cast<const UiAlertRequest *>(event->payload);
         if (request && request->text) {
-            ui_task().showAlert(request->text, request->duration_ms);
+            uiTask().showAlert(request->text, request->duration_ms);
         }
         break;
     }
     case UiMessageType::AlertClose:
-        ui_task().dismissAlert();
+        uiTask().dismissAlert();
         break;
     case UiMessageType::RadioSyncClose:
         closeRadioParamSyncOverlay();
@@ -595,16 +596,16 @@ void UiApp::handleAppStateEvent(const AppStateEvent &event) {
         refreshTopPaneStatus(true);
     }
     if (event.type == AppStateEventType::PreviewChanged) {
-        if (ui_task().isPreviewActive()) {
-            openPreviewOverlay(ui_task().previewUnread(), ui_task().previewReceivedMillis(),
-                               ui_task().previewOrigin(), ui_task().previewText());
+        if (uiTask().isPreviewActive()) {
+            openPreviewOverlay(uiTask().previewUnread(), uiTask().previewReceivedMillis(),
+                               uiTask().previewOrigin(), uiTask().previewText());
         } else {
             (void)_surfaces.show(&_previewOvl, false);
         }
     }
     if (event.type == AppStateEventType::AlertChanged) {
-        if (ui_task().isAlertActive()) {
-            openAlertOverlay(ui_task().getAlertText());
+        if (uiTask().isAlertActive()) {
+            openAlertOverlay(uiTask().getAlertText());
         } else {
             (void)_surfaces.show(&_alertOvl, false);
         }
@@ -733,7 +734,7 @@ bool UiApp::initScreens(_lv_obj_t *content) {
 }
 
 bool UiApp::initTimers() {
-    if (!ui_motion_init()) return false;
+    if (!initMotion()) return false;
     if (!_app_state_dispatcher.createTimer()) return false;
     if (!_nav_auto_commit_timer) {
         _nav_auto_commit_timer = lv_timer_create(navigationAutoCommitTimerCb, 1U, this);

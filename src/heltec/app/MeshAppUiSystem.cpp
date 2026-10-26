@@ -34,7 +34,7 @@ bool MeshAppUi::factoryReset()
     if (!ds)
         return false;
 
-    Heltec::MeshCore::Ui::ui_task().disableSerial();
+    Heltec::MeshCore::Ui::uiTask().disableSerial();
 #if defined(ENV_INCLUDE_GPS) && ENV_INCLUDE_GPS
     the_mesh.teamJoinService().closeJoinWindow();
     if (the_mesh.teamService().hasTeam() && !the_mesh.teamService().leaveTeam())
@@ -61,10 +61,10 @@ bool MeshAppUi::clearUserData()
         return false;
 
 #if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
-    _ff_target_contact_idx = -1;
+    _find_friend.target_contact_index = -1;
 #endif
 
-    Heltec::MeshCore::Ui::ui_task().setMessageCount(0);
+    Heltec::MeshCore::Ui::uiTask().setMessageCount(0);
 
     return true;
 }
@@ -114,17 +114,17 @@ const char *MeshAppUi::displayAutoOffOptionLabel(int index) const
 
 bool MeshAppUi::isLnaCanControl() const
 {
-    return Heltec::MeshCore::Ui::ui_task().isLnaCanControl();
+    return Heltec::MeshCore::Ui::uiTask().isLnaCanControl();
 }
 
 bool MeshAppUi::lnaEnabled() const
 {
-    return Heltec::MeshCore::Ui::ui_task().lnaEnabled();
+    return Heltec::MeshCore::Ui::uiTask().lnaEnabled();
 }
 
 bool MeshAppUi::setLnaEnabled(bool enabled)
 {
-    if (!Heltec::MeshCore::Ui::ui_task().setLnaEnabled(enabled))
+    if (!Heltec::MeshCore::Ui::uiTask().setLnaEnabled(enabled))
         return false;
     notifyAppState(Heltec::MeshCore::Ui::AppStateEventType::ConfigChanged);
     return true;

@@ -1,34 +1,17 @@
 #include "MeshAppUi.hpp"
 
 #include "HeltecMesh.h"
+#include "app/PowerMgr.hpp"
 #include "ui/core/AppStateNotifier.hpp"
-#include "ui/core/UiTask.hpp"
+
+#include <Arduino.h>
 
 namespace Heltec::MeshCore::Biz
 {
 
-MeshAppUi::MeshAppUi(Heltec::MeshCore::Power::PowerMgr &power) : _power(power)
-{
-    Heltec::MeshCore::Ui::app_state_notifier().bind(handleAppStateEvent, this);
-}
+MeshAppUi::MeshAppUi(Heltec::MeshCore::Power::PowerMgr &power) : _power(power) {}
 
-void MeshAppUi::handleAppStateEvent(void *user_data,
-                                    const Heltec::MeshCore::Ui::AppStateEvent &event)
-{
-    auto *const app = static_cast<MeshAppUi *>(user_data);
-    if (!app || event.type != Heltec::MeshCore::Ui::AppStateEventType::GpsChanged)
-    {
-        return;
-    }
-#if defined(ENV_INCLUDE_GPS) && ENV_INCLUDE_GPS
-    const GpsStatus gps = app->gpsStatus();
-    the_mesh.teamService().notifyLocationChanged(
-        gps.fix_valid, static_cast<int32_t>(gps.lat_micro),
-        static_cast<int32_t>(gps.lon_micro));
-#endif
-}
-
-void MeshAppUi::pollRuntime()
+void MeshAppUi::poll()
 {
     pollGpsTrack();
     pollRadioStatus();
@@ -36,18 +19,32 @@ void MeshAppUi::pollRuntime()
     pollTeamGeofenceAlerts();
 #endif
 #if defined(ENV_INCLUDE_GPS) && ENV_INCLUDE_GPS
-    // Non-overlapping fields: simultaneous changes must not cancel each other.
-    const uint32_t team_fingerprint =
-        static_cast<uint32_t>(the_mesh.teamService().changeSequence()) |
-        (static_cast<uint32_t>(the_mesh.teamJoinService().state()) << 16) |
-        (static_cast<uint32_t>(the_mesh.teamJoinService().offerCount()) << 24) |
-        (the_mesh.teamJoinService().joinWindowOpen() ? 0x40000000UL : 0UL) |
-        (the_mesh.teamService().locationShareEnabled() ? 0x20000000UL : 0UL) |
-        (the_mesh.teamService().enabled() ? 0x80000000UL : 0UL);
-    if (!_team_runtime_fingerprint_valid || team_fingerprint != _team_runtime_fingerprint)
+    constexpr uint32_t kTeamPollPeriodMs = 500U;
+    const uint32_t now_ms = millis();
+    if (_team_runtime_valid &&
+        static_cast<uint32_t>(now_ms - _team_runtime_poll_ms) < kTeamPollPeriodMs)
     {
-        _team_runtime_fingerprint = team_fingerprint;
-        _team_runtime_fingerprint_valid = true;
+        return;
+    }
+    _team_runtime_poll_ms = now_ms;
+
+    const GpsStatus gps = gpsStatus();
+    the_mesh.teamService().notifyLocationChanged(
+        gps.fix_valid, static_cast<int32_t>(gps.lat_micro),
+        static_cast<int32_t>(gps.lon_micro));
+
+    TeamRuntimeState current{};
+    current.sequence = the_mesh.teamService().changeSequence();
+    current.join_state = static_cast<uint8_t>(the_mesh.teamJoinService().state());
+    current.offer_count = static_cast<uint8_t>(the_mesh.teamJoinService().offerCount());
+    current.flags = static_cast<uint8_t>(
+        (the_mesh.teamJoinService().joinWindowOpen() ? 0x01U : 0U) |
+        (the_mesh.teamService().locationShareEnabled() ? 0x02U : 0U) |
+        (the_mesh.teamService().enabled() ? 0x04U : 0U));
+    if (!_team_runtime_valid || !(current == _team_runtime))
+    {
+        _team_runtime = current;
+        _team_runtime_valid = true;
         notifyAppState(Heltec::MeshCore::Ui::AppStateEventType::TeamChanged);
         notifyAppState(Heltec::MeshCore::Ui::AppStateEventType::FindFriendChanged);
     }
@@ -71,8 +68,9 @@ void MeshAppUi::notifyAppState(Heltec::MeshCore::Ui::AppStateEventType type)
 }
 
 #if !defined(ENV_INCLUDE_COMPASS) || !(ENV_INCLUDE_COMPASS)
-void MeshAppUi::syncCompassCache() const
+CompassUi MeshAppUi::compassUi() const
 {
+    return CompassUi{};
 }
 bool MeshAppUi::compassHasHardware() const
 {

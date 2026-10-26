@@ -5,7 +5,7 @@
 #include "MapTileStore.hpp"
 #include "ui/theme/UiTheme.hpp"
 #include "ui/core/BizFacade.hpp"
-#include "ui/widgets/WidgetClasses.hpp"
+#include "ui/widgets/SemanticClasses.hpp"
 #include "ui/theme/WidgetTheme.hpp"
 
 #include <Arduino.h>
@@ -312,9 +312,9 @@ void MapPanel::attach(_lv_obj_t *viewport)
     _markers_built = 0;
     _tile_build_failed = false;
     _marker_build_failed = false;
-    _tile_layer = ht_class_create(&ht_map_layer_class, _viewport);
-    _range_layer = ht_class_create(&ht_map_layer_class, _viewport);
-    _marker_layer = ht_class_create(&ht_map_layer_class, _viewport);
+    _tile_layer = lv_obj_create(_viewport);
+    _range_layer = lv_obj_create(_viewport);
+    _marker_layer = lv_obj_create(_viewport);
     if (!_tile_layer || !_range_layer || !_marker_layer)
     {
         if (_tile_layer)
@@ -353,7 +353,8 @@ void MapPanel::attach(_lv_obj_t *viewport)
         {
             lv_obj_clear_flag(_range_rings[i], LV_OBJ_FLAG_SCROLLABLE | LV_OBJ_FLAG_CLICKABLE);
             lv_obj_add_flag(_range_rings[i], LV_OBJ_FLAG_HIDDEN);
-            ui_map_range_ring_apply_opa(_range_rings[i], (lv_opa_t)(LV_OPA_COVER - (i * 18)));
+            const lv_opa_t opacity = static_cast<lv_opa_t>(LV_OPA_COVER - (i * 18));
+            lv_obj_set_style_border_opa(_range_rings[i], effectiveOpacity(opacity), LV_PART_MAIN);
         }
         _range_labels[i] = ht_label_create(&ht_map_range_label_class, _range_layer);
         if (_range_labels[i])
@@ -1010,6 +1011,9 @@ bool MapPanel::locationToPoint(float latitude, float longitude, lv_point_t &poin
     {
         return false;
     }
+    lv_obj_remove_style_all(_tile_layer);
+    lv_obj_remove_style_all(_range_layer);
+    lv_obj_remove_style_all(_marker_layer);
 
     GeoPoint location(latitude, longitude, _scrolled.zoom_level);
     const uint32_t world_tiles = 1U << clampMapZoom(_scrolled.zoom_level);
@@ -1025,36 +1029,40 @@ bool MapPanel::locationToPoint(float latitude, float longitude, lv_point_t &poin
     return true;
 }
 
-void MapPanel::set_markers(const Heltec::MeshCore::Biz::MapPlotMarker *markers, int count)
+void MapPanel::commitMarkers(int count)
 {
-    int n = (markers && count > 0) ? count : 0;
+    int n = count > 0 ? count : 0;
     if (n > kMaxMarkers)
         n = kMaxMarkers;
-    bool unchanged = n == _marker_count;
-    for (int i = 0; unchanged && i < n; ++i)
+
+    uint32_t hash = 2166136261UL;
+    const auto addByte = [&hash](uint8_t value)
     {
-        const auto &src = markers[i];
-        const auto &cached = _marker_data[i];
-        unchanged = strcmp(src.label, cached.label) == 0 &&
-                    src.alarm_active == cached.alarm_active &&
-                    src.is_self == cached.is_self &&
-                    memcmp(src.pub_key_prefix, cached.pub_key_prefix, 6) == 0 &&
-                    (src.is_self ||
-                     (src.lat_micro == cached.lat_micro && src.lon_micro == cached.lon_micro));
+        hash = (hash ^ value) * 16777619UL;
+    };
+    addByte(static_cast<uint8_t>(n));
+    for (int i = 0; i < n; ++i)
+    {
+        const auto &marker = _marker_data[i];
+        const uint8_t *const latitude = reinterpret_cast<const uint8_t *>(&marker.lat_micro);
+        const uint8_t *const longitude = reinterpret_cast<const uint8_t *>(&marker.lon_micro);
+        for (size_t j = 0; j < sizeof(marker.lat_micro); ++j)
+        {
+            addByte(latitude[j]);
+            addByte(longitude[j]);
+        }
+        for (uint8_t value : marker.pub_key_prefix)
+            addByte(value);
+        for (char value : marker.label)
+            addByte(static_cast<uint8_t>(value));
+        addByte(marker.is_self ? 1U : 0U);
+        addByte(marker.alarm_active ? 1U : 0U);
     }
-    if (unchanged)
+    if (n == _marker_count && hash == _marker_hash)
         return;
 
     _marker_count = n;
-    for (int i = 0; i < _marker_count; ++i)
-    {
-        _marker_data[i].lat_micro = markers[i].lat_micro;
-        _marker_data[i].lon_micro = markers[i].lon_micro;
-        memcpy(_marker_data[i].pub_key_prefix, markers[i].pub_key_prefix, 6);
-        snprintf(_marker_data[i].label, sizeof(_marker_data[i].label), "%s", markers[i].label);
-        _marker_data[i].is_self = markers[i].is_self;
-        _marker_data[i].alarm_active = markers[i].alarm_active;
-    }
+    _marker_hash = hash;
     markDirty(DirtyMarkers);
 }
 

@@ -1,5 +1,5 @@
 #include "NavigationWidget.hpp"
-#include "ui/widgets/WidgetClasses.hpp"
+#include "ui/widgets/SemanticClasses.hpp"
 #include <lvgl.h>
 
 namespace
@@ -10,7 +10,7 @@ static bool is_grid_navigation(lv_obj_t *obj)
     return obj && lv_obj_check_type(obj, &Heltec::MeshCore::Ui::ht_gridNav_class);
 }
 
-static _lv_obj_t *ui_gridNav_create_grid_impl(_lv_obj_t *parent)
+static _lv_obj_t *createGridNavGridImpl(_lv_obj_t *parent)
 {
     if (!parent)
         return nullptr;
@@ -57,17 +57,17 @@ const lv_obj_class_t ht_gridNav_class = {
     sizeof(lv_obj_t),
 };
 
-_lv_obj_t *ui_gridNav_create_grid(_lv_obj_t *parent)
+_lv_obj_t *createGridNavGrid(_lv_obj_t *parent)
 {
 #if HELTEC_UI_HAS_TOUCH
-    return ui_gridNav_create_grid_impl(parent);
+    return createGridNavGridImpl(parent);
 #else
     (void)parent;
     return nullptr;
 #endif
 }
 
-_lv_obj_t *ui_gridNav_content(_lv_obj_t *obj)
+_lv_obj_t *gridNavContent(_lv_obj_t *obj)
 {
     if (!is_grid_navigation(obj))
         return nullptr;

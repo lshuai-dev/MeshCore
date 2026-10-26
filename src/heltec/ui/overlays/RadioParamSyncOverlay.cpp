@@ -2,7 +2,7 @@
 
 #include "config/LoraBandPresets.h"
 #include "heltec/ui/core/BizFacade.hpp"
-#include "ui/widgets/WidgetClasses.hpp"
+#include "ui/widgets/SemanticClasses.hpp"
 #include "ui/core/OperationHints.hpp"
 #include "ui/core/UiMessage.hpp"
 #include "ui/theme/WidgetTheme.hpp"

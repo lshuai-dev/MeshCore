@@ -23,7 +23,7 @@
 #if defined(LV_CONF_SKIP) && LV_CONF_SKIP && HELTEC_LICENSE_BOOT_GATE
 #include "heltec/drivers/display/DisplayPort.hpp"
 #include "heltec/drivers/input/MomentaryButton.hpp"
-#include "ui/widgets/WidgetClasses.hpp"
+#include "ui/widgets/SemanticClasses.hpp"
 
 #include <lvgl.h>
 #endif

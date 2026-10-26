@@ -1,5 +1,5 @@
 #include "FramedOverlay.hpp"
-#include "ui/widgets/WidgetClasses.hpp"
+#include "ui/widgets/SemanticClasses.hpp"
 
 namespace Heltec::MeshCore::Ui {
 FramedOverlay::FramedOverlay(Biz::IBizFacade &biz, const lv_obj_class_t *content_class)
@@ -25,7 +25,7 @@ bool FramedOverlay::build() {
 }
 
 bool FramedOverlay::buildHeader() {
-    _header = lv_obj_class_create_obj(&ht_overlay_header_class, _root);
+    _header = lv_obj_class_create_obj(&ht_overlay_bar_class, _root);
     if (_header == nullptr) {
         return false;
     }
@@ -54,7 +54,7 @@ bool FramedOverlay::buildContent() {
 }
 
 bool FramedOverlay::buildFooter() {
-    _footer = lv_obj_class_create_obj(&ht_overlay_footer_class, _root);
+    _footer = lv_obj_class_create_obj(&ht_overlay_bar_class, _root);
     if (_footer == nullptr) {
         return false;
     }

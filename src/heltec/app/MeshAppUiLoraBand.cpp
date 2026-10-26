@@ -2,18 +2,12 @@
 #include "config/LoraBandPresets.h"
 #include "config/NodePrefs.h"
 #include "MeshAppUi.hpp"
-#include "ui/app/App.hpp"
 
 #include <Arduino.h>
 #include <Target.h>
 
 namespace Heltec::MeshCore::Biz
 {
-
-void MeshAppUi::requestRadioParamPresetPicker()
-{
-    Heltec::MeshCore::Ui::UiApp::instance().openRadioParamSyncOverlay();
-}
 
 void MeshAppUi::setLoRaBandPresetIndex(int preset_index)
 {

@@ -26,7 +26,7 @@ struct UiBehaviorProfile
     UiNavigationBehavior navigation;
 };
 
-const UiBehaviorProfile &ui_behavior_profile();
-void ui_set_behavior_profile(const UiBehaviorProfile *profile);
+const UiBehaviorProfile &behaviorProfile();
+void setBehaviorProfile(const UiBehaviorProfile *profile);
 
 } // namespace Heltec::MeshCore::Ui

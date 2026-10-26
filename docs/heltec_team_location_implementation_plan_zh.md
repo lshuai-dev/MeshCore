@@ -16,7 +16,7 @@
 1. 任何启用 Team 功能的设备都可以按构建角色作为 Leader 或 Member；角色不由设备型号决定。
 2. V4 R8 TFT 构建为 Leader 时，可通过 Tracker Screen 显示 Team 成员的位置和状态；
    其他设备作为 Leader 时可使用其自身 UI 或 Companion 接口管理 Team。
-3. Leader 创建 Team 并生成随机组密钥；Member 通过隐藏 Join Group 发现处于限时配对窗口的
+3. Leader 创建 Team 并生成随机组密钥；Member 通过 Public 频道零跳发现处于限时配对窗口的
    Leader，经双方核对配对确认码、队长在设备端批准后才下发真正密钥。
 4. 位置共享不再依赖高频 MeshCore Identity Advert。
 5. 发给全队的文本消息复用 MeshCore 原生 Group Text；发给单个队友的消息
@@ -50,7 +50,7 @@ HELTEC_TEAM_DATA_TYPE_DEV = 0xFF48
 
 正式发布前，按照 `docs/number_allocations.md` 的要求申请 `0x0100`～`0xFEFF` 范围内的正式编号，并替换开发编号。禁止发布使用 `0xFF48` 的量产固件。
 已入队日常帧和入队前 Join 帧可使用同一 `data_type` 的不同 subtype，但 Join 帧只能
-通过固件内置的隐藏 Join Group 发送，日常帧只能通过动态 Team Group 发送。
+通过 Public 频道零跳发送，日常帧只能通过动态 Team Group 多跳发送。
 
 ### 2.2 入队后 Team Data 只新增三个子类型
 
@@ -251,9 +251,9 @@ Member 没有“Create Team”能力。Leader 重置 Team Key 时，旧成员立
 
 ### 5.2 限时配对和入队确认
 
-所有启用 Team 功能的设备内置同一组隐藏 Join Group Credentials，仅用于让尚未加入 Team
-的设备交换 Join 帧。该固定密钥可从固件中提取，因此不是访问凭证，也不得用于加密 Team Key。
-Join Group 不出现在普通频道列表、Companion `GET/SET_CHANNEL` 或消息目标中。
+尚未加入 Team 的设备复用现有 Public 频道交换 Join 帧。Join 报文只接受 direct 且路径长度
+为零的 Group Data，不单独安装 Join Credentials，也不占用额外频道槽位。Public 频道密钥
+不是入队凭证；Team Key 仍只通过 ECDH 派生密钥保护的 AEAD Decision 下发。
 
 Leader 只有在用户点击“开放加入”后才开启配对窗口，默认持续 120 秒，并允许随时关闭。
 这不是选择某个设备执行“添加成员”：窗口开启期间，附近任何兼容 Member 都可以主动
@@ -293,7 +293,7 @@ JOIN_DECISION   Leader 加密的 Approve/Reject；Approve 携带 Team Credential
 JOIN_ACK        Member 确认已持久化 Team Credentials 并切换到 Team Group
 ```
 
-Join subtype 使用 `0x10`～`0x14`，外层复用隐藏 Join Group Data，固定 `max_hops=1`。
+Join subtype 使用 `0x10`～`0x14`，外层复用 Public Group Data，并强制零跳直连。
 `JOIN_DISCOVER`、`JOIN_OFFER` 和 `JOIN_REQUEST` 不包含 Team Key；`JOIN_DECISION` 必须使用
 `decision_key` 和带 128-bit tag 的 AEAD 加密并认证，`JOIN_ACK` 使用 `ack_key` 认证。
 两者的 AAD 都包含完整 `transcript_hash`、subtype 和方向。
@@ -320,7 +320,7 @@ Join subtype 使用 `0x10`～`0x14`，外层复用隐藏 Join Group Data，固�
 30 秒未处理、配对窗口关闭、确认码不一致、AEAD 校验失败或会话过期都不得下发 Team Key。
 Leader 最多保留 4 个待确认申请，同时只显示一个弹窗；同一 Member/session 的重发合并。
 同一公钥 60 秒内最多创建 3 个会话，全局每分钟最多处理 10 个 `JOIN_DISCOVER`；超限包静默
-丢弃，避免隐藏 Join Group 被用于持续骚扰 UI 或耗尽 packet pool。
+丢弃，避免 Public Join 流量被用于持续骚扰 UI 或耗尽 packet pool。
 
 一次前台搜索最多发送 3 次相同 `request_id` 的 `JOIN_DISCOVER`，间隔使用带抖动的退避；
 Leader 对同一 `request_id` 只创建一个 session，并把 Offer 随机延迟 `0`～`2000 ms`，降低多个
@@ -329,35 +329,30 @@ Leader 同时回复的碰撞。Offer、Request、Decision 和 ACK 都必须按 `
 
 ### 5.3 与现有 Group channel 表的集成
 
-采用“扩容后保留两个末尾 slot”，不得直接占用现有索引 1。否则升级后会静默覆盖用户的
-第二个频道。Join slot 固定，Team slot 动态：
+采用“保留一个末尾 slot”，不得直接占用现有用户频道索引。Join 复用 Public 频道，只有
+Team 私有频道使用动态系统 slot：
 
 ```text
-T1:        MAX_GROUP_CHANNELS 32 -> 34, Join slot = 32, Team slot = 33
-V4 R8 TFT: MAX_GROUP_CHANNELS 40 -> 42, Join slot = 40, Team slot = 41
-
-HELTEC_TEAM_USER_CHANNEL_CAPACITY = MAX_GROUP_CHANNELS - 2
-HELTEC_TEAM_JOIN_CHANNEL_INDEX = MAX_GROUP_CHANNELS - 2
+HELTEC_TEAM_USER_CHANNEL_CAPACITY = MAX_GROUP_CHANNELS - 1
 HELTEC_TEAM_CHANNEL_INDEX = MAX_GROUP_CHANNELS - 1
 ```
 
-两个系统 slot 的行为：
+Team 系统 slot 的行为：
 
 - 旧 `/channels2` 记录仍按原索引加载，最多加载
   `HELTEC_TEAM_USER_CHANNEL_CAPACITY` 项，不丢失原有 32/40 个频道。
-- Join slot 在 Team 功能初始化时从只读固件常量安装；Team 关闭时仍保留，但只有主动搜索的
-  Member 和已打开配对窗口的 Leader 才处理其报文。
+- Join 帧仅通过现有 Public 频道零跳收发；只有主动搜索的 Member 和已打开配对窗口的
+  Leader 才处理对应 subtype。
 - Team 关闭时，Team slot 的名称、hash 和密钥全部清零。
 - `searchChannelsByHash()` 必须跳过 `name[0] == '\0'` 的 slot；仅清零密钥不能代表“禁用”。
-- 同 hash 搜索顺序固定为动态 Team、Join、用户 slot。同时把解密候选数从 4 扩到至少 6，
-  确保“原有最多 4 个候选 + 两个系统 slot”不因一字节 hash 冲突丢失。
+- Team slot 与用户频道共享现有 hash 搜索流程，不再增加 Join 解密候选。
 - Leader 创建 Team 或 Member 完成 `JOIN_DECISION` 验证后，将动态 Team Credentials
   写入最后一个 slot。
-- `DataStore::loadChannels()` 完成后再安装两个系统 slot，避免存储内容替换系统配置。
-- `DataStore::saveChannels()` 在系统 slot 前结束，不把 Join 或 Team Credentials 写入
+- `DataStore::loadChannels()` 完成后再安装 Team slot，避免存储内容替换系统配置。
+- `DataStore::saveChannels()` 在系统 slot 前结束，不把 Team Credentials 写入
   `/channels2`。
-- `CMD_GET_CHANNEL` 和 `CMD_SET_CHANNEL` 对两个系统 slot 返回参数错误，不暴露密钥。
-- UI 可以通过 facade 看到当前 Team，但 Join Group 和两个 slot 索引均不可见；
+- `CMD_GET_CHANNEL` 和 `CMD_SET_CHANNEL` 对 Team 系统 slot 返回参数错误，不暴露密钥。
+- UI 可以通过 facade 看到当前 Team，但 Team 系统 slot 索引不可由 Companion 管理；
   `sendMessageGroupAt()` 只额外显示当前已激活 Team。
 
 安装/重置 Team 必须在 Mesh 主任务中串行执行：停止 Team 调度、持久化新凭据、清除旧
@@ -380,8 +375,7 @@ V1 产品文档必须明确其适用于可信设备和临时队伍。如果后�
 
 - Group 只提供共享密钥的机密性和短 MAC 完整性，不提供成员级身份认证、前向保密
   或密钥泄露后的历史保护。
-- 内置 Join Group Credentials 对所有量产设备相同且可被固件提取，只能降低无关流量，
-  不能证明申请者是 Heltec 设备或被授权成员。入队认证依赖人工核对配对确认码。
+- Public 频道不能证明申请者是 Heltec 设备或被授权成员；入队认证依赖人工核对配对确认码。
 - 配对码不一致时必须拒绝；跳过核对等同于接受中间人攻击风险。V1 复用长期身份密钥完成
   ECDH，因此不提供加入过程的前向保密，这一限制必须进入产品安全说明。
 - 当前 Group MAC 仅 2 字节，高频伪造尝试不能仅靠 MAC 长度防御。发送调度、解码错误日志
@@ -1064,10 +1058,8 @@ specific TeamMember -> sendMessage(transient_team_peer, text)
 ```text
 HELTEC_TEAM_ROLE=0
 HELTEC_TEAM_MAX_MEMBERS=32
-HELTEC_TEAM_JOIN_CHANNEL_INDEX=(MAX_GROUP_CHANNELS-2)
 HELTEC_TEAM_CHANNEL_INDEX=(MAX_GROUP_CHANNELS-1)
-HELTEC_TEAM_USER_CHANNEL_CAPACITY=(MAX_GROUP_CHANNELS-2)
-HELTEC_TEAM_JOIN_MAX_HOPS=1
+HELTEC_TEAM_USER_CHANNEL_CAPACITY=(MAX_GROUP_CHANNELS-1)
 HELTEC_TEAM_JOIN_WINDOW_SEC=120
 HELTEC_TEAM_JOIN_CONFIRM_SEC=30
 HELTEC_TEAM_JOIN_MAX_SESSIONS=4
@@ -1107,13 +1099,9 @@ Team 宏只加在上述具体 `[env:...]` 中，不加在被 repeater/room serve
 对 Team 环境将原频道容量扩容两项（T1 34，V4 R8 TFT 42），并增加编译期检查：
 
 ```cpp
-static_assert(HELTEC_TEAM_JOIN_CHANNEL_INDEX < MAX_GROUP_CHANNELS,
-              "Join channel slot is out of range");
 static_assert(HELTEC_TEAM_CHANNEL_INDEX < MAX_GROUP_CHANNELS,
               "Team channel slot is out of range");
-static_assert(HELTEC_TEAM_JOIN_CHANNEL_INDEX + 1 == HELTEC_TEAM_CHANNEL_INDEX,
-              "System channel slots must be contiguous");
-static_assert(HELTEC_TEAM_USER_CHANNEL_CAPACITY + 2 == MAX_GROUP_CHANNELS,
+static_assert(HELTEC_TEAM_USER_CHANNEL_CAPACITY + 1 == MAX_GROUP_CHANNELS,
               "Team channel capacity mismatch");
 ```
 
@@ -1151,7 +1139,7 @@ E～G 合并到发布分支的前置门禁是 B 的 wire encoding 获得上游�
 
 1. 实现 Leader 随机生成 Team ID、Team Key 和 key version。
 2. 实现版本化 `/team_prefs`、完整性校验和掉电安全替换。
-3. 实现隐藏 Join Group slot 和动态 Team Group slot，阻止 Companion 读写或落盘。
+3. 复用 Public 零跳 Join，并实现动态 Team Group slot，阻止 Companion 读写或落盘。
 4. 复用现有身份 ECDH，选择并集成经审查的 HKDF-SHA-256 和 AEAD 实现，完成两平台
    测试向量、性能、栈空间和代码尺寸测量。
 5. 实现 5 个 Join subtype、120 秒配对窗口、4 位配对码、发现/申请限速和最多 4 个待审请求。
@@ -1241,9 +1229,9 @@ Team Key 明文。
 - `JOIN_DECISION` 下发后 Member 掉电，Leader 显示 unconfirmed；Member 不得加载部分写入的密钥。
 - Member 安装密钥后与 Leader 互通，其他 Team Key 不产生 Team/UI 更新。
 - Reset Team Key 后旧 Member 不能解密新包，重新获批后恢复互通。
-- Team 关闭后不发送 Presence/Location；隐藏 Join Group 和用户自建 channel 不受影响。
+- Team 关闭后不发送 Presence/Location；Public 和用户自建 channel 不受影响。
 - 从旧 32/40 项 `/channels2` 升级后用户频道顺序、名称和密钥完全不变。
-- Join/Team slot 无法通过 Companion GET/SET 读取或覆盖，且不会写入 `/channels2`。
+- Team slot 无法通过 Companion GET/SET 读取或覆盖，且不会写入 `/channels2`。
 - Team 关闭时零密钥 slot 不会命中 `searchChannelsByHash()`。
 
 ### 16.3 消息测试
@@ -1370,8 +1358,7 @@ team_join_timeout
 - Team 默认关闭；新固件升级后不会自动开始发送位置。
 - 回滚到旧固件时，旧固件不会读取独立的 `/team_prefs`；原有 `/channels2` 中 32/40 个
   用户频道仍可加载。
-- 两个系统 slot 都不写入 `/channels2`，因此回滚后不会将 Join 或 Team Credentials
-  暴露为普通用户频道。
+- Team 系统 slot 不写入 `/channels2`，因此回滚后不会将 Team Credentials 暴露为普通用户频道。
 - POC 构建在启动画面或版本信息中标记 `TEAM-POC`，防止与量产版混用。
 - 发布前做一次升级、断电、配置截断恢复和回滚演练，并保留测试记录。
 
@@ -1404,8 +1391,8 @@ team_join_timeout
 10. 任一成员可使用 Group Text 发送全队消息，并使用 Direct Message 单独发给某个队友。
 11. `HELTEC_TEAM_ROLE` 默认为 0，V4 R8 TFT Team 构建为 1，角色不持久化且 UI 无法更改。
 12. 原有 Public channel、普通 contacts、Advert、Direct message 和 Team 关闭时的 Find Friend 行为没有回归。
-13. 协议单元测试、Join 密码学测试、配置测试、路由测试和指定 PlatformIO 环境全部通过。
-14. 旧 32/40 个用户频道升级后无丢失，Join/Team 两个系统 slot 无法从 Companion 读写且不落盘。
+13. Team 专用单元测试已移除；变更至少通过静态检查，并在目标设备验证 Join 与多跳运行链路。
+14. 旧用户频道升级后无丢失，Team 系统 slot 无法从 Companion 读写且不落盘。
 15. 加入 Team 自动共享位置；退出后不回退到旧 Location Share Advert。
 16. 同 hash 冲突、队列已满、packet pool 耗尽和 prefs 保存失败均有可重现测试，
     不导致密钥泄露、成员串频、内存泄漏或半持久化状态。
@@ -1420,8 +1407,8 @@ team_join_timeout
 
 ## 21. 当前实现状态（2026-09-04）
 
-已在本仓库完成 V1 POC 代码：协议编解码、固定容量成员表、仅 RAM 的临时 Team 凭据、两个
-保留 Group slot、五段 Join 状态机、ECDH/HKDF/ChaCha20-Poly1305、4 位配对确认码、
+已在本仓库完成 V1 POC 代码：协议编解码、固定容量成员表、仅 RAM 的临时 Team 凭据、一个
+Team Group slot、Public 零跳 Join、五段 Join 状态机、ECDH/HKDF/ChaCha20-Poly1305、4 位配对确认码、
 Leader Agree/Reject、超时与限速、Presence/Location/Sync 调度、Team 模式下停止位置 Advert、
 T1 Find Friend Team 数据源与配对控件、V4 Tracker 成员地图与配对弹窗、全队 Group Text、
 临时 TeamPeer Direct Message、密钥重置、退出、统计计数器和协议主机测试。

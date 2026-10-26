@@ -2,7 +2,7 @@
 #include "ui/theme/UiTheme.hpp"
 #include "ui/widgets/HtContainer.hpp"
 #include "ui/core/UiMessage.hpp"
-#include "ui/widgets/WidgetClasses.hpp"
+#include "ui/widgets/SemanticClasses.hpp"
 #include "ui/theme/WidgetTheme.hpp"
 #include <lvgl.h>
 
@@ -57,7 +57,8 @@ bool RadioScreen::build()
         {
             lv_obj_set_flex_align(row_lna, LV_FLEX_ALIGN_SPACE_BETWEEN, LV_FLEX_ALIGN_CENTER,
                                   LV_FLEX_ALIGN_START);
-            _lv_obj_t *const label_lna = ht_label_create(&lv_label_class, row_lna, "LNA");
+            _lv_obj_t *const label_lna = lv_label_create(row_lna);
+            ht_label_set_text_copy(label_lna, "LNA");
             _sw_lna = lv_switch_create(row_lna);
             if (label_lna)
             {

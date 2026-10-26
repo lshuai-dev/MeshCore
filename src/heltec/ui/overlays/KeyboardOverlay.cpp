@@ -3,7 +3,7 @@
 #include "MeshCore.h"
 #include "ui/theme/UiTheme.hpp"
 #include "ui/core/UiMessage.hpp"
-#include "ui/widgets/WidgetClasses.hpp"
+#include "ui/widgets/SemanticClasses.hpp"
 #include "ui/theme/WidgetTheme.hpp"
 #if defined(HELTEC_HAS_KEY_FRAME) && HELTEC_HAS_KEY_FRAME
 #include "heltec/drivers/display/DisplayPort.hpp"
@@ -838,7 +838,6 @@ bool KeyboardOverlay::prepareMessageInput(const UiMessageKeyboardRequest &reques
                              : kMaxText;
     _waypoint_submit_pending = false;
     _submitted_text[0] = '\0';
-    ui_theme_set_waypoint_keyboard_active(_keyboard, _textarea, _longitude_textarea, false);
 #if defined(HELTEC_UI_HAS_TOUCH) && HELTEC_UI_HAS_TOUCH
     applyTouchCoordinateLayout(false);
 #endif
@@ -869,7 +868,6 @@ bool KeyboardOverlay::prepareWaypointInput()
     _coordinate_field = CoordinateField::Latitude;
     _waypoint_submit_pending = false;
     _submitted_text[0] = '\0';
-    ui_theme_set_waypoint_keyboard_active(_keyboard, _textarea, _longitude_textarea, true);
 #if defined(HELTEC_UI_HAS_TOUCH) && HELTEC_UI_HAS_TOUCH
     lv_snprintf(_title_text, sizeof(_title_text), "Waypoint coordinates");
 #else
@@ -948,7 +946,6 @@ void KeyboardOverlay::onExit()
         lv_obj_clear_state(_longitude_textarea, LV_STATE_CHECKED);
     if (_keyboard)
     {
-        ui_theme_set_waypoint_keyboard_active(_keyboard, _textarea, _longitude_textarea, false);
 #if defined(HELTEC_UI_HAS_TOUCH) && HELTEC_UI_HAS_TOUCH
         applyTouchCoordinateLayout(false);
 #endif

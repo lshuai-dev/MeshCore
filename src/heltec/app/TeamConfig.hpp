@@ -62,11 +62,8 @@ static_assert(HELTEC_TEAM_LEADER_TIMEOUT_SEC > HELTEC_TEAM_LEADER_HEARTBEAT_SEC 
 #error "Find Friend Team support requires MAX_GROUP_CHANNELS"
 #endif // ENV_INCLUDE_GPS
 
-#define HELTEC_TEAM_USER_CHANNEL_CAPACITY (MAX_GROUP_CHANNELS - 2)
-#define HELTEC_TEAM_JOIN_CHANNEL_INDEX     (MAX_GROUP_CHANNELS - 2)
+#define HELTEC_TEAM_USER_CHANNEL_CAPACITY (MAX_GROUP_CHANNELS - 1)
 #define HELTEC_TEAM_CHANNEL_INDEX          (MAX_GROUP_CHANNELS - 1)
 
-static_assert(MAX_GROUP_CHANNELS >= 3, "Team requires two reserved group channel slots");
-static_assert(HELTEC_TEAM_JOIN_CHANNEL_INDEX + 1 == HELTEC_TEAM_CHANNEL_INDEX,
-              "Team system channel slots must be contiguous");
+static_assert(MAX_GROUP_CHANNELS >= 2, "Team requires one reserved group channel slot");
 #endif

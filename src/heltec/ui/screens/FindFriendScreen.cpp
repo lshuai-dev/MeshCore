@@ -223,7 +223,9 @@ bool FindFriendScreen::createDial() {
 #if DISPLAY_ORIENTATION_PORTRAIT
     lv_obj_set_size(_right_column, lv_pct(100), 0);
     lv_obj_set_flex_grow(_right_column, 1);
-    ui_theme_set_compass_info_layout(_right_column, LV_DPX(4), LV_DPX(2));
+    lv_obj_set_style_pad_all(_right_column, 0, LV_PART_MAIN);
+    lv_obj_set_style_pad_left(_right_column, LV_DPX(4), LV_PART_MAIN);
+    lv_obj_set_style_pad_row(_right_column, LV_DPX(2), LV_PART_MAIN);
 #else
     lv_obj_set_width(_right_column, 0);
     lv_obj_set_flex_grow(_right_column, 1);

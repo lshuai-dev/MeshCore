@@ -1,13 +1,17 @@
 #pragma once
 #include "app/FindFriendNavEstimator.hpp"
-#include "app/PowerMgr.hpp"
-#include "app/TeamConfig.hpp"
-#if defined(HELTEC_GEOFENCE) && HELTEC_GEOFENCE
-#include "app/TeamGeofence.hpp"
-#endif
 #include "config/MessagePresetStore.hpp"
 #include "ui/core/AppStateEvent.hpp"
 #include "ui/core/BizFacade.hpp"
+
+#include <stdint.h>
+
+namespace Heltec::MeshCore::Power
+{
+class PowerMgr;
+struct PowerSnapshot;
+using PowerChangeMask = uint16_t;
+}
 
 #ifndef HELTEC_GPS_TRACK_MIN_DIST_CM
 #define HELTEC_GPS_TRACK_MIN_DIST_CM 5000 // 50 m
@@ -23,14 +27,12 @@ class MeshAppUi final : public IBizFacade
   public:
     explicit MeshAppUi(Heltec::MeshCore::Power::PowerMgr &power);
 
-    void pollRuntime();
+    void poll();
     void reconcileGpsPower();
     void handlePowerChanged(Heltec::MeshCore::Power::PowerChangeMask changes,
                             const Heltec::MeshCore::Power::PowerSnapshot &snapshot);
 
     bool sendAdvert() override;
-    // Called by the non-UI application shell; UI surfaces use UiMessage instead.
-    void requestRadioParamPresetPicker();
     void setGpsEnabled(bool enabled) override;
     bool buzzerEnabled() const override;
     void setBuzzerEnabled(bool enabled) override;
@@ -91,11 +93,7 @@ class MeshAppUi final : public IBizFacade
 
     int fillRecentlyHeard(RecentlyHeardItem *items, int max_items) const override;
 
-    const CompassUi &compassUi() const override
-    {
-        syncCompassCache();
-        return _compass_ui;
-    }
+    CompassUi compassUi() const override;
     FindFriendUi findFriendUi() const override;
     bool teamPendingDetails(char *name, size_t length, uint64_t &session,
                             uint16_t &code) const override;
@@ -150,21 +148,19 @@ class MeshAppUi final : public IBizFacade
     bool setGpsTrackRecording(bool enabled) override;
 
 #if defined(ENV_INCLUDE_MAP) && ENV_INCLUDE_MAP
-    const MapPlotUi &mapPlotUi() const override;
+    int fillMapPlot(MapPlotMarker *markers, int max_markers,
+                    uint8_t &online_count) const override;
 #endif
 
   private:
     Heltec::MeshCore::Power::PowerMgr &_power;
     mutable MessagePresetStore _message_presets{};
     static void notifyAppState(Heltec::MeshCore::Ui::AppStateEventType type);
-    static void handleAppStateEvent(void *user_data,
-                                    const Heltec::MeshCore::Ui::AppStateEvent &event);
     void notifyRadioChanged();
     bool applyGpsPowerPolicy();
     void notifyGpsChanged();
     void pollGpsTrack();
     void pollRadioStatus();
-    void syncCompassCache() const;
     void ensureFindFriendPrefsLoaded() const;
     void setFfWaypointCache(double lat_deg, double lon_deg);
     void resetFindFriendNavState() const;
@@ -178,18 +174,23 @@ class MeshAppUi final : public IBizFacade
     int resolveFindFriendTargetContactIndex() const;
     bool setFindFriendTargetKeyFromIndex(int index) const;
 
-    mutable CompassUi _compass_ui{};
-    mutable bool _ff_prefs_loaded = false;
-    mutable int _ff_target_contact_idx = -1;
-    mutable bool _ff_target_pub_key_valid = false;
-    mutable uint8_t _ff_target_pub_key[32] = {};
-    mutable Nav::FindFriendNavEstimator _ff_nav_estimator{};
-    mutable int _ff_mode = 0;
-    mutable int _ff_wp_valid = 0;
-    mutable int32_t _ff_wp_lat_e6 = 0;
-    mutable int32_t _ff_wp_lon_e6 = 0;
-    mutable uint16_t _ff_gps_track_interval_min = 1;
-    mutable bool _ff_enabled = false;
+    struct FindFriendState
+    {
+        Nav::FindFriendNavEstimator estimator{};
+        uint8_t target_pub_key[32] = {};
+        int32_t waypoint_lat_e6 = 0;
+        int32_t waypoint_lon_e6 = 0;
+        int target_contact_index = -1;
+        uint16_t track_interval_min = 1;
+        uint8_t mode = 0;
+        bool prefs_loaded = false;
+        bool target_pub_key_valid = false;
+        bool waypoint_valid = false;
+        bool enabled = false;
+        bool foreground_active = false;
+    };
+
+    mutable FindFriendState _find_friend{};
 
     RadioStatus _radio_status_cache{};
     uint32_t _radio_status_poll_ms = 0;
@@ -202,12 +203,23 @@ class MeshAppUi final : public IBizFacade
     uint16_t _gps_track_point_count = 0;
     uint32_t _gps_track_start_ms = 0;
 
-    bool _find_friend_foreground_active = false;
-    uint32_t _team_runtime_fingerprint = 0;
-    bool _team_runtime_fingerprint_valid = false;
-#if defined(ENV_INCLUDE_MAP) && ENV_INCLUDE_MAP
-    mutable MapPlotUi _map_plot_cache{};
-#endif
+    struct TeamRuntimeState
+    {
+        uint16_t sequence = 0;
+        uint8_t join_state = 0;
+        uint8_t offer_count = 0;
+        uint8_t flags = 0;
+
+        bool operator==(const TeamRuntimeState &other) const
+        {
+            return sequence == other.sequence && join_state == other.join_state &&
+                   offer_count == other.offer_count && flags == other.flags;
+        }
+    };
+
+    TeamRuntimeState _team_runtime{};
+    uint32_t _team_runtime_poll_ms = 0;
+    bool _team_runtime_valid = false;
 };
 
 } // namespace Heltec::MeshCore::Biz

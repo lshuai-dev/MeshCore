@@ -1,7 +1,7 @@
 #pragma once
 
 #include "CompassNeedle.hpp"
-#include "ui/widgets/WidgetClasses.hpp"
+#include "ui/widgets/SemanticClasses.hpp"
 
 #include <lvgl.h>
 

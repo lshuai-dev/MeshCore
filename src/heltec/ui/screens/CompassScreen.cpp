@@ -63,7 +63,7 @@ void set_q_label(lv_obj_t *label, char *buffer, size_t capacity, int quality, bo
         return;
     }
     const int q = clamp_q(quality);
-    const uint32_t color = lv_color_to32(q >= 3 ? ui_color_success() : ui_color_error());
+    const uint32_t color = lv_color_to32(q >= 3 ? lv_color_hex(themePalette().success) : lv_color_hex(themePalette().error));
     lv_snprintf(buffer, capacity, "Q:#%06lx %d#", (unsigned long)(color & 0xFFFFFFUL), q);
     lv_label_set_text_static(label, buffer);
 }

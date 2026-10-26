@@ -122,8 +122,8 @@ void MeshAppUi::persistFfPrefs(int mode, int wp_valid, double wp_lat, double wp_
     if (!ds)
         return;
     ds->saveFindFriendCompassSettings(mode, wp_valid, wp_lat, wp_lon, HELTEC_GPS_TRACK_MIN_DIST_CM,
-                                      -1, _ff_gps_track_interval_min,
-                                      _ff_enabled,
+                                      -1, _find_friend.track_interval_min,
+                                      _find_friend.enabled,
                                       nullptr);
 #else
     (void)mode;
@@ -137,31 +137,33 @@ void MeshAppUi::syncFindFriendTeamPin() const
 {
 #if defined(ENV_INCLUDE_GPS) && ENV_INCLUDE_GPS
     const uint8_t *key =
-        _ff_enabled && _ff_mode == 0 && _ff_target_pub_key_valid ? _ff_target_pub_key : nullptr;
+        _find_friend.enabled && _find_friend.mode == 0 && _find_friend.target_pub_key_valid
+            ? _find_friend.target_pub_key
+            : nullptr;
     the_mesh.teamService().pinMember(key);
 #endif
 }
 
 void MeshAppUi::resetFindFriendNavState() const
 {
-    _ff_nav_estimator.reset();
+    _find_friend.estimator.reset();
 }
 
 void MeshAppUi::setFfWaypointCache(double lat_deg, double lon_deg)
 {
-    _ff_mode = 1;
-    _ff_wp_valid = 1;
-    _ff_wp_lat_e6 = deg_to_e6(lat_deg);
-    _ff_wp_lon_e6 = deg_to_e6(lon_deg);
+    _find_friend.mode = 1;
+    _find_friend.waypoint_valid = true;
+    _find_friend.waypoint_lat_e6 = deg_to_e6(lat_deg);
+    _find_friend.waypoint_lon_e6 = deg_to_e6(lon_deg);
     syncFindFriendTeamPin();
     resetFindFriendNavState();
 }
 
 void MeshAppUi::ensureFindFriendPrefsLoaded() const
 {
-    if (_ff_prefs_loaded)
+    if (_find_friend.prefs_loaded)
         return;
-    _ff_prefs_loaded = true;
+    _find_friend.prefs_loaded = true;
 
     int mode = 0;
     int wp_valid = 0;
@@ -176,17 +178,18 @@ void MeshAppUi::ensureFindFriendPrefsLoaded() const
     if (!loaded)
         return;
 
-    _ff_mode = mode ? 1 : 0;
-    _ff_wp_valid = wp_valid && Nav::FindFriendNavEstimator::coordinateValid(la, lo);
-    _ff_wp_lat_e6 = deg_to_e6(la);
-    _ff_wp_lon_e6 = deg_to_e6(lo);
-    _ff_gps_track_interval_min = track_interval_min;
-    _ff_enabled = enabled;
+    _find_friend.mode = mode ? 1U : 0U;
+    _find_friend.waypoint_valid =
+        wp_valid && Nav::FindFriendNavEstimator::coordinateValid(la, lo);
+    _find_friend.waypoint_lat_e6 = deg_to_e6(la);
+    _find_friend.waypoint_lon_e6 = deg_to_e6(lo);
+    _find_friend.track_interval_min = track_interval_min;
+    _find_friend.enabled = enabled;
 
     // Team selection is volatile; never restore an ordinary contact or old Team key.
-    _ff_target_contact_idx = -1;
-    _ff_target_pub_key_valid = false;
-    memset(_ff_target_pub_key, 0, sizeof(_ff_target_pub_key));
+    _find_friend.target_contact_index = -1;
+    _find_friend.target_pub_key_valid = false;
+    memset(_find_friend.target_pub_key, 0, sizeof(_find_friend.target_pub_key));
     syncFindFriendTeamPin();
 }
 
@@ -202,7 +205,7 @@ bool MeshAppUi::locationShareEnabled() const
 bool MeshAppUi::findFriendEnabled() const
 {
     ensureFindFriendPrefsLoaded();
-    return _ff_enabled;
+    return _find_friend.enabled;
 }
 
 bool MeshAppUi::setFindFriendEnabled(bool enabled)
@@ -215,17 +218,19 @@ bool MeshAppUi::setFindFriendEnabled(bool enabled)
             return false;
     }
 
-    if (_ff_enabled == enabled)
+    if (_find_friend.enabled == enabled)
     {
         syncFindFriendTeamPin();
         reconcileGpsPower();
         return true;
     }
 
-    _ff_enabled = enabled;
+    _find_friend.enabled = enabled;
     syncFindFriendTeamPin();
     resetFindFriendNavState();
-    persistFfPrefs(_ff_mode, _ff_wp_valid, e6_to_deg(_ff_wp_lat_e6), e6_to_deg(_ff_wp_lon_e6));
+    persistFfPrefs(_find_friend.mode, _find_friend.waypoint_valid,
+                   e6_to_deg(_find_friend.waypoint_lat_e6),
+                   e6_to_deg(_find_friend.waypoint_lon_e6));
     reconcileGpsPower();
     notifyAppState(Heltec::MeshCore::Ui::AppStateEventType::ConfigChanged);
     notifyAppState(Heltec::MeshCore::Ui::AppStateEventType::FindFriendChanged);
@@ -235,16 +240,18 @@ bool MeshAppUi::setFindFriendEnabled(bool enabled)
 int MeshAppUi::findFriendMode() const
 {
     ensureFindFriendPrefsLoaded();
-    return _ff_mode;
+    return _find_friend.mode;
 }
 
 bool MeshAppUi::setFindFriendMode(int mode)
 {
     ensureFindFriendPrefsLoaded();
-    _ff_mode = mode ? 1 : 0;
+    _find_friend.mode = mode ? 1U : 0U;
     syncFindFriendTeamPin();
     resetFindFriendNavState();
-    persistFfPrefs(_ff_mode, _ff_wp_valid, e6_to_deg(_ff_wp_lat_e6), e6_to_deg(_ff_wp_lon_e6));
+    persistFfPrefs(_find_friend.mode, _find_friend.waypoint_valid,
+                   e6_to_deg(_find_friend.waypoint_lat_e6),
+                   e6_to_deg(_find_friend.waypoint_lon_e6));
     notifyAppState(Heltec::MeshCore::Ui::AppStateEventType::ConfigChanged);
     notifyAppState(Heltec::MeshCore::Ui::AppStateEventType::FindFriendChanged);
     return true;
@@ -257,7 +264,9 @@ bool MeshAppUi::setFindFriendWaypoint(double lat_deg, double lon_deg)
     ensureFindFriendPrefsLoaded();
 
     setFfWaypointCache(lat_deg, lon_deg);
-    persistFfPrefs(_ff_mode, _ff_wp_valid, e6_to_deg(_ff_wp_lat_e6), e6_to_deg(_ff_wp_lon_e6));
+    persistFfPrefs(_find_friend.mode, _find_friend.waypoint_valid,
+                   e6_to_deg(_find_friend.waypoint_lat_e6),
+                   e6_to_deg(_find_friend.waypoint_lon_e6));
     notifyAppState(Heltec::MeshCore::Ui::AppStateEventType::FindFriendChanged);
     return true;
 }
@@ -268,9 +277,10 @@ void MeshAppUi::formatFindFriendWaypointInput(char *buf, size_t buf_len) const
         return;
     buf[0] = '\0';
     ensureFindFriendPrefsLoaded();
-    if (!_ff_wp_valid)
+    if (!_find_friend.waypoint_valid)
         return;
-    format_e6_pair(buf, buf_len, _ff_wp_lat_e6, _ff_wp_lon_e6);
+    format_e6_pair(buf, buf_len, _find_friend.waypoint_lat_e6,
+                   _find_friend.waypoint_lon_e6);
 }
 
 int MeshAppUi::findFriendContactCount() const
@@ -350,14 +360,14 @@ bool MeshAppUi::findFriendMemberHasGps(int index) const
 
 int MeshAppUi::resolveFindFriendTargetContactIndex() const
 {
-    _ff_target_contact_idx = -1;
+    _find_friend.target_contact_index = -1;
     if (!teamStatus().has_team)
     {
-        _ff_target_pub_key_valid = false;
-        memset(_ff_target_pub_key, 0, sizeof(_ff_target_pub_key));
+        _find_friend.target_pub_key_valid = false;
+        memset(_find_friend.target_pub_key, 0, sizeof(_find_friend.target_pub_key));
         return -1;
     }
-    if (!_ff_target_pub_key_valid)
+    if (!_find_friend.target_pub_key_valid)
         return -1;
     const int n = findFriendContactCount();
     for (int i = 0; i < n; ++i)
@@ -367,9 +377,9 @@ int MeshAppUi::resolveFindFriendTargetContactIndex() const
         {
             Heltec::MeshCore::Team::TeamMember member{};
             if (the_mesh.teamService().memberAt(static_cast<size_t>(i), member) &&
-                memcmp(member.public_key, _ff_target_pub_key, PUB_KEY_SIZE) == 0)
+                memcmp(member.public_key, _find_friend.target_pub_key, PUB_KEY_SIZE) == 0)
             {
-                _ff_target_contact_idx = i;
+                _find_friend.target_contact_index = i;
                 break;
             }
             continue;
@@ -377,7 +387,7 @@ int MeshAppUi::resolveFindFriendTargetContactIndex() const
 #endif
 
     }
-    return _ff_target_contact_idx;
+    return _find_friend.target_contact_index;
 }
 
 bool MeshAppUi::setFindFriendTargetKeyFromIndex(int index) const
@@ -388,9 +398,9 @@ bool MeshAppUi::setFindFriendTargetKeyFromIndex(int index) const
         Heltec::MeshCore::Team::TeamMember member{};
         if (index < 0 || !the_mesh.teamService().memberAt(static_cast<size_t>(index), member))
             return false;
-        memcpy(_ff_target_pub_key, member.public_key, PUB_KEY_SIZE);
-        _ff_target_pub_key_valid = true;
-        _ff_target_contact_idx = index;
+        memcpy(_find_friend.target_pub_key, member.public_key, PUB_KEY_SIZE);
+        _find_friend.target_pub_key_valid = true;
+        _find_friend.target_contact_index = index;
         return true;
     }
 #endif
@@ -410,9 +420,9 @@ void MeshAppUi::setFindFriendTargetContactIndex(int index)
     const int n = findFriendContactCount();
     if (index < 0 || index >= n)
     {
-        _ff_target_contact_idx = -1;
-        _ff_target_pub_key_valid = false;
-        memset(_ff_target_pub_key, 0, sizeof(_ff_target_pub_key));
+        _find_friend.target_contact_index = -1;
+        _find_friend.target_pub_key_valid = false;
+        memset(_find_friend.target_pub_key, 0, sizeof(_find_friend.target_pub_key));
     }
     else
     {
@@ -450,35 +460,36 @@ bool MeshAppUi::tryAutoPickFindFriendTarget()
 FindFriendUi MeshAppUi::findFriendUi() const
 {
     ensureFindFriendPrefsLoaded();
-    syncCompassCache();
     FindFriendUi u{};
-    const CompassUi &cm = _compass_ui;
+    const CompassUi cm = compassUi();
     u.compass_hw = cm.has_hardware;
     u.compass_quality = cm.quality;
     u.heading_valid = cm.heading_valid;
     u.heading_deg = Nav::FindFriendNavEstimator::wrapHeading360(
         cm.heading_deg + static_cast<float>(COMPASS_HEADING_OFFSET_DEG));
     u.declination_configured = kCompassDeclinationConfigured;
-    if (!_ff_enabled)
+    if (!_find_friend.enabled)
     {
         resetFindFriendNavState();
         return u;
     }
     const GpsStatus gps = gpsStatus();
-    u.mode = _ff_mode;
+    u.mode = _find_friend.mode;
     u.gps_age_ms = gps.fix_valid_ms;
     u.gps_satellites = gps.satellites;
-    u.waypoint_valid = (_ff_wp_valid != 0) &&
-                       Nav::FindFriendNavEstimator::coordinateValid(microdeg_to_deg(_ff_wp_lat_e6),
-                                                                    microdeg_to_deg(_ff_wp_lon_e6));
-    u.waypoint_lat = microdeg_to_deg(_ff_wp_lat_e6);
-    u.waypoint_lon = microdeg_to_deg(_ff_wp_lon_e6);
+    u.waypoint_valid =
+        _find_friend.waypoint_valid &&
+        Nav::FindFriendNavEstimator::coordinateValid(
+            microdeg_to_deg(_find_friend.waypoint_lat_e6),
+            microdeg_to_deg(_find_friend.waypoint_lon_e6));
+    u.waypoint_lat = microdeg_to_deg(_find_friend.waypoint_lat_e6);
+    u.waypoint_lon = microdeg_to_deg(_find_friend.waypoint_lon_e6);
 
     double tgt_lat = 0;
     double tgt_lon = 0;
     bool have_tgt = false;
 
-    if (_ff_mode == 0)
+    if (_find_friend.mode == 0)
     {
         const int target_index = resolveFindFriendTargetContactIndex();
         u.target_selected = target_index >= 0;
@@ -516,8 +527,8 @@ FindFriendUi MeshAppUi::findFriendUi() const
         have_tgt = u.waypoint_valid;
         if (have_tgt)
         {
-            tgt_lat = microdeg_to_deg(_ff_wp_lat_e6);
-            tgt_lon = microdeg_to_deg(_ff_wp_lon_e6);
+            tgt_lat = microdeg_to_deg(_find_friend.waypoint_lat_e6);
+            tgt_lon = microdeg_to_deg(_find_friend.waypoint_lon_e6);
         }
         lv_snprintf(u.target_label, sizeof(u.target_label), "WP");
     }
@@ -534,7 +545,7 @@ FindFriendUi MeshAppUi::findFriendUi() const
     input.target_valid = have_tgt;
     input.target_lat_deg = tgt_lat;
     input.target_lon_deg = tgt_lon;
-    input.target_is_contact = _ff_mode == 0;
+    input.target_is_contact = _find_friend.mode == 0;
     input.target_age_known = u.target_age_known;
     input.target_age_ms = u.target_age_ms;
     input.heading_valid = cm.heading_valid;
@@ -545,7 +556,7 @@ FindFriendUi MeshAppUi::findFriendUi() const
     input.compass_quality = static_cast<uint8_t>(cm.quality < 0 ? 0 : cm.quality);
     input.declination_configured = kCompassDeclinationConfigured;
 
-    const Nav::FindFriendNavOutput estimated = _ff_nav_estimator.update(input);
+    const Nav::FindFriendNavOutput estimated = _find_friend.estimator.update(input);
     u.gps_fix = estimated.gps_valid;
     u.here_lat = estimated.filtered_lat_deg;
     u.here_lon = estimated.filtered_lon_deg;

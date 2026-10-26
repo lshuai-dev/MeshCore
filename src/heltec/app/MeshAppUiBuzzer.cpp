@@ -13,20 +13,20 @@ bool MeshAppUi::buzzerEnabled() const
 
 void MeshAppUi::setBuzzerEnabled(bool enabled)
 {
-    Heltec::MeshCore::Ui::ui_task().setBuzzerEnabled(enabled);
+    Heltec::MeshCore::Ui::uiTask().setBuzzerEnabled(enabled);
     notifyAppState(Heltec::MeshCore::Ui::AppStateEventType::ConfigChanged);
 }
 
 uint8_t MeshAppUi::buzzerVolumeLevel() const
 {
-    return Heltec::MeshCore::Ui::ui_task().buzzerVolumeLevel();
+    return Heltec::MeshCore::Ui::uiTask().buzzerVolumeLevel();
 }
 
 void MeshAppUi::setBuzzerVolumeLevel(uint8_t level)
 {
     if (buzzerVolumeLevel() == level)
         return;
-    Heltec::MeshCore::Ui::ui_task().setBuzzerVolumeLevel(level);
+    Heltec::MeshCore::Ui::uiTask().setBuzzerVolumeLevel(level);
     notifyAppState(Heltec::MeshCore::Ui::AppStateEventType::ConfigChanged);
 }
 

@@ -67,22 +67,9 @@ static bool teamMemberHasContact(const Heltec::MeshCore::Team::TeamMember &membe
 }
 #endif
 
-#if defined(ENV_INCLUDE_GPS) && ENV_INCLUDE_GPS
-static bool isJoinChannel(int index)
-{
-    return index == HELTEC_TEAM_JOIN_CHANNEL_INDEX;
-}
-#else
-static bool isJoinChannel(int index)
-{
-    (void)index;
-    return false;
-}
-#endif
-
 void showSendResult(int rc)
 {
-    auto &t = Heltec::MeshCore::Ui::ui_task();
+    auto &t = Heltec::MeshCore::Ui::uiTask();
     if (rc == MSG_SEND_FAILED)
     {
         t.showAlert("send failed", 900);
@@ -123,49 +110,22 @@ static void logTextPreview(const char *text, char *out, size_t out_len)
 }
 #endif
 
-static bool nameEqualsIgnoreCase(const char *name, const char *expect)
-{
-    if (!name || !expect)
-        return false;
-    while (*expect)
-    {
-        char a = *name++;
-        char b = *expect++;
-        if (a >= 'A' && a <= 'Z')
-            a = static_cast<char>(a + ('a' - 'A'));
-        if (b >= 'A' && b <= 'Z')
-            b = static_cast<char>(b + ('a' - 'A'));
-        if (a != b)
-            return false;
-    }
-    return *name == '\0';
-}
-
-static bool isPublicBroadcastChannelName(const char *name)
-{
-    return nameEqualsIgnoreCase(name, "public") || nameEqualsIgnoreCase(name, "broadcast");
-}
-
 #ifdef MAX_GROUP_CHANNELS
 static bool resolvePublicChannel(mesh::GroupChannel &out_channel, const char **out_name,
                                  int *out_index = nullptr)
 {
-    ChannelDetails ch;
-    for (int idx = 0; idx < MAX_GROUP_CHANNELS; ++idx)
+    ChannelDetails channel{};
+    int index = -1;
+    if (!the_mesh.getPublicChannel(channel, &index))
     {
-        if (!the_mesh.getChannel(idx, ch) || ch.name[0] == '\0')
-            continue;
-        if (isPublicBroadcastChannelName(ch.name))
-        {
-            out_channel = ch.channel;
-            if (out_name)
-                *out_name = ch.name;
-            if (out_index)
-                *out_index = idx;
-            return true;
-        }
+        return false;
     }
-    return false;
+    out_channel = channel.channel;
+    if (out_name)
+        *out_name = channel.name;
+    if (out_index)
+        *out_index = index;
+    return true;
 }
 #endif
 
@@ -174,7 +134,7 @@ static bool resolvePublicChannel(mesh::GroupChannel &out_channel, const char **o
 bool MeshAppUi::sendAdvert()
 {
     const bool queued = the_mesh.advert();
-    Heltec::MeshCore::Ui::ui_task().showAlert(queued ? "Advert sent!" : "Advert failed", 1000);
+    Heltec::MeshCore::Ui::uiTask().showAlert(queued ? "Advert sent!" : "Advert failed", 1000);
     return queued;
 }
 
@@ -256,7 +216,7 @@ int MeshAppUi::sendMessageGroupCount() const
     ChannelDetails ch;
     for (int idx = 0; idx < MAX_GROUP_CHANNELS; ++idx)
     {
-        if (!isJoinChannel(idx) && the_mesh.getChannel(idx, ch) && ch.name[0] != '\0')
+        if (the_mesh.getChannel(idx, ch) && ch.name[0] != '\0')
             ++count;
     }
     return count;
@@ -277,7 +237,7 @@ bool MeshAppUi::sendMessageGroupAt(int index, int *channel_idx, char *label, siz
     ChannelDetails ch;
     for (int idx = 0; idx < MAX_GROUP_CHANNELS; ++idx)
     {
-        if (isJoinChannel(idx) || !the_mesh.getChannel(idx, ch) || ch.name[0] == '\0')
+        if (!the_mesh.getChannel(idx, ch) || ch.name[0] == '\0')
             continue;
         if (seen == index)
         {
@@ -331,7 +291,7 @@ bool MeshAppUi::sendDirectMessage(const uint8_t pub_key_prefix[6], const char *t
     ContactInfo *recipient = the_mesh.lookupMessagePeer(pub_key_prefix, 6);
     if (!recipient)
     {
-        Heltec::MeshCore::Ui::ui_task().showAlert("Send failed", 900);
+        Heltec::MeshCore::Ui::uiTask().showAlert("Send failed", 900);
         return false;
     }
     const uint32_t ts = the_mesh.getRTCClock()->getCurrentTimeUnique();
@@ -352,7 +312,7 @@ bool MeshAppUi::sendGroupMessage(int channel_idx, const char *text)
         return false;
 #ifndef MAX_GROUP_CHANNELS
     (void)channel_idx;
-    Heltec::MeshCore::Ui::ui_task().showAlert("Group channels not supported", 1000);
+    Heltec::MeshCore::Ui::uiTask().showAlert("Group channels not supported", 1000);
     return false;
 #else
     mesh::GroupChannel channel{};
@@ -372,13 +332,13 @@ bool MeshAppUi::sendGroupMessage(int channel_idx, const char *text)
     }
     if (!found)
     {
-        Heltec::MeshCore::Ui::ui_task().showAlert("No channel", 900);
+        Heltec::MeshCore::Ui::uiTask().showAlert("No channel", 900);
         return false;
     }
     const uint32_t ts = the_mesh.getRTCClock()->getCurrentTimeUnique();
     const int len = static_cast<int>(strlen(text));
     const bool ok = the_mesh.sendGroupMessage(ts, channel, the_mesh.getNodeName(), text, len);
-    Heltec::MeshCore::Ui::ui_task().showAlert(ok ? "Queued" : "Failed", 900);
+    Heltec::MeshCore::Ui::uiTask().showAlert(ok ? "Queued" : "Failed", 900);
     return ok;
 #endif
 }

@@ -36,19 +36,19 @@ class UiScheduler {
 UiScheduler s_ui_scheduler;
 } // namespace
 
-bool ui_motion_init() {
+bool initMotion() {
     return s_ui_scheduler.createTimer();
 }
 
-bool ui_motion_start(const UiMotionSpec &spec) {
+bool startMotion(const UiMotionSpec &spec) {
     return s_ui_scheduler.start(spec);
 }
 
-uint8_t ui_motion_cancel(void *target, UiMotionExec exec) {
+uint8_t cancelMotion(void *target, UiMotionExec exec) {
     return s_ui_scheduler.cancel(target, exec);
 }
 
-bool ui_motion_active(void *target, UiMotionExec exec) {
+bool isMotionActive(void *target, UiMotionExec exec) {
     return s_ui_scheduler.active(target, exec);
 }
 

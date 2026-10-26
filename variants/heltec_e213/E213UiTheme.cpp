@@ -7,7 +7,7 @@ namespace Heltec::MeshCore::Ui
 {
 namespace
 {
-static const UiThemeColors kE213ThemeColors = {
+static const ThemePalette kE213ThemeColors = {
     0x000000, // fg
     0xFFFFFF, // bg
     0xFFFFFF, // fg_inv
@@ -15,7 +15,6 @@ static const UiThemeColors kE213ThemeColors = {
     0x000000, // panel_dark_bg
     0x000000, // success
     0x000000, // error
-    0x000000, // warning
     0x000000, // bat_high
     0x000000, // bat_mid
     0x000000, // bat_low
@@ -38,9 +37,9 @@ static const UiThemeColors kE213ThemeColors = {
 };
 } // namespace
 
-lv_theme_t *init_ui_e213_theme(lv_disp_t *disp, const lv_font_t *font)
+lv_theme_t *initE213Theme(lv_disp_t *disp, const lv_font_t *font)
 {
-    return init_ui_mono_flat_theme_with_colors(disp, font, kE213ThemeColors);
+    return initMonoThemeWithPalette(disp, font, kE213ThemeColors);
 }
 
 } // namespace Heltec::MeshCore::Ui

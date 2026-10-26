@@ -1,7 +1,7 @@
 #include "PreviewOverlay.hpp"
 #include "ui/core/UiMessage.hpp"
 #include "ui/core/OperationHints.hpp"
-#include "ui/widgets/WidgetClasses.hpp"
+#include "ui/widgets/SemanticClasses.hpp"
 
 #include <cstring>
 
@@ -34,8 +34,9 @@ bool PreviewOverlay::build() {
     lv_obj_add_flag(_root, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_add_event_cb(_root, onRootClicked, LV_EVENT_CLICKED, this);
 
-    lv_obj_t *row = ht_class_create(&ht_preview_metadata_row_class, _content);
+    lv_obj_t *row = lv_obj_create(_content);
     if (!row) return false;
+    lv_obj_remove_style_all(row);
     lv_obj_set_size(row, lv_pct(100), LV_SIZE_CONTENT);
     lv_obj_set_flex_flow(row, LV_FLEX_FLOW_ROW);
     lv_obj_set_flex_align(row, LV_FLEX_ALIGN_SPACE_BETWEEN, LV_FLEX_ALIGN_CENTER,

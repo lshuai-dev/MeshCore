@@ -4,7 +4,6 @@
 #include "Geodesic.hpp"
 #include "MeshAppUi.hpp"
 #include "Target.h"
-#include "ui/core/UiTask.hpp"
 
 #include <Arduino.h>
 
@@ -140,10 +139,15 @@ void MeshAppUi::pollGpsTrack()
             return;
         if (!ds->beginGpsTrackRecording(start_ts))
         {
-            Heltec::MeshCore::Ui::ui_task().showAlert("Track start failed", 2000);
             _gps_track_armed = false;
             _gps_track_has_last = false;
             _gps_track_point_count = 0;
+            if (NodePrefs *p = the_mesh.getNodePrefs())
+            {
+                p->gps_track_armed = 0;
+                the_mesh.savePrefs();
+            }
+            reconcileGpsPower();
             return;
         }
         _gps_track_start_ms = millis();
@@ -156,7 +160,7 @@ void MeshAppUi::pollGpsTrack()
     const uint32_t now_ms = millis();
     const uint32_t off_ms = now_ms - _gps_track_start_ms;
 
-    auto remember_last_point = [this, lat_e6, lon_e6, now_ms]()
+    auto remember_last_point = [this, lat_e6, lon_e6]()
     {
         _gps_track_last_lat_e6 = lat_e6;
         _gps_track_last_lon_e6 = lon_e6;

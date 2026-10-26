@@ -218,7 +218,7 @@ void UiApp::openRepeatModeOverlay()
     notifyDisplayActivity(millis());
     if (!_surfaces.show(&_repeatModeOvl, true))
     {
-        ui_task().showAlert("Unable to open frequency picker", 2000);
+        uiTask().showAlert("Unable to open frequency picker", 2000);
     }
 }
 

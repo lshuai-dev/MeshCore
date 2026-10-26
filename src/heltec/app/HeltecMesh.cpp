@@ -19,6 +19,34 @@
 namespace
 {
 
+#ifdef MAX_GROUP_CHANNELS
+bool equalsIgnoreCase(const char *value, const char *expected)
+{
+    if (!value || !expected)
+    {
+        return false;
+    }
+    while (*expected != '\0')
+    {
+        char actual = *value++;
+        char wanted = *expected++;
+        if (actual >= 'A' && actual <= 'Z')
+        {
+            actual = static_cast<char>(actual + ('a' - 'A'));
+        }
+        if (wanted >= 'A' && wanted <= 'Z')
+        {
+            wanted = static_cast<char>(wanted + ('a' - 'A'));
+        }
+        if (actual != wanted)
+        {
+            return false;
+        }
+    }
+    return *value == '\0';
+}
+#endif
+
 #if defined(GPS_FIX_VALID_WINDOW_MS)
 constexpr uint32_t kStableGpsFixWindowMs = GPS_FIX_VALID_WINDOW_MS;
 #else
@@ -33,6 +61,7 @@ bool isT1SupportedUnixTime(uint32_t timestamp)
 {
     return timestamp >= kT1MinSupportedUnixTime && timestamp <= kT1MaxSupportedUnixTime;
 }
+
 #endif
 
 uint32_t clampIntervalSec(uint32_t v)
@@ -246,6 +275,30 @@ bool writeJsonLine(Print *out, const char *json)
 }
 
 } // namespace
+
+#ifdef MAX_GROUP_CHANNELS
+bool HeltecMesh::getPublicChannel(ChannelDetails &channel, int *channel_index)
+{
+    for (int index = 0; index < MAX_GROUP_CHANNELS; ++index)
+    {
+        if (!getChannel(index, channel) || channel.name[0] == '\0')
+        {
+            continue;
+        }
+        if (!equalsIgnoreCase(channel.name, "public") &&
+            !equalsIgnoreCase(channel.name, "broadcast"))
+        {
+            continue;
+        }
+        if (channel_index)
+        {
+            *channel_index = index;
+        }
+        return true;
+    }
+    return false;
+}
+#endif
 
 void HeltecMesh::onAdvertRecv(mesh::Packet *packet, const mesh::Identity &id, uint32_t timestamp,
                               const uint8_t *app_data, size_t app_data_len)
@@ -1159,7 +1212,8 @@ bool HeltecMesh::syncTeamMemberContact(const uint8_t *public_key, const char *na
     }
     const size_t bounded_len = name_len < sizeof(contact->name) - 1U ? name_len :
                                sizeof(contact->name) - 1U;
-    if (name && strncmp(contact->name, name, bounded_len) != 0)
+    if (name && (strncmp(contact->name, name, bounded_len) != 0 ||
+                 contact->name[bounded_len] != '\0'))
     {
         memset(contact->name, 0, sizeof(contact->name));
         memcpy(contact->name, name, bounded_len);
@@ -1405,13 +1459,17 @@ void HeltecMesh::onChannelMessageRecv(const mesh::GroupChannel &channel, mesh::P
 void HeltecMesh::onChannelDataRecv(const mesh::GroupChannel &channel, mesh::Packet *pkt,
                                    uint16_t data_type, const uint8_t *data, size_t data_len)
 {
-    (void)pkt;
-    if (data_type != Heltec::MeshCore::Team::kDataTypeDev)
+    if (!pkt || data_type != Heltec::MeshCore::Team::kDataTypeDev)
     {
         return;
     }
     const int channel_index = findChannelIdx(channel);
-    if (channel_index == HELTEC_TEAM_JOIN_CHANNEL_INDEX)
+    ChannelDetails public_details{};
+    int public_index = -1;
+    const bool public_channel = getPublicChannel(public_details, &public_index) &&
+                                channel_index == public_index;
+    const bool zero_hop = pkt->isRouteDirect() && pkt->getPathHashCount() == 0;
+    if (public_channel && zero_hop)
     {
         _team_join_service.handleJoinData(data, data_len);
     }

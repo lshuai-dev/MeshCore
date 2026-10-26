@@ -6,7 +6,7 @@
 #include "ui/widgets/HtTextarea.hpp"
 
 #include "ui/widgets/HtContainer.hpp"
-#include "ui/widgets/WidgetClasses.hpp"
+#include "ui/widgets/SemanticClasses.hpp"
 
 #include <lvgl.h>
 
@@ -536,7 +536,7 @@ void QuickPingOverlay::onExit()
     {
         lv_obj_add_flag(_backdrop, LV_OBJ_FLAG_HIDDEN);
     }
-    ui_motion_cancel(this, slideExec);
+    cancelMotion(this, slideExec);
     slideExec(this, kPaneInset);
     (void)lv_async_call_cancel(openPendingKeyboardAsync, this);
     clearRepeatSelection();
@@ -586,7 +586,7 @@ void QuickPingOverlay::startOpenAnimation()
 {
     if (!_root || !lv_obj_is_valid(_root))
         return;
-    ui_motion_cancel(this, slideExec);
+    cancelMotion(this, slideExec);
     lv_obj_update_layout(_root);
     const lv_coord_t height = paneHeight();
     if (height <= 0 || QUICK_PING_SLIDE_ANIM_MS == 0)
@@ -602,7 +602,7 @@ void QuickPingOverlay::startOpenAnimation()
     motion.end_value = kPaneInset;
     motion.duration_ms = QUICK_PING_SLIDE_ANIM_MS;
     motion.path = UiMotionPath::EaseInOut;
-    if (!ui_motion_start(motion))
+    if (!startMotion(motion))
     {
         slideExec(this, kPaneInset);
     }
@@ -617,7 +617,7 @@ bool QuickPingOverlay::requestCloseAnimation()
 
     closeDropdowns();
     clearRepeatSelection();
-    ui_motion_cancel(this, slideExec);
+    cancelMotion(this, slideExec);
     lv_obj_update_layout(_root);
     const lv_coord_t height = paneHeight();
     if (height <= 0 || QUICK_PING_SLIDE_ANIM_MS == 0)
@@ -636,7 +636,7 @@ bool QuickPingOverlay::requestCloseAnimation()
     motion.end_value = hidden_y;
     motion.duration_ms = QUICK_PING_SLIDE_ANIM_MS;
     motion.path = UiMotionPath::EaseInOut;
-    if (!ui_motion_start(motion))
+    if (!startMotion(motion))
         return false;
     _close_animating = true;
     return true;

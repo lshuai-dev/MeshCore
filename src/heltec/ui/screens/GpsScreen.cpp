@@ -1,5 +1,5 @@
 #include "GpsScreen.hpp"
-#include "ui/widgets/WidgetClasses.hpp"
+#include "ui/widgets/SemanticClasses.hpp"
 #include "ui/theme/UiTheme.hpp"
 #include "ui/widgets/HtContainer.hpp"
 #include "ui/core/UiMessage.hpp"

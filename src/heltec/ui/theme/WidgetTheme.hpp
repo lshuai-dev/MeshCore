@@ -5,70 +5,9 @@
 namespace Heltec::MeshCore::Ui
 {
 
-struct UiAppFrameStyleConfig
-{
-    lv_coord_t screen_pad;
-    lv_coord_t frame_margin_horizontal;
-    lv_coord_t frame_margin_bottom;
-    lv_coord_t content_radius;
-    lv_coord_t bar_height;
-    lv_coord_t bar_radius;
-};
+bool applyWidgetTheme(_lv_obj_t *obj);
+void applyActiveScreenTheme(_lv_obj_t *obj);
 
-struct UiContextMenuStyleConfig
-{
-    lv_coord_t icon_size;
-    lv_coord_t icon_gap;
-    lv_coord_t border_radius;
-    lv_coord_t frame_inset_y;
-};
-
-// TopPane-specific geometry is applied to LVGL styles during theme
-// initialization. Shared application-bar geometry lives in UiAppFrameStyleConfig.
-struct UiTopPaneStyleConfig
-{
-    lv_coord_t pad_top;
-    lv_coord_t battery_width;
-    lv_coord_t battery_height;
-};
-
-struct UiThemeProfile
-{
-    UiAppFrameStyleConfig app_frame;
-    UiContextMenuStyleConfig context_menu;
-    UiTopPaneStyleConfig top_pane;
-};
-
-struct UiContextMenuRollerStyles
-{
-    UiContextMenuRollerStyles(const lv_style_t *page_style = nullptr,
-                          const lv_style_t *item_style = nullptr,
-                          const lv_style_t *selected_item_style = nullptr)
-        : page(page_style), item(item_style), item_selected(selected_item_style)
-    {
-    }
-
-    const lv_style_t *page = nullptr;
-    const lv_style_t *item = nullptr;
-    const lv_style_t *item_selected = nullptr;
-};
-
-/** Configures geometry from a profile with static storage duration. */
-void ui_widget_theme_configure(const UiThemeProfile &profile);
-void ui_widget_theme_set_context_menu_roller_styles(const UiContextMenuRollerStyles &styles);
-void ui_theme_set_waypoint_keyboard_active(_lv_obj_t *keyboard, _lv_obj_t *latitude,
-                                           _lv_obj_t *longitude, bool active);
-
-bool ui_widget_theme_apply(_lv_obj_t *obj);
-void ui_app_active_screen_apply_theme(_lv_obj_t *obj);
-
-void ui_map_range_ring_apply_opa(_lv_obj_t *obj, lv_opa_t opa);
-bool ui_map_widget_apply_theme(_lv_obj_t *obj);
-void ui_theme_set_compass_info_layout(_lv_obj_t *obj, lv_coord_t pad_left, lv_coord_t pad_row);
-void ui_theme_set_compass_dial_row_layout(_lv_obj_t *obj, lv_coord_t pad_column);
-bool ui_button_roller_apply_theme(_lv_obj_t *obj);
-bool ui_license_gate_apply_theme(_lv_obj_t *obj);
-bool ui_radial_navigation_icon_apply_theme(_lv_obj_t *icon);
-void ui_context_menu_title_apply_theme(_lv_obj_t *title);
+void applyContextMenuTitleTheme(_lv_obj_t *title);
 
 } // namespace Heltec::MeshCore::Ui

@@ -8,7 +8,7 @@
 #include "ui/widgets/HtContainer.hpp"
 #include "ui/core/OperationHints.hpp"
 #include "ui/core/UiMessage.hpp"
-#include "ui/widgets/WidgetClasses.hpp"
+#include "ui/widgets/SemanticClasses.hpp"
 
 #include <cstdio>
 #include <cstring>
@@ -134,7 +134,7 @@ bool SendMessageOverlay::build()
         lv_obj_add_flag(_row_objs[i], LV_OBJ_FLAG_HIDDEN);
     }
 
-    _empty_focus = ht_class_create(&lv_obj_class, _list);
+    _empty_focus = lv_obj_create(_list);
     if (!_empty_focus)
         return false;
     lv_obj_set_size(_empty_focus, 1, 1);
@@ -239,9 +239,10 @@ _lv_obj_t *SendMessageOverlay::createTouchRow(uint8_t index, const char *text)
     lv_obj_set_scrollbar_mode(row, LV_SCROLLBAR_MODE_OFF);
     lv_obj_add_flag(row, LV_OBJ_FLAG_CLICKABLE);
 
-    lv_obj_t *label = ht_label_create(&ht_send_message_label_class, row, text ? text : "");
+    lv_obj_t *label = lv_label_create(row);
     if (!label)
         return nullptr;
+    ht_label_set_text_copy(label, text);
     lv_obj_set_width(label, lv_pct(100));
     lv_obj_set_flex_grow(label, 1);
     lv_label_set_long_mode(label, LV_LABEL_LONG_DOT);

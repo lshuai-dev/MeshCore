@@ -3,17 +3,17 @@
 #if LV_USE_THEME_MONO
 #include "ui/app/BehaviorProfile.hpp"
 #include "ui/theme/UiTheme.hpp"
+#include "ui/theme/ThemeUtil.hpp"
 #include "ui/Images.h"
 #include "ui/menus/ContextMenu.hpp"
 #include "ui/navigation/NavigationWidget.hpp"
 #include "ui/theme/WidgetTheme.hpp"
 #include "ThemeMonoFlat.hpp"
 
-static Heltec::MeshCore::Ui::UiTheme s_ui_mono_flat;
-static Heltec::MeshCore::Ui::UiTheme s_ui_ssd1306;
-static Heltec::MeshCore::Ui::UiTheme s_ui_mono_custom;
+static lv_theme_t s_ui_mono_flat;
+static lv_theme_t s_ui_ssd1306;
+static lv_theme_t s_ui_mono_custom;
 
-static lv_style_t s_mono_reset_style;
 static bool s_widget_styles_inited = false;
 
 static lv_color_t s_color_fg;
@@ -36,7 +36,7 @@ static lv_style_t s_cascading_item_style;
 static lv_style_t s_cascading_item_selected_style;
 
 
-static const Heltec::MeshCore::Ui::UiThemeColors kMonoFlatColors = {
+static const Heltec::MeshCore::Ui::ThemePalette kMonoFlatColors = {
     0xFFFFFF, // fg
     0x000000, // bg
     0x000000, // fg_inv
@@ -44,7 +44,6 @@ static const Heltec::MeshCore::Ui::UiThemeColors kMonoFlatColors = {
     0x000000, // panel_dark_bg
     0x00E060, // success
     0xFF3030, // error
-    0xFFB000, // warning
     0x00E060, // bat_high
     0xFFB000, // bat_mid
     0xFF3030, // bat_low
@@ -93,42 +92,41 @@ static const Heltec::MeshCore::Ui::UiThemeProfile kSsd1306ThemeProfile = {
     { 0, 15, 7 },
 };
 
-static void init_device_styles(lv_disp_t *disp, bool ssd1306)
+static void initDeviceStyles(lv_disp_t *disp, bool ssd1306)
 {
     using namespace Heltec::MeshCore::Ui;
-    ui_set_behavior_profile(&kMonoBehaviorProfile);
+    setBehaviorProfile(&kMonoBehaviorProfile);
 
     if (ssd1306)
     {
-        ui_widget_theme_configure(kSsd1306ThemeProfile);
+        configureWidgetTheme(kSsd1306ThemeProfile);
     }
     else
     {
         const bool wide_display = disp && lv_disp_get_hor_res(disp) >= 200;
-        ui_widget_theme_configure(wide_display ? kMonoWideThemeProfile
+        configureWidgetTheme(wide_display ? kMonoWideThemeProfile
                                                : kMonoNarrowThemeProfile);
     }
 }
 
-static void style_set_border_frame(lv_style_t *st)
+static void styleSetBorderFrame(lv_style_t *st)
 {
     lv_style_set_border_width(st, 1);
     lv_style_set_border_color(st, s_color_border);
 }
 
-static void init_widget_styles(bool ssd1306)
+static void initWidgetStyles(bool ssd1306)
 {
     if (s_widget_styles_inited)
         return;
 
-    lv_style_init(&s_mono_reset_style);
-
-    s_color_fg = Heltec::MeshCore::Ui::ui_color_fg();
-    s_color_bg = Heltec::MeshCore::Ui::ui_color_bg();
+    s_color_fg = lv_color_hex(Heltec::MeshCore::Ui::themePalette().fg);
+    s_color_bg = lv_color_hex(Heltec::MeshCore::Ui::themePalette().bg);
     s_color_border = s_color_fg;
-    s_color_on = Heltec::MeshCore::Ui::ui_color_success();
-    s_color_switch_bg = Heltec::MeshCore::Ui::ui_color_switch_bg();
-    s_color_switch_indicator = Heltec::MeshCore::Ui::ui_color_switch_indicator();
+    s_color_on = lv_color_hex(Heltec::MeshCore::Ui::themePalette().success);
+    s_color_switch_bg = lv_color_hex(Heltec::MeshCore::Ui::themePalette().switch_bg);
+    s_color_switch_indicator =
+        lv_color_hex(Heltec::MeshCore::Ui::themePalette().switch_indicator);
 
     lv_style_init(&s_cascading_page_style);
     lv_style_set_width(&s_cascading_page_style, lv_pct(100));
@@ -149,13 +147,11 @@ static void init_widget_styles(bool ssd1306)
     lv_style_set_bg_opa(&s_cascading_item_selected_style, LV_OPA_COVER);
     lv_style_set_text_color(&s_cascading_item_selected_style, s_color_bg);
 
-    Heltec::MeshCore::Ui::ui_widget_theme_set_context_menu_roller_styles(
+    Heltec::MeshCore::Ui::setContextMenuRollerStyles(
         {&s_cascading_page_style, &s_cascading_item_style,
          &s_cascading_item_selected_style});
-    lv_style_set_text_color(&s_mono_reset_style, s_color_fg);
-
     lv_style_init(&s_switch_main);
-    style_set_border_frame(&s_switch_main);
+    styleSetBorderFrame(&s_switch_main);
     lv_style_set_border_width(&s_switch_main, 2);
 #if LV_COLOR_DEPTH == 1
     // One physical pixel is the thinnest useful frame on a 1-bit panel. Give
@@ -178,18 +174,18 @@ static void init_widget_styles(bool ssd1306)
 #endif
 
     lv_style_init(&s_switch_main_focus);
-    style_set_border_frame(&s_switch_main_focus);
+    styleSetBorderFrame(&s_switch_main_focus);
 #if LV_COLOR_DEPTH == 1
     lv_style_set_border_width(&s_switch_main_focus, 2);
     lv_style_set_bg_color(&s_switch_main_focus,
-                          Heltec::MeshCore::Ui::ui_color_highlight_bg());
+                          lv_color_hex(Heltec::MeshCore::Ui::themePalette().highlight_bg));
     lv_style_set_border_color(&s_switch_main_focus,
-                              Heltec::MeshCore::Ui::ui_color_highlight_fg());
+                              lv_color_hex(Heltec::MeshCore::Ui::themePalette().highlight_fg));
 #else
     lv_style_set_border_width(&s_switch_main_focus, 1);
     lv_style_set_bg_color(&s_switch_main_focus, s_color_switch_bg);
     lv_style_set_border_color(&s_switch_main_focus,
-                              Heltec::MeshCore::Ui::ui_color_highlight_fg());
+                              lv_color_hex(Heltec::MeshCore::Ui::themePalette().highlight_fg));
 #endif
     lv_style_set_bg_opa(&s_switch_main_focus, LV_OPA_COVER);
 
@@ -240,13 +236,8 @@ static void init_widget_styles(bool ssd1306)
     s_widget_styles_inited = true;
 }
 
-static void apply_mono_fallback(lv_obj_t *obj)
-{
-    lv_obj_add_style(obj, &s_mono_reset_style, LV_PART_MAIN);
-}
-
 #if LV_USE_SWITCH
-static void mono_flat_apply_switch(lv_obj_t *obj)
+static void monoFlatApplySwitch(lv_obj_t *obj)
 {
     lv_obj_add_style(obj, &s_switch_main, LV_PART_MAIN);
     lv_obj_add_style(obj, &s_switch_main_focus, LV_PART_MAIN | LV_STATE_FOCUS_KEY);
@@ -260,69 +251,66 @@ static void mono_flat_apply_switch(lv_obj_t *obj)
 }
 #endif
 
-extern "C" void ui_mono_flat_apply(lv_theme_t *th, lv_obj_t *obj)
+static void applyMonoTheme(lv_theme_t *th, lv_obj_t *obj)
 {
     if (!obj)
         return;
     (void)th;
 
-    const bool custom_applied = Heltec::MeshCore::Ui::ui_widget_theme_apply(obj);
+    Heltec::MeshCore::Ui::applyWidgetTheme(obj);
 
 #if LV_USE_SWITCH
     if (lv_obj_check_type(obj, &lv_switch_class))
     {
-        mono_flat_apply_switch(obj);
+        monoFlatApplySwitch(obj);
         return;
     }
 #endif
-
-    if (!custom_applied)
-        apply_mono_fallback(obj);
 }
 
 namespace Heltec::MeshCore::Ui
 {
 
-static lv_theme_t *init_mono_flat_theme_variant(lv_disp_t *disp, const lv_font_t *font,
-                                                bool ssd1306, UiTheme &theme_storage,
-                                                const UiThemeColors &colors)
+static lv_theme_t *initMonoFlatThemeVariant(lv_disp_t *disp, const lv_font_t *font,
+                                                bool ssd1306, lv_theme_t &theme_storage,
+                                                const ThemePalette &colors)
 {
     if (!disp)
         return nullptr;
-    ui_set_active_theme_colors(&colors);
-    init_device_styles(disp, ssd1306);
-    init_widget_styles(ssd1306);
+    setThemePalette(&colors);
+    initDeviceStyles(disp, ssd1306);
+    initWidgetStyles(ssd1306);
 
     if (!font)
         font = LV_FONT_DEFAULT;
 
     lv_memset_00(&theme_storage, sizeof(theme_storage));
-    theme_storage.theme.disp = disp;
-    theme_storage.theme.color_primary = ui_color_accent();
-    theme_storage.theme.color_secondary = ui_color_bg();
-    theme_storage.theme.font_small = font;
-    theme_storage.theme.font_normal = font;
-    theme_storage.theme.font_large = font;
-    theme_storage.theme.apply_cb = ui_mono_flat_apply;
-    ui_set_active_theme_colors(&colors);
-    lv_disp_set_theme(disp, &theme_storage.theme);
-    return &theme_storage.theme;
+    theme_storage.disp = disp;
+    theme_storage.color_primary = lv_color_hex(themePalette().accent);
+    theme_storage.color_secondary = lv_color_hex(themePalette().bg);
+    theme_storage.font_small = font;
+    theme_storage.font_normal = font;
+    theme_storage.font_large = font;
+    theme_storage.apply_cb = applyMonoTheme;
+    setThemePalette(&colors);
+    lv_disp_set_theme(disp, &theme_storage);
+    return &theme_storage;
 }
 
-lv_theme_t *init_ui_mono_flat_theme(lv_disp_t *disp, const lv_font_t *font)
+lv_theme_t *initMonoTheme(lv_disp_t *disp, const lv_font_t *font)
 {
-    return init_mono_flat_theme_variant(disp, font, false, s_ui_mono_flat, kMonoFlatColors);
+    return initMonoFlatThemeVariant(disp, font, false, s_ui_mono_flat, kMonoFlatColors);
 }
 
-lv_theme_t *init_ui_ssd1306_theme(lv_disp_t *disp, const lv_font_t *font)
+lv_theme_t *initSsd1306Theme(lv_disp_t *disp, const lv_font_t *font)
 {
-    return init_mono_flat_theme_variant(disp, font, true, s_ui_ssd1306, kMonoFlatColors);
+    return initMonoFlatThemeVariant(disp, font, true, s_ui_ssd1306, kMonoFlatColors);
 }
 
-lv_theme_t *init_ui_mono_flat_theme_with_colors(lv_disp_t *disp, const lv_font_t *font,
-                                                const UiThemeColors &colors)
+lv_theme_t *initMonoThemeWithPalette(lv_disp_t *disp, const lv_font_t *font,
+                                                const ThemePalette &colors)
 {
-    return init_mono_flat_theme_variant(disp, font, false, s_ui_mono_custom, colors);
+    return initMonoFlatThemeVariant(disp, font, false, s_ui_mono_custom, colors);
 }
 
 } // namespace Heltec::MeshCore::Ui

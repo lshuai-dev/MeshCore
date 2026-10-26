@@ -23,7 +23,7 @@ using Heltec::MeshCore::Team::JoinState;
 constexpr lv_coord_t kFindFriendRowHeight = 28;
 constexpr lv_coord_t kDropdownHeight = kFindFriendRowHeight;
 #else
-constexpr lv_coord_t kFindFriendRowHeight = ui_settings_row_height();
+constexpr lv_coord_t kFindFriendRowHeight = settingsRowHeight();
 #endif
 
 void set_hidden(_lv_obj_t *obj, bool hidden)

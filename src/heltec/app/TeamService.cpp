@@ -21,11 +21,6 @@ namespace Heltec::MeshCore::Team
 namespace
 {
 
-const uint8_t kJoinSecret[32] = {
-    0x64, 0x98, 0xBB, 0x21, 0x91, 0x31, 0xF4, 0x0D, 0x77, 0x46, 0xA8,
-    0x52, 0xEC, 0x5B, 0x99, 0x70, 0x0E, 0xAF, 0x3E, 0x18, 0xDD, 0x79,
-    0x13, 0x65, 0x4A, 0xC0, 0x2F, 0x87, 0x9C, 0xB4, 0x56, 0xDA
-};
 constexpr uint32_t kStatusRetryMs = 5000UL;
 
 bool deadline_passed(uint32_t now, uint32_t deadline)
@@ -58,7 +53,6 @@ void TeamService::begin(HeltecMesh &mesh, DataStore &store)
 {
     _mesh = &mesh;
     _credentials = TeamCredentials{};
-    _enabled = false;
     _sync_request_tx_seen = false;
     _last_sync_request_tx_ms = 0;
     clearMembers();
@@ -81,7 +75,7 @@ bool TeamService::hasTeam() const
 
 bool TeamService::enabled() const
 {
-    return hasTeam() && _enabled;
+    return hasTeam();
 }
 
 bool TeamService::locationShareEnabled() const
@@ -96,13 +90,6 @@ const TeamCredentials &TeamService::credentials() const
 
 void TeamService::installSystemChannels()
 {
-    ChannelDetails join{};
-    memcpy(join.channel.secret, kJoinSecret, sizeof(kJoinSecret));
-    strncpy(join.name, "_heltec_team_join", sizeof(join.name) - 1);
-    _mesh->setChannel(HELTEC_TEAM_JOIN_CHANNEL_INDEX, join);
-    ChannelDetails installed_join{};
-    (void)_mesh->getChannel(HELTEC_TEAM_JOIN_CHANNEL_INDEX, installed_join);
-
     if (hasTeam())
     {
         ChannelDetails team{};
@@ -110,8 +97,6 @@ void TeamService::installSystemChannels()
         memcpy(team.name, _credentials.name, _credentials.name_len);
         team.name[_credentials.name_len] = '\0';
         _mesh->setChannel(HELTEC_TEAM_CHANNEL_INDEX, team);
-        ChannelDetails installed_team{};
-        (void)_mesh->getChannel(HELTEC_TEAM_CHANNEL_INDEX, installed_team);
     }
     else
     {
@@ -176,7 +161,6 @@ bool TeamService::installTeam(const TeamCredentials &credentials)
 
     _credentials = credentials;
     _credentials.name[_credentials.name_len] = '\0';
-    _enabled = true;
     clearMembers();
     _last_leader_seen_ms = millis();
     _sync_request_tx_seen = false;
@@ -189,35 +173,12 @@ bool TeamService::installTeam(const TeamCredentials &credentials)
 bool TeamService::leaveTeam()
 {
     memset(&_credentials, 0, sizeof(_credentials));
-    _enabled = false;
     _sent_valid_location = false;
     _last_leader_seen_ms = 0;
     _sync_request_tx_seen = false;
     _last_sync_request_tx_ms = 0;
     clearMembers();
     clearTeamChannel();
-    return true;
-}
-
-bool TeamService::setEnabled(bool enabled)
-{
-    if (enabled && !hasTeam())
-        return false;
-    _enabled = enabled;
-    if (!enabled)
-    {
-        _status_due_ms = 0;
-        _startup_sync_ms = 0;
-        _startup_sync_attempts = 0;
-    }
-    else
-    {
-        if (_role == TeamRole::Member)
-        {
-            _last_leader_seen_ms = millis();
-        }
-        scheduleInitialFrames();
-    }
     return true;
 }
 

@@ -8,7 +8,7 @@
 #include "heltec/ui/Images.h"
 #include "ui/app/BehaviorProfile.hpp"
 #include "ui/theme/UiTheme.hpp"
-#include "ui/widgets/WidgetClasses.hpp"
+#include "ui/widgets/SemanticClasses.hpp"
 #include "ui/core/UiMessage.hpp"
 #include "ui/core/Scheduler.hpp"
 #include "ui/navigation/NavigationWidget.hpp"
@@ -50,7 +50,7 @@ static constexpr lv_coord_t kGridFooterHeightPx = 36;
 static uint16_t gridNavOpenAnimMs(const lv_obj_t *obj)
 {
     (void)obj;
-    return ui_behavior_profile().navigation.open_anim_ms;
+    return behaviorProfile().navigation.open_anim_ms;
 }
 
 static uint16_t gridNavCloseAnimMs(const lv_obj_t *obj)
@@ -193,8 +193,8 @@ static void layoutRootToTileView(_lv_obj_t *root, _lv_obj_t *tileview)
 NavigationPane::~NavigationPane()
 {
     if (_nav)
-        ui_motion_cancel(_nav);
-    ui_motion_cancel(this);
+        cancelMotion(_nav);
+    cancelMotion(this);
 }
 
 void NavigationPane::configure(const UiNavigationItem *items, uint8_t count)
@@ -224,7 +224,7 @@ _lv_obj_t *NavigationPane::navButtonHost() const
 
 _lv_obj_t *NavigationPane::itemHost() const
 {
-    return ui_gridNav_content(_nav);
+    return gridNavContent(_nav);
 }
 
 _lv_obj_t *NavigationPane::findCellById(uint8_t id) const
@@ -548,7 +548,7 @@ bool NavigationPane::build()
     lv_obj_add_flag(_root, LV_OBJ_FLAG_OVERFLOW_VISIBLE);
     _gridNav.setWrap(false);
 
-    _nav = ui_gridNav_create_grid(_root);
+    _nav = createGridNavGrid(_root);
     if (!_nav)
         return false;
     _gridNav.add(_nav);
@@ -575,8 +575,8 @@ bool NavigationPane::build()
             if (!self || !self->_nav || lv_event_get_code(e) != LV_EVENT_SIZE_CHANGED)
                 return;
             const bool fading = self->_ring_fade_busy;
-            ui_motion_cancel(self->_nav);
-            ui_motion_cancel(self);
+            cancelMotion(self->_nav);
+            cancelMotion(self);
             if (fading)
             {
                 self->_ring_fade_busy = false;
@@ -626,16 +626,17 @@ void NavigationPane::setIcon(uint8_t id, const lv_img_dsc_t *img)
     lv_obj_set_flex_align(cell, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_END, LV_FLEX_ALIGN_CENTER);
     lv_obj_clear_flag(cell, LV_OBJ_FLAG_SCROLLABLE);
 
-    _lv_obj_t *icon_area = ht_class_create(&ht_navigation_icon_area_class, cell);
+    _lv_obj_t *icon_area = lv_obj_create(cell);
     if (!icon_area)
     {
         lv_obj_del(cell);
         return;
     }
+    lv_obj_remove_style_all(icon_area);
     lv_obj_set_width(icon_area, lv_pct(100));
     lv_obj_clear_flag(icon_area, LV_OBJ_FLAG_SCROLLABLE | LV_OBJ_FLAG_CLICKABLE);
 
-    _lv_obj_t *icon = ht_class_create(&ht_navigation_grid_icon_class, icon_area);
+    _lv_obj_t *icon = lv_img_create(icon_area);
     if (!icon)
     {
         lv_obj_del(cell);
@@ -796,8 +797,8 @@ void NavigationPane::setSelectedIndex(uint8_t id, bool preview)
 void NavigationPane::resetPanel()
 {
     if (_nav)
-        ui_motion_cancel(_nav);
-    ui_motion_cancel(this);
+        cancelMotion(_nav);
+    cancelMotion(this);
     _ring_fade_busy = false;
     _close_animating = false;
     if (!_nav)
@@ -973,8 +974,8 @@ bool NavigationPane::requestCloseAnimation()
     if (current_x <= closed_x || close_slide_ms == 0)
         return false;
 
-    ui_motion_cancel(_nav);
-    ui_motion_cancel(this);
+    cancelMotion(_nav);
+    cancelMotion(this);
     _ring_fade_busy = true;
     _close_animating = true;
     setNavButtonsInteractive(false);
@@ -1000,7 +1001,7 @@ bool NavigationPane::requestCloseAnimation()
     motion.end_value = closed_x;
     motion.duration_ms = close_slide_ms;
     motion.path = UiMotionPath::EaseIn;
-    if (!ui_motion_start(motion))
+    if (!startMotion(motion))
     {
         _ring_fade_busy = false;
         _close_animating = false;
@@ -1015,8 +1016,8 @@ void NavigationPane::openPanel()
         return;
     const uint16_t open_slide_ms = gridNavOpenAnimMs(_root);
 
-    ui_motion_cancel(_nav);
-    ui_motion_cancel(this);
+    cancelMotion(_nav);
+    cancelMotion(this);
 
     _ring_fade_busy = true;
     setNavButtonsInteractive(false);
@@ -1067,7 +1068,7 @@ void NavigationPane::openPanel()
     motion.end_value = nx;
     motion.duration_ms = open_slide_ms;
     motion.path = UiMotionPath::EaseOut;
-    if (!ui_motion_start(motion))
+    if (!startMotion(motion))
     {
         lv_obj_set_x(_nav, nx);
         _ring_fade_busy = false;
