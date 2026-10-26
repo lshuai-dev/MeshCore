@@ -247,16 +247,6 @@ void PowerMgr::setGpsDemand(GpsDemand demand, bool active)
     }
 }
 
-void PowerMgr::setCompassDemand(CompassDemand demand, bool active)
-{
-    const uint8_t bit = mask(demand);
-    if (active)
-        _requested_compass_demands = static_cast<uint8_t>(_requested_compass_demands | bit);
-    else
-        _requested_compass_demands = static_cast<uint8_t>(_requested_compass_demands &
-                                                          static_cast<uint8_t>(~bit));
-}
-
 uint16_t PowerMgr::effectiveGpsDemands() const
 {
     uint16_t demands = _requested_gps_demands;
@@ -346,24 +336,6 @@ bool PowerMgr::reconcileGpsPower(uint32_t now_ms)
                        demands, static_cast<unsigned>(_snapshot.source),
                        _snapshot.display_on ? 1U : 0U);
     return true;
-}
-
-uint32_t PowerMgr::nextDeadlineMs() const
-{
-    uint32_t result = 0U;
-    const auto consider = [&result](uint32_t deadline_ms) {
-        if (deadline_ms == 0U || (result != 0U && static_cast<int32_t>(deadline_ms - result) >= 0))
-            return;
-        result = deadline_ms;
-    };
-    if (_snapshot.display_on && _display_auto_off_ms != 0U && _display_activity_valid &&
-        _display_inhibit_mask == 0U)
-        consider(_display_last_activity_ms + _display_auto_off_ms);
-    consider(_gps_retry_due_ms);
-    if (_gps_idle_since_ms != 0U)
-        consider(_gps_idle_since_ms + _config.gps_idle_delay_ms);
-    consider(_system_transition_due_ms);
-    return result;
 }
 
 void PowerMgr::requestPowerOff(uint32_t now_ms)

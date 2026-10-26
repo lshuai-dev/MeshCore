@@ -287,13 +287,6 @@ void NRF52Board::sleep(uint32_t secs) {
   }
 }
 
-void NRF52Board::sleepMillis(uint32_t millis) {
-  // SoftDevice/WFE remains interrupt-driven; timer compare integration is
-  // board-specific and must not be emulated with a busy wait.
-  (void)millis;
-  sleep(0);
-}
-
 // Temperature from NRF52 MCU
 float NRF52Board::getMCUTemperature() {
   uint8_t sd_enabled = 0;

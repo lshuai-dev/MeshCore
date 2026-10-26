@@ -110,14 +110,14 @@ Compass demand 归零时只停止 I2C 采样、姿态算法和 UI 通知。只�
 - System OFF 只用于主动关机。
 
 `PowerMgr` 不新增 `idle()` 平台接口。普通 MCU 休眠继续统一调用现有
-`MainBoard::sleep()`，避免形成第二套平台睡眠抽象；主循环必须为软件 deadline 保留一次性 timer wake。
+`MainBoard::sleep()`，ESP32 仅补充固定毫秒级 light sleep 入口，不建立软件 deadline 聚合框架。
 
 ## 7. PowerMgr 职责
 
 后续调整后的 `PowerMgr` 只负责：
 
 1. 显示自动关闭与禁止超时的原因 mask。
-2. GPS 和 Compass demand mask。
+2. GPS demand mask。Compass demand 留在 UI/传感器采样协调层。
 3. 资源状态协调、失败重试和状态快照。
 4. 关机和重启流程。
 
@@ -156,11 +156,10 @@ Compass 的 demand mask 归零后保留 1500 ms 采样宽限期，再停止 I2C 
 因此必须同时保留一次性定时唤醒：
 
 ```text
-硬件中断唤醒 + 最近软件 deadline 的一次性 timer wake
+硬件中断唤醒 + 固定短周期 timer wake
 ```
 
-每次进入 idle 前计算最近 deadline；当前主循环已汇总 Team、Join、Mesh inbound/outbound 和 PowerMgr deadline，并将其用于 ESP32 的毫秒级 timer wake。nRF52 仍由 SoftDevice/外部中断负责唤醒，毫秒定时器需由具体板级实现接入。没有软件 deadline 时才允许纯中断等待。不得以固定周期
-tick 替代 deadline，也不得让 `sleep(0)` 表示无限期睡眠。
+ESP32 无活动时固定进入 250 ms light sleep，LoRa、按键和 Touch GPIO 可提前唤醒。该周期足以推进秒级 Team、Join、Mesh 和资源关闭计时，并避免在多个模块之间传播 deadline 查询接口。nRF52 保持原生 SoftDevice/WFE 事件等待，不额外引入未验证的板级定时器抽象。
 
 ## 10. 验证清单
 
@@ -172,6 +171,6 @@ tick 替代 deadline，也不得让 `sleep(0)` 表示无限期睡眠。
 - ESP32 可由 LoRa DIO1、两个物理按键和触摸 IRQ 唤醒。
 - nRF52840 WFE/System ON idle 后仍可接收 LoRa、按键和 GPS 数据。
 - 普通休眠不丢失 LoRa 数据；主动关机才关闭 Radio。
-- ESP32 无 LoRa/按键活动时，最多 1 秒后仍能被 timer 唤醒处理软件 deadline。
+- ESP32 无 LoRa/按键活动时，最多 250 ms 后由 timer 唤醒处理软件计时。
 - `millis()` 回绕时显示超时、GPS 重试和关机超时仍正确。
 - 对 T1、V4 R8 TFT 分别比较待机电流、Flash 和 RAM。

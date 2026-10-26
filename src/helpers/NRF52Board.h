@@ -55,7 +55,6 @@ public:
   virtual bool getBootloaderVersion(char* version, size_t max_len) override;
   virtual bool startOTAUpdate(const char *id, char reply[]) override;
   virtual void sleep(uint32_t secs) override;
-  virtual void sleepMillis(uint32_t millis) override;
   bool isExternalPowered() override;
 
 #ifdef NRF52_POWER_MANAGEMENT

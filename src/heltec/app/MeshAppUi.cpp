@@ -59,7 +59,6 @@ void MeshAppUi::poll()
 
 void MeshAppUi::setCompassDemand(uint8_t demand, bool active)
 {
-    _power.setCompassDemand(static_cast<Power::CompassDemand>(demand), active);
     if (active)
     {
         _compass_demand_mask = static_cast<uint8_t>(_compass_demand_mask | demand);
@@ -83,7 +82,7 @@ void MeshAppUi::reconcileCompassSampling(uint32_t now_ms)
     {
         _compass_idle_since_ms = now_ms;
     }
-    const bool should_sample = (_power.compassDemands() != 0U) ||
+    const bool should_sample = (_compass_demand_mask != 0U) ||
                                (static_cast<uint32_t>(now_ms - _compass_idle_since_ms) < kCompassIdleDelayMs);
     if (should_sample != _compass_sampling_enabled)
     {

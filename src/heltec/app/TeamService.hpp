@@ -118,15 +118,6 @@ class TeamService
     void noteWrongChannel();
     uint16_t changeSequence() const { return _change_sequence; }
     uint16_t memberRevision() const { return _member_revision; }
-    uint32_t nextDeadlineMs() const
-    {
-        if (_status_due_ms == 0U)
-            return _startup_sync_ms;
-        if (_startup_sync_ms == 0U)
-            return _status_due_ms;
-        return (static_cast<int32_t>(_status_due_ms - _startup_sync_ms) <= 0) ? _status_due_ms
-                                                                                : _startup_sync_ms;
-    }
     void pinMember(const uint8_t public_key[kPublicKeySize]);
 #if defined(HELTEC_GEOFENCE) && HELTEC_GEOFENCE
     GeofenceState geofenceState() const { return _geofence.state(); }
