@@ -247,6 +247,16 @@ void PowerMgr::setGpsDemand(GpsDemand demand, bool active)
     }
 }
 
+void PowerMgr::setCompassDemand(CompassDemand demand, bool active)
+{
+    const uint8_t bit = mask(demand);
+    if (active)
+        _requested_compass_demands = static_cast<uint8_t>(_requested_compass_demands | bit);
+    else
+        _requested_compass_demands = static_cast<uint8_t>(_requested_compass_demands &
+                                                          static_cast<uint8_t>(~bit));
+}
+
 uint16_t PowerMgr::effectiveGpsDemands() const
 {
     uint16_t demands = _requested_gps_demands;

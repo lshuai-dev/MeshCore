@@ -41,6 +41,13 @@ enum class GpsDemand : uint16_t
     FindFriend = 1U << 5,
 };
 
+enum class CompassDemand : uint8_t
+{
+    Foreground = 1U << 0,
+    FindFriend = 1U << 1,
+    Calibration = 1U << 2,
+};
+
 enum class PowerChange : uint16_t
 {
     Battery = 1U << 0,
@@ -56,6 +63,11 @@ using PowerChangeMask = uint16_t;
 constexpr uint16_t mask(GpsDemand demand)
 {
     return static_cast<uint16_t>(demand);
+}
+
+constexpr uint8_t mask(CompassDemand demand)
+{
+    return static_cast<uint8_t>(demand);
 }
 
 constexpr PowerChangeMask mask(PowerChange change)
@@ -153,6 +165,8 @@ class PowerMgr
 
     void setGpsAllowed(bool allowed);
     void setGpsDemand(GpsDemand demand, bool active);
+    void setCompassDemand(CompassDemand demand, bool active);
+    uint8_t compassDemands() const { return _requested_compass_demands; }
     bool reconcileGpsPower(uint32_t now_ms);
     uint32_t nextDeadlineMs() const;
 
@@ -179,6 +193,7 @@ class PowerMgr
     PowerConfig _config{};
     PowerSnapshot _snapshot{};
     uint16_t _requested_gps_demands = 0;
+    uint8_t _requested_compass_demands = 0;
     uint16_t _display_inhibit_mask = 0;
     uint32_t _display_auto_off_ms = 0;
     uint32_t _display_last_activity_ms = 0;
