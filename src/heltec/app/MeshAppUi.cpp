@@ -6,11 +6,6 @@
 
 #include <Arduino.h>
 
-#if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
-#include <heltec/sensors/IcmCompassProvider.h>
-extern ICMCompassProvider compassProvider;
-#endif
-
 namespace Heltec::MeshCore::Biz
 {
 
@@ -18,7 +13,6 @@ MeshAppUi::MeshAppUi(Heltec::MeshCore::Power::PowerMgr &power) : _power(power) {
 
 void MeshAppUi::poll()
 {
-    reconcileCompassSampling(millis());
     pollGpsTrack();
     pollRadioStatus();
 #if defined(HELTEC_GEOFENCE) && HELTEC_GEOFENCE
@@ -57,43 +51,6 @@ void MeshAppUi::poll()
 #endif
 }
 
-void MeshAppUi::setCompassDemand(uint8_t demand, bool active)
-{
-    if (active)
-    {
-        _compass_demand_mask = static_cast<uint8_t>(_compass_demand_mask | demand);
-        _compass_idle_since_ms = 0;
-    }
-    else
-    {
-        _compass_demand_mask = static_cast<uint8_t>(_compass_demand_mask & static_cast<uint8_t>(~demand));
-        if (_compass_demand_mask == 0U && _compass_idle_since_ms == 0U)
-        {
-            _compass_idle_since_ms = millis();
-        }
-    }
-}
-
-void MeshAppUi::reconcileCompassSampling(uint32_t now_ms)
-{
-#if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
-    constexpr uint32_t kCompassIdleDelayMs = 1500U;
-    if (_compass_demand_mask == 0U && _compass_idle_since_ms == 0U)
-    {
-        _compass_idle_since_ms = now_ms;
-    }
-    const bool should_sample = (_compass_demand_mask != 0U) ||
-                               (static_cast<uint32_t>(now_ms - _compass_idle_since_ms) < kCompassIdleDelayMs);
-    if (should_sample != _compass_sampling_enabled)
-    {
-        compassProvider.setSamplingEnabled(should_sample);
-        _compass_sampling_enabled = should_sample;
-    }
-#else
-    (void)now_ms;
-#endif
-}
-
 void MeshAppUi::handlePowerChanged(Heltec::MeshCore::Power::PowerChangeMask changes,
                                    const Heltec::MeshCore::Power::PowerSnapshot &)
 {
@@ -112,7 +69,7 @@ void MeshAppUi::notifyAppState(Heltec::MeshCore::Ui::AppStateEventType type)
 
 void MeshAppUi::setCompassForegroundActive(bool active)
 {
-    setCompassDemand(kCompassDemandForeground, active);
+    _power.setCompassDemand(Power::CompassDemand::CompassScreen, active);
 }
 
 #if !defined(ENV_INCLUDE_COMPASS) || !(ENV_INCLUDE_COMPASS)

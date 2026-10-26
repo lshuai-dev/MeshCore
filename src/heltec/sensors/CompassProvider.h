@@ -25,6 +25,10 @@ class CompassProvider
     {
         (void)enabled;
     }
+    virtual bool samplingEnabled() const
+    {
+        return true;
+    }
     virtual bool hasHardware() const
     {
         return true;

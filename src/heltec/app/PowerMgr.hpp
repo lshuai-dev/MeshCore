@@ -40,6 +40,13 @@ enum class GpsDemand : uint16_t
     FindFriendScreen = 1U << 5,
 };
 
+enum class CompassDemand : uint8_t
+{
+    CompassScreen = 1U << 0,
+    FindFriendScreen = 1U << 1,
+    Calibration = 1U << 2,
+};
+
 enum class PowerChange : uint16_t
 {
     Battery = 1U << 0,
@@ -55,6 +62,11 @@ using PowerChangeMask = uint16_t;
 constexpr uint16_t mask(GpsDemand demand)
 {
     return static_cast<uint16_t>(demand);
+}
+
+constexpr uint8_t mask(CompassDemand demand)
+{
+    return static_cast<uint8_t>(demand);
 }
 
 constexpr PowerChangeMask mask(PowerChange change)
@@ -73,6 +85,7 @@ struct PowerConfig
     uint32_t source_poll_ms = 1000;
     uint32_t gps_retry_ms = 1000;
     uint32_t gps_idle_delay_ms = 1500;
+    uint32_t compass_idle_delay_ms = 1500;
     uint32_t radio_standby_delay_ms = 30000;
     uint32_t shutdown_feedback_timeout_ms = 2500;
     uint16_t battery_min_mv = 3000;
@@ -90,6 +103,9 @@ struct PowerSnapshot
     bool gps_allowed = false;
     bool gps_powered = false;
     uint16_t gps_demands = 0;
+    uint8_t compass_demands = 0;
+    bool compass_available = false;
+    bool compass_sampling = false;
     RuntimePowerLevel runtime_level = RuntimePowerLevel::Active;
     SystemPowerState system_state = SystemPowerState::Running;
     PowerFault fault = PowerFault::None;
@@ -107,6 +123,10 @@ class PowerPlatform
     virtual bool isGpsAvailable() const = 0;
     virtual bool isGpsPowered() const = 0;
     virtual bool setGpsPowered(bool on) = 0;
+
+    virtual bool isCompassAvailable() const = 0;
+    virtual bool isCompassSampling() const = 0;
+    virtual bool setCompassSampling(bool on) = 0;
 
     virtual void startShutdownFeedback() = 0;
     virtual bool shutdownFeedbackDone() = 0;
@@ -153,6 +173,7 @@ class PowerMgr
     void setGpsAllowed(bool allowed);
     void setGpsDemand(GpsDemand demand, bool active);
     bool reconcileGpsPower(uint32_t now_ms);
+    void setCompassDemand(CompassDemand demand, bool active);
 
     void requestPowerOff(uint32_t now_ms);
     void requestReboot(uint32_t delay_ms, uint32_t now_ms);
@@ -161,6 +182,7 @@ class PowerMgr
     static bool deadlineReached(uint32_t now_ms, uint32_t deadline_ms);
     uint8_t batteryPercent(uint16_t mv) const;
     uint16_t effectiveGpsDemands() const;
+    void reconcileCompassSampling(uint32_t now_ms);
     void pollBattery(uint32_t now_ms, bool force = false);
     void pollPowerSource(uint32_t now_ms, bool force = false);
     void processDisplayTimeout(uint32_t now_ms);
@@ -177,6 +199,7 @@ class PowerMgr
     PowerConfig _config{};
     PowerSnapshot _snapshot{};
     uint16_t _requested_gps_demands = 0;
+    uint8_t _requested_compass_demands = 0;
     uint16_t _display_inhibit_mask = 0;
     uint32_t _display_auto_off_ms = 0;
     uint32_t _display_last_activity_ms = 0;
@@ -185,6 +208,7 @@ class PowerMgr
     uint32_t _source_last_poll_ms = 0;
     uint32_t _gps_retry_due_ms = 0;
     uint32_t _gps_idle_since_ms = 0;
+    uint32_t _compass_idle_since_ms = 0;
     uint32_t _system_transition_due_ms = 0;
     bool _battery_polled = false;
     bool _source_polled = false;

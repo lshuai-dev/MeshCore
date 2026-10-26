@@ -48,6 +48,8 @@ void PowerMgr::begin(uint32_t now_ms, const PowerConfig &config)
     _snapshot.display_on = _config.display_available && _platform.isDisplayOn();
     _snapshot.gps_available = _platform.isGpsAvailable();
     _snapshot.gps_powered = _snapshot.gps_available && _platform.isGpsPowered();
+    _snapshot.compass_available = _platform.isCompassAvailable();
+    _snapshot.compass_sampling = _snapshot.compass_available && _platform.isCompassSampling();
     _display_last_activity_ms = _snapshot.display_on ? now_ms : 0;
     _display_activity_valid = _snapshot.display_on;
     _display_off_since_ms = _snapshot.display_on ? 0 : now_ms;
@@ -247,6 +249,46 @@ void PowerMgr::setGpsDemand(GpsDemand demand, bool active)
     }
 }
 
+void PowerMgr::setCompassDemand(CompassDemand demand, bool active)
+{
+    const uint8_t bit = mask(demand);
+    if (active)
+    {
+        _requested_compass_demands = static_cast<uint8_t>(_requested_compass_demands | bit);
+    }
+    else
+    {
+        _requested_compass_demands = static_cast<uint8_t>(_requested_compass_demands &
+                                                          static_cast<uint8_t>(~bit));
+    }
+}
+
+void PowerMgr::reconcileCompassSampling(uint32_t now_ms)
+{
+    _snapshot.compass_available = _platform.isCompassAvailable();
+    _snapshot.compass_demands = _requested_compass_demands;
+    if (_requested_compass_demands != 0U)
+    {
+        _compass_idle_since_ms = 0U;
+    }
+    else if (_compass_idle_since_ms == 0U)
+    {
+        _compass_idle_since_ms = now_ms;
+    }
+
+    const bool idle_delay_elapsed = (_config.compass_idle_delay_ms == 0U) ||
+                                    deadlineReached(now_ms, _compass_idle_since_ms +
+                                                               _config.compass_idle_delay_ms);
+    const bool desired = _snapshot.compass_available &&
+                         (_requested_compass_demands != 0U || !idle_delay_elapsed);
+    const bool actual = _snapshot.compass_available && _platform.isCompassSampling();
+    if (actual != desired)
+    {
+        (void)_platform.setCompassSampling(desired);
+    }
+    _snapshot.compass_sampling = _snapshot.compass_available && _platform.isCompassSampling();
+}
+
 uint16_t PowerMgr::effectiveGpsDemands() const
 {
     uint16_t demands = _requested_gps_demands;
@@ -359,6 +401,11 @@ void PowerMgr::requestReboot(uint32_t delay_ms, uint32_t now_ms)
 
 void PowerMgr::finishPowerOff()
 {
+    if (_snapshot.compass_sampling)
+    {
+        (void)_platform.setCompassSampling(false);
+        _snapshot.compass_sampling = false;
+    }
     if (_snapshot.gps_powered && _platform.setGpsPowered(false))
     {
         _snapshot.gps_powered = false;
@@ -379,6 +426,11 @@ void PowerMgr::finishPowerOff()
 
 void PowerMgr::finishReboot()
 {
+    if (_snapshot.compass_sampling)
+    {
+        (void)_platform.setCompassSampling(false);
+        _snapshot.compass_sampling = false;
+    }
     if (_snapshot.gps_powered && _platform.setGpsPowered(false))
     {
         _snapshot.gps_powered = false;
@@ -416,6 +468,7 @@ void PowerMgr::loop(uint32_t now_ms)
     processDisplayTimeout(now_ms);
     updateRuntimeLevel(now_ms);
     (void)reconcileGpsPower(now_ms);
+    reconcileCompassSampling(now_ms);
     processSystemTransition(now_ms);
 }
 

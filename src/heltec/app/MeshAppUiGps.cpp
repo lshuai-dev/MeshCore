@@ -59,7 +59,7 @@ void MeshAppUi::setFindFriendForegroundActive(bool active)
     if (_find_friend.foreground_active != active)
         resetFindFriendNavState();
     _find_friend.foreground_active = active;
-    setCompassDemand(kCompassDemandFindFriend, active);
+    _power.setCompassDemand(Power::CompassDemand::FindFriendScreen, active);
     if (active)
     {
         reconcileGpsPower();

@@ -1,5 +1,6 @@
 #include "MeshAppUi.hpp"
 #include "Target.h"
+#include "app/PowerMgr.hpp"
 
 #if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
 #include "HeltecMesh.h"
@@ -33,7 +34,7 @@ bool MeshAppUi::compassHasHardware() const
 
 void MeshAppUi::beginCompassCalibration()
 {
-    setCompassDemand(kCompassDemandCalibration, true);
+    _power.setCompassDemand(Power::CompassDemand::Calibration, true);
     if (compassProvider.hasHardware())
     {
         compassProvider.setCalibrationState(true);
@@ -42,7 +43,7 @@ void MeshAppUi::beginCompassCalibration()
 
 void MeshAppUi::endCompassCalibration()
 {
-    setCompassDemand(kCompassDemandCalibration, false);
+    _power.setCompassDemand(Power::CompassDemand::Calibration, false);
     if (compassProvider.hasHardware())
     {
         compassProvider.setCalibrationState(false);

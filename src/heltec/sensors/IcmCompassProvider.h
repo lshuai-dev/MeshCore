@@ -28,6 +28,10 @@ class ICMCompassProvider : public CompassProvider
     bool fillUiSnapshot(Heltec::MeshCore::Biz::CompassUi &ui) const;
     void setCalibrationState(bool bEnable) override;
     void setSamplingEnabled(bool enabled) override;
+    bool samplingEnabled() const override
+    {
+        return _sampling_enabled;
+    }
     bool hasHardware() const override
     {
         return _ready;
