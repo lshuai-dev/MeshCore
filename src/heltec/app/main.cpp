@@ -542,6 +542,13 @@ void loop()
             if (remaining_ms < sleep_ms)
                 sleep_ms = (remaining_ms == 0U) ? 1U : remaining_ms;
         }
+        const uint32_t power_deadline_ms = core.power.nextDeadlineMs();
+        if (power_deadline_ms != 0U)
+        {
+            const uint32_t remaining_ms = static_cast<uint32_t>(power_deadline_ms - now_ms);
+            if (remaining_ms < sleep_ms)
+                sleep_ms = (remaining_ms == 0U) ? 1U : remaining_ms;
+        }
 #endif
         board.sleepMillis(sleep_ms);
     }
