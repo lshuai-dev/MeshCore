@@ -193,6 +193,36 @@ class ApplicationPowerPlatform final : public Heltec::MeshCore::Power::PowerPlat
         return location->isEnabled() == on;
     }
 
+    bool isCompassAvailable() const override
+    {
+#if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
+        return true;
+#else
+        return false;
+#endif
+    }
+
+    bool isCompassSampling() const override
+    {
+#if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
+        extern ICMCompassProvider compassProvider;
+        return compassProvider.samplingEnabled();
+#else
+        return false;
+#endif
+    }
+
+    bool setCompassSampling(bool on) override
+    {
+#if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
+        extern ICMCompassProvider compassProvider;
+        compassProvider.setSamplingEnabled(on);
+        return compassProvider.samplingEnabled() == on;
+#else
+        return !on;
+#endif
+    }
+
     void startShutdownFeedback() override
     {
         Heltec::MeshCore::Ui::uiTask().startShutdownFeedback();
