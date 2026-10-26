@@ -20,6 +20,7 @@
 #endif
 #if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
 #include <heltec/sensors/IcmCompassProvider.h>
+extern ICMCompassProvider compassProvider;
 #endif
 
 #if defined(RADIOCORE_BOARD_RC52) && defined(PIN_SENSOR_EN)
@@ -205,7 +206,6 @@ class ApplicationPowerPlatform final : public Heltec::MeshCore::Power::PowerPlat
     bool isCompassSampling() const override
     {
 #if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
-        extern ICMCompassProvider compassProvider;
         return compassProvider.samplingEnabled();
 #else
         return false;
@@ -215,7 +215,6 @@ class ApplicationPowerPlatform final : public Heltec::MeshCore::Power::PowerPlat
     bool setCompassSampling(bool on) override
     {
 #if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
-        extern ICMCompassProvider compassProvider;
         compassProvider.setSamplingEnabled(on);
         return compassProvider.samplingEnabled() == on;
 #else
@@ -474,7 +473,6 @@ void setup()
 #endif
 #if defined(ENV_INCLUDE_COMPASS) && ENV_INCLUDE_COMPASS
     {
-        extern ICMCompassProvider compassProvider;
         float hmm[4];
         if (store.loadCompassMagCal(hmm))
         {
