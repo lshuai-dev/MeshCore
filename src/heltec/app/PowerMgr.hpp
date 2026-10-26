@@ -73,6 +73,7 @@ struct PowerConfig
     uint32_t battery_poll_ms = 10000;
     uint32_t source_poll_ms = 1000;
     uint32_t gps_retry_ms = 1000;
+    uint32_t gps_idle_delay_ms = 1500;
     uint32_t radio_standby_delay_ms = 30000;
     uint32_t shutdown_feedback_timeout_ms = 2500;
     uint16_t battery_min_mv = 3000;
@@ -184,6 +185,7 @@ class PowerMgr
     uint32_t _battery_last_poll_ms = 0;
     uint32_t _source_last_poll_ms = 0;
     uint32_t _gps_retry_due_ms = 0;
+    uint32_t _gps_idle_since_ms = 0;
     uint32_t _system_transition_due_ms = 0;
     bool _battery_polled = false;
     bool _source_polled = false;

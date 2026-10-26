@@ -149,7 +149,7 @@ GPS 和关机相关硬件操作，但不接管普通 MCU idle。
 
 ### 9.1 MCU 唤醒规则
 
-Compass 的 demand mask 归零后保留 1500 ms 采样宽限期，再停止 I2C 采样、姿态算法和 UI 通知；宽限期内若有新需求则不发生硬件状态抖动。该延迟只作用于采样门控，不切断与 GPS 共享的传感器电源轨。
+Compass 的 demand mask 归零后保留 1500 ms 采样宽限期，再停止 I2C 采样、姿态算法和 UI 通知；GPS demand 归零后同样保留默认 1500 ms 的供电宽限期。宽限期内若有新需求则不发生硬件状态抖动。Compass 延迟只作用于采样门控，不切断与 GPS 共享的传感器电源轨。
 
 外部中断是主要唤醒方式，包括 LoRa DIO1、按键、Touch IRQ、GPS UART/PPS 和电源事件。
 但 Team heartbeat、Join 超时、Mesh 延迟发送、联系人延迟保存和资源关闭可能没有硬件中断，

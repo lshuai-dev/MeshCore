@@ -272,8 +272,20 @@ bool PowerMgr::reconcileGpsPower(uint32_t now_ms)
     const bool demand_changed = _snapshot.gps_demands != demands;
     _snapshot.gps_demands = demands;
 
+    if (demands != 0U)
+    {
+        _gps_idle_since_ms = 0;
+    }
+    else if (_gps_idle_since_ms == 0U)
+    {
+        _gps_idle_since_ms = now_ms;
+    }
+
     const bool actual = _snapshot.gps_available && _port.isGpsPowered();
-    const bool desired = _snapshot.gps_available && _snapshot.gps_allowed && demands != 0;
+    const bool idle_delay_elapsed = (_config.gps_idle_delay_ms == 0U) ||
+                                    deadlineReached(now_ms, _gps_idle_since_ms + _config.gps_idle_delay_ms);
+    const bool desired = _snapshot.gps_available && _snapshot.gps_allowed &&
+                         (demands != 0U || !idle_delay_elapsed);
     if (actual == desired)
     {
         const bool powered_changed = _snapshot.gps_powered != actual;
