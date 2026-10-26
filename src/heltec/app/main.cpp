@@ -526,9 +526,24 @@ void loop()
 #if defined(PIN_BUZZER) && PIN_BUZZER >= 0
         digitalWrite(PIN_BUZZER, LOW);
 #endif
-        // Keep a bounded timer wake in addition to GPIO interrupts. Mesh and
-        // Team deadlines must progress even when the radio and buttons stay idle.
-        board.sleep(1);
+        // Use the nearest Team deadline when available; GPIO interrupts remain
+        // the normal fast wake path and the one-second bound is the fallback.
+        uint32_t sleep_ms = 1000U;
+#if defined(ENV_INCLUDE_GPS) && ENV_INCLUDE_GPS
+        const uint32_t now_ms = millis();
+        uint32_t deadline_ms = the_mesh.teamService().nextDeadlineMs();
+        const uint32_t join_deadline_ms = the_mesh.teamJoinService().nextDeadlineMs();
+        if (deadline_ms == 0U ||
+            (join_deadline_ms != 0U && static_cast<int32_t>(join_deadline_ms - deadline_ms) < 0))
+            deadline_ms = join_deadline_ms;
+        if (deadline_ms != 0U)
+        {
+            const uint32_t remaining_ms = static_cast<uint32_t>(deadline_ms - now_ms);
+            if (remaining_ms < sleep_ms)
+                sleep_ms = (remaining_ms == 0U) ? 1U : remaining_ms;
+        }
+#endif
+        board.sleepMillis(sleep_ms);
     }
 #endif
 }
