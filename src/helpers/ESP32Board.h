@@ -147,6 +147,22 @@ public:
     portEXIT_CRITICAL(&sleepMux);
   }
 
+  void sleepMillis(uint32_t millis) override {
+    if (inhibit_sleep || millis == 0U) {
+      delay(1);
+      return;
+    }
+    const gpio_num_t loraWakePin = (gpio_num_t)getIRQGpio();
+    if (gpio_get_level(loraWakePin) == HIGH) {
+      delay(1);
+      return;
+    }
+    esp_sleep_enable_timer_wakeup(static_cast<uint64_t>(millis) * 1000ULL);
+    esp_sleep_enable_gpio_wakeup();
+    gpio_wakeup_enable(loraWakePin, GPIO_INTR_HIGH_LEVEL);
+    esp_light_sleep_start();
+  }
+
   uint8_t getStartupReason() const override { return startup_reason; }
 
 #if defined(P_LORA_TX_LED)
