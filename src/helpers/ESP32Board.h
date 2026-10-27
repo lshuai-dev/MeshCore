@@ -157,11 +157,26 @@ public:
     uint8_t additionalLevels[4] = {};
     const uint8_t additionalCount = getAdditionalWakeupPins(
         additionalPins, additionalLevels, sizeof(additionalPins));
+    if (millis > 0U) {
+      esp_sleep_enable_timer_wakeup(static_cast<uint64_t>(millis) * 1000ULL);
+    }
+
+    portENTER_CRITICAL(&sleepMux);
     if (gpio_get_level(loraWakePin) == HIGH) {
+      portEXIT_CRITICAL(&sleepMux);
       delay(1);
       return;
     }
-    esp_sleep_enable_timer_wakeup(static_cast<uint64_t>(millis) * 1000ULL);
+
+    for (uint8_t index = 0; index < additionalCount; ++index) {
+      const gpio_num_t pin = (gpio_num_t)additionalPins[index];
+      if (gpio_get_level(pin) == (additionalLevels[index] ? HIGH : LOW)) {
+        portEXIT_CRITICAL(&sleepMux);
+        delay(1);
+        return;
+      }
+    }
+
     esp_sleep_enable_gpio_wakeup();
     gpio_wakeup_enable(loraWakePin, GPIO_INTR_HIGH_LEVEL);
     for (uint8_t index = 0; index < additionalCount; ++index) {
@@ -169,9 +184,15 @@ public:
       gpio_wakeup_enable(pin, additionalLevels[index] ? GPIO_INTR_HIGH_LEVEL : GPIO_INTR_LOW_LEVEL);
     }
     esp_light_sleep_start();
+
     gpio_wakeup_disable(loraWakePin);
-    for (uint8_t index = 0; index < additionalCount; ++index)
-      gpio_wakeup_disable((gpio_num_t)additionalPins[index]);
+    gpio_set_intr_type(loraWakePin, GPIO_INTR_POSEDGE);
+    for (uint8_t index = 0; index < additionalCount; ++index) {
+      const gpio_num_t pin = (gpio_num_t)additionalPins[index];
+      gpio_wakeup_disable(pin);
+      gpio_set_intr_type(pin, GPIO_INTR_ANYEDGE);
+    }
+    portEXIT_CRITICAL(&sleepMux);
   }
 
   uint8_t getStartupReason() const override { return startup_reason; }
