@@ -70,7 +70,7 @@ void HeltecV4R8Board::begin() {
   Config cnf{};
   cnf.multi_click_window_ms = 350;
   cnf.long_press_ms = 1000;
-  cnf.buttons[0].pin = PIN_USER_BTN;
+  cnf.buttons[0].pin = BUTTON_PIN;
   cnf.buttons[0].pin_mode = INPUT_PULLUP;
   cnf.buttons[0].active_level = LOW;
   Heltec::MeshCore::Dal::MomentaryButton::configure(cnf);
@@ -95,8 +95,8 @@ uint8_t HeltecV4R8Board::getAdditionalWakeupPins(uint8_t *pins, uint8_t *levels,
   }
 
   uint8_t count = 0;
-  if (count < capacity && PIN_USER_BTN >= 0) {
-    pins[count] = static_cast<uint8_t>(PIN_USER_BTN);
+  if (count < capacity && BUTTON_PIN >= 0) {
+    pins[count] = static_cast<uint8_t>(BUTTON_PIN);
     levels[count++] = LOW;
   }
 #if defined(PIN_TOUCH_IRQ) && PIN_TOUCH_IRQ >= 0
