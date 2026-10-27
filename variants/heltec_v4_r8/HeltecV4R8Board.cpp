@@ -101,12 +101,9 @@ uint8_t HeltecV4R8Board::getAdditionalWakeupPins(uint8_t *pins, uint8_t *levels,
   }
 
   uint8_t count = 0;
-  if (count < capacity && PIN_BUTTON1 >= 0) {
-    pins[count] = static_cast<uint8_t>(PIN_BUTTON1);
-    levels[count++] = (USER_BTN_PRESSED == HIGH) ? HIGH : LOW;
-  }
-  if (count < capacity && PIN_BUTTON2 >= 0) {
-    pins[count] = static_cast<uint8_t>(PIN_BUTTON2);
+  // GPIO0 is the BOOT button; only the dedicated user key wakes normal idle.
+  if (count < capacity && PIN_USER_BTN >= 0) {
+    pins[count] = static_cast<uint8_t>(PIN_USER_BTN);
     levels[count++] = HIGH;
   }
 #if defined(PIN_TOUCH_IRQ) && PIN_TOUCH_IRQ >= 0
