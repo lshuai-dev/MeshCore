@@ -101,7 +101,10 @@ uint8_t HeltecV4R8Board::getAdditionalWakeupPins(uint8_t *pins, uint8_t *levels,
   }
 
   uint8_t count = 0;
-  // Only the USER key is currently used to wake normal idle.
+  if (count < capacity && BUTTON_PIN >= 0) {
+    pins[count] = static_cast<uint8_t>(BUTTON_PIN);
+    levels[count++] = HIGH;
+  }
   if (count < capacity && PIN_USER_BTN >= 0) {
     pins[count] = static_cast<uint8_t>(PIN_USER_BTN);
     levels[count++] = LOW;
