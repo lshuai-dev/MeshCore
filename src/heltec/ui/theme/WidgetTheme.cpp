@@ -158,11 +158,7 @@ static lv_style_t s_keyboard_waypoint_surface_style;
 static lv_style_t s_keyboard_main_style;
 static lv_style_t s_keyboard_waypoint_main_style;
 static lv_style_t s_keyboard_items_base_style;
-static lv_style_t s_keyboard_waypoint_items_style;
 static lv_style_t s_keyboard_items_selected_style;
-#if HELTEC_UI_HAS_TOUCH
-static lv_style_t s_keyboard_waypoint_items_selected_style;
-#endif
 static bool s_keyboard_child_styles_ready = false;
 #endif
 
@@ -257,8 +253,6 @@ static lv_style_t s_quick_ping_dropdown_indicator_style;
 static lv_style_t s_quick_ping_message_input_style;
 static lv_style_t s_quick_ping_message_input_label_editing_style;
 static lv_style_t s_quick_ping_keyboard_style;
-static lv_style_t s_quick_ping_keyboard_items_style;
-static lv_style_t s_quick_ping_keyboard_items_selected_style;
 static lv_style_t s_quick_ping_keyboard_editor_style;
 static lv_style_t s_quick_ping_keyboard_placeholder_style;
 static lv_style_t s_quick_ping_keyboard_counter_style;
@@ -741,15 +735,6 @@ static void initKeyboardChildStyles()
     const lv_coord_t vertical_resolution = disp ? lv_disp_get_ver_res(disp) : 0;
     const bool compact = vertical_resolution > 0 && vertical_resolution <= 80;
     const bool short_display = vertical_resolution > 80 && vertical_resolution <= 160;
-    const lv_font_t *waypoint_font =
-#if defined(LV_FONT_MONTSERRAT_12) && LV_FONT_MONTSERRAT_12
-        &lv_font_montserrat_12;
-#elif defined(LV_FONT_UNSCII_16) && LV_FONT_UNSCII_16
-        &lv_font_unscii_16;
-#else
-        LV_FONT_DEFAULT;
-#endif
-
     lv_style_init(&s_keyboard_root_layout_style);
     lv_style_set_flex_main_place(&s_keyboard_root_layout_style, LV_FLEX_ALIGN_START);
     lv_style_set_flex_cross_place(&s_keyboard_root_layout_style, LV_FLEX_ALIGN_CENTER);
@@ -908,6 +893,18 @@ static void initKeyboardChildStyles()
 #endif
 
     lv_style_init(&s_keyboard_items_base_style);
+#if defined(HELTEC_UI_HAS_TOUCH) && HELTEC_UI_HAS_TOUCH
+    lv_style_set_pad_all(&s_keyboard_items_base_style, 0);
+    lv_style_set_bg_color(&s_keyboard_items_base_style, lv_color_hex(0xF6F8FA));
+    lv_style_set_bg_opa(&s_keyboard_items_base_style, LV_OPA_COVER);
+    lv_style_set_text_color(&s_keyboard_items_base_style, lv_color_black());
+#if defined(LV_FONT_MONTSERRAT_14) && LV_FONT_MONTSERRAT_14
+    lv_style_set_text_font(&s_keyboard_items_base_style, &lv_font_montserrat_14);
+#endif
+    lv_style_set_border_width(&s_keyboard_items_base_style, 1);
+    lv_style_set_border_color(&s_keyboard_items_base_style, lv_color_hex(0xCBD5DF));
+    lv_style_set_radius(&s_keyboard_items_base_style, 4);
+#else
     lv_style_set_pad_all(&s_keyboard_items_base_style, compact ? 0 : 1);
     lv_style_set_border_width(&s_keyboard_items_base_style, 0);
     lv_style_set_outline_width(&s_keyboard_items_base_style, 0);
@@ -916,33 +913,23 @@ static void initKeyboardChildStyles()
 #if !LV_USE_THEME_MONO
     lv_style_set_text_color(&s_keyboard_items_base_style, lv_color_hex(themePalette().overlay_fg));
 #endif
-
-    lv_style_init(&s_keyboard_waypoint_items_style);
-    lv_style_set_text_font(&s_keyboard_waypoint_items_style, waypoint_font);
-    lv_style_set_pad_all(&s_keyboard_waypoint_items_style, compact ? 1 : 2);
-#if defined(HELTEC_UI_HAS_TOUCH) && HELTEC_UI_HAS_TOUCH
-    lv_style_set_bg_opa(&s_keyboard_waypoint_items_style, LV_OPA_COVER);
-    lv_style_set_bg_color(&s_keyboard_waypoint_items_style, lv_color_hex(0xF4F6F8));
-    lv_style_set_text_color(&s_keyboard_waypoint_items_style, lv_color_black());
-    lv_style_set_border_color(&s_keyboard_waypoint_items_style, lv_color_hex(0xB8C2CC));
-    lv_style_set_border_width(&s_keyboard_waypoint_items_style, 1);
 #endif
 
     lv_style_init(&s_keyboard_items_selected_style);
+#if defined(HELTEC_UI_HAS_TOUCH) && HELTEC_UI_HAS_TOUCH
+    lv_style_set_bg_color(&s_keyboard_items_selected_style, lv_color_hex(0xBDE1FF));
+    lv_style_set_bg_opa(&s_keyboard_items_selected_style, LV_OPA_COVER);
+    lv_style_set_text_color(&s_keyboard_items_selected_style, lv_color_black());
+    lv_style_set_border_width(&s_keyboard_items_selected_style, 1);
+    lv_style_set_border_color(&s_keyboard_items_selected_style, lv_color_hex(0x9BBFD8));
+    lv_style_set_radius(&s_keyboard_items_selected_style, 4);
+#else
     lv_style_set_bg_color(&s_keyboard_items_selected_style, lv_color_hex(themePalette().highlight_bg));
     lv_style_set_bg_opa(&s_keyboard_items_selected_style, LV_OPA_COVER);
     lv_style_set_text_color(&s_keyboard_items_selected_style, lv_color_hex(themePalette().highlight_fg));
     lv_style_set_border_width(&s_keyboard_items_selected_style, 0);
     lv_style_set_outline_width(&s_keyboard_items_selected_style, 0);
     lv_style_set_shadow_width(&s_keyboard_items_selected_style, 0);
-
-#if HELTEC_UI_HAS_TOUCH
-    lv_style_init(&s_keyboard_waypoint_items_selected_style);
-    lv_style_set_bg_color(&s_keyboard_waypoint_items_selected_style, lv_color_hex(themePalette().accent));
-    lv_style_set_bg_opa(&s_keyboard_waypoint_items_selected_style, LV_OPA_COVER);
-    lv_style_set_text_color(&s_keyboard_waypoint_items_selected_style, lv_color_white());
-    lv_style_set_border_color(&s_keyboard_waypoint_items_selected_style, lv_color_hex(themePalette().accent));
-    lv_style_set_border_width(&s_keyboard_waypoint_items_selected_style, 1);
 #endif
 
     s_keyboard_child_styles_ready = true;
@@ -1239,6 +1226,7 @@ static void initQuickPingStyles()
     if (s_quick_ping_styles_ready)
         return;
 
+    initKeyboardChildStyles();
     const lv_color_t pane_bg = lv_color_hex(0xEEF6FF);
     const lv_color_t control_bg = lv_color_hex(0xE8E8E8);
 
@@ -1312,13 +1300,15 @@ static void initQuickPingStyles()
     lv_style_init(&s_quick_ping_dropdown_style);
     lv_style_set_radius(&s_quick_ping_dropdown_style, 6);
     lv_style_set_pad_hor(&s_quick_ping_dropdown_style, 6);
-    lv_style_set_pad_ver(&s_quick_ping_dropdown_style, 0);
+    // Keep the selected value centered in the fixed-height control.
+    lv_style_set_pad_ver(&s_quick_ping_dropdown_style, 6);
     lv_style_set_bg_color(&s_quick_ping_dropdown_style, control_bg);
     lv_style_set_bg_opa(&s_quick_ping_dropdown_style, LV_OPA_COVER);
     lv_style_set_pad_right(&s_quick_ping_dropdown_style, 8);
 
     lv_style_init(&s_quick_ping_message_dropdown_style);
     lv_style_set_text_align(&s_quick_ping_message_dropdown_style, LV_TEXT_ALIGN_CENTER);
+    lv_style_set_pad_ver(&s_quick_ping_message_dropdown_style, 6);
     lv_style_set_bg_color(&s_quick_ping_message_dropdown_style, lv_color_white());
     lv_style_set_bg_opa(&s_quick_ping_message_dropdown_style, LV_OPA_COVER);
 
@@ -1350,25 +1340,6 @@ static void initQuickPingStyles()
     lv_style_set_pad_column(&s_quick_ping_keyboard_style, 2);
     lv_style_set_bg_color(&s_quick_ping_keyboard_style, lv_color_white());
     lv_style_set_bg_opa(&s_quick_ping_keyboard_style, LV_OPA_COVER);
-
-    lv_style_init(&s_quick_ping_keyboard_items_style);
-    lv_style_set_pad_all(&s_quick_ping_keyboard_items_style, 0);
-    lv_style_set_bg_color(&s_quick_ping_keyboard_items_style, lv_color_hex(0xF6F8FA));
-    lv_style_set_bg_opa(&s_quick_ping_keyboard_items_style, LV_OPA_COVER);
-    lv_style_set_border_width(&s_quick_ping_keyboard_items_style, 1);
-    lv_style_set_border_color(&s_quick_ping_keyboard_items_style, lv_color_hex(0xCBD5DF));
-    lv_style_set_radius(&s_quick_ping_keyboard_items_style, 4);
-#if defined(LV_FONT_MONTSERRAT_14) && LV_FONT_MONTSERRAT_14
-    lv_style_set_text_font(&s_quick_ping_keyboard_items_style, &lv_font_montserrat_14);
-#endif
-
-    lv_style_init(&s_quick_ping_keyboard_items_selected_style);
-    lv_style_set_pad_all(&s_quick_ping_keyboard_items_selected_style, 0);
-    lv_style_set_bg_color(&s_quick_ping_keyboard_items_selected_style, lv_color_hex(0xBDE1FF));
-    lv_style_set_bg_opa(&s_quick_ping_keyboard_items_selected_style, LV_OPA_COVER);
-    lv_style_set_border_width(&s_quick_ping_keyboard_items_selected_style, 1);
-    lv_style_set_border_color(&s_quick_ping_keyboard_items_selected_style, lv_color_hex(0x9BBFD8));
-    lv_style_set_radius(&s_quick_ping_keyboard_items_selected_style, 4);
 
     lv_style_init(&s_quick_ping_keyboard_editor_style);
     lv_style_set_bg_color(&s_quick_ping_keyboard_editor_style, lv_color_white());
@@ -1494,18 +1465,35 @@ static void initScreenSystemStyles()
     lv_style_set_shadow_opa(&s_system_dropdown_style, LV_OPA_TRANSP);
 
     lv_style_init(&s_system_dropdown_focus_style);
+#if HELTEC_UI_HAS_TOUCH
+    /*
+     * Touch dropdowns use the same filled focus treatment as QuickPing.
+     * Keep this in the shared widget theme so waypoint and other screens do
+     * not need a local focus-color override.
+     */
+    lv_style_set_bg_color(&s_system_dropdown_focus_style, lv_color_hex(0xBDE1FF));
+    lv_style_set_bg_opa(&s_system_dropdown_focus_style, LV_OPA_COVER);
+    lv_style_set_text_color(&s_system_dropdown_focus_style, lv_color_black());
+#else
     lv_style_set_bg_color(&s_system_dropdown_focus_style, lv_color_hex(themePalette().highlight_bg));
     lv_style_set_bg_opa(&s_system_dropdown_focus_style, LV_OPA_COVER);
     lv_style_set_text_color(&s_system_dropdown_focus_style, lv_color_hex(themePalette().highlight_fg));
+#endif
     lv_style_set_text_opa(&s_system_dropdown_focus_style, LV_OPA_COVER);
 #if LV_COLOR_DEPTH == 1
     lv_style_set_border_width(&s_system_dropdown_focus_style, 1);
     lv_style_set_border_color(&s_system_dropdown_focus_style, lv_color_hex(themePalette().fg));
     lv_style_set_border_opa(&s_system_dropdown_focus_style, LV_OPA_COVER);
 #else
+#if HELTEC_UI_HAS_TOUCH
+    lv_style_set_border_width(&s_system_dropdown_focus_style, 1);
+    lv_style_set_border_color(&s_system_dropdown_focus_style, lv_color_hex(0x9BBFD8));
+    lv_style_set_border_opa(&s_system_dropdown_focus_style, LV_OPA_COVER);
+#else
     lv_style_set_border_width(&s_system_dropdown_focus_style, 0);
     lv_style_set_border_opa(&s_system_dropdown_focus_style, LV_OPA_TRANSP);
     lv_style_set_border_side(&s_system_dropdown_focus_style, LV_BORDER_SIDE_NONE);
+#endif
 #endif
     lv_style_set_outline_width(&s_system_dropdown_focus_style, 0);
     lv_style_set_outline_opa(&s_system_dropdown_focus_style, LV_OPA_TRANSP);
@@ -2233,7 +2221,7 @@ static bool applyQuickPingOverlayTheme(_lv_obj_t *obj)
         initQuickPingStyles();
         resetTouchObject(obj);
         lv_obj_add_style(obj, &s_quick_ping_keyboard_style, LV_PART_MAIN);
-        lv_obj_add_style(obj, &s_quick_ping_keyboard_items_style, LV_PART_ITEMS);
+        lv_obj_add_style(obj, &s_keyboard_items_base_style, LV_PART_ITEMS);
         static const lv_style_selector_t selected_item_sels[] = {
             LV_PART_ITEMS | LV_STATE_PRESSED,
             LV_PART_ITEMS | LV_STATE_FOCUSED,
@@ -2245,7 +2233,7 @@ static bool applyQuickPingOverlayTheme(_lv_obj_t *obj)
         };
         for (lv_style_selector_t selector : selected_item_sels)
         {
-            lv_obj_add_style(obj, &s_quick_ping_keyboard_items_selected_style, selector);
+            lv_obj_add_style(obj, &s_keyboard_items_selected_style, selector);
         }
         return true;
     }
@@ -2607,22 +2595,8 @@ static bool applyKeyboardOverlayChildTheme(_lv_obj_t *obj)
         {
             lv_obj_add_style(obj, &s_keyboard_items_base_style, sel);
         }
-        static const lv_style_selector_t waypoint_item_sels[] = {
-            LV_PART_ITEMS | LV_STATE_USER_1,
-            LV_PART_ITEMS | (LV_STATE_USER_1 | LV_STATE_FOCUSED),
-            LV_PART_ITEMS | (LV_STATE_USER_1 | LV_STATE_FOCUS_KEY),
-            LV_PART_ITEMS | (LV_STATE_USER_1 | LV_STATE_EDITED),
-            LV_PART_ITEMS | (LV_STATE_USER_1 | LV_STATE_PRESSED),
-            LV_PART_ITEMS | (LV_STATE_USER_1 | LV_STATE_CHECKED),
-            LV_PART_ITEMS | (LV_STATE_USER_1 | LV_STATE_FOCUSED | LV_STATE_CHECKED),
-            LV_PART_ITEMS | (LV_STATE_USER_1 | LV_STATE_FOCUS_KEY | LV_STATE_CHECKED),
-            LV_PART_ITEMS | (LV_STATE_USER_1 | LV_STATE_EDITED | LV_STATE_CHECKED),
-        };
-        for (lv_style_selector_t sel : waypoint_item_sels)
-        {
-            lv_obj_add_style(obj, &s_keyboard_waypoint_items_style, sel);
-        }
         static const lv_style_selector_t selected_item_sels[] = {
+            LV_PART_ITEMS | LV_STATE_PRESSED,
             LV_PART_ITEMS | LV_STATE_FOCUSED,
             LV_PART_ITEMS | LV_STATE_FOCUS_KEY,
             LV_PART_ITEMS | LV_STATE_EDITED,
@@ -2634,19 +2608,6 @@ static bool applyKeyboardOverlayChildTheme(_lv_obj_t *obj)
         {
             lv_obj_add_style(obj, &s_keyboard_items_selected_style, sel);
         }
-#if defined(HELTEC_UI_HAS_TOUCH) && HELTEC_UI_HAS_TOUCH
-        static const lv_style_selector_t waypoint_selected_item_sels[] = {
-            LV_PART_ITEMS | (LV_STATE_USER_1 | LV_STATE_PRESSED),
-            LV_PART_ITEMS | (LV_STATE_USER_1 | LV_STATE_CHECKED),
-            LV_PART_ITEMS | (LV_STATE_USER_1 | LV_STATE_FOCUSED | LV_STATE_CHECKED),
-            LV_PART_ITEMS | (LV_STATE_USER_1 | LV_STATE_FOCUS_KEY | LV_STATE_CHECKED),
-            LV_PART_ITEMS | (LV_STATE_USER_1 | LV_STATE_EDITED | LV_STATE_CHECKED),
-        };
-        for (lv_style_selector_t sel : waypoint_selected_item_sels)
-        {
-            lv_obj_add_style(obj, &s_keyboard_waypoint_items_selected_style, sel);
-        }
-#endif
         return true;
     }
     return false;

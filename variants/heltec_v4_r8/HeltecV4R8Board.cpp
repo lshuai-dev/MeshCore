@@ -70,14 +70,19 @@ void HeltecV4R8Board::begin() {
   Config cnf{};
   cnf.multi_click_window_ms = 350;
   cnf.long_press_ms = 1000;
-  cnf.buttons[0].pin = BUTTON_PIN;
+  cnf.buttons[0].pin = PIN_USER_BTN;
   cnf.buttons[0].pin_mode = INPUT_PULLUP;
-  cnf.buttons[0].active_level = LOW;
+  cnf.buttons[0].active_level = HIGH;
 #if HELTEC_UI_BUTTON_COUNT >= 2
-  cnf.buttons[1].pin = PIN_USER_BTN;
-  cnf.buttons[1].pin_mode = INPUT_PULLDOWN;
-  cnf.buttons[1].active_level = HIGH;
+  cnf.buttons[1].pin = BUTTON_PIN;
+  // GPIO0 is the low-active USER key.
+  cnf.buttons[1].pin_mode = INPUT_PULLUP;
+  cnf.buttons[1].active_level = LOW;
   cnf.buttons[1].long_repeat_ms = 220;
+#else
+  // Single-key V4 R8 exposes only the low-active USER key on GPIO0.
+  cnf.buttons[0].pin = BUTTON_PIN;
+  cnf.buttons[0].active_level = LOW;
 #endif
   Heltec::MeshCore::Dal::MomentaryButton::configure(cnf);
   Heltec::MeshCore::Dal::MomentaryButton::initialize();
@@ -105,10 +110,12 @@ uint8_t HeltecV4R8Board::getAdditionalWakeupPins(uint8_t *pins, uint8_t *levels,
     pins[count] = static_cast<uint8_t>(BUTTON_PIN);
     levels[count++] = LOW;
   }
+#if HELTEC_UI_BUTTON_COUNT >= 2
   if (count < capacity && PIN_USER_BTN >= 0) {
     pins[count] = static_cast<uint8_t>(PIN_USER_BTN);
     levels[count++] = HIGH;
   }
+#endif
 #if defined(PIN_TOUCH_IRQ) && PIN_TOUCH_IRQ >= 0
   if (count < capacity) {
     pins[count] = static_cast<uint8_t>(PIN_TOUCH_IRQ);

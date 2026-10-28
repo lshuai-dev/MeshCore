@@ -11,6 +11,11 @@
 #define ED25519_NO_SEED 1
 #define HELTEC_BUTTON_MAX_CLICKS 3
 
+// The base V4 R8 hardware has only the low-active USER key on GPIO0.
+#ifndef HELTEC_UI_BUTTON_COUNT
+#define HELTEC_UI_BUTTON_COUNT 1
+#endif
+
 #define ENV_INCLUDE_AHTX0 1
 #define ENV_INCLUDE_BME280 1
 #define ENV_INCLUDE_BMP280 1

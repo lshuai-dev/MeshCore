@@ -54,6 +54,12 @@ class QuickPingOverlay final : public AbstractOverlay
     bool onKey(uint32_t key) override;
 
   private:
+    enum class EditState : uint8_t
+    {
+        Browse,
+        Edit,
+    };
+
     enum class TargetKind : uint8_t
     {
         Group = 0,
@@ -115,6 +121,10 @@ class QuickPingOverlay final : public AbstractOverlay
     void submitMessageFromTextarea();
     bool sendMessageText(const char *text);
     void activateDropdown(_lv_obj_t *dropdown);
+    bool isEditableDropdown(_lv_obj_t *object) const;
+    void beginDropdownEdit(_lv_obj_t *dropdown);
+    void commitDropdownEdit(_lv_obj_t *dropdown);
+    void cancelDropdownEdit(_lv_obj_t *dropdown);
     void clearRepeatSelection();
     void armRepeatSelection(_lv_obj_t *dropdown);
     void finishRepeatSelection();
@@ -186,6 +196,9 @@ class QuickPingOverlay final : public AbstractOverlay
     int _pending_target_channel = -1;
     uint16_t _repeat_index = 0;
     _lv_obj_t *_repeat_dropdown = nullptr;
+    EditState _edit_state = EditState::Browse;
+    _lv_obj_t *_editing_dropdown = nullptr;
+    uint16_t _editing_original_index = 0;
 
     char _recipient_options[384] = {};
     char _message_preset_options[kMessagePresetCount * 32] = {};

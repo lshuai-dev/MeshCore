@@ -31,6 +31,9 @@ struct ButtonState
     int8_t pin = -1;
     uint8_t active_level = 1;
     uint8_t prev = 0;
+    uint8_t sampled_level = 0;
+    unsigned long sampled_since = 0;
+    volatile bool edge_pending = false;
 #if defined(HELTEC_HAS_KEY_FRAME) && HELTEC_HAS_KEY_FRAME
     uint8_t candidate_level = 0;
     unsigned long candidate_since = 0;
@@ -83,15 +86,7 @@ static void BTN_ISR enqueue_level(uint8_t slot)
     if (button.pin < 0)
         return;
 
-    const uint8_t level = (uint8_t)digitalRead((uint8_t)button.pin);
-    const uint8_t next = (uint8_t)((button.edge_tail + 1U) % kEdgeCap);
-    if (next == button.edge_head)
-    {
-        button.edge_head = (uint8_t)((button.edge_head + 1U) % kEdgeCap);
-    }
-    button.edge_level[button.edge_tail] = level;
-    button.edge_at[button.edge_tail] = millis();
-    button.edge_tail = next;
+    button.edge_pending = true;
 }
 
 #if HELTEC_UI_BUTTON_COUNT >= 1
@@ -192,6 +187,12 @@ static void accept_level(ButtonState &button, uint8_t slot, uint8_t level,
         button.next_repeat_at = 0;
         button.long_fired = false;
     }
+    else if (button.down_at == 0)
+    {
+        /* A release without a recorded press cannot form a gesture. */
+        button.clicks = 0;
+        button.last_release = 0;
+    }
     else if (button.down_at > 0)
     {
         const unsigned long held = now - button.down_at;
@@ -237,28 +238,25 @@ static void accept_level(ButtonState &button, uint8_t slot, uint8_t level,
 
 static void drain_edges(ButtonState &button, uint8_t slot, unsigned long now)
 {
-    while (button.edge_head != button.edge_tail)
+    const uint8_t level = (uint8_t)digitalRead((uint8_t)button.pin);
+    button.edge_pending = false;
+    if (level != button.sampled_level)
     {
-        const uint8_t edge_index = button.edge_head;
-        const uint8_t level = button.edge_level[edge_index];
-        const unsigned long edge_at = button.edge_at[edge_index];
-        button.edge_head = (uint8_t)((button.edge_head + 1U) % kEdgeCap);
-        if (level == button.prev)
-            continue;
-        if (s_cfg.debounce_ms > 0 && button.last_edge_at > 0 &&
-            (edge_at - button.last_edge_at) < s_cfg.debounce_ms)
-        {
-            continue;
-        }
-        button.last_edge_at = edge_at;
-
-        accept_level(button, slot, level, edge_at);
+        button.sampled_level = level;
+        button.sampled_since = now;
     }
+    if (level == button.prev ||
+        (s_cfg.debounce_ms > 0 && (now - button.sampled_since) < s_cfg.debounce_ms))
+    {
+        return;
+    }
+    accept_level(button, slot, level, now);
 }
 
 #if defined(HELTEC_HAS_KEY_FRAME) && HELTEC_HAS_KEY_FRAME
 static void confirm_stable_level(ButtonState &button, uint8_t slot, unsigned long now)
 {
+    button.edge_pending = false;
     // Replay all timestamped candidates. This preserves a complete click even
     // when panel->update() blocks polling until the GPIO is idle again.
     while (button.edge_head != button.edge_tail)
@@ -301,6 +299,12 @@ static void tick_button(ButtonState &button, uint8_t slot, unsigned long now)
     if (button.pin < 0)
         return;
 
+    const uint8_t sampled_level = (uint8_t)digitalRead((uint8_t)button.pin);
+    if (sampled_level != button.sampled_level)
+    {
+        button.sampled_level = sampled_level;
+    }
+
 #if defined(HELTEC_HAS_KEY_FRAME) && HELTEC_HAS_KEY_FRAME
     if (s_cfg.stable_level_debounce)
         confirm_stable_level(button, slot, now);
@@ -331,7 +335,15 @@ static void tick_button(ButtonState &button, uint8_t slot, unsigned long now)
         return;
     }
 
-    if (button.long_fired && button.next_repeat_at > 0 &&
+    if (button.long_fired && button.down_at > 0 &&
+        !is_pressed((uint8_t)digitalRead((uint8_t)button.pin), button.active_level))
+    {
+        button.down_at = 0;
+        button.next_repeat_at = 0;
+        button.long_fired = false;
+    }
+
+    if (button.down_at > 0 && button.long_fired && button.next_repeat_at > 0 &&
         static_cast<int32_t>(now - button.next_repeat_at) >= 0)
     {
         emit_gesture(slot, ButtonGesture::LongRepeat);
@@ -376,6 +388,12 @@ static void setup_gpio()
 
         pinMode((uint8_t)button.pin, config.pin_mode);
         button.prev = (uint8_t)digitalRead((uint8_t)button.pin);
+        button.sampled_level = button.prev;
+        button.sampled_since = millis();
+        if (is_pressed(button.prev, button.active_level))
+        {
+            button.down_at = button.sampled_since;
+        }
 #if defined(HELTEC_HAS_KEY_FRAME) && HELTEC_HAS_KEY_FRAME
         button.candidate_level = button.prev;
         button.candidate_since = millis();
@@ -451,7 +469,7 @@ bool hasPendingGesture()
     for (uint8_t i = 0; i < HELTEC_UI_BUTTON_COUNT; ++i)
     {
         const ButtonState &button = s_buttons[i];
-        if (button.edge_head != button.edge_tail || button.down_at != 0 || button.clicks != 0)
+        if (button.edge_pending || button.down_at != 0 || button.clicks != 0)
         {
             return true;
         }

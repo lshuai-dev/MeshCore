@@ -513,6 +513,8 @@ void QuickPingOverlay::onEnter()
     }
     _message_submit_handled = false;
     _close_animating = false;
+    _edit_state = EditState::Browse;
+    _editing_dropdown = nullptr;
     closeDropdowns();
     syncLists();
     rebuildMessagePresetOptions();
@@ -653,6 +655,68 @@ void QuickPingOverlay::closeAnimationReady(void *user_data)
 
 bool QuickPingOverlay::onKey(uint32_t key)
 {
+    /* The keyboard owns navigation while visible. Do not let page-level
+       browse handling consume its directional and confirm keys. */
+    if (keyboardVisible() && key != LV_KEY_ESC)
+    {
+        if (key == LV_KEY_ENTER && _keyboard && lv_obj_is_valid(_keyboard))
+        {
+            const uint16_t selected = lv_keyboard_get_selected_btn(_keyboard);
+            const char *label = lv_btnmatrix_get_btn_text(_keyboard, selected);
+            if (label && strcmp(label, LV_SYMBOL_CLOSE) == 0)
+            {
+                (void)lv_event_send(_keyboard, LV_EVENT_CANCEL, nullptr);
+                return true;
+            }
+        }
+        return _gridNav.handleKey(key);
+    }
+    if (keyboardVisible() && key == LV_KEY_ESC)
+    {
+        /* Match KeyboardOverlay: only the keyboard cancel button closes it. */
+        return true;
+    }
+    if (key == LV_KEY_UP || key == LV_KEY_PREV)
+    {
+        if (_edit_state == EditState::Browse)
+        {
+            _gridNav.focusPrevious();
+            return true;
+        }
+        return false;
+    }
+    if (key == LV_KEY_DOWN || key == LV_KEY_NEXT)
+    {
+        if (_edit_state == EditState::Browse)
+        {
+            _gridNav.focusNext();
+            return true;
+        }
+        return false;
+    }
+    if (key == LV_KEY_ESC)
+    {
+        if (_edit_state == EditState::Edit)
+        {
+            cancelDropdownEdit(_editing_dropdown);
+            return true;
+        }
+    }
+    if (key == LV_KEY_ENTER && _edit_state == EditState::Edit)
+    {
+        commitDropdownEdit(_editing_dropdown);
+        return true;
+    }
+    if (key == LV_KEY_ENTER && _edit_state == EditState::Browse)
+    {
+        _lv_obj_t *focused = _gridNav.focused();
+        if (isEditableDropdown(focused))
+        {
+            beginDropdownEdit(focused);
+            lv_dropdown_open(focused);
+            return true;
+        }
+    }
     if (key != LV_KEY_ESC)
         return false;
     clearRepeatSelection();
@@ -662,12 +726,6 @@ bool QuickPingOverlay::onKey(uint32_t key)
         return true;
     if (closeDropdown(_dd_message))
         return true;
-    if (keyboardVisible())
-    {
-        setKeyboardVisible(false);
-        restoreModeFocus(_ta_message);
-        return true;
-    }
     return notifyApp(UiMessageType::QuickPingClose);
 }
 
@@ -1811,6 +1869,52 @@ void QuickPingOverlay::activateDropdown(_lv_obj_t *dropdown)
     }
 }
 
+bool QuickPingOverlay::isEditableDropdown(_lv_obj_t *object) const
+{
+    return object == _dd_target || object == _dd_recipient || object == _dd_message;
+}
+
+void QuickPingOverlay::beginDropdownEdit(_lv_obj_t *dropdown)
+{
+    if (!isEditableDropdown(dropdown))
+        return;
+    if (_edit_state == EditState::Edit && _editing_dropdown == dropdown)
+        return;
+    if (_edit_state == EditState::Edit)
+        cancelDropdownEdit(_editing_dropdown);
+    _editing_dropdown = dropdown;
+    _editing_original_index = lv_dropdown_get_selected(dropdown);
+    _edit_state = EditState::Edit;
+    lv_obj_add_state(dropdown, LV_STATE_EDITED);
+    _gridNav.setEditing(true);
+}
+
+void QuickPingOverlay::commitDropdownEdit(_lv_obj_t *dropdown)
+{
+    if (!isEditableDropdown(dropdown))
+        return;
+    lv_dropdown_close(dropdown);
+    lv_obj_clear_state(dropdown, LV_STATE_EDITED);
+    _editing_dropdown = nullptr;
+    _edit_state = EditState::Browse;
+    _gridNav.setEditing(false);
+    activateDropdown(dropdown);
+}
+
+void QuickPingOverlay::cancelDropdownEdit(_lv_obj_t *dropdown)
+{
+    if (!isEditableDropdown(dropdown))
+        return;
+    _syncing_dropdowns = true;
+    lv_dropdown_set_selected(dropdown, _editing_original_index);
+    _syncing_dropdowns = false;
+    lv_dropdown_close(dropdown);
+    lv_obj_clear_state(dropdown, LV_STATE_EDITED);
+    _editing_dropdown = nullptr;
+    _edit_state = EditState::Browse;
+    _gridNav.setEditing(false);
+}
+
 void QuickPingOverlay::clearRepeatSelection()
 {
     (void)lv_async_call_cancel(finishRepeatSelectionAsync, this);
@@ -1980,6 +2084,22 @@ void QuickPingOverlay::onDropdownConfirmPreprocess(lv_event_t *e)
         if (!self)
             return;
         _lv_obj_t *dropdown = lv_event_get_target(e);
+
+        if (key == LV_KEY_ENTER && self->isEditableDropdown(dropdown))
+        {
+            if (!lv_dropdown_is_open(dropdown))
+            {
+                self->beginDropdownEdit(dropdown);
+                lv_dropdown_open(dropdown);
+            }
+            else if (self->_edit_state == EditState::Edit)
+            {
+                self->commitDropdownEdit(dropdown);
+            }
+            lv_event_stop_bubbling(e);
+            lv_event_stop_processing(e);
+            return;
+        }
 
         if (dropdown == self->_dd_recipient && self->targetKind() == TargetKind::Personal &&
             lv_dropdown_is_open(dropdown))
